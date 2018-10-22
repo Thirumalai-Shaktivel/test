@@ -7,6 +7,8 @@ from pygments.lexers import FortranLexer
 from prompt_toolkit import PromptSession, print_formatted_text, HTML
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.shortcuts import print_container
+from prompt_toolkit.widgets import Frame, TextArea, Box
 
 import llvmlite.binding as llvm
 
@@ -24,14 +26,18 @@ def print_stage(text):
     print()
 
 def handle_input(engine, evaluator, source):
-    print_bold("Input:")
-    print(source)
+    print_container(
+        Box(Frame(
+            TextArea(text=source +'\n'),
+            title='Stage: Input',
+        )))
 
-
-    print_stage("Parse")
     evaluator.parse(source)
-    print_bold("Parse AST:")
-    print(dump(evaluator.ast_tree0))
+    print_container(
+        Box(Frame(
+            TextArea(text=dump(evaluator.ast_tree0) +'\n'),
+            title='Stage: Parse',
+        )))
 
     print_stage("Semantic Analysis")
     evaluator.semantic_analysis()
