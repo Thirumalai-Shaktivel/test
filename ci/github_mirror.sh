@@ -3,13 +3,6 @@
 set -e
 set -x
 
-if [[ $CI_COMMIT_REF_NAME != "master" ]]; then
-    echo "Not on master, skipping mirroring"
-    exit 0
-else
-    echo "On master, mirroring to GitHub"
-fi
-
 mkdir ~/.ssh
 chmod 700 ~/.ssh
 ssh-keyscan github.com >> ~/.ssh/known_hosts
