@@ -31,4 +31,5 @@ set -x
 
 pwd
 git show-ref
-git push git@github.com:lfortran/lfortran.git +master:master --tags
+git remote -v
+git push git@github.com:lfortran/lfortran.git +origin/master:master --tags
