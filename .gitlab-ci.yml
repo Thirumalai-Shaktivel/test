@@ -6,6 +6,7 @@ stages:
 
 before_script:
   - ci/version.sh
+  - echo "OK"
   - lfortran_version=$(<version)
 
 prepare tarball:
