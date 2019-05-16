@@ -63,7 +63,6 @@ full:
   image: registry.gitlab.com/lfortran/ci-images:full-1.4.0
   script:
     - export PATH="$HOME/conda_root/bin:$PATH"
-    - conda install -c conda-forge scikit-build
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
     - pip install .
@@ -86,9 +85,8 @@ documentation:
   stage: build
   image: registry.gitlab.com/lfortran/ci-images:documentation-1.4.0
   script:
-    - sudo apk add --no-cache cmake make
+    - sudo apk add --no-cache cmake
     - sudo sh -c 'echo "manylinux1_compatible = True" > /usr/lib/python3.6/site-packages/_manylinux.py'
-    - sudo pip install scikit-build
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
     - sudo pip install .
@@ -120,8 +118,7 @@ minimal:
   image: registry.gitlab.com/lfortran/ci-images:minimal-1.4.0
   script:
     - export PATH="$HOME/conda_root/bin:$PATH"
-    - conda install cmake make
-    - conda install -c conda-forge scikit-build
+    - conda install cmake
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
     - pip install .
@@ -140,7 +137,6 @@ jupyter:
   image: registry.gitlab.com/lfortran/ci-images:jupyter-1.4.0
   script:
     - export PATH="$HOME/conda_root/bin:$PATH"
-    - conda install -c conda-forge scikit-build
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
     - pip install .

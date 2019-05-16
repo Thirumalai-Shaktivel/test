@@ -25,10 +25,7 @@ call conda info -a
 call :check
 call conda update -q conda
 call :check
-call conda install python=3.7 pytest llvmlite prompt_toolkit cmake
-call :check
-pip install antlr4-python3-runtime scikit-build
-call :check
+call conda install python=3.7 cmake
 
 cd grammar
 call :check
