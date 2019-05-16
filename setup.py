@@ -34,6 +34,10 @@ skbuild.setup(
         "prompt_toolkit",
         "cmake",
         "antlr4-python3-runtime",
+        "pygments",
+        "scikit-build",
+    ],
+    setup_requires=[
         "scikit-build",
     ],
 )
