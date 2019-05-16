@@ -89,6 +89,7 @@ documentation:
     - sudo sh -c 'echo "manylinux1_compatible = True" > /usr/lib/python3.6/site-packages/_manylinux.py'
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
+    - sudo pip install ninja
     - sudo pip install .
     - cd ..
     - rm -r lfortran lfortran-${lfortran_version}
