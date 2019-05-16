@@ -4,4 +4,5 @@ requires = [
     "wheel",
     "scikit-build",
     #"cmake",
+    "ninja",
 ]
