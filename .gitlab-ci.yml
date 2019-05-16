@@ -87,6 +87,7 @@ documentation:
   image: registry.gitlab.com/lfortran/ci-images:documentation-1.4.0
   script:
     - sudo apk add --no-cache cmake make
+    - sudo sh -c 'echo "manylinux1_compatible = True" > /usr/lib/python3.6/site-packages/_manylinux.py'
     - sudo pip install scikit-build
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
