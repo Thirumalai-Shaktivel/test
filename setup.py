@@ -33,7 +33,6 @@ skbuild.setup(
         "llvmlite",
         "prompt_toolkit",
         "cmake",
-        "make",
         "antlr4-python3-runtime",
         "scikit-build",
     ],
