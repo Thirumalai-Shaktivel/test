@@ -26,6 +26,7 @@ call :check
 call conda update -q conda
 call :check
 call conda install python=3.7 cmake
+call :check
 
 cd grammar
 call :check
