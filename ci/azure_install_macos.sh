@@ -18,7 +18,9 @@ cd ..
 ci/version.sh
 lfortran_version=$(<version)
 
+pip install scikit-build
 python setup.py sdist
+pip uninstall -y scikit-build
 tar xzf dist/lfortran-${lfortran_version}.tar.gz
 cd lfortran-${lfortran_version}
 pip install -v .
