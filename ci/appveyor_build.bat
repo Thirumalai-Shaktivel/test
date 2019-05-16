@@ -39,7 +39,7 @@ pip install scikit-build
 call :check
 python setup.py sdist
 call :check
-pip uninstall scikit-build
+pip uninstall -y scikit-build
 call :check
 tar xzf dist/lfortran-%lfortran_version%.tar.gz
 call :check
