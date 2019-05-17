@@ -5,7 +5,7 @@ set -ex
 conda config --set always_yes yes --set changeps1 no
 conda info -a
 conda update -q conda
-conda install python=3.7 cmake
+conda install python=3.7
 
 python grammar/asdl_py.py
 python grammar/asdl_py.py grammar/ASR.asdl lfortran/asr/asr.py ..ast.utils
