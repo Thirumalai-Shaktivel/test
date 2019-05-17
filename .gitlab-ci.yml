@@ -89,7 +89,7 @@ documentation:
     - pip install nbconvert mkdocs
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
-    - sudo pip install .
+    - pip install .
     - cd ..
     - rm -r lfortran lfortran-${lfortran_version}
     - cd doc
