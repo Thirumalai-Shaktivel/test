@@ -86,8 +86,10 @@ documentation:
   image: registry.gitlab.com/lfortran/ci-images:documentation-1.4.0
   script:
     - sudo apk add --no-cache cmake make
+    - sudo pip install scikit-build
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
+    - rm pyproject.toml
     - sudo pip install .
     - cd ..
     - rm -r lfortran lfortran-${lfortran_version}
