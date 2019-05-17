@@ -85,6 +85,7 @@ documentation:
   stage: build
   image: registry.gitlab.com/lfortran/ci-images:jupyter-1.4.0
   script:
+    - export PATH="$HOME/conda_root/bin:$PATH"
     - pip install nbconvert mkdocs
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
