@@ -86,7 +86,7 @@ documentation:
   image: registry.gitlab.com/lfortran/ci-images:documentation-1.4.0
   script:
     - pip install nbconvert mkdocs
-    - sudo apk add python3 python3-dev cmake make g++ openssl-dev
+    - sudo apk add python3 python3-dev cmake make g++ openssl-dev llvm-dev
     - sudo pip install scikit-build
     - export CXXFLAGS="-D_BSD_SOURCE"
     - pip wheel ninja
