@@ -86,6 +86,11 @@ documentation:
   image: registry.gitlab.com/lfortran/ci-images:documentation-1.4.0
   script:
     - pip install nbconvert mkdocs
+    - sudo apk add python3 python3-dev cmake make g++
+    - sudo pip install scikit-build
+    - export CXXFLAGS="-D_BSD_SOURCE"
+    - pip wheel ninja
+    - sudo pip install ./ninja-*.whl
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
     - pip install .
