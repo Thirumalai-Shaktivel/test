@@ -89,7 +89,7 @@ documentation:
     - sudo apk add python3 python3-dev cmake make g++ openssl-dev
     - sudo bash -c "echo 'http://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories"
     - sudo apk add llvm7-dev
-    - sudo pip install scikit-build
+    - sudo pip install scikit-build pytest
     - export CXXFLAGS="-D_BSD_SOURCE"
     - pip wheel ninja
     - sudo pip install ./ninja-*.whl
@@ -99,6 +99,7 @@ documentation:
     - sudo pip install ./lfortran-*.whl
     - cd ..
     - rm -r lfortran lfortran-${lfortran_version}
+    - pytest --pyargs lfortran
     - cd doc
     - python convert_nb.py
     - mkdocs build -s
