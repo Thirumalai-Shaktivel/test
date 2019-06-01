@@ -95,7 +95,8 @@ documentation:
     - sudo pip install ./ninja-*.whl
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
-    - sudo pip install .
+    - pip wheel .
+    - sudo pip install ./lfortran-*.whl
     - cd ..
     - rm -r lfortran lfortran-${lfortran_version}
     - cd doc
