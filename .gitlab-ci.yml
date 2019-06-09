@@ -83,16 +83,8 @@ full:
 # Build and upload documentation
 documentation:
   stage: build
-  image: registry.gitlab.com/lfortran/ci-images:documentation-1.4.0
+  image: registry.gitlab.com/lfortran/ci-images/ci-test:documentation-c815770
   script:
-    - pip install nbconvert mkdocs
-    - sudo apk add python3 python3-dev cmake make g++ openssl-dev
-    - sudo bash -c "echo 'http://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories"
-    - sudo apk add llvm7-dev
-    - sudo pip install scikit-build pytest
-    - export CXXFLAGS="-D_BSD_SOURCE"
-    - pip wheel ninja
-    - sudo pip install ./ninja-*.whl
     - tar xzf dist/lfortran-${lfortran_version}.tar.gz
     - cd lfortran-${lfortran_version}
     - pip wheel .
