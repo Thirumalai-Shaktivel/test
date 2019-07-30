@@ -11,6 +11,7 @@ r = 0
 a = 1.1_dp
 b = 1.2_dp
 if (b-a > 0.2_dp) r = 1
+if (abs(b-a) > 0.2_dp) r = 1
 """)
     assert e.evaluate("r") == 0
 
