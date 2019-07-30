@@ -10,6 +10,7 @@ integer :: i, r
 r = 0
 a = 1.1_dp
 b = 1.2_dp
+print *, r
 if (b-a > 0.2_dp) r = 1
 """)
     print(e._source_ll)
