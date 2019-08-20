@@ -19,7 +19,7 @@ TEST_CASE("Check pickle()") {
 
     CHECK(P("2*x")   == "(BinOp Mul 2 x)");
     CHECK(P("(2*x)") == "(BinOp Mul 2 x)");
-    CHECK(P("3*x**y") == "(BinOp Mul 3 (BinOp Pow x y))");
+    CHECK(P("3*x**y") == "(BinOp Mul 3 (BinOp Pow z y))");
     CHECK(P("x = 2*y") == "(Assignment x (BinOp Mul 2 y))");
 }
 
