@@ -3532,6 +3532,7 @@ yyaddDeferredAction (yyGLRStack* yystackp, size_t yyk, yyGLRState* yystate,
   yySemanticOption* yynewOption =
     &yynewGLRStackItem (yystackp, yyfalse)->yyoption;
   YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i2\n"));
+  ///////////////////////// vvvvvvvv hang on Windows
   YYASSERT (!yynewOption->yyisState);
   YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i3\n"));
   yynewOption->yystate = yyrhs;
