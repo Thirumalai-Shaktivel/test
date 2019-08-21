@@ -9,14 +9,12 @@
 // Uncomment this to get verbose error messages
 //%define parse.error verbose
 
-/*
 // Uncomment this to enable parser tracing. Then in the main code, set
 // extern int yydebug;
 // yydebug=1;
 %define parse.trace
-%printer { fprintf(yyo, "%s", $$.c_str()); } <string>
+%printer { fprintf(yyo, "%s", std::string($$.p, $$.n).c_str()); } <string>
 %printer { std::cerr << "AST TYPE: " << $$->type; } <ast>
-*/
 
 
 %code requires // *.h
