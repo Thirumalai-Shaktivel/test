@@ -25,8 +25,6 @@
 %code // *.cpp
 {
 
-#define union struct
-
 #define YYASSERT(Condition) LFORTRAN_ASSERT(Condition)
 
 #include <lfortran/parser/parser.h>

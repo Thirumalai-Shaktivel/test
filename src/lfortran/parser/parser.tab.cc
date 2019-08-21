@@ -89,8 +89,6 @@ static YYLTYPE yyloc_default
 #line 26 "parser.yy" /* glr.c:264  */
 
 
-#define union struct
-
 #define YYASSERT(Condition) LFORTRAN_ASSERT(Condition)
 
 #include <lfortran/parser/parser.h>
