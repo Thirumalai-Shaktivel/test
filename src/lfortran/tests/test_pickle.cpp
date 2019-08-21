@@ -213,3 +213,14 @@ TEST_CASE("Multiple units") {
     CHECK(LFortran::pickle(*results[2]) == "(Assignment y (BinOp Add z 1))");
     CHECK(LFortran::pickle(*results[3]) == "a");
 }
+
+TEST_CASE("if") {
+    Allocator al(4*1024);
+
+    CHECK(P(R"(subroutine g
+    if (x) then
+        a = 5
+        b = 4
+    end if
+    end subroutine)")   == "(Subroutine 1 (If x (Assignment a 5)(Assignment b 4)))");
+}
