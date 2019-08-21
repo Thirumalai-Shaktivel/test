@@ -40,8 +40,6 @@ cd src\lfortran\parser
 call :check
 re2c -W -b tokenizer.re -o tokenizer.cpp
 call :check
-bison -Wall -d parser.yy
-call :check
 cd ..\..\..
 call :check
 set lfortran_version=0.0+git
