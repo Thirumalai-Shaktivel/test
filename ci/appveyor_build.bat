@@ -63,7 +63,7 @@ cmake ..
 call :check
 cmake --build .
 call :check
-ctest --output-on-failure
+ctest -V
 call :check
 cd ..
 
