@@ -25,8 +25,6 @@
 %code // *.cpp
 {
 
-#define YYASSERT(Condition) LFORTRAN_ASSERT(Condition)
-
 #include <lfortran/parser/parser.h>
 #include <lfortran/parser/tokenizer.h>
 #include <lfortran/parser/semantics.h>
