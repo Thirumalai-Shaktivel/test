@@ -3528,11 +3528,16 @@ static void
 yyaddDeferredAction (yyGLRStack* yystackp, size_t yyk, yyGLRState* yystate,
                      yyGLRState* yyrhs, yyRuleNum yyrule)
 {
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i1\n"));
   yySemanticOption* yynewOption =
     &yynewGLRStackItem (yystackp, yyfalse)->yyoption;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i2\n"));
   YYASSERT (!yynewOption->yyisState);
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i3\n"));
   yynewOption->yystate = yyrhs;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i4\n"));
   yynewOption->yyrule = yyrule;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i5\n"));
   if (yystackp->yytops.yylookaheadNeeds[yyk])
     {
       yynewOption->yyrawchar = yychar;
@@ -3541,10 +3546,14 @@ yyaddDeferredAction (yyGLRStack* yystackp, size_t yyk, yyGLRState* yystate,
     }
   else
     yynewOption->yyrawchar = YYEMPTY;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i6\n"));
   yynewOption->yynext = yystate->yysemantics.yyfirstVal;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i7\n"));
   yystate->yysemantics.yyfirstVal = yynewOption;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i8\n"));
 
   YY_RESERVE_GLRSTACK (yystackp);
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i9\n"));
 }
 
                                 /* GLRStacks */
