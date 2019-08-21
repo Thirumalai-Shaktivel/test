@@ -3765,18 +3765,28 @@ static inline void
 yyglrShiftDefer (yyGLRStack* yystackp, size_t yyk, yyStateNum yylrState,
                  size_t yyposn, yyGLRState* yyrhs, yyRuleNum yyrule)
 {
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3a\n"));
   yyGLRState* yynewState = &yynewGLRStackItem (yystackp, yytrue)->yystate;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3b\n"));
   YYASSERT (yynewState->yyisState);
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3c\n"));
 
   yynewState->yylrState = yylrState;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3d\n"));
   yynewState->yyposn = yyposn;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3e\n"));
   yynewState->yyresolved = yyfalse;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3f\n"));
   yynewState->yypred = yystackp->yytops.yystates[yyk];
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3g\n"));
   yynewState->yysemantics.yyfirstVal = YY_NULLPTR;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3h\n"));
   yystackp->yytops.yystates[yyk] = yynewState;
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3i\n"));
 
   /* Invokes YY_RESERVE_GLRSTACK.  */
   yyaddDeferredAction (yystackp, yyk, yynewState, yyrhs, yyrule);
+  YYDPRINTF ((stderr, "-----------------------------------DEBUG 3j\n"));
 }
 
 #if !YYDEBUG
