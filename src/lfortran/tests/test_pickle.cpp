@@ -214,7 +214,10 @@ TEST_CASE("Multiple units") {
     CHECK(LFortran::pickle(*results[3]) == "a");
 }
 
+extern int yydebug;
+
 TEST_CASE("if") {
+    yydebug=1;
     Allocator al(4*1024);
 
     CHECK(P(R"(subroutine g
