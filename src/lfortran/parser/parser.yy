@@ -5,7 +5,7 @@
 %locations
 %glr-parser
 %expect-rr 9
-%expect 4
+%expect 22
 
 // Uncomment this to get verbose error messages
 //%define parse.error verbose
@@ -278,7 +278,7 @@ script_unit
 
 
 program
-    : KW_PROGRAM id sep var_decl_star statements sep KW_END KW_PROGRAM id_opt {
+    : KW_PROGRAM id sep var_decl_star statements KW_END KW_PROGRAM id_opt {
             $$ = PROGRAM($2, $4, $5, @$); }
     ;
 
@@ -289,12 +289,12 @@ id_opt
     ;
 
 subroutine
-    : KW_SUBROUTINE id sep var_decl_star statements sep KW_END KW_SUBROUTINE {
+    : KW_SUBROUTINE id sep var_decl_star statements KW_END KW_SUBROUTINE {
             $$ = SUBROUTINE($2, $4, $5, @$); }
     ;
 
 function
-    : KW_FUNCTION id sep var_decl_star statements sep KW_END KW_FUNCTION {
+    : KW_FUNCTION id sep var_decl_star statements KW_END KW_FUNCTION {
             $$ = FUNCTION($2, $4, $5, @$); }
     ;
 
@@ -325,8 +325,8 @@ var_sym_decl
 // Control flow
 
 statements
-    : statements sep statement { $$ = $1; LIST_ADD($$, $3); }
-    | statement { LIST_NEW($$); LIST_ADD($$, $1); }
+    : statements statement sep { $$ = $1; LIST_ADD($$, $2); }
+    | %empty { LIST_NEW($$); }
     ;
 
 sep
@@ -359,25 +359,25 @@ if_statement
     ;
 
 if_block
-    : KW_IF '(' expr ')' KW_THEN sep statements sep {
+    : KW_IF '(' expr ')' KW_THEN sep statements {
             $$ = IF1($3, $7, @$); }
-    | KW_IF '(' expr ')' KW_THEN sep statements sep KW_ELSE sep statements sep {
-            $$ = IF2($3, $7, $11, @$); }
-    | KW_IF '(' expr ')' KW_THEN sep statements sep KW_ELSE if_block {
-            $$ = IF3($3, $7, $10, @$); }
+    | KW_IF '(' expr ')' KW_THEN sep statements KW_ELSE sep statements {
+            $$ = IF2($3, $7, $10, @$); }
+    | KW_IF '(' expr ')' KW_THEN sep statements KW_ELSE if_block {
+            $$ = IF3($3, $7, $9, @$); }
     ;
 
 while_statement
-    : KW_DO KW_WHILE '(' expr ')' sep statements sep enddo {
+    : KW_DO KW_WHILE '(' expr ')' sep statements enddo {
             $$ = WHILE($4, $7, @$); }
 
 // sr-conflict (2x): "KW_DO sep" being either a do_statement or an expr
 do_statement
-    : KW_DO sep statements sep enddo {
+    : KW_DO sep statements enddo {
             $$ = DO1($3, @$); }
-    | KW_DO id '=' expr ',' expr sep statements sep enddo {
+    | KW_DO id '=' expr ',' expr sep statements enddo {
             $$ = DO2($2, $4, $6, $8, @$); }
-    | KW_DO id '=' expr ',' expr ',' expr sep statements sep enddo {
+    | KW_DO id '=' expr ',' expr ',' expr sep statements enddo {
             $$ = DO3($2, $4, $6, $8, $10, @$); }
     ;
 

@@ -418,6 +418,10 @@ TEST_CASE("while") {
 
     CHECK(P(
  R"(do while (x)
+    end do)") == "(while x [])");
+
+    CHECK(P(
+ R"(do while (x)
         a = 5
     enddo)") == "(while x [(= a 5)])");
 
