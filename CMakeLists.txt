@@ -41,7 +41,7 @@ if (WITH_LLVM)
     find_package(LLVM REQUIRED)
     message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
     message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-    llvm_map_components_to_libnames(llvm_libs asmparser core executionengine instcombine mcjit native nativecodegen scalaropts vectorize support transformutils)
+    llvm_map_components_to_libnames(llvm_libs all)
 
     add_library(p::llvm INTERFACE IMPORTED)
     set_property(TARGET p::llvm PROPERTY INTERFACE_INCLUDE_DIRECTORIES
