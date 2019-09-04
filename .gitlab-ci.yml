@@ -102,6 +102,7 @@ build.xsh:
   image: registry.gitlab.com/lfortran/ci-images:full2-1.7.0
   script:
     - export PATH="$HOME/conda_root/bin:$PATH"
+    - conda install llvmdev
     - xonsh ci/build.xsh
 
 # Build and upload documentation

@@ -51,7 +51,7 @@ cd lfortran-$lfortran_version
 
 mkdir test-bld
 cd test-bld
-cmake ..
+cmake -DWITH_LLVM=yes ..
 cmake --build .
 ctest --output-on-failure
 cd ..
