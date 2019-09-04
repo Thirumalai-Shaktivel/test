@@ -46,8 +46,10 @@ if (WITH_LLVM)
     add_library(p::llvm INTERFACE IMPORTED)
     set_property(TARGET p::llvm PROPERTY INTERFACE_INCLUDE_DIRECTORIES
         ${LLVM_INCLUDE_DIRS})
-    set_property(TARGET p::llvm PROPERTY INTERFACE_COMPILE_DEFINITIONS
-        ${LLVM_DEFINITIONS})
+    #set_property(TARGET p::llvm PROPERTY INTERFACE_COMPILE_DEFINITIONS
+    #    ${LLVM_DEFINITIONS})
+    #set_property(TARGET p::llvm PROPERTY INTERFACE_COMPILE_OPTIONS
+    #    ${LLVM_DEFINITIONS})
     set_property(TARGET p::llvm PROPERTY INTERFACE_LINK_LIBRARIES
         ${llvm_libs})
 endif()
