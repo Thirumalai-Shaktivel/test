@@ -55,7 +55,7 @@ cd lfortran-$lfortran_version
 mkdir test-bld
 cd test-bld
 cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DWITH_LLVM=yes -DCMAKE_PREFIX_PATH=$CONDA_PREFIX ..
-cmake --build . -- -v:diag
+cmake --build .
 ctest --output-on-failure
 cd ..
 
