@@ -38,7 +38,7 @@ set(WITH_LFORTRAN_ASSERT ${WITH_LFORTRAN_ASSERT_DEFAULT}
 # LLVM
 set(WITH_LLVM no CACHE BOOL "Build with LLVM support")
 if (WITH_LLVM)
-    set(LFORTRAN_LLVM_COMPONENTS core support)
+    set(LFORTRAN_LLVM_COMPONENTS core support mcjit native)
     find_package(LLVM REQUIRED)
     message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
     message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -86,6 +86,7 @@ else ()
 endif ()
 message("Installation prefix: ${CMAKE_INSTALL_PREFIX}")
 message("WITH_LFORTRAN_ASSERT: ${WITH_LFORTRAN_ASSERT}")
+message("WITH_LLVM: ${WITH_LLVM}")
 message("WITH_JSON: ${WITH_JSON}")
 message("WITH_PYTHON: ${WITH_PYTHON}")
 
