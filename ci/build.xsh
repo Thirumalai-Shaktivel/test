@@ -56,6 +56,7 @@ mkdir test-bld
 cd test-bld
 cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DWITH_LLVM=yes -DCMAKE_PREFIX_PATH=$CONDA_PREFIX ..
 cmake --build .
+./src/lfortran/tests/test_llvm
 ctest --output-on-failure
 cd ..
 
