@@ -55,7 +55,7 @@ mkdir test-bld
 cd test-bld
 cmake -DWITH_LLVM=yes -DCMAKE_PREFIX_PATH=$CONDA_PREFIX ..
 cmake --build .
-ctest --output-on-failure -- VERBOSE=1
+ctest --output-on-failure
 cd ..
 
 pip install -v .
