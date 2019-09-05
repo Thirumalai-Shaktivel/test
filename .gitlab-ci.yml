@@ -105,6 +105,8 @@ build.xsh:
     - export PATH="$HOME/conda_root/bin:$PATH"
     - conda install -c conda-forge llvmdev zlib libedit
     - export LFORTRAN_CMAKE_GENERATOR="Unix Makefiles"
+    - export LFORTRAN_BUILD_CONFIG=
+    - export LFORTRAN_WIN_PATH=
     - xonsh ci/build.xsh
 
 # Build and upload documentation
