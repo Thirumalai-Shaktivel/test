@@ -38,8 +38,8 @@ set(WITH_LFORTRAN_ASSERT ${WITH_LFORTRAN_ASSERT_DEFAULT}
 # LLVM
 set(WITH_LLVM no CACHE BOOL "Build with LLVM support")
 if (WITH_LLVM)
-    set(LFORTRAN_LLVM_COMPONENTS asmparser core executionengine instcombine mcjit native nativecodegen scalaropts vectorize support transformutils x86info)
-    find_package(LLVM REQUIRED ${LFORTRAN_LLVM_COMPONENTS})
+    set(LFORTRAN_LLVM_COMPONENTS core support)
+    find_package(LLVM REQUIRED)
     message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
     message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
     llvm_map_components_to_libnames(llvm_libs ${LFORTRAN_LLVM_COMPONENTS})
