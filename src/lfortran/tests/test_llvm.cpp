@@ -41,8 +41,12 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <iostream>
 
 int main() {
+    std::cout << "LLVM Version:" << std::endl;
+    llvm::cl::PrintVersionMessage();
+
     /*
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
