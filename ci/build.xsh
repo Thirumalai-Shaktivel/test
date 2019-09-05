@@ -55,7 +55,7 @@ cd lfortran-$lfortran_version
 mkdir test-bld
 cd test-bld
 cmake -G $LFORTRAN_CMAKE_GENERATOR -DCMAKE_VERBOSE_MAKEFILE=ON -DWITH_LLVM=yes -DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_BUILD_TYPE=Release ..
-if $WIN:
+if $WIN == "1":
     cmake --build . --config Release
     ./src/lfortran/tests/Release/test_llvm
 else:
