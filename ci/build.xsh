@@ -54,8 +54,8 @@ cd lfortran-$lfortran_version
 
 mkdir test-bld
 cd test-bld
-cmake -G "Visual Studio 14 2015 Win64" -DCMAKE_VERBOSE_MAKEFILE=ON -DWITH_LLVM=yes -DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_BUILD_TYPE=Debug ..
-cmake --build .
+cmake -G "Visual Studio 14 2015 Win64" -DCMAKE_VERBOSE_MAKEFILE=ON -DWITH_LLVM=yes -DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . --config Release
 ./src/lfortran/tests/test_llvm
 ctest --output-on-failure
 cd ..
