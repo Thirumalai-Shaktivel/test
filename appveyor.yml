@@ -2,6 +2,9 @@ image: Visual Studio 2017
 # List of preinstalled software in the image:
 # https://www.appveyor.com/docs/windows-images-software/
 
+platform:
+    - x64
+
 build_script:
 - set CONDA_INSTALL_LOCN=C:\\Miniconda37-x64
 - call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
