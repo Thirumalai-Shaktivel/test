@@ -43,9 +43,11 @@
 #include <vector>
 
 int main() {
+    /*
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
+    */
     auto context = std::make_shared<llvm::LLVMContext>();
     std::unique_ptr<llvm::Module> module
         = llvm::make_unique<llvm::Module>("SymEngine", *context.get());
