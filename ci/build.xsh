@@ -24,6 +24,7 @@ $RAISE_SUBPROC_ERROR = True
 trace on
 
 echo "CONDA_PREFIX=$CONDA_PREFIX"
+llvm-config --components
 
 # Generate a Fortran AST from AST.asdl (Python)
 python grammar/asdl_py.py
