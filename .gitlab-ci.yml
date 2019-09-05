@@ -103,7 +103,7 @@ build.xsh:
   script:
     - export CONDA_PREFIX="$HOME/conda_root"
     - export PATH="$HOME/conda_root/bin:$PATH"
-    - conda install llvmdev zlib libedit
+    - conda install -c conda-forge llvmdev zlib libedit
     - xonsh ci/build.xsh
 
 # Build and upload documentation
