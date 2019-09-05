@@ -54,7 +54,7 @@ cd lfortran-$lfortran_version
 
 mkdir test-bld
 cd test-bld
-cmake -G Ninja -DCMAKE_VERBOSE_MAKEFILE=ON -DWITH_LLVM=yes -DCMAKE_PREFIX_PATH=$CONDA_PREFIX ..
+cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DWITH_LLVM=yes -DCMAKE_PREFIX_PATH=$CONDA_PREFIX ..
 cmake --build .
 ctest --output-on-failure
 cd ..
