@@ -23,6 +23,8 @@
 $RAISE_SUBPROC_ERROR = True
 trace on
 
+echo "CONDA_PREFIX=$CONDA_PREFIX"
+
 # Generate a Fortran AST from AST.asdl (Python)
 python grammar/asdl_py.py
 # Generate a Fortran AST from AST.asdl (C++)
@@ -51,7 +53,7 @@ cd lfortran-$lfortran_version
 
 mkdir test-bld
 cd test-bld
-cmake -DWITH_LLVM=yes ..
+cmake -DWITH_LLVM=yes -DCMAKE_PREFIX_PATH=$CONDA_PREFIX ..
 cmake --build .
 ctest --output-on-failure
 cd ..
