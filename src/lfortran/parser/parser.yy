@@ -603,9 +603,9 @@ associate_statement
     ;
 
 subroutine_call
-    : KW_CALL id "(" fnarray_arg_list_opt ")" { $$ = CALL($2, @$); }
+    : KW_CALL id "(" fnarray_arg_list_opt ")" { $$ = CALL($2, $4, @$); }
     | KW_CALL struct_member_star id "(" fnarray_arg_list_opt ")" {
-            $$ = CALL($3, @$); }
+            $$ = CALL($3, $5, @$); }
     ;
 
 print_statement

@@ -199,9 +199,9 @@ static inline arg_t* ARGS(Allocator &al, const YYSTYPE::VecAST args)
 #define STRING(x, l) make_Str_t(p.m_a, l, x.c_str(p.m_a))
 #define ASSIGNMENT(x, y, l) make_Assignment_t(p.m_a, l, EXPR(x), EXPR(y))
 #define ASSOCIATE(x, y, l) make_Associate_t(p.m_a, l, EXPR(x), EXPR(y))
-#define CALL(x, l) make_SubroutineCall_t(p.m_a, l, \
+#define CALL(x, args, l) make_SubroutineCall_t(p.m_a, l, \
         name2char(x), \
-        nullptr, 0)
+        EXPRS(args), args.size())
 
 #define PRINT0(l) make_Print_t(p.m_a, l, nullptr, nullptr, 0)
 #define PRINT(args, l) make_Print_t(p.m_a, l, nullptr, EXPRS(args), args.size())
