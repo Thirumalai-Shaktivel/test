@@ -368,10 +368,22 @@ static inline arg_t* ARGS(Allocator &al, const YYSTYPE::VecAST args)
         /*args*/ ATTR_ARG(p.m_a, b), \
         /*n_args*/ 1)
 
-#define FUNCCALLORARRAY(id, l) make_FuncCallOrArray_t(p.m_a, l, \
+#define FUNCCALLORARRAY(id, args, l) make_FuncCallOrArray_t(p.m_a, l, \
         /*char* a_func*/ name2char(id), \
-        /*expr_t** a_args*/ nullptr, /*size_t n_args*/ 0, \
+        /*expr_t** a_args*/ EXPRS(args), args.size(), \
         /*keyword_t* a_keywords*/ nullptr, /*size_t n_keywords*/ 0)
+
+ast_t * FNARG1(Allocator &al, dimension_t arg, Location &l) {
+    ast_t *e = (ast_t*)arg.m_end;
+    if (e == nullptr) {
+        LFortran::Str s;
+        s.from_string(al, "X");
+        e = make_Name_t(al, l, s.c_str(al));
+    }
+    return e;
+}
+
+#define FNARG(arg, l) FNARG1(p.m_a, arg, l)
 
 #define SELECT(cond, body, def, l) make_Select_t(p.m_a, l, \
         EXPR(cond), \

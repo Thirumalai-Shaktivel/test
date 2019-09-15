@@ -278,6 +278,9 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <vec_ast> var_modifiers
 %type <vec_ast> var_modifier_list
 %type <ast> var_modifier
+%type <ast> fnarray_arg
+%type <vec_ast> fnarray_arg_list
+%type <vec_ast> fnarray_arg_list_opt
 %type <ast> statement
 %type <ast> assignment_statement
 %type <ast> associate_statement
@@ -742,9 +745,9 @@ expr
 // ### primary
     : id { $$ = $1; }
     | struct_member_star id { $$ = $2; }
-    | id "(" fnarray_arg_list_opt ")" { $$ = FUNCCALLORARRAY($1, @$); }
+    | id "(" fnarray_arg_list_opt ")" { $$ = FUNCCALLORARRAY($1, $3, @$); }
     | struct_member_star id "(" fnarray_arg_list_opt ")" {
-            $$ = FUNCCALLORARRAY($2, @$); }
+            $$ = FUNCCALLORARRAY($2, $4, @$); }
     | "[" expr_list "]" { $$ = ARRAY_IN($2, @$); }
     | TK_INTEGER { $$ = INTEGER($1, @$); }
     | TK_REAL { $$ = REAL($1, @$); }
@@ -794,17 +797,17 @@ struct_member
 
 fnarray_arg_list_opt
     : fnarray_arg_list
-    | %empty
+    | %empty { LIST_NEW($$); }
     ;
 
 fnarray_arg_list
-    : fnarray_arg_list "," fnarray_arg
-    | fnarray_arg
+    : fnarray_arg_list "," fnarray_arg { $$ = $1; LIST_ADD($$, $3); }
+    | fnarray_arg { LIST_NEW($$); LIST_ADD($$, $1); }
     ;
 
 fnarray_arg
-    : array_comp_decl
-    | id "=" expr
+    : array_comp_decl { $$ = FNARG($1, @$); }
+    | id "=" expr { $$ = $3; }
     ;
 
 id_list_opt

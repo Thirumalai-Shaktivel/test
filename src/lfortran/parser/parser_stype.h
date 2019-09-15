@@ -52,6 +52,11 @@ struct Str {
     size_t size() const {
         return n;
     }
+    void from_string(Allocator &al, const std::string &s) {
+        n = s.size();
+        p = al.allocate<char>(n);
+        std::memcpy(p, s.c_str(), sizeof(char) * n);
+    }
 };
 
 union YYSTYPE {
