@@ -76,7 +76,7 @@ expr
     | UnaryOp(unaryop op, expr operand)
     | Compare(expr left, cmpop op, expr right)
     | FuncCall(identifier func, expr* args, keyword* keywords)
-    | FuncCallOrArray(identifier func, expr* args, keyword* keywords)
+    | FuncCallOrArray(identifier func, array_index* args, keyword* keywords)
     | Array(identifier name, array_index* args)
     | ArrayInitializer(expr* args)
     | Num(object n)

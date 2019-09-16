@@ -687,7 +687,7 @@ public:
         r.append(x.m_func);
         r.append("(");
         for (size_t i=0; i<x.n_args; i++) {
-            this->visit_expr(*x.m_args[i]);
+            this->visit_array_index(*x.m_args[i]);
             r.append(s);
             if (i < x.n_args-1) s.append(", ");
         }

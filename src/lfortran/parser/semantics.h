@@ -25,6 +25,7 @@ using LFortran::AST::cmpopType;
 using LFortran::AST::stmtType;
 
 using LFortran::AST::ast_t;
+using LFortran::AST::array_index_t;
 using LFortran::AST::attribute_t;
 using LFortran::AST::attribute_arg_t;
 using LFortran::AST::arg_t;
@@ -40,6 +41,7 @@ using LFortran::AST::Assignment_t;
 using LFortran::AST::Name_t;
 using LFortran::AST::Num_t;
 
+using LFortran::AST::make_ArrayIndex_t;
 using LFortran::AST::make_BinOp_t;
 using LFortran::AST::make_Attribute_t;
 using LFortran::AST::make_Constant_t;
@@ -93,6 +95,7 @@ static inline T** vec_cast(const YYSTYPE::VecAST &x) {
 #define EXPRS(x) VEC_CAST(x, expr)
 #define CASE_STMTS(x) VEC_CAST(x, case_stmt)
 #define USE_SYMBOLS(x) VEC_CAST(x, use_symbol)
+#define ARRAY_INDICES(x) VEC_CAST(x, array_index)
 
 static inline stmt_t** IFSTMTS(Allocator &al, ast_t* x)
 {
@@ -370,20 +373,25 @@ static inline arg_t* ARGS(Allocator &al, const YYSTYPE::VecAST args)
 
 #define FUNCCALLORARRAY(id, args, l) make_FuncCallOrArray_t(p.m_a, l, \
         /*char* a_func*/ name2char(id), \
-        /*expr_t** a_args*/ EXPRS(args), args.size(), \
+        /*array_index_t** a_args*/ ARRAY_INDICES(args), args.size(), \
         /*keyword_t* a_keywords*/ nullptr, /*size_t n_keywords*/ 0)
 
 ast_t * FNARG1(Allocator &al, dimension_t arg, Location &l) {
-    ast_t *e = (ast_t*)arg.m_end;
-    if (e == nullptr) {
-        LFortran::Str s;
-        s.from_string(al, "X");
-        e = make_Name_t(al, l, s.c_str(al));
-    }
+    // Note: dimension_t is not enough to store indexing of the type
+    // 1:N:2, we have to rework the type of the Bison node
+    ast_t *e = make_ArrayIndex_t(al, l,
+            arg.m_start, arg.m_end, nullptr);
+    return e;
+}
+
+ast_t * FNARG2(Allocator &al, expr_t *id, expr_t *arg, Location &l) {
+    ast_t *e = make_ArrayIndex_t(al, l,
+            nullptr, arg, nullptr);
     return e;
 }
 
 #define FNARG(arg, l) FNARG1(p.m_a, arg, l)
+#define FNARG2(id, arg, l) FNARG2(p.m_a, EXPR(id), EXPR(arg), l)
 
 #define SELECT(cond, body, def, l) make_Select_t(p.m_a, l, \
         EXPR(cond), \

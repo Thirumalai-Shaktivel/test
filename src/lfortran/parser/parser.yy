@@ -807,7 +807,7 @@ fnarray_arg_list
 
 fnarray_arg
     : array_comp_decl { $$ = FNARG($1, @$); }
-    | id "=" expr { $$ = $3; }
+    | id "=" expr { $$ = FNARG2($1, $3, @$); }
     ;
 
 id_list_opt
