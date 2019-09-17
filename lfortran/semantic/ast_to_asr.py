@@ -9,7 +9,7 @@ from ..ast import ast
 from ..asr import asr
 from ..asr.builder import (make_translation_unit,
     translation_unit_make_module, scope_add_function, make_type_integer,
-    make_type_real, type_eq, make_binop, scope_add_symbol)
+    make_type_real, type_eq, make_binop, scope_add_symbol, wrap, unwrap)
 
 from .analyze import TypeMismatch
 
@@ -137,7 +137,7 @@ class BodyVisitor(ast.ASTVisitor):
         with self.add_scope(self._unit.global_scope):
             items = []
             for item in node.items:
-                a = self.visit(item)
+                a = self.visit(unwrap(item))
                 if a:
                     items.append(a)
             self._unit.items = items
@@ -193,9 +193,9 @@ def wrap_ast_translation_unit(astree):
     # need to be updated).
     assert not isinstance(astree, ast.TranslationUnit)
     if isinstance(astree, list):
-        items = astree
+        items = [wrap(x) for x in astree]
     else:
-        items = [astree]
+        items = [wrap(astree)]
     return ast.TranslationUnit(items=items)
 
 def ast_to_asr(astree):

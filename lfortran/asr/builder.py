@@ -123,3 +123,28 @@ def make_binop(left, op, right):
         raise TypeMismatch("Type mismatch")
     # TODO: add explicit type casting nodes here
     return asr.BinOp(left=left, op=op, right=right, type=type)
+
+def wrap(x):
+    from ..ast import ast
+    if isinstance(x, list):
+        return [wrap(e) for e in x]
+    elif isinstance(x, ast.mod):
+        return ast.Wmod(m=x)
+    elif isinstance(x, ast.program_unit):
+        return ast.Wprogram_unit(x)
+    elif isinstance(x, ast.unit_decl1):
+        return ast.Wunit_decl1(x)
+    elif isinstance(x, ast.unit_decl2):
+        return ast.Wunit_decl2(x)
+    elif isinstance(x, ast.stmt):
+        return ast.Wstmt(x)
+    elif isinstance(x, ast.expr):
+        return ast.Wexpr(x)
+    else:
+        raise Exception("Unsupported type for 'line'")
+
+def unwrap(x):
+    if isinstance(x, list):
+        return [unwrap(e) for e in x]
+    else:
+        return x.m

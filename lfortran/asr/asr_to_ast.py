@@ -1,6 +1,7 @@
 from ..ast import ast
 from . import asr
 from ..semantic import kinds
+from .builder import wrap
 
 class ASR2ASTVisitor(asr.ASTVisitor):
 
@@ -24,7 +25,7 @@ class ASR2ASTVisitor(asr.ASTVisitor):
                 items.append(self.visit(sym))
         for item in node.items:
             items.append(self.visit(item))
-        return ast.TranslationUnit(items=decl+items)
+        return ast.TranslationUnit(items=wrap(decl+items))
 
         for s in node.symtab.symbols:
             sym = node.symtab.symbols[s]

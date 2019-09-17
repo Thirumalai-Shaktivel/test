@@ -1,4 +1,5 @@
 from . import ast
+from ..asr.builder import unwrap
 
 class FortranPrinterVisitor(ast.ASTVisitor):
 
@@ -18,7 +19,7 @@ class FortranPrinterVisitor(ast.ASTVisitor):
     def visit_TranslationUnit(self, node):
         # TODO: Separate modules by 2 lines, functions by 1 line
         # and statements/expressions by 0 lines.
-        return self.visit_sequence(node.items)
+        return self.visit_sequence(unwrap(node.items))
 
     def visit_Module(self, node):
         use = self.visit_sequence(node.use)

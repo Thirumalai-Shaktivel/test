@@ -23,7 +23,15 @@
 module AST {
 
 unit
-    = TranslationUnit(object* items)
+    = TranslationUnit(line* items)
+
+line
+    = Wmod(mod m)
+    | Wprogram_unit(program_unit m)
+    | Wunit_decl1(unit_decl1 m)
+    | Wunit_decl2(unit_decl2 m)
+    | Wstmt(stmt m)
+    | Wexpr(expr m)
 
 mod
     = Module(identifier name, unit_decl1* use, unit_decl2* decl,
