@@ -40,6 +40,7 @@ using LFortran::AST::unit_decl2_t;
 using LFortran::AST::Assignment_t;
 using LFortran::AST::Name_t;
 using LFortran::AST::Num_t;
+using LFortran::AST::ArrayIndex_t;
 
 using LFortran::AST::make_ArrayIndex_t;
 using LFortran::AST::make_BinOp_t;
@@ -162,6 +163,18 @@ static inline arg_t* ARGS(Allocator &al, const YYSTYPE::VecAST args)
     return a;
 }
 
+static inline expr_t** SUBARGS(Allocator &al, const YYSTYPE::VecAST args)
+{
+    expr_t **e = al.allocate<expr_t*>(args.size());
+    for (size_t i=0; i < args.size(); i++) {
+        LFORTRAN_ASSERT(args.p[i]->type == astType::array_index);
+        array_index_t *t = (array_index_t*) (args.p[i]);
+        ArrayIndex_t *t2 = (ArrayIndex_t*) t;
+        e[i] = t2->m_right;
+    }
+    return e;
+}
+
 
 #define TYPE ast_t*
 
@@ -204,7 +217,7 @@ static inline arg_t* ARGS(Allocator &al, const YYSTYPE::VecAST args)
 #define ASSOCIATE(x, y, l) make_Associate_t(p.m_a, l, EXPR(x), EXPR(y))
 #define CALL(x, args, l) make_SubroutineCall_t(p.m_a, l, \
         name2char(x), \
-        EXPRS(args), args.size())
+        SUBARGS(p.m_a, args), args.size())
 
 #define PRINT0(l) make_Print_t(p.m_a, l, nullptr, nullptr, 0)
 #define PRINT(args, l) make_Print_t(p.m_a, l, nullptr, EXPRS(args), args.size())
