@@ -1371,7 +1371,6 @@ end function)",
     std::vector<std::string> o;
     for (std::string &s: v) {
         INFO(s);
-        std::cout << "INFO: " << s << std::endl;
         o.push_back(P(s));
     }
     {
