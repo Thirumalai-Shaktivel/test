@@ -17,6 +17,7 @@
 using LFortran::Location;
 
 using LFortran::AST::astType;
+using LFortran::AST::array_indexType;
 using LFortran::AST::exprType;
 using LFortran::AST::operatorType;
 using LFortran::AST::unaryopType;
@@ -169,6 +170,7 @@ static inline expr_t** SUBARGS(Allocator &al, const YYSTYPE::VecAST args)
     for (size_t i=0; i < args.size(); i++) {
         LFORTRAN_ASSERT(args.p[i]->type == astType::array_index);
         array_index_t *t = (array_index_t*) (args.p[i]);
+        LFORTRAN_ASSERT(t->type == array_indexType::ArrayIndex);
         ArrayIndex_t *t2 = (ArrayIndex_t*) t;
         e[i] = t2->m_right;
     }
