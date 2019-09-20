@@ -79,6 +79,11 @@ public:
         : LFortranException(msg, LFORTRAN_PARSER_ERROR), loc{loc}, token{token}
     {
     }
+
+    ParserError(const std::string &msg)
+        : LFortranException(msg, LFORTRAN_PARSER_ERROR), loc{loc}, token{token}
+    {
+    }
 };
 
 class CodeGenError : public LFortranException

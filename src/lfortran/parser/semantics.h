@@ -172,6 +172,9 @@ static inline expr_t** SUBARGS(Allocator &al, const YYSTYPE::VecAST args)
         array_index_t *t = (array_index_t*) (args.p[i]);
         LFORTRAN_ASSERT(t->type == array_indexType::ArrayIndex);
         ArrayIndex_t *t2 = (ArrayIndex_t*) t;
+        if (t2->m_right == nullptr) {
+            throw LFortran::ParserError("Incorrect subroutine argument");
+        }
         e[i] = t2->m_right;
     }
     return e;
