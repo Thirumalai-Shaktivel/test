@@ -238,6 +238,13 @@ TEST_CASE("return") {
 
 }
 
+TEST_CASE("call") {
+    Allocator al(4*1024);
+
+    CHECK_THROWS_AS(P("call random_number(1:)"),
+                LFortran::ParserError);
+}
+
 TEST_CASE("declaration") {
     Allocator al(1024*1024);
 
