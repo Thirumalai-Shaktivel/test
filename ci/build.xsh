@@ -20,6 +20,7 @@
 #   cannot find the script, it will return success, making the CI tests
 #   "succeed" (https://github.com/xonsh/xonsh/issues/3292)
 
+date
 $RAISE_SUBPROC_ERROR = True
 trace on
 
@@ -75,4 +76,6 @@ from shutil import rmtree
 rmtree("lfortran")
 rmtree("dist")
 ls
+date
 pytest --pyargs lfortran
+date
