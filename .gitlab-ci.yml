@@ -248,6 +248,13 @@ cxx_binary_min_tests:
     - cd ..
     - ./run_tests.py --no-llvm
 
+build.xsh Windows:
+  stage: build
+  tags:
+    - windows
+  script:
+    - echo "running scripts in the test job"
+
 # Test the multiplatform build script
 build.xsh:
   stage: build
