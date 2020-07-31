@@ -70,7 +70,17 @@ set(LFORTRAN_STATIC_BIN no CACHE BOOL "Build LFortran as a static binary")
 # LLVM
 set(WITH_LLVM no CACHE BOOL "Build with LLVM support")
 if (WITH_LLVM)
-    set(LFORTRAN_LLVM_COMPONENTS core support mcjit orcjit native asmparser asmprinter)
+    set(LFORTRAN_LLVM_COMPONENTS core support mcjit orcjit native asmparser
+        asmprinter lto option target AArch64CodeGen AMDGPUCodeGen ARMCodeGen
+        AVRCodeGen BPFCodeGen CodeGen HexagonCodeGen LanaiCodeGen MipsCodeGen
+        MSP430CodeGen NVPTXCodeGen PowerPCCodeGen RISCVCodeGen SparcCodeGen
+        SystemZCodeGen WebAssemblyCodeGen X86CodeGen XCoreCodeGen
+        AArch64AsmParser AMDGPUAsmParser ARMAsmParser AsmParser AVRAsmParser
+        BPFAsmParser HexagonAsmParser LanaiAsmParser MipsAsmParser
+        MSP430AsmParser PowerPCAsmParser RISCVAsmParser SparcAsmParser
+        SystemZAsmParser WebAssemblyAsmParser X86AsmParser)
+
+
     find_package(LLVM REQUIRED)
     message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
     message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -89,6 +99,19 @@ if (WITH_LLVM)
     set_property(TARGET p::llvm PROPERTY INTERFACE_LINK_LIBRARIES
         ${llvm_libs})
     set(HAVE_LFORTRAN_LLVM yes)
+
+    find_path(LLD_INCLUDE_DIR lld/Common/Driver.h HINTS ${LLVM_INCLUDE_DIR})
+    find_library(LLD_LIBRARY lldELF HINTS ${LLVM_LIBRARY_DIR})
+    find_library(LLD_LIBRARY2 lldCommon HINTS ${LLVM_LIBRARY_DIR})
+    message(STATUS "LLD_INCLUDE_DIR: ${LLD_INCLUDE_DIR}")
+    message(STATUS "LLD_LIBRARY: ${LLD_LIBRARY}")
+    add_library(p::lld INTERFACE IMPORTED)
+    set_property(TARGET p::lld PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+        ${LLD_INCLUDE_DIRS})
+    set_property(TARGET p::lld PROPERTY INTERFACE_COMPILE_OPTIONS
+        $<$<COMPILE_LANGUAGE:CXX>:${LFORTRAN_CXX_NO_RTTI_FLAG}>)
+    set_property(TARGET p::lld PROPERTY INTERFACE_LINK_LIBRARIES
+        ${LLD_LIBRARY} ${LLD_LIBRARY2})
 endif()
 
 # JSON

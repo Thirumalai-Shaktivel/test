@@ -40,7 +40,7 @@ if (WITH_STACKTRACE)
     target_link_libraries(lfortran_lib p::bfd p::link p::execinfo)
 endif()
 if (WITH_LLVM)
-    target_link_libraries(lfortran_lib p::llvm)
+    target_link_libraries(lfortran_lib p::lld p::llvm)
 endif()
 #install(TARGETS lfortran_lib
 #    RUNTIME DESTINATION bin
