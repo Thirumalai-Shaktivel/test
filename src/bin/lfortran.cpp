@@ -9,6 +9,7 @@
 #include <lfortran/semantics/ast_to_asr.h>
 #include <lfortran/codegen/asr_to_llvm.h>
 #include <lfortran/codegen/evaluator.h>
+#include <lfortran/codegen/linker.h>
 #include <lfortran/config.h>
 
 void section(const std::string &s)
@@ -295,6 +296,8 @@ int emit_object_file(const std::string &infile, const std::string &outfile)
 
     // LLVM -> Machine code (saves to an object file)
     e.save_object_file(*(m->m_m), outfile);
+
+    LFortran::lld_main();
 
     return 0;
 }
