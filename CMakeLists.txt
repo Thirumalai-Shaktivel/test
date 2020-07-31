@@ -71,11 +71,11 @@ set(LFORTRAN_STATIC_BIN no CACHE BOOL "Build LFortran as a static binary")
 set(WITH_LLVM no CACHE BOOL "Build with LLVM support")
 if (WITH_LLVM)
     set(LFORTRAN_LLVM_COMPONENTS core support mcjit orcjit native asmparser
-        asmprinter lto option target AArch64CodeGen AMDGPUCodeGen ARMCodeGen
-        AVRCodeGen BPFCodeGen CodeGen HexagonCodeGen LanaiCodeGen MipsCodeGen
+        asmprinter lto option AArch64CodeGen AMDGPUCodeGen ARMCodeGen
+        AVRCodeGen BPFCodeGen HexagonCodeGen LanaiCodeGen MipsCodeGen
         MSP430CodeGen NVPTXCodeGen PowerPCCodeGen RISCVCodeGen SparcCodeGen
         SystemZCodeGen WebAssemblyCodeGen X86CodeGen XCoreCodeGen
-        AArch64AsmParser AMDGPUAsmParser ARMAsmParser AsmParser AVRAsmParser
+        AArch64AsmParser AMDGPUAsmParser ARMAsmParser AVRAsmParser
         BPFAsmParser HexagonAsmParser LanaiAsmParser MipsAsmParser
         MSP430AsmParser PowerPCAsmParser RISCVAsmParser SparcAsmParser
         SystemZAsmParser WebAssemblyAsmParser X86AsmParser)
