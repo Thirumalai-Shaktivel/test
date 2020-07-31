@@ -27,6 +27,7 @@ if (WITH_LLVM)
     set(SRC ${SRC}
         codegen/evaluator.cpp
         codegen/asr_to_llvm.cpp
+        codegen/linker.cpp
     )
 endif()
 add_library(lfortran_lib ${SRC})
