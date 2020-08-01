@@ -86,14 +86,17 @@ if (WITH_LLVM)
     if (WITH_LLD)
         # LLD requires these extra components to be present in LLVM:
         set(LFORTRAN_LLVM_COMPONENTS ${LFORTRAN_LLVM_COMPONENTS}
-            lto option AArch64CodeGen AMDGPUCodeGen ARMCodeGen AVRCodeGen
-            BPFCodeGen HexagonCodeGen LanaiCodeGen MipsCodeGen MSP430CodeGen
-            NVPTXCodeGen PowerPCCodeGen RISCVCodeGen SparcCodeGen SystemZCodeGen
-            WebAssemblyCodeGen X86CodeGen XCoreCodeGen AArch64AsmParser
-            AMDGPUAsmParser ARMAsmParser AVRAsmParser BPFAsmParser
-            HexagonAsmParser LanaiAsmParser MipsAsmParser MSP430AsmParser
-            PowerPCAsmParser RISCVAsmParser SparcAsmParser SystemZAsmParser
-            WebAssemblyAsmParser X86AsmParser)
+            lto option)
+        foreach(c ${LLVM_TARGETS_TO_BUILD})
+            if (TARGET LLVM${c}CodeGen)
+                set(LFORTRAN_LLVM_COMPONENTS ${LFORTRAN_LLVM_COMPONENTS}
+                    ${c}CodeGen)
+            endif()
+            if (TARGET LLVM${c}AsmParser)
+                set(LFORTRAN_LLVM_COMPONENTS ${LFORTRAN_LLVM_COMPONENTS}
+                    ${c}AsmParser)
+            endif()
+        endforeach()
     endif()
     llvm_map_components_to_libnames(llvm_libs ${LFORTRAN_LLVM_COMPONENTS})
     unset(LFORTRAN_LLVM_COMPONENTS)
