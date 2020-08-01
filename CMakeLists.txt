@@ -69,38 +69,48 @@ set(LFORTRAN_STATIC_BIN no CACHE BOOL "Build LFortran as a static binary")
 
 # LLVM
 set(WITH_LLVM no CACHE BOOL "Build with LLVM support")
+
+# LLD
+set(WITH_LLD no CACHE BOOL "Build with LLD support (implies LLVM support)")
+if (WITH_LLD)
+    set(WITH_LLVM yes)
+endif()
+
 if (WITH_LLVM)
-    set(LFORTRAN_LLVM_COMPONENTS core support mcjit orcjit native asmparser
-        asmprinter lto option AArch64CodeGen AMDGPUCodeGen ARMCodeGen
-        AVRCodeGen BPFCodeGen HexagonCodeGen LanaiCodeGen MipsCodeGen
-        MSP430CodeGen NVPTXCodeGen PowerPCCodeGen RISCVCodeGen SparcCodeGen
-        SystemZCodeGen WebAssemblyCodeGen X86CodeGen XCoreCodeGen
-        AArch64AsmParser AMDGPUAsmParser ARMAsmParser AVRAsmParser
-        BPFAsmParser HexagonAsmParser LanaiAsmParser MipsAsmParser
-        MSP430AsmParser PowerPCAsmParser RISCVAsmParser SparcAsmParser
-        SystemZAsmParser WebAssemblyAsmParser X86AsmParser)
-
-
     find_package(LLVM REQUIRED)
     message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
     message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+    set(LFORTRAN_LLVM_COMPONENTS core support mcjit orcjit native asmparser
+        asmprinter)
+    if (WITH_LLD)
+        # LLD requires these extra components to be present in LLVM:
+        set(LFORTRAN_LLVM_COMPONENTS ${LFORTRAN_LLVM_COMPONENTS}
+            lto option AArch64CodeGen AMDGPUCodeGen ARMCodeGen AVRCodeGen
+            BPFCodeGen HexagonCodeGen LanaiCodeGen MipsCodeGen MSP430CodeGen
+            NVPTXCodeGen PowerPCCodeGen RISCVCodeGen SparcCodeGen SystemZCodeGen
+            WebAssemblyCodeGen X86CodeGen XCoreCodeGen AArch64AsmParser
+            AMDGPUAsmParser ARMAsmParser AVRAsmParser BPFAsmParser
+            HexagonAsmParser LanaiAsmParser MipsAsmParser MSP430AsmParser
+            PowerPCAsmParser RISCVAsmParser SparcAsmParser SystemZAsmParser
+            WebAssemblyAsmParser X86AsmParser)
+    endif()
     llvm_map_components_to_libnames(llvm_libs ${LFORTRAN_LLVM_COMPONENTS})
     unset(LFORTRAN_LLVM_COMPONENTS)
 
     add_library(p::llvm INTERFACE IMPORTED)
     set_property(TARGET p::llvm PROPERTY INTERFACE_INCLUDE_DIRECTORIES
         ${LLVM_INCLUDE_DIRS})
-    #set_property(TARGET p::llvm PROPERTY INTERFACE_COMPILE_DEFINITIONS
-    #    ${LLVM_DEFINITIONS})
-    #set_property(TARGET p::llvm PROPERTY INTERFACE_COMPILE_OPTIONS
-    #    ${LLVM_DEFINITIONS})
     set_property(TARGET p::llvm PROPERTY INTERFACE_COMPILE_OPTIONS
         $<$<COMPILE_LANGUAGE:CXX>:${LFORTRAN_CXX_NO_RTTI_FLAG}>)
     set_property(TARGET p::llvm PROPERTY INTERFACE_LINK_LIBRARIES
         ${llvm_libs})
     set(HAVE_LFORTRAN_LLVM yes)
 
-    find_package(LLD REQUIRED)
+    if (WITH_LLD)
+        find_package(LLD REQUIRED)
+        set(HAVE_LFORTRAN_LLD yes)
+    endif()
 endif()
 
 # JSON
@@ -162,6 +172,7 @@ message("LFORTRAN_STATIC_BIN: ${LFORTRAN_STATIC_BIN}")
 message("WITH_STACKTRACE: ${WITH_STACKTRACE}")
 message("HAVE_LFORTRAN_DEMANGLE: ${HAVE_LFORTRAN_DEMANGLE}")
 message("WITH_LLVM: ${WITH_LLVM}")
+message("WITH_LLD: ${WITH_LLD}")
 message("WITH_JSON: ${WITH_JSON}")
 message("WITH_PYTHON: ${WITH_PYTHON}")
 

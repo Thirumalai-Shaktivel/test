@@ -27,8 +27,12 @@ if (WITH_LLVM)
     set(SRC ${SRC}
         codegen/evaluator.cpp
         codegen/asr_to_llvm.cpp
-        codegen/linker.cpp
     )
+    if (WITH_LLD)
+        set(SRC ${SRC}
+            codegen/linker.cpp
+        )
+    endif()
 endif()
 add_library(lfortran_lib ${SRC})
 target_include_directories(lfortran_lib BEFORE PUBLIC ${lfortran_SOURCE_DIR}/src)
@@ -40,7 +44,10 @@ if (WITH_STACKTRACE)
     target_link_libraries(lfortran_lib p::bfd p::link p::execinfo)
 endif()
 if (WITH_LLVM)
-    target_link_libraries(lfortran_lib p::lld)
+    if (WITH_LLD)
+        target_link_libraries(lfortran_lib p::lld)
+    endif()
+    target_link_libraries(lfortran_lib p::llvm)
 endif()
 #install(TARGETS lfortran_lib
 #    RUNTIME DESTINATION bin

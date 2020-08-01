@@ -297,7 +297,9 @@ int emit_object_file(const std::string &infile, const std::string &outfile)
     // LLVM -> Machine code (saves to an object file)
     e.save_object_file(*(m->m_m), outfile);
 
+#if defined(HAVE_LFORTRAN_LLD)
     LFortran::lld_main();
+#endif
 
     return 0;
 }
