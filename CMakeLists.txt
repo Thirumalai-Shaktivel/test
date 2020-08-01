@@ -100,18 +100,7 @@ if (WITH_LLVM)
         ${llvm_libs})
     set(HAVE_LFORTRAN_LLVM yes)
 
-    find_path(LLD_INCLUDE_DIR lld/Common/Driver.h HINTS ${LLVM_INCLUDE_DIR})
-    find_library(LLD_LIBRARY lldELF HINTS ${LLVM_LIBRARY_DIR})
-    find_library(LLD_LIBRARY2 lldCommon HINTS ${LLVM_LIBRARY_DIR})
-    message(STATUS "LLD_INCLUDE_DIR: ${LLD_INCLUDE_DIR}")
-    message(STATUS "LLD_LIBRARY: ${LLD_LIBRARY}")
-    add_library(p::lld INTERFACE IMPORTED)
-    set_property(TARGET p::lld PROPERTY INTERFACE_INCLUDE_DIRECTORIES
-        ${LLD_INCLUDE_DIRS})
-    set_property(TARGET p::lld PROPERTY INTERFACE_COMPILE_OPTIONS
-        $<$<COMPILE_LANGUAGE:CXX>:${LFORTRAN_CXX_NO_RTTI_FLAG}>)
-    set_property(TARGET p::lld PROPERTY INTERFACE_LINK_LIBRARIES
-        ${LLD_LIBRARY} ${LLD_LIBRARY2})
+    find_package(LLD REQUIRED)
 endif()
 
 # JSON
