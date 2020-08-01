@@ -119,6 +119,28 @@ cxx_binary:
       - lfortran-*/lfortran-*-Linux.tar.bz2
     when: always
 
+# Test LLVM and LLD
+cxx_binary_tests:
+  stage: build
+  image: registry.gitlab.com/lfortran/ci-images:full2-1.7.0
+  script:
+    - export CONDA_PREFIX="$HOME/conda_root"
+    - export PATH="$HOME/conda_root/bin:$PATH"
+    - conda install -c conda-forge toml lld=9.0.1 llvmdev=9.0.1
+    - tar xzf dist/lfortran-${lfortran_version}.tar.gz
+    - cd lfortran-${lfortran_version}
+    - cmake
+         -DCMAKE_BUILD_TYPE=Debug
+         -DWITH_LLVM=yes
+         -DWITH_LLD=yes
+         .
+    - make
+    - ctest --output-on-failure
+    - cp src/bin/lfortran ../src/bin/
+    - cp src/bin/cpptranslate ../src/bin/
+    - cd ..
+    - ./run_tests.py
+
 # Test LFortran without the LLVM backend
 cxx_binary_min:
   stage: build
