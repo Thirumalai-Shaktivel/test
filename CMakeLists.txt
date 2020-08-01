@@ -109,7 +109,9 @@ if (WITH_LLVM)
         $<$<COMPILE_LANGUAGE:CXX>:${LFORTRAN_CXX_NO_RTTI_FLAG}>)
     set_property(TARGET p::llvm PROPERTY INTERFACE_LINK_LIBRARIES
         ${llvm_libs})
-    target_link_libraries(p::llvm INTERFACE ZLIB::ZLIB)
+    set_target_properties(LLVMSupport PROPERTIES
+        INTERFACE_LINK_LIBRARIES "ZLIB::ZLIB;rt;dl;tinfo;-lpthread;m;LLVMDemangle"
+    )
     set(HAVE_LFORTRAN_LLVM yes)
 
     if (WITH_LLD)
