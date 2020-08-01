@@ -78,6 +78,8 @@ endif()
 
 if (WITH_LLVM)
     find_package(ZLIB REQUIRED)
+    add_library(z INTERFACE IMPORTED)
+    target_link_libraries(z INTERFACE ZLIB::ZLIB)
     find_package(LLVM REQUIRED)
     message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
     message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -109,9 +111,6 @@ if (WITH_LLVM)
         $<$<COMPILE_LANGUAGE:CXX>:${LFORTRAN_CXX_NO_RTTI_FLAG}>)
     set_property(TARGET p::llvm PROPERTY INTERFACE_LINK_LIBRARIES
         ${llvm_libs})
-    set_target_properties(LLVMSupport PROPERTIES
-        INTERFACE_LINK_LIBRARIES "ZLIB::ZLIB;rt;dl;tinfo;-lpthread;m;LLVMDemangle"
-    )
     set(HAVE_LFORTRAN_LLVM yes)
 
     if (WITH_LLD)
