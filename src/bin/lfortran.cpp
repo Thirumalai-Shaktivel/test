@@ -42,6 +42,12 @@ std::string read_file(const std::string &filename)
 #ifdef HAVE_LFORTRAN_LLVM
 int prompt()
 {
+#if defined(HAVE_LFORTRAN_LLD)
+    // prompt() is not executed when HAVE_LFORTRAN_LLD is defined at the CI.
+    // This is here to force linking in LLD to ensure it works.
+    LFortran::lld_main();
+#endif
+
     std::cout << "Interactive Fortran. Experimental prototype, not ready for end users." << std::endl;
     std::cout << "  * Use Ctrl-D to exit" << std::endl;
     std::cout << "  * Use Enter to submit" << std::endl;
@@ -296,10 +302,6 @@ int emit_object_file(const std::string &infile, const std::string &outfile)
 
     // LLVM -> Machine code (saves to an object file)
     e.save_object_file(*(m->m_m), outfile);
-
-#if defined(HAVE_LFORTRAN_LLD)
-    LFortran::lld_main();
-#endif
 
     return 0;
 }
