@@ -545,6 +545,8 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
         self.emit("private:")
         self.emit("    Derived& self() { return static_cast<Derived&>(*this); }")
         self.emit("public:")
+        mod_name = mod.name.lower()
+        self.emit("    %s_t *result;" % mod_name)
         super(ASTTransformVisitorVisitor, self).visitModule(mod)
         self.emit("};")
 
