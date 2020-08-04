@@ -606,7 +606,7 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                 print("// Builtin type: %s, name: %s" % (field.type, field.name))
                 raise Exception("Built-in type not supported")
         elif (field.type in self.data.simple_types):
-            self.emit("// Simple type: %s, name: %s" % (field.type, field.name), 2)
+            self.emit("%sType m_%s = x.m_%s;" % (field.type, field.name, field.name), 2)
         else:
             if field.seq:
                 assert not field.opt
