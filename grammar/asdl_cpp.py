@@ -638,15 +638,10 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                 self.emit("    m_%s = nullptr;" % (field.name), 2)
                 self.emit("}", 2)
             else:
-                if field.type in products:
-                    self.emit("%s_t m_%s;" % (field.type, field.name), 2)
-                    self.emit("self().visit_%s(x.m_%s);" % (field.type, field.name), 2)
-                    # FIXME: we must keep the new struct somewhere as a value
-                    self.emit("// m_%s = *result;" % (field.name), 2)
-                else:
-                    self.emit("%s_t *m_%s;" % (field.type, field.name), 2)
-                    self.emit("self().visit_%s(*x.m_%s);" % (field.type, field.name), 2)
-                    self.emit("m_%s = result;" % (field.name), 2)
+                assert field.type not in products
+                self.emit("%s_t *m_%s;" % (field.type, field.name), 2)
+                self.emit("self().visit_%s(*x.m_%s);" % (field.type, field.name), 2)
+                self.emit("m_%s = result;" % (field.name), 2)
 
 
 
