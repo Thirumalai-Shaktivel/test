@@ -544,9 +544,10 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
         self.emit("{")
         self.emit("private:")
         self.emit("    Derived& self() { return static_cast<Derived&>(*this); }")
+        self.emit("    Allocator &al;", 2)
         self.emit("public:")
-        mod_name = mod.name.lower()
-        self.emit("    %s_t *result;" % mod_name)
+        self.mod_name = mod.name.lower()
+        self.emit("    %s_t *result;" % self.mod_name)
         super(ASTTransformVisitorVisitor, self).visitModule(mod)
         self.emit("};")
 
@@ -569,25 +570,54 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
         self.emit("}", 1)
 
     def visitField(self, field):
-        if (field.type not in asdl.builtin_types and
-            field.type not in self.data.simple_types):
-            level = 2
-            if field.type in products:
-                template = "self().visit_%s(x.m_%s);" % (field.type, field.name)
-            else:
-                template = "self().visit_%s(*x.m_%s);" % (field.type, field.name)
-            if field.seq:
-                self.emit("for (size_t i=0; i<x.n_%s; i++) {" % field.name, level)
-                if field.type in products:
-                    self.emit("    self().visit_%s(x.m_%s[i]);" % (field.type, field.name), level)
+        if (field.type in asdl.builtin_types):
+            if field.type in ["identifier", "string"]:
+                if field.seq:
+                    self.emit("char **m_%s = x.m_%s;" % (field.name, field.name), 2)
                 else:
-                    self.emit("    self().visit_%s(*x.m_%s[i]);" % (field.type, field.name), level)
-                self.emit("}", level)
-                return
-            elif field.opt and field.type not in products:
-                self.emit("if (x.m_%s)" % field.name, 2)
-                level = 3
-            self.emit(template, level)
+                    self.emit("char *m_%s = x.m_%s;" % (field.name, field.name), 2)
+            elif field.type == "node":
+                if field.seq:
+                    self.emit("// Seq not implemented:", 2)
+                    self.emit("// Builtin type: %s, name: %s" % (field.type, field.name), 2)
+                else:
+                    self.emit("%s_t *m_%s = x.m_%s;" % (self.mod_name, field.name, field.name), 2)
+            else:
+                self.emit("// Builtin type: %s, name: %s" % (field.type, field.name), 2)
+        elif (field.type in self.data.simple_types):
+            self.emit("// Simple type: %s, name: %s" % (field.type, field.name), 2)
+        else:
+            if field.seq:
+                assert not field.opt
+                #Vec<ASR::stmt_t*> body;
+                #body.reserve(al, x.n_body);
+                self.emit("LFortran::Vec<%s::%s_t*> m_%s;" % (self.mod_name.upper(), field.type, field.name), 2)
+                self.emit("m_%s.reserve(al, x.n_%s);" % (field.name, field.name), 2)
+                self.emit("for (size_t i=0; i<x.n_%s; i++) {" % field.name, 2)
+                if field.type in products:
+                    self.emit("    self().visit_%s(x.m_%s[i]);" % (field.type, field.name), 2)
+                else:
+                    self.emit("    self().visit_%s(*x.m_%s[i]);" % (field.type, field.name), 2)
+                    #body.push_back(al, STMT(tmp));
+
+                self.emit("}", 2)
+            elif field.opt:
+                self.emit("%s_t *m_%s;" % (field.type, field.name), 2)
+                self.emit("if (x.m_%s) {" % field.name, 2)
+                if field.type in products:
+                    # FIXME: This is a mistake, even products should have a '*' here:
+                    self.emit("    self().visit_%s(x.m_%s);" % (field.type, field.name), 2)
+                else:
+                    self.emit("    self().visit_%s(*x.m_%s);" % (field.type, field.name), 2)
+                self.emit("    m_%s = result;" % (field.name), 2)
+                self.emit("} else {", 2)
+                self.emit("    m_%s = nullptr;" % (field.name), 2)
+                self.emit("}", 2)
+            else:
+                if field.type in products:
+                    self.emit("self().visit_%s(x.m_%s);" % (field.type, field.name), 2)
+                else:
+                    self.emit("self().visit_%s(*x.m_%s);" % (field.type, field.name), 2)
 
 
 
@@ -649,6 +679,7 @@ HEAD = r"""#ifndef LFORTRAN_%(MOD)s_H
 #include <lfortran/colors.h>
 #include <lfortran/exception.h>
 #include <lfortran/semantics/asr_scopes.h>
+#include <lfortran/containers.h>
 
 
 namespace LFortran::%(MOD)s {
