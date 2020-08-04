@@ -596,7 +596,7 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                 assert not field.opt
                 #Vec<ASR::stmt_t*> body;
                 #body.reserve(al, x.n_body);
-                self.emit("LFortran::Vec<%s::%s_t*> m_%s;" % (self.mod_name.upper(), field.type, field.name), 2)
+                self.emit("Vec<%s::%s_t*> m_%s;" % (self.mod_name.upper(), field.type, field.name), 2)
                 self.emit("m_%s.reserve(al, x.n_%s);" % (field.name, field.name), 2)
                 self.emit("for (size_t i=0; i<x.n_%s; i++) {" % field.name, 2)
                 if field.type in products:
