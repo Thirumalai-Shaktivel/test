@@ -591,12 +591,15 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                     self.emit("bool m_%s = x.m_%s;" % (field.name, field.name), 2)
             elif field.type == "node":
                 assert not field.opt
+                assert field.seq
                 # TODO: one must copy using visit below
-                if field.seq:
-                    self.emit("%s_t **m_%s = x.m_%s;" % (self.mod_name, field.name, field.name), 2)
-                    self.emit("int n_%s = x.n_%s;" % (field.name, field.name), 2)
-                else:
-                    self.emit("%s_t *m_%s = x.m_%s;" % (self.mod_name, field.name, field.name), 2)
+                self.emit("Vec<%s_t*> m_%s;" % (self.mod_name, field.name), 2)
+                self.emit("m_%s.reserve(al, x.n_%s);" % (field.name, field.name), 2)
+                self.emit("for (size_t i=0; i<x.n_%s; i++) {" % field.name, 2)
+                self.emit("    self().visit_%s(*x.m_%s[i]);" % (field.type, field.name), 2)
+                self.emit("    m_%s.push_back(al, result);" % (field.name), 2)
+                self.emit("}", 2)
+                self.emit("int n_%s = x.n_%s;" % (field.name, field.name), 2)
             elif field.type == "symbol_table":
                 assert not field.opt
                 assert not field.seq
@@ -619,11 +622,14 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                     self.emit("    self().visit_%s(*x.m_%s[i]);" % (field.type, field.name), 2)
                     self.emit("    m_%s.push_back(al, (%s_t*)result);" % (field.name, field.type), 2)
                 self.emit("}", 2)
+                self.emit("int n_%s = x.n_%s;" % (field.name, field.name), 2)
             elif field.opt:
                 self.emit("%s_t *m_%s;" % (field.type, field.name), 2)
                 self.emit("if (x.m_%s) {" % field.name, 2)
                 if field.type in products:
                     # FIXME: This is a mistake, even products should have a '*' here:
+                    # Then they can be optional. Furthermore, we can then assign
+                    # to them from 'result'.
                     self.emit("    self().visit_%s(x.m_%s);" % (field.type, field.name), 2)
                 else:
                     self.emit("    self().visit_%s(*x.m_%s);" % (field.type, field.name), 2)
