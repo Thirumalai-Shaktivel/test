@@ -635,7 +635,9 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                 if field.type in products:
                     self.emit("self().visit_%s(x.m_%s);" % (field.type, field.name), 2)
                 else:
+                    self.emit("%s_t *m_%s;" % (field.type, field.name), 2)
                     self.emit("self().visit_%s(*x.m_%s);" % (field.type, field.name), 2)
+                    self.emit("m_%s = result;" % (field.name), 2)
 
 
 
