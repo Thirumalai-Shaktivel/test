@@ -584,9 +584,11 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                 else:
                     self.emit("int m_%s = x.m_%s;" % (field.name, field.name), 2)
             elif field.type == "node":
+                assert not field.opt
+                # TODO: one must copy using visit below
                 if field.seq:
-                    self.emit("// Seq not implemented:", 2)
-                    self.emit("// Builtin type: %s, name: %s" % (field.type, field.name), 2)
+                    self.emit("%s_t **m_%s = x.m_%s;" % (self.mod_name, field.name, field.name), 2)
+                    self.emit("int n_%s = x.n_%s;" % (field.name, field.name), 2)
                 else:
                     self.emit("%s_t *m_%s = x.m_%s;" % (self.mod_name, field.name, field.name), 2)
             elif field.type == "symbol_table":
