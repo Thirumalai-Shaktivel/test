@@ -582,6 +582,11 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                     self.emit("// Builtin type: %s, name: %s" % (field.type, field.name), 2)
                 else:
                     self.emit("%s_t *m_%s = x.m_%s;" % (self.mod_name, field.name, field.name), 2)
+            elif field.type == "symbol_table":
+                assert not field.opt
+                assert not field.seq
+                # TODO: this will have to be deepcopied over and reconstructed:
+                self.emit("SymbolTable *m_%s = x.m_%s;" % (field.name, field.name), 2)
             else:
                 self.emit("// Builtin type: %s, name: %s" % (field.type, field.name), 2)
         elif (field.type in self.data.simple_types):
