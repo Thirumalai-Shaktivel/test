@@ -583,6 +583,12 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                     self.emit("int *m_%s = x.m_%s;" % (field.name, field.name), 2)
                 else:
                     self.emit("int m_%s = x.m_%s;" % (field.name, field.name), 2)
+            elif field.type in ["constant"]:
+                assert not field.seq
+                if field.opt:
+                    self.emit("bool *m_%s = x.m_%s;" % (field.name, field.name), 2)
+                else:
+                    self.emit("bool m_%s = x.m_%s;" % (field.name, field.name), 2)
             elif field.type == "node":
                 assert not field.opt
                 # TODO: one must copy using visit below
@@ -597,7 +603,8 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                 # TODO: this will have to be deepcopied over and reconstructed:
                 self.emit("SymbolTable *m_%s = x.m_%s;" % (field.name, field.name), 2)
             else:
-                self.emit("// Builtin type: %s, name: %s" % (field.type, field.name), 2)
+                print("// Builtin type: %s, name: %s" % (field.type, field.name))
+                raise Exception("Built-in type not supported")
         elif (field.type in self.data.simple_types):
             self.emit("// Simple type: %s, name: %s" % (field.type, field.name), 2)
         else:
