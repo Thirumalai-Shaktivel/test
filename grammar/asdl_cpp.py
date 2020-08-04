@@ -630,7 +630,8 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
                     # FIXME: This is a mistake, even products should have a '*' here:
                     # Then they can be optional. Furthermore, we can then assign
                     # to them from 'result'.
-                    self.emit("    self().visit_%s(x.m_%s);" % (field.type, field.name), 2)
+                    # This only happens for ASR::do_loop_head and ASR::case_default
+                    self.emit("    self().visit_%s(x.m_%s); // FIXME!!" % (field.type, field.name), 2)
                 else:
                     self.emit("    self().visit_%s(*x.m_%s);" % (field.type, field.name), 2)
                 self.emit("    m_%s = result;" % (field.name), 2)
