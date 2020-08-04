@@ -533,6 +533,60 @@ class PickleVisitorVisitor(ASDLVisitor):
             else:
                 self.emit('s.append("Unimplemented' + field.type + '");', 2)
 
+class ASTTransformVisitorVisitor(ASDLVisitor):
+
+    def visitModule(self, mod):
+        self.emit("/" + "*"*78 + "/")
+        self.emit("// Transform Visitor base class")
+        self.emit("")
+        self.emit("template <class Derived>")
+        self.emit("class BaseTransformVisitor : public BaseVisitor<Derived>")
+        self.emit("{")
+        self.emit("private:")
+        self.emit("    Derived& self() { return static_cast<Derived&>(*this); }")
+        self.emit("public:")
+        super(ASTTransformVisitorVisitor, self).visitModule(mod)
+        self.emit("};")
+
+    def visitType(self, tp):
+        if not (isinstance(tp.value, asdl.Sum) and
+                is_simple_sum(tp.value)):
+            super(ASTTransformVisitorVisitor, self).visitType(tp, tp.name)
+
+    def visitProduct(self, prod, name):
+        self.make_visitor(name, prod.fields)
+
+    def visitConstructor(self, cons, _):
+        self.make_visitor(cons.name, cons.fields)
+
+    def make_visitor(self, name, fields):
+        self.emit("void visit_%s(const %s_t &x) {" % (name, name), 1)
+        have_body = False
+        for field in fields:
+            self.visitField(field)
+        self.emit("}", 1)
+
+    def visitField(self, field):
+        if (field.type not in asdl.builtin_types and
+            field.type not in self.data.simple_types):
+            level = 2
+            if field.type in products:
+                template = "self().visit_%s(x.m_%s);" % (field.type, field.name)
+            else:
+                template = "self().visit_%s(*x.m_%s);" % (field.type, field.name)
+            if field.seq:
+                self.emit("for (size_t i=0; i<x.n_%s; i++) {" % field.name, level)
+                if field.type in products:
+                    self.emit("    self().visit_%s(x.m_%s[i]);" % (field.type, field.name), level)
+                else:
+                    self.emit("    self().visit_%s(*x.m_%s[i]);" % (field.type, field.name), level)
+                self.emit("}", level)
+                return
+            elif field.opt and field.type not in products:
+                self.emit("if (x.m_%s)" % field.name, 2)
+                level = 3
+            self.emit(template, level)
+
 
 
 class ASDLData(object):
@@ -617,7 +671,7 @@ FOOT = r"""} // namespace LFortran::%(MOD)s
 
 visitors = [ASTNodeVisitor0, ASTNodeVisitor1, ASTNodeVisitor,
         ASTVisitorVisitor1, ASTVisitorVisitor1b, ASTVisitorVisitor2,
-        ASTWalkVisitorVisitor, PickleVisitorVisitor]
+        ASTWalkVisitorVisitor, PickleVisitorVisitor, ASTTransformVisitorVisitor]
 
 
 def main(argv):
