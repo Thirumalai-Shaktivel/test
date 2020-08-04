@@ -594,17 +594,14 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
         else:
             if field.seq:
                 assert not field.opt
-                #Vec<ASR::stmt_t*> body;
-                #body.reserve(al, x.n_body);
-                self.emit("Vec<%s::%s_t*> m_%s;" % (self.mod_name.upper(), field.type, field.name), 2)
+                self.emit("Vec<%s_t*> m_%s;" % (field.type, field.name), 2)
                 self.emit("m_%s.reserve(al, x.n_%s);" % (field.name, field.name), 2)
                 self.emit("for (size_t i=0; i<x.n_%s; i++) {" % field.name, 2)
                 if field.type in products:
                     self.emit("    self().visit_%s(x.m_%s[i]);" % (field.type, field.name), 2)
                 else:
                     self.emit("    self().visit_%s(*x.m_%s[i]);" % (field.type, field.name), 2)
-                    #body.push_back(al, STMT(tmp));
-
+                    self.emit("    m_%s.push_back(al, (%s_t*)result);" % (field.name, field.type), 2)
                 self.emit("}", 2)
             elif field.opt:
                 self.emit("%s_t *m_%s;" % (field.type, field.name), 2)
