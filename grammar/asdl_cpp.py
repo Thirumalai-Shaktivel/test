@@ -574,8 +574,15 @@ class ASTTransformVisitorVisitor(ASDLVisitor):
             if field.type in ["identifier", "string"]:
                 if field.seq:
                     self.emit("char **m_%s = x.m_%s;" % (field.name, field.name), 2)
+                    self.emit("int n_%s = x.n_%s;" % (field.name, field.name), 2)
                 else:
                     self.emit("char *m_%s = x.m_%s;" % (field.name, field.name), 2)
+            elif field.type in ["int", "object"]:
+                assert not field.seq
+                if field.opt:
+                    self.emit("int *m_%s = x.m_%s;" % (field.name, field.name), 2)
+                else:
+                    self.emit("int m_%s = x.m_%s;" % (field.name, field.name), 2)
             elif field.type == "node":
                 if field.seq:
                     self.emit("// Seq not implemented:", 2)
