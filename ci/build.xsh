@@ -85,6 +85,7 @@ import os
 #which lfortran
 if $WIN == "1":
     path = os.getcwd() + r"\..\lfortran-" + $lfortran_version + r"\test-bld\src\bin"
+    path = path.replace("\\", "/")
     $PATH.insert(0, path)
     ls @(path)
     lfortran_path=path+r"\lfortran.exe"
