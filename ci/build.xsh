@@ -88,7 +88,7 @@ if $WIN == "1":
     path = path.replace("\\", "/")
     $PATH.insert(0, path)
     ls @(path)
-    lfortran_path=path+r"\lfortran.exe"
+    lfortran_path=path+r"/lfortran.exe"
     cmake -DCMAKE_Fortran_COMPILER=@(lfortran_path) -DLFORTRAN_SUBSET=on .
 else:
     $PATH.insert(0, os.getcwd() + "/../lfortran-" + $lfortran_version + "/test-bld/src/bin")
