@@ -75,12 +75,12 @@ if $MACOS == "1":
 pip install -v --no-index .
 cd ..
 
-cp lfortran-$lfortran_version/test-bld/src/bin/lfortran src/bin
-cp lfortran-$lfortran_version/test-bld/src/bin/cpptranslate src/bin
 if $WIN != "1":
+    cp lfortran-$lfortran_version/test-bld/src/bin/lfortran src/bin
+    cp lfortran-$lfortran_version/test-bld/src/bin/cpptranslate src/bin
     ./run_tests.py
 cd integration_tests
-$FC = "../src/bin/lfortran"
+$FC = "../test-bld/src/bin/lfortran"
 cmake -DLFORTRAN_SUBSET=on .
 cmake --build .
 ctest
