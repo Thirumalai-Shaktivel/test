@@ -80,11 +80,9 @@ if $WIN != "1":
     cp lfortran-$lfortran_version/test-bld/src/bin/cpptranslate src/bin
     ./run_tests.py
 cd integration_tests
-if $WIN == "1":
-    $FC = "../lfortran-" + $lfortran_version + "/test-bld/src/bin/lfortran.exe"
-else:
-    $FC = "../lfortran-" + $lfortran_version + "/test-bld/src/bin/lfortran"
-cmake -DLFORTRAN_SUBSET=on .
+import os
+$PATH.append(os.getcwd() + "../lfortran-" + $lfortran_version + "/test-bld/src/bin")
+cmake -DCMAKE_Fortran_COMPILER=lfortran -DLFORTRAN_SUBSET=on .
 cmake --build .
 ctest
 cd ..
