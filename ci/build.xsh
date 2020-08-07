@@ -82,8 +82,8 @@ if $WIN != "1":
 cd integration_tests
 import os
 $PATH.insert(0, os.getcwd() + "/../lfortran-" + $lfortran_version + "/test-bld/src/bin")
-echo $PATH
-which lfortran
+#echo $PATH
+#which lfortran
 if $WIN == "1":
     cmake -DCMAKE_Fortran_COMPILER=lfortran.exe -DLFORTRAN_SUBSET=on .
 else:
