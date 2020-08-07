@@ -81,7 +81,7 @@ if $WIN != "1":
     ./run_tests.py
 cd integration_tests
 import os
-$PATH.append(os.getcwd() + "../lfortran-" + $lfortran_version + "/test-bld/src/bin")
+$PATH.insert(0, os.getcwd() + "../lfortran-" + $lfortran_version + "/test-bld/src/bin")
 cmake -DCMAKE_Fortran_COMPILER=lfortran -DLFORTRAN_SUBSET=on .
 cmake --build .
 ctest
