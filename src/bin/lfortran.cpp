@@ -776,16 +776,16 @@ int link_executable(const std::string &infile, const std::string &outfile,
 
     */
     if (backend == Backend::llvm) {
-        std::string CC = "gcc";
+        std::string CC = "clang";
         std::string base_path = runtime_library_dir;
         std::string options;
-        std::string runtime_lib = "lfortran_runtime";
+        std::string runtime_lib = "lfortran_runtime_static";
         if (static_executable) {
             options += " -static ";
             runtime_lib = "lfortran_runtime_static";
         }
         std::string cmd = CC + options + " -o " + outfile + " " + infile + " -L"
-            + base_path + " -Wl,-rpath," + base_path + " -l" + runtime_lib + " -lm";
+            + base_path + " -Wl,-no_pie -Wl,-rpath," + base_path + " -l" + runtime_lib + " -lm";
         int err = system(cmd.c_str());
         if (err) {
             std::cout << "The command '" + cmd + "' failed." << std::endl;
