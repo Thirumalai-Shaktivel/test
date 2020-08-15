@@ -59,12 +59,12 @@ uint64_t static get_hash(ASR::asr_t *node)
 void printf(llvm::LLVMContext &context, llvm::Module &module,
     llvm::IRBuilder<> &builder, const std::vector<llvm::Value*> &args)
 {
-    llvm::Function *fn_printf = module.getFunction("_lfortran_printf");
+    llvm::Function *fn_printf = module.getFunction("__lfortran_printf");
     if (!fn_printf) {
         llvm::FunctionType *function_type = llvm::FunctionType::get(
                 llvm::Type::getVoidTy(context), {llvm::Type::getInt8PtrTy(context)}, true);
         fn_printf = llvm::Function::Create(function_type,
-                llvm::Function::ExternalLinkage, "_lfortran_printf", &module);
+                llvm::Function::ExternalLinkage, "__lfortran_printf", &module);
     }
     builder.CreateCall(fn_printf, args);
 }
