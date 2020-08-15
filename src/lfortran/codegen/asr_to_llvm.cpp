@@ -72,13 +72,13 @@ void printf(llvm::LLVMContext &context, llvm::Module &module,
 void exit(llvm::LLVMContext &context, llvm::Module &module,
     llvm::IRBuilder<> &builder, llvm::Value* exit_code)
 {
-    llvm::Function *fn_exit = module.getFunction("exit");
+    llvm::Function *fn_exit = module.getFunction("_exit");
     if (!fn_exit) {
         llvm::FunctionType *function_type = llvm::FunctionType::get(
                 llvm::Type::getVoidTy(context), {llvm::Type::getInt64Ty(context)},
                 false);
         fn_exit = llvm::Function::Create(function_type,
-                llvm::Function::ExternalLinkage, "exit", &module);
+                llvm::Function::ExternalLinkage, "_exit", &module);
     }
     builder.CreateCall(fn_exit, {exit_code});
 }
