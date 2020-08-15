@@ -332,7 +332,7 @@ public:
         llvm::FunctionType *function_type = llvm::FunctionType::get(
                 llvm::Type::getInt64Ty(context), {}, false);
         llvm::Function *F = llvm::Function::Create(function_type,
-                llvm::Function::ExternalLinkage, "main", module.get());
+                llvm::Function::ExternalLinkage, "_main", module.get());
         llvm::BasicBlock *BB = llvm::BasicBlock::Create(context,
                 ".entry", F);
         builder->SetInsertPoint(BB);
