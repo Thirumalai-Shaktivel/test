@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    128 // shift/reduce conflicts
+%expect    131 // shift/reduce conflicts
 %expect-rr 15  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -149,6 +149,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token <string> KW_ELEMENTAL
 %token <string> KW_ELSE
 %token <string> KW_ELSEWHERE
+%token <string> KW_ELSEIF
 %token <string> KW_END
 %token <string> KW_END_IF
 %token <string> KW_ENDIF
@@ -305,6 +306,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> write_statement
 %type <ast> if_statement
 %type <ast> if_block
+%type <ast> elseif_block
 %type <ast> where_statement
 %type <ast> where_block
 %type <ast> select_statement
@@ -824,6 +826,19 @@ if_block
             $$ = IF2($3, $7, $10, @$); }
     | KW_IF "(" expr ")" KW_THEN sep statements KW_ELSE if_block {
             $$ = IF3($3, $7, $9, @$); }
+    | KW_IF "(" expr ")" KW_THEN sep statements elseif_block {
+            $$ = IF3($3, $7, $8, @$); }
+    ;
+
+elseif_block
+    : KW_ELSEIF "(" expr ")" KW_THEN sep statements {
+            $$ = IF1($3, $7, @$); }
+    | KW_ELSEIF "(" expr ")" KW_THEN sep statements KW_ELSE sep statements {
+            $$ = IF2($3, $7, $10, @$); }
+    | KW_ELSEIF "(" expr ")" KW_THEN sep statements KW_ELSE if_block {
+            $$ = IF3($3, $7, $9, @$); }
+    | KW_ELSEIF "(" expr ")" KW_THEN sep statements elseif_block {
+            $$ = IF3($3, $7, $8, @$); }
     ;
 
 where_statement
@@ -1077,6 +1092,7 @@ id
     | KW_ELEMENTAL { $$ = SYMBOL($1, @$); }
     | KW_ELSE { $$ = SYMBOL($1, @$); }
     | KW_ELSEWHERE { $$ = SYMBOL($1, @$); }
+    | KW_ELSEIF { $$ = SYMBOL($1, @$); }
     | KW_END { $$ = SYMBOL($1, @$); }
     | KW_ENDDO { $$ = SYMBOL($1, @$); }
     | KW_ENDIF { $$ = SYMBOL($1, @$); }
