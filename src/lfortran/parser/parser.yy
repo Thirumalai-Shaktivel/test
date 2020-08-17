@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    117 // shift/reduce conflicts
+%expect    118 // shift/reduce conflicts
 %expect-rr 15  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -300,6 +300,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> deallocate_statement
 %type <ast> nullify_statement
 %type <ast> print_statement
+%type <ast> open_statement
 %type <ast> write_statement
 %type <ast> if_statement
 %type <ast> if_block
@@ -716,6 +717,7 @@ statement
     | nullify_statement sep
     | subroutine_call sep
     | print_statement sep
+    | open_statement sep
     | write_statement sep
     | exit_statement sep
     | return_statement sep
@@ -778,6 +780,9 @@ print_statement
     | KW_PRINT TK_STRING ","           { $$ = PRINTF0($2,    @$); }
     | KW_PRINT TK_STRING "," expr_list { $$ = PRINTF($2, $4, @$); }
     ;
+
+open_statement
+    : KW_OPEN "(" fnarray_arg_list_opt ")" { $$ = PRINT0(@$); }
 
 write_statement
     : KW_WRITE "(" "*" "," "*" ")" expr_list { $$ = PRINT($7, @$); }
