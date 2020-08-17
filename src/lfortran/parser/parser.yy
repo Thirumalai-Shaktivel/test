@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    118 // shift/reduce conflicts
+%expect    120 // shift/reduce conflicts
 %expect-rr 15  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -791,12 +791,11 @@ write_statement
     | KW_WRITE "(" "*" "," TK_STRING ")" { $$ = PRINTF0($5, @$); }
     | KW_WRITE "(" expr "," "*" ")" expr_list { $$ = WRITE($3, $7, @$); }
     | KW_WRITE "(" expr "," "*" ")" { $$ = WRITE0($3, @$); }
-    | KW_WRITE "(" expr "," TK_STRING ")" expr_list {
-            $$ = WRITEF($3, $5, $7, @$); }
-    | KW_WRITE "(" expr "," id "=" TK_STRING ")" expr_list {
-            $$ = WRITEF($3, $7, $9, @$); }
+//    | KW_WRITE "(" expr "," TK_STRING ")" expr_list {
+//            $$ = WRITEF($3, $5, $7, @$); }
     | KW_WRITE "(" expr "," TK_STRING ")" { $$ = WRITEF0($3, $5, @$); }
-    | KW_WRITE "(" expr ")" expr_list { $$ = WRITEE($3, $5, @$); }
+//    | KW_WRITE "(" expr ")" expr_list { $$ = WRITEE($3, $5, @$); }
+    | KW_WRITE "(" fnarray_arg_list_opt ")" expr_list { $$ = PRINT($5, @$); }
     | KW_WRITE "(" expr ")" { $$ = WRITEE0($3, @$); }
     ;
 
