@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    131 // shift/reduce conflicts
+%expect    132 // shift/reduce conflicts
 %expect-rr 15  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -316,6 +316,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <vec_ast> select_default_statement
 %type <ast> while_statement
 %type <ast> do_statement
+%type <ast> forall_statement
 %type <ast> reduce
 %type <reduce_op_type> reduce_op
 %type <ast> exit_statement
@@ -735,6 +736,7 @@ statement
     | select_statement sep
     | while_statement sep
     | do_statement sep
+    | forall_statement sep
     ;
 
 assignment_statement
@@ -906,6 +908,11 @@ do_statement
             $$ = DO_CONCURRENT($4, $6, $8, $11, @$); }
     | KW_DO KW_CONCURRENT "(" id "=" expr ":" expr ")" reduce sep statements enddo {
             $$ = DO_CONCURRENT_REDUCE($4, $6, $8, $10, $12, @$); }
+    ;
+
+forall_statement
+    : KW_FORALL "(" id "=" expr ":" expr ")" assignment_statement {
+            $$ = PRINT0(@$); }
     ;
 
 reduce
