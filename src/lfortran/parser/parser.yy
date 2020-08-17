@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    115 // shift/reduce conflicts
+%expect    117 // shift/reduce conflicts
 %expect-rr 15  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -487,13 +487,16 @@ end_program_opt
 
 subroutine
     : KW_SUBROUTINE id sub_args sep use_statement_star implicit_statement_opt prog_decl_star statements
+        contains_block_opt
         KW_END KW_SUBROUTINE id_opt sep {
             LLOC(@$, @11); $$ = SUBROUTINE($2, $3, $7, $8, @$); }
     ;
 
 function
     : fn_type pure_opt recursive_opt KW_FUNCTION id "(" id_list_opt ")"
-        result_opt sep use_statement_star implicit_statement_opt prog_decl_star statements KW_END KW_FUNCTION id_opt sep {
+        result_opt sep use_statement_star implicit_statement_opt prog_decl_star statements
+        contains_block_opt
+        KW_END KW_FUNCTION id_opt sep {
             LLOC(@$, @17); $$ = FUNCTION($1, $5, $7, $9, $13, $14, @$); }
     ;
 
