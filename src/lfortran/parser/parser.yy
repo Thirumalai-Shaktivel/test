@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    132 // shift/reduce conflicts
+%expect    266 // shift/reduce conflicts
 %expect-rr 15  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -265,6 +265,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> prog_decl
 %type <vec_ast> prog_decl_star
 %type <ast> private_decl
+%type <ast> save_decl
 %type <ast> public_decl
 %type <ast> interface_decl
 %type <ast> derived_type_decl
@@ -389,6 +390,7 @@ module_decl_star
 module_decl
     : private_decl
     | public_decl
+    | save_decl
     | var_decl
     | interface_decl
     | derived_type_decl
@@ -397,6 +399,12 @@ module_decl
 private_decl
     : KW_PRIVATE id_list_opt sep { $$ = PRIVATE($2, @$); }
     | KW_PRIVATE "::" id_list_opt sep { $$ = PRIVATE($3, @$); }
+    ;
+
+// TODO: introduce SAVE():
+save_decl
+    : KW_SAVE id_list_opt sep { $$ = PRIVATE($2, @$); }
+    | KW_SAVE "::" id_list_opt sep { $$ = PRIVATE($3, @$); }
     ;
 
 public_decl
