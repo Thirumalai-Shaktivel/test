@@ -1002,6 +1002,7 @@ struct_member_star
 
 struct_member
     : id "%"
+    | id "(" fnarray_arg_list_opt ")" "%"
     ;
 
 fnarray_arg_list_opt
