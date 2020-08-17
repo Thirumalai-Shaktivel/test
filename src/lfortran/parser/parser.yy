@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    121 // shift/reduce conflicts
+%expect    119 // shift/reduce conflicts
 %expect-rr 15  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -789,19 +789,24 @@ open_statement
 close_statement
     : KW_CLOSE "(" fnarray_arg_list_opt ")" { $$ = PRINT0(@$); }
 
+write_arg_list
+    : write_arg_list "," write_arg2
+    | write_arg2
+    ;
+
+write_arg2
+    : write_arg
+    | id "=" write_arg
+    ;
+
+write_arg
+    : expr
+    | "*"
+    ;
+
 write_statement
-    : KW_WRITE "(" "*" "," "*" ")" expr_list { $$ = PRINT($7, @$); }
-    | KW_WRITE "(" "*" "," "*" ")" { $$ = PRINT0(@$); }
-    | KW_WRITE "(" "*" "," TK_STRING ")" expr_list { $$ = PRINTF($5, $7, @$); }
-    | KW_WRITE "(" "*" "," TK_STRING ")" { $$ = PRINTF0($5, @$); }
-    | KW_WRITE "(" expr "," "*" ")" expr_list { $$ = WRITE($3, $7, @$); }
-    | KW_WRITE "(" expr "," "*" ")" { $$ = WRITE0($3, @$); }
-//    | KW_WRITE "(" expr "," TK_STRING ")" expr_list {
-//            $$ = WRITEF($3, $5, $7, @$); }
-    | KW_WRITE "(" expr "," TK_STRING ")" { $$ = WRITEF0($3, $5, @$); }
-//    | KW_WRITE "(" expr ")" expr_list { $$ = WRITEE($3, $5, @$); }
-    | KW_WRITE "(" fnarray_arg_list_opt ")" expr_list { $$ = PRINT($5, @$); }
-    | KW_WRITE "(" expr ")" { $$ = WRITEE0($3, @$); }
+    : KW_WRITE "(" write_arg_list ")" expr_list { $$ = PRINT($5, @$); }
+    | KW_WRITE "(" write_arg_list ")" { $$ = PRINT0(@$); }
     ;
 
 // sr-conflict (2x): KW_ENDIF can be an "id" or end of "if_statement"
