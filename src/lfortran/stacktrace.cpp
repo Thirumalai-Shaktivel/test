@@ -45,6 +45,7 @@
 // For bfd_* family of functions for loading debugging symbols from the binary
 // This is the only nonstandard header file and the binary needs to be linked
 // with "-lbfd".
+#define PACKAGE bfd
 #  include <bfd.h>
 #else
 typedef long long unsigned bfd_vma;
