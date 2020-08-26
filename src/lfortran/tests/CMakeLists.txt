@@ -40,3 +40,7 @@ endif()
 if (WITH_LLVM)
     ADDTEST(test_llvm p::doctest)
 endif()
+
+if (WITH_BACKTRACE)
+    ADDTEST(test_backtrace)
+endif()
