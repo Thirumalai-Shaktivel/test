@@ -29,9 +29,13 @@ int simple_callback(void *data, uintptr_t pc)
 
 int h()
 {
-    int r;
+    //int r;
     //r = backtrace_full(state, 0, full_callback, error_callback, nullptr);
-    r = backtrace_simple(state, 0, simple_callback, error_callback, nullptr);
+    //r = backtrace_simple(state, 0, simple_callback, error_callback, nullptr);
+    FILE *f;
+    f = fopen("log.txt", "w");
+    backtrace_print(state, 0, f);
+    fclose(f);
     return 42;
 }
 
