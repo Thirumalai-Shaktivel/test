@@ -146,6 +146,8 @@ set(WITH_BFD no
     CACHE BOOL "Build with BFD support")
 set(WITH_LINKH no
     CACHE BOOL "Build with link.h support")
+set(WITH_BACKTRACE no
+    CACHE BOOL "Build with libbacktrace support")
 set(WITH_STACKTRACE no
     CACHE BOOL "Build with stacktrace support (requires binutils-dev)")
 if (WITH_STACKTRACE)
@@ -170,6 +172,10 @@ if (WITH_EXECINFO)
 endif()
 if (WITH_UNWIND)
     set(HAVE_LFORTRAN_UNWIND yes)
+endif()
+if (WITH_BACKTRACE)
+    find_package(BACKTRACE REQUIRED)
+    set(HAVE_LFORTRAN_BACKTRACE yes)
 endif()
 
 enable_testing()
