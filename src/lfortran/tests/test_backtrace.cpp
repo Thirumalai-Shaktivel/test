@@ -21,10 +21,17 @@ int full_callback(void *data, uintptr_t pc, const char *filename, int lineno,
     return 0;
 }
 
+int simple_callback(void *data, uintptr_t pc)
+{
+    std::cout << "simple_callback: " << (void*)pc << std::endl;
+    return 0;
+}
+
 int h()
 {
     int r;
-    r = backtrace_full(state, 0, full_callback, error_callback, nullptr);
+    //r = backtrace_full(state, 0, full_callback, error_callback, nullptr);
+    r = backtrace_simple(state, 0, simple_callback, error_callback, nullptr);
     return 42;
 }
 
