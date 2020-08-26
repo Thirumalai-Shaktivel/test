@@ -3,9 +3,15 @@
 #include <backtrace-supported.h>
 #include <backtrace.h>
 
+struct backtrace_state *state;
+
+const char *exe = "test_backtrace";
+
+
 void error_callback(void *data, const char *msg, int errnum)
 {
-    std::cout << "error_callback" << std::endl;
+    std::cout << "error_callback(" << errnum << "): " << msg << std::endl;
+    exit(1);
 }
 
 int full_callback(void *data, uintptr_t pc, const char *filename, int lineno,
@@ -14,8 +20,6 @@ int full_callback(void *data, uintptr_t pc, const char *filename, int lineno,
     std::cout << "full_callback" << std::endl;
     return 0;
 }
-
-struct backtrace_state *state;
 
 int h()
 {
@@ -41,7 +45,8 @@ int main()
     std::cout << "BACKTRACE_SUPPORTS_THREADS = " << BACKTRACE_SUPPORTS_THREADS << std::endl;
     std::cout << "BACKTRACE_SUPPORTS_DATA = " << BACKTRACE_SUPPORTS_DATA << std::endl;
 
-    state = backtrace_create_state(nullptr, 0, error_callback, nullptr);
+
+    state = backtrace_create_state(exe, 0, error_callback, nullptr);
 
     int r;
     r = f();
