@@ -2,6 +2,7 @@
 
 #include <backtrace-supported.h>
 #include <backtrace.h>
+#include <lfortran/stacktrace.h>
 
 struct backtrace_state *state;
 
@@ -32,10 +33,10 @@ int h()
     //int r;
     //r = backtrace_full(state, 0, full_callback, error_callback, nullptr);
     //r = backtrace_simple(state, 0, simple_callback, error_callback, nullptr);
-    FILE *f;
-    f = fopen("log.txt", "w");
-    backtrace_print(state, 0, f);
-    fclose(f);
+    std::cout << "libbacktrace:" << std::endl;
+    backtrace_print(state, 0, stdout);
+    std::cout << "stacktrace:" << std::endl;
+    LFortran::show_stacktrace();
     return 42;
 }
 
