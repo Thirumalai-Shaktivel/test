@@ -76,7 +76,6 @@ cxx_binary:
          -DLFORTRAN_STATIC_BIN=yes
          -DWITH_LFORTRAN_ASSERT=yes
          -DWITH_STACKTRACE=yes
-         -DWITH_UNWIND=yes
          .
     - make
     - ctest --output-on-failure
