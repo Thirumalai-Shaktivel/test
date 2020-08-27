@@ -44,7 +44,6 @@ include(GNUInstallDirs)
 #
 include(InstallRequiredSystemLibraries)
 set(CPACK_GENERATOR "TBZ2")
-set(CPACK_STRIP_FILES YES)
 if (LFORTRAN_VERSION STREQUAL "0.1.1")
     set(CPACK_PACKAGE_FILE_NAME lfortran-git-${CMAKE_SYSTEM_NAME})
 endif()
