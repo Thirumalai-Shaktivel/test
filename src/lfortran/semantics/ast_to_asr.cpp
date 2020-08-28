@@ -215,7 +215,7 @@ public:
         loc.last_column = 0;
         loc.last_line = 0;
         if (current_scope->scope.find(sym) == current_scope->scope.end()) {
-            int s_intent=intent_local;
+            ASR::intentType s_intent=intent_local;
             Vec<ASR::dimension_t> dims;
             dims.reserve(al, x.n_dims);
             if (x.n_attrs > 0) {
@@ -324,7 +324,7 @@ public:
         unit->n_items = items.size();
     }
 
-    void visit_Declaration(const AST::Declaration_t &x) {
+    void visit_Declaration(const AST::Declaration_t & /* x */) {
         // This AST node was already visited in SymbolTableVisitor
     }
 
@@ -523,6 +523,8 @@ public:
             case (AST::Pow) :
                 op = ASR::Pow;
                 break;
+            // Fix compiler warning:
+            default : { LFORTRAN_ASSERT(false); op = ASR::operatorType::Pow; }
         }
         // Cast LHS or RHS if necessary
         ASR::ttype_t *left_type = expr_type(left);
@@ -552,6 +554,9 @@ public:
                 throw SemanticError("BinOp: Only Integer or Real can be on the RHS with Integer as LHS",
                     x.base.base.loc);
             }
+        } else {
+            LFORTRAN_ASSERT(false);
+            type = nullptr;
         }
         LFORTRAN_ASSERT(expr_type(left)->type == expr_type(right)->type);
         tmp = ASR::make_BinOp_t(al, x.base.base.loc,
@@ -575,6 +580,8 @@ public:
             case (AST::unaryopType::USub) :
                 op = ASR::unaryopType::USub;
                 break;
+            // Fix compiler warning:
+            default : { LFORTRAN_ASSERT(false); op = ASR::unaryopType::Invert; }
         }
         ASR::ttype_t *operand_type = expr_type(operand);
         tmp = ASR::make_UnaryOp_t(al, x.base.base.loc,

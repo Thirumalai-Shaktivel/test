@@ -1,5 +1,6 @@
 #include <lfortran/stacktrace.h>
 #include <lfortran/config.h>
+#include <lfortran/colors.h>
 
 #include <fstream>
 #include <iostream>
@@ -10,9 +11,6 @@
 // free() and abort() functions
 #include <cstdlib>
 
-// For handling variable number of arguments using va_start/va_end functions
-#include <cstdarg>
-
 // For registering SIGSEGV callbacks
 #include <csignal>
 
@@ -20,9 +18,9 @@
 // The following C headers are needed for some specific C functionality (see
 // the comments), which is not available in C++:
 
-#ifdef HAVE_LFORTRAN_EXECINFO
-// backtrace() function for retrieving the stacktrace
-#  include <execinfo.h>
+#ifdef HAVE_LFORTRAN_UNWIND
+// For _Unwind_Backtrace() function
+#  include <unwind.h>
 #endif
 
 #if defined(HAVE_LFORTRAN_DEMANGLE)
@@ -35,78 +33,146 @@
 #  include <link.h>
 #endif
 
+#ifdef HAVE_LFORTRAN_MACHO
+#  include <mach-o/dyld.h>
+#endif
+
 #ifdef HAVE_LFORTRAN_BFD
 // For bfd_* family of functions for loading debugging symbols from the binary
 // This is the only nonstandard header file and the binary needs to be linked
 // with "-lbfd".
+// Note: on macOS, one must call `dsymutil` on any binary in order for BFD to
+// be able to find line number information. Example:
+//
+//     $ dsymutil ./test_stacktrace
+//
+// The bfd.h header file sometimes requires the PACKAGE define to be defined:
+#  define PACKAGE 1
 #  include <bfd.h>
-#else
-typedef long long unsigned bfd_vma;
 #endif
 
-namespace {
+namespace LFortran {
 
-/* This struct is used to pass information between
-   addr2str() and process_section().
-*/
-struct line_data {
-#ifdef HAVE_LFORTRAN_BFD
-  asymbol **symbol_table;     /* Symbol table.  */
-#endif
-  bfd_vma addr;
-  std::string filename;
-  std::string function_name;
-  unsigned int line;
-  int line_found;
-};
+std::string binary_executable_path = "/proc/self/exe";
 
+#ifdef HAVE_LFORTRAN_UNWIND
 
-/* Return if given char is whitespace or not. */
-bool is_whitespace_char(const char c)
+static _Unwind_Reason_Code unwind_callback(struct _Unwind_Context *context,
+  void *vdata)
 {
-  return c == ' ' || c == '\t';
+  std::vector<StacktraceItem> &d = *(std::vector<StacktraceItem> *)vdata;
+  uintptr_t pc;
+  pc = _Unwind_GetIP(context);
+  if (pc != 0) {
+    pc--;
+    StacktraceItem i;
+    i.pc = pc;
+    d.push_back(i);
+  }
+  return _URC_NO_REASON;
 }
 
+#endif // HAVE_LFORTRAN_UNWIND
 
-/* Removes the leading whitespace from a string and returnes the new
- * string.
- */
-std::string remove_leading_whitespace(const std::string &str)
+
+
+#ifdef HAVE_LFORTRAN_LINK
+
+/* Tries to find the 'data.addr' in the current shared lib (as passed in
+   'info'). If it succeeds, returns (in the 'data') the full path to the shared
+   lib and the local address in the file.
+*/
+int shared_lib_callback(struct dl_phdr_info *info,
+  size_t /* size */, void *_data)
 {
-  if (str.length() && is_whitespace_char(str[0])) {
-    int first_nonwhitespace_index = 0;
-    for (int i = 0; i < static_cast<int>(str.length()); ++i) {
-      if (!is_whitespace_char(str[i])) {
-        first_nonwhitespace_index = i;
-        break;
+  StacktraceItem &item = *(StacktraceItem *)_data;
+  for (int i=0; i < info->dlpi_phnum; i++) {
+    if (info->dlpi_phdr[i].p_type == PT_LOAD) {
+      ElfW(Addr) min_addr = info->dlpi_addr + info->dlpi_phdr[i].p_vaddr;
+      ElfW(Addr) max_addr = min_addr + info->dlpi_phdr[i].p_memsz;
+      if ((item.pc >= min_addr) && (item.pc < max_addr)) {
+        item.binary_filename = info->dlpi_name;
+        if (item.binary_filename == "") {
+            item.binary_filename = binary_executable_path;
+        }
+        item.local_pc = item.pc - info->dlpi_addr;
+        // We found a match, return a non-zero value
+        return 1;
       }
     }
-    return str.substr(first_nonwhitespace_index);
   }
-  return str;
+  // We didn't find a match, return a zero value
+  return 0;
 }
 
+#endif // HAVE_LFORTRAN_LINK
 
-/* Reads the 'line_number'th line from the file filename. */
-std::string read_line_from_file(std::string filename, unsigned int line_number)
+
+// Fills in `local_pc` and `binary_filename` of `item`
+void get_local_address(StacktraceItem &item)
 {
-  std::ifstream in(filename.c_str());
-  if (!in.is_open()) {
-    return "";
-  }
-  if (line_number == 0) {
-    return "Line number must be positive";
-  }
-  unsigned int n = 0;
-  std::string line;
-  while (n < line_number) {
-    if (in.eof())
-      return "Line not found";
-    getline(in, line);
-    n += 1; // loop update
-  }
-  return line;
+#ifdef HAVE_LFORTRAN_LINK
+    // Iterate over all loaded shared libraries (see dl_iterate_phdr(3) -
+    // Linux man page for more documentation)
+    if (dl_iterate_phdr(shared_lib_callback, &item) == 0) {
+      // `dl_iterate_phdr` returns the last value returned by our
+      // `shared_lib_callback`. It will only be 0 if no shared library
+      // (including the main program) contains the address `match.addr`. Given
+      // that the addresses are collected from a stacktrace, this should only
+      // happen if the stacktrace is somehow corrupted. In that case, we simply
+      // abort here.
+      // `dl_iterate_phdr` returns the last value returned by our
+      // `shared_lib_callback`. It will only be 0 if no shared library
+      // `dl_iterate_phdr` returns the last value returned by our
+      // `shared_lib_callback`. It will only be 0 if no shared library
+      // (including the main program) contains the address `match.addr`. Given
+      // that the addresses are collected from a stacktrace, this should only
+      // happen if the stacktrace is somehow corrupted. In that case, we simply
+      // abort here.
+      std::cout << "The stack address was not found in any shared library or the main program, the stack is probably corrupted. Aborting." << std::endl;
+      abort();
+    }
+#else
+#ifdef HAVE_LFORTRAN_MACHO
+    for (uint32_t i = 0; i < _dyld_image_count(); i++) {
+        const struct mach_header *header = _dyld_get_image_header(i);
+        intptr_t offset = _dyld_get_image_vmaddr_slide(i);
+        struct load_command* cmd = (struct load_command*)((char *)header + sizeof(struct mach_header));
+        if(header->magic == MH_MAGIC_64) {
+            cmd = (struct load_command*)((char *)header + sizeof(struct mach_header_64));
+        }
+        for (uint32_t j = 0; j < header->ncmds; j++) {
+            if (cmd->cmd == LC_SEGMENT) {
+                struct segment_command* seg = (struct segment_command*)cmd;
+                if (((intptr_t)item.pc >= (seg->vmaddr+offset)) &&
+                    ((intptr_t)item.pc < (seg->vmaddr+offset + seg->vmsize))) {
+                    item.local_pc = item.pc - offset;
+                    item.binary_filename = _dyld_get_image_name(i);
+                    return;
+                }
+            }
+            if (cmd->cmd == LC_SEGMENT_64) {
+                struct segment_command_64* seg = (struct segment_command_64*)cmd;
+                if ((item.pc >= (seg->vmaddr + offset)) &&
+                    (item.pc < (seg->vmaddr + offset + seg->vmsize))) {
+                    item.local_pc = item.pc - offset;
+                    item.binary_filename = _dyld_get_image_name(i);
+                    return;
+                }
+            }
+            cmd = (struct load_command*)((char*)cmd + cmd->cmdsize);
+        }
+    }
+    std::cout << "The stack address was not found in any shared library or the main program, the stack is probably corrupted. Aborting." << std::endl;
+    abort();
+#else
+    item.local_pc=0;
+#endif // HAVE_LFORTRAN_MACHO
+#endif // HAVE_LFORTRAN_LINK
 }
+
+
+
 
 /* Demangles the function name if needed (if the 'name' is coming from C, it
    doesn't have to be demangled, if it's coming from C++, it needs to be).
@@ -140,6 +206,17 @@ std::string demangle_function_name(std::string name)
 
 #ifdef HAVE_LFORTRAN_BFD
 
+/* This struct is used to pass information into process_section().
+*/
+struct line_data {
+  asymbol **symbol_table;     /* Symbol table.  */
+  uintptr_t addr;
+  std::string filename;
+  std::string function_name;
+  unsigned int line;
+  int line_found;
+};
+
 
 /* Look for an address in a section.  This is called via
    bfd_map_over_sections over all sections in abfd.
@@ -155,24 +232,24 @@ void process_section(bfd *abfd, asection *section, void *_data)
     // If we already found the line, exit
     return;
   }
-  if ((bfd_get_section_flags(abfd, section) & SEC_ALLOC) == 0) {
+  if ((section->flags & SEC_ALLOC) == 0) {
     return;
   }
 
-  bfd_vma section_vma = bfd_get_section_vma(abfd, section);
+  bfd_vma section_vma = section->vma;
   if (data->addr < section_vma) {
     // If the addr lies above the section, exit
     return;
   }
 
-  bfd_size_type section_size = bfd_section_size(abfd, section);
+  bfd_size_type section_size = section->size * 8;
   if (data->addr >= section_vma + section_size) {
     // If the addr lies below the section, exit
     return;
   }
 
   // Calculate the correct offset of our line in the section
-  bfd_vma offset = data->addr - section_vma - 1;
+  bfd_vma offset = data->addr - section_vma;
 
   // Finds the line corresponding to the offset
 
@@ -220,8 +297,112 @@ int load_symbol_table(bfd *abfd, line_data *data)
   return 0;
 }
 
+void get_symbol_info(std::string binary_filename, uintptr_t addr,
+  std::string &source_filename, std::string &function_name,
+  int &line_number)
+{
+  line_data data;
+  data.addr = addr;
+  data.line_found = 0;
+  // Initialize 'abfd' and do some sanity checks
+  bfd *abfd;
+  abfd = bfd_openr(binary_filename.c_str(), NULL);
+  if (abfd == NULL) {
+    std::cout << "Cannot open the binary file '" + binary_filename + "'\n";
+    abort();
+  }
+  if (bfd_check_format(abfd, bfd_archive)) {
+#ifdef __APPLE__
+    // On macOS this happens for a dynamic library such as
+    // /usr/lib/system/libsystem_c.dylib
+    // We simply exit, which will skip gathering symbol information for this
+    // file.
+    return;
+#else
+    // On Linux this should work for any file, so we generate an error
+    std::cout << "Cannot get addresses from the archive '" + binary_filename + "'\n";
+    abort();
+#endif
+  }
+  char **matching;
+  if (!bfd_check_format_matches(abfd, bfd_object, &matching)) {
+    std::cout << "Unknown format of the binary file '" + binary_filename + "'\n";
+    abort();
+  }
+  data.symbol_table = NULL;
+  // This allocates the symbol_table:
+  if (load_symbol_table(abfd, &data) == 1) {
+    std::cout << "Failed to load the symbol table from '" + binary_filename + "'\n";
+    abort();
+  }
+  // Loops over all sections and try to find the line
+  bfd_map_over_sections(abfd, process_section, &data);
+  // Deallocates the symbol table
+  if (data.symbol_table != NULL) free(data.symbol_table);
+  bfd_close(abfd);
+
+  if (data.line_found) {
+    std::string name = demangle_function_name(data.function_name);
+    function_name = name;
+    if (data.filename.length() > 0) {
+      source_filename = data.filename;
+      line_number = data.line;
+    }
+  }
+}
 
 #endif // HAVE_LFORTRAN_BFD
+
+
+
+/* Return if given char is whitespace or not. */
+bool is_whitespace_char(const char c)
+{
+  return c == ' ' || c == '\t';
+}
+
+
+/* Removes the leading whitespace from a string and returns the new
+ * string.
+ */
+std::string remove_leading_whitespace(const std::string &str)
+{
+  if (str.length() && is_whitespace_char(str[0])) {
+    int first_nonwhitespace_index = 0;
+    for (int i = 0; i < static_cast<int>(str.length()); ++i) {
+      if (!is_whitespace_char(str[i])) {
+        first_nonwhitespace_index = i;
+        break;
+      }
+    }
+    return str.substr(first_nonwhitespace_index);
+  }
+  return str;
+}
+
+
+/* Reads the 'line_number'th line from the file filename. */
+std::string read_line_from_file(std::string filename, unsigned int line_number)
+{
+  std::ifstream in(filename.c_str());
+  if (!in.is_open()) {
+    return "";
+  }
+  if (line_number == 0) {
+    return "Line number must be positive";
+  }
+  unsigned int n = 0;
+  std::string line;
+  while (n < line_number) {
+    if (in.eof())
+      return "Line not found";
+    getline(in, line);
+    n += 1; // loop update
+  }
+  return line;
+}
+
+
 
 
 /* Returns a string of 2 lines for the function with address 'addr' in the file
@@ -232,232 +413,134 @@ int load_symbol_table(bfd *abfd, line_data *data)
    File "/home/ondrej/repos/rcp/src/Teuchos_RCP.hpp", line 428, in Teuchos::RCP<A>::assert_not_null() const
    throw_null_ptr_error(typeName(*this));
 */
-std::string addr2str(std::string file_name, bfd_vma addr)
+std::string addr2str(const StacktraceItem &i)
 {
-#ifdef HAVE_LFORTRAN_BFD
-  // Initialize 'abfd' and do some sanity checks
-  bfd *abfd;
-  abfd = bfd_openr(file_name.c_str(), NULL);
-  if (abfd == NULL)
-    return "Cannot open the binary file '" + file_name + "'\n";
-  if (bfd_check_format(abfd, bfd_archive))
-    return "Cannot get addresses from the archive '" + file_name + "'\n";
-  char **matching;
-  if (!bfd_check_format_matches(abfd, bfd_object, &matching))
-    return "Unknown format of the binary file '" + file_name + "'\n";
-  line_data data;
-  data.addr = addr;
-  data.symbol_table = NULL;
-  data.line_found = false;
-  // This allocates the symbol_table:
-  if (load_symbol_table(abfd, &data) == 1)
-    return "Failed to load the symbol table from '" + file_name + "'\n";
-  // Loops over all sections and try to find the line
-  bfd_map_over_sections(abfd, process_section, &data);
-  // Deallocates the symbol table
-  if (data.symbol_table != NULL) free(data.symbol_table);
-  bfd_close(abfd);
-#else
-  line_data data;
-  data.line_found = 0;
-#endif
-
   std::ostringstream s;
   // Do the printing --- print as much information as we were able to
   // find out
-  if (!data.line_found) {
+  if (i.function_name == "") {
     // If we didn't find the line, at least print the address itself
-    s << "  File unknown, address: 0x" << (long long unsigned int) addr;
+    if (i.local_pc == 0) {
+        s << color(style::dim);
+        s << "  File unknown, absolute address: " << (void*) i.pc;
+        s << color(style::reset);
+    } else {
+        s << color(style::dim);
+        s << "  Binary file \"";
+        s << color(style::reset);
+        s << color(style::bold) << color(fg::magenta);
+        s << i.binary_filename;
+        s << color(fg::reset) << color(style::reset);
+        s << color(style::dim);
+        s << "\", local address: " << (void*) i.local_pc;
+        s << color(style::reset);
+    }
+  } else if (i.source_filename == "") {
+      // The file is unknown (and data.line == 0 in this case), so the
+      // only meaningful thing to print is the function name:
+      s << color(style::dim) << "  Binary file \"" + color(style::reset)
+        << color(style::bold) << color(fg::magenta) << i.binary_filename
+        << color(fg::reset) << color(style::reset)
+        << color(style::dim) << "\", in " << i.function_name
+        << color(style::reset);
   } else {
-    std::string name = demangle_function_name(data.function_name);
-    if (data.filename.length() > 0) {
       // Nicely format the filename + function name + line
-      s << "  File \"" << data.filename << "\", line "
-        << data.line << ", in " << name;
+      s << color(style::dim) << "  File \"" << color(style::reset)
+        << color(style::bold) << color(fg::magenta) << i.source_filename
+        << color(fg::reset) << color(style::reset)
+        << color(style::dim) << "\", line " << i.line_number
+        << ", in " << i.function_name << color(style::reset);
       const std::string line_text = remove_leading_whitespace(
-        read_line_from_file(data.filename, data.line));
+        read_line_from_file(i.source_filename, i.line_number));
       if (line_text != "") {
         s << "\n    " << line_text;
       }
-    } else {
-      // The file is unknown (and data.line == 0 in this case), so the
-      // only meaningful thing to print is the function name:
-      s << "  File unknown, in " << name;
-    }
   }
   s << "\n";
   return s.str();
 }
 
-struct match_data {
-  bfd_vma addr;
-
-  std::string filename;
-  bfd_vma addr_in_file;
-};
-
-
-#ifdef HAVE_LFORTRAN_LINK
-
-
-/* Tries to find the 'data.addr' in the current shared lib (as passed in
-   'info'). If it succeeds, returns (in the 'data') the full path to the shared
-   lib and the local address in the file.
-*/
-int shared_lib_callback(struct dl_phdr_info *info,
-  size_t size, void *_data)
-{
-  struct match_data *data = (struct match_data *)_data;
-  for (int i=0; i < info->dlpi_phnum; i++) {
-    if (info->dlpi_phdr[i].p_type == PT_LOAD) {
-      ElfW(Addr) min_addr = info->dlpi_addr + info->dlpi_phdr[i].p_vaddr;
-      ElfW(Addr) max_addr = min_addr + info->dlpi_phdr[i].p_memsz;
-      if ((data->addr >= min_addr) && (data->addr < max_addr)) {
-        data->filename = info->dlpi_name;
-        data->addr_in_file = data->addr - info->dlpi_addr;
-        // We found a match, return a non-zero value
-        return 1;
-      }
-    }
-  }
-  // We didn't find a match, return a zero value
-  return 0;
-}
-
-
-#endif // HAVE_LFORTRAN_LINK
-
-// Class for creating a safe C++ interface to the raw void** stacktrace
-// pointers, that we get from the backtrace() libc function. We make a copy of
-// the addresses, so the caller can free the memory. We use std::vector to
-// store the addresses internally, but this can be changed.
-class StacktraceAddresses {
-  std::vector<bfd_vma> stacktrace_buffer;
-  int impl_stacktrace_depth;
-public:
-  StacktraceAddresses(void *const *_stacktrace_buffer, int _size, int _impl_stacktrace_depth)
-    : impl_stacktrace_depth(_impl_stacktrace_depth)
-    {
-      for (int i=0; i < _size; i++)
-        stacktrace_buffer.push_back((bfd_vma) _stacktrace_buffer[i]);
-    }
-  bfd_vma get_address(int i) const {
-    return this->stacktrace_buffer[i];
-  }
-  int get_size() const {
-    return this->stacktrace_buffer.size();
-  }
-  int get_impl_stacktrace_depth() const {
-    return this->impl_stacktrace_depth;
-  }
-};
-
 
 /*
   Returns a std::string with the stacktrace corresponding to the
-  list of addresses (of functions on the stack) in 'buffer'.
-
-  It converts addresses to filenames, line numbers, function names and the
-  line text.
+  list of addresses (of functions on the stack) in `d`.
 */
-std::string stacktrace2str(const StacktraceAddresses &stacktrace_addresses)
+std::string stacktrace2str(const std::vector<StacktraceItem> &d, int skip)
 {
-  int stack_depth = stacktrace_addresses.get_size() - 1;
-
   std::string full_stacktrace_str("Traceback (most recent call last):\n");
 
-#ifdef HAVE_LFORTRAN_BFD
-  bfd_init();
-#endif
   // Loop over the stack
-  const int stack_depth_start = stack_depth;
-  const int stack_depth_end = stacktrace_addresses.get_impl_stacktrace_depth();
-  for (int i=stack_depth_start; i >= stack_depth_end; i--) {
-    // Iterate over all loaded shared libraries (see dl_iterate_phdr(3) -
-    // Linux man page for more documentation)
-    struct match_data match;
-    match.addr = stacktrace_addresses.get_address(i);
-#ifdef HAVE_LFORTRAN_BFD
-    if (dl_iterate_phdr(shared_lib_callback, &match) == 0)
-      return "dl_iterate_phdr() didn't find a match\n";
-#else
-    match.filename = "";
-    match.addr_in_file = match.addr;
-#endif
-
-    if (match.filename.length() > 0) {
-      // This happens for shared libraries (like /lib/libc.so.6, or any
-      // other shared library that the project uses). 'match.filename'
-      // then contains the full path to the .so library.
-      full_stacktrace_str += addr2str(match.filename, match.addr_in_file);
-    } else {
-      // The 'addr_in_file' is from the current executable binary, that
-      // one can find at '/proc/self/exe'. So we'll use that.
-      full_stacktrace_str += addr2str("/proc/self/exe", match.addr_in_file);
-    }
+  for (int i=d.size()-1; i >= skip; i--) {
+    full_stacktrace_str += addr2str(d[i]);
   }
 
   return full_stacktrace_str;
 }
 
 
-void loc_segfault_callback_print_stack(int sig_num)
+void loc_segfault_callback_print_stack(int /* sig_num */)
 {
-  std::cout << "\nSegfault caught. Printing stacktrace:\n\n";
-  LFortran::show_stacktrace();
-  std::cout << "\nDone. Exiting the program.\n";
-  // Deregister our abort callback:
-  signal(SIGABRT, SIG_DFL);
-  abort();
+  std::cerr << get_stacktrace(3);
+  std::cerr << "Segfault: Signal SIGSEGV (segmentation fault) received\n";
+  exit(1);
 }
 
 
-void loc_abort_callback_print_stack(int sig_num)
+void loc_abort_callback_print_stack(int /* sig_num */)
 {
-  std::cout << "\nAbort caught. Printing stacktrace:\n\n";
-  LFortran::show_stacktrace();
-  std::cout << "\nDone.\n";
+  std::cerr << get_stacktrace(3);
+  std::cerr << "Abort: Signal SIGABRT (abort) received\n\n";
 }
 
-
-StacktraceAddresses get_stacktrace_addresses(int impl_stacktrace_depth)
-{
-  const int STACKTRACE_ARRAY_SIZE = 100; // 2010/05/22: rabartl: Is this large enough?
-  void *stacktrace_array[STACKTRACE_ARRAY_SIZE];
-#ifdef HAVE_LFORTRAN_EXECINFO
-  const size_t stacktrace_size = backtrace(stacktrace_array,
-    STACKTRACE_ARRAY_SIZE);
-#else
-  const size_t stacktrace_size = 0;
-#endif
-  return StacktraceAddresses(stacktrace_array, stacktrace_size,
-      impl_stacktrace_depth+1);
-}
-
-
-} // Unnamed namespace
-
-
-// Public functions
-
-
-std::string LFortran::get_stacktrace(int impl_stacktrace_depth)
-{
-  StacktraceAddresses addresses =
-    get_stacktrace_addresses(impl_stacktrace_depth+1);
-  return stacktrace2str(addresses);
-}
-
-
-void LFortran::show_stacktrace()
-{
-  const int impl_stacktrace_depth=1;
-  std::cout << LFortran::get_stacktrace(impl_stacktrace_depth);
-}
-
-
-void LFortran::print_stack_on_segfault()
+void print_stack_on_segfault()
 {
   signal(SIGSEGV, loc_segfault_callback_print_stack);
   signal(SIGABRT, loc_abort_callback_print_stack);
 }
+
+std::string get_stacktrace(int skip)
+{
+  std::vector<StacktraceItem> d = get_stacktrace_addresses();
+  get_local_addresses(d);
+  get_local_info(d);
+  return stacktrace2str(d, skip);
+}
+
+
+void show_stacktrace()
+{
+  std::cout << get_stacktrace(3);
+}
+
+
+std::vector<StacktraceItem> get_stacktrace_addresses()
+{
+  std::vector<StacktraceItem> d;
+#ifdef HAVE_LFORTRAN_UNWIND
+  _Unwind_Backtrace(unwind_callback, &d);
+#endif
+  return d;
+}
+
+void get_local_addresses(std::vector<StacktraceItem> &d)
+{
+  for (size_t i=0; i < d.size(); i++) {
+    get_local_address(d[i]);
+  }
+}
+
+
+void get_local_info(std::vector<StacktraceItem> &d)
+{
+#ifdef HAVE_LFORTRAN_BFD
+  bfd_init();
+#endif
+  for (size_t i=0; i < d.size(); i++) {
+#ifdef HAVE_LFORTRAN_BFD
+    get_symbol_info(d[i].binary_filename, d[i].local_pc,
+      d[i].source_filename, d[i].function_name, d[i].line_number);
+#endif
+  }
+}
+
+} // namespace LFortran

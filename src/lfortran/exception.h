@@ -6,12 +6,14 @@ extern "C" {
 #endif
 
 typedef enum {
-    LFORTRAN_NO_EXCEPTION = 0,
-    LFORTRAN_RUNTIME_ERROR = 1,
-    LFORTRAN_TOKENIZER_ERROR = 2,
-    LFORTRAN_PARSER_ERROR = 3,
-    LFORTRAN_SEMANTIC_ERROR = 4,
-    LFORTRAN_CODEGEN_ERROR = 5,
+    LFORTRAN_NO_EXCEPTION    = 0,
+    LFORTRAN_RUNTIME_ERROR   = 1,
+    LFORTRAN_EXCEPTION       = 2,
+    LFORTRAN_TOKENIZER_ERROR = 3,
+    LFORTRAN_PARSER_ERROR    = 4,
+    LFORTRAN_SEMANTIC_ERROR  = 5,
+    LFORTRAN_CODEGEN_ERROR   = 6,
+    LFORTRAN_ASSERT_FAILED   = 7,
 } lfortran_exceptions_t;
 
 #ifdef __cplusplus
@@ -24,22 +26,34 @@ typedef enum {
 #include <exception>
 #include <string>
 #include <lfortran/parser/location.h>
+#include <lfortran/config.h>
+#include <lfortran/stacktrace.h>
 
 namespace LFortran
 {
+
+const int stacktrace_depth = 4;
 
 class LFortranException : public std::exception
 {
     std::string m_msg;
     lfortran_exceptions_t ec;
+    std::string m_stacktrace;
 
 public:
     LFortranException(const std::string &msg, lfortran_exceptions_t error)
-        : m_msg(msg), ec(error)
+        : m_msg{msg}, ec{error}
     {
+#if defined(HAVE_LFORTRAN_STACKTRACE)
+        if (ec != lfortran_exceptions_t::LFORTRAN_TOKENIZER_ERROR &&
+            ec != lfortran_exceptions_t::LFORTRAN_PARSER_ERROR &&
+            ec != lfortran_exceptions_t::LFORTRAN_SEMANTIC_ERROR) {
+            m_stacktrace = LFortran::get_stacktrace(stacktrace_depth);
+        }
+#endif
     }
     LFortranException(const std::string &msg)
-        : LFortranException(msg, LFORTRAN_RUNTIME_ERROR)
+        : LFortranException(msg, LFORTRAN_EXCEPTION)
     {
     }
     const char *what() const throw()
@@ -49,6 +63,28 @@ public:
     std::string msg() const
     {
         return m_msg;
+    }
+    std::string name() const
+    {
+        switch (ec) {
+            case (lfortran_exceptions_t::LFORTRAN_EXCEPTION) :
+                return "LFortranException";
+            case (lfortran_exceptions_t::LFORTRAN_TOKENIZER_ERROR) :
+                return "TokenizerError";
+            case (lfortran_exceptions_t::LFORTRAN_PARSER_ERROR) :
+                return "ParserError";
+            case (lfortran_exceptions_t::LFORTRAN_SEMANTIC_ERROR) :
+                return "SemanticError";
+            case (lfortran_exceptions_t::LFORTRAN_CODEGEN_ERROR) :
+                return "CodeGenError";
+            case (lfortran_exceptions_t::LFORTRAN_ASSERT_FAILED) :
+                return "AssertFailed";
+            default : return "Unknown Exception";
+        }
+    }
+    std::string stacktrace() const
+    {
+        return m_stacktrace;
     }
     lfortran_exceptions_t error_code()
     {
@@ -98,6 +134,15 @@ class CodeGenError : public LFortranException
 public:
     CodeGenError(const std::string &msg)
         : LFortranException(msg, LFORTRAN_CODEGEN_ERROR)
+    {
+    }
+};
+
+class AssertFailed : public LFortranException
+{
+public:
+    AssertFailed(const std::string &msg)
+        : LFortranException(msg, LFORTRAN_ASSERT_FAILED)
     {
     }
 };

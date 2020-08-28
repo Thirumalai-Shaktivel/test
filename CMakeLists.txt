@@ -3,13 +3,8 @@ cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 set(CMAKE_USER_MAKE_RULES_OVERRIDE ${CMAKE_SOURCE_DIR}/cmake/UserOverride.cmake)
 
 file(STRINGS "version" LFORTRAN_VERSION)
-if (LFORTRAN_VERSION MATCHES git)
-    # CMake only allows integers in the version, so we use the version 0.1.1 to
-    # mean an unreleased git commit
-    set(LFORTRAN_VERSION "0.1.1")
-endif ()
 
-project(lfortran LANGUAGES C CXX VERSION ${LFORTRAN_VERSION})
+project(lfortran LANGUAGES C CXX)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
@@ -31,6 +26,11 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(LFORTRAN_CXX_NO_RTTI_FLAG "/GR-")
 endif ()
 
+
+# For CMAKE_INSTALL_BINDIR:
+include(GNUInstallDirs)
+
+
 # Build a CPack driven installer package
 #
 # To build a binary package:
@@ -40,14 +40,10 @@ endif ()
 include(InstallRequiredSystemLibraries)
 set(CPACK_GENERATOR "TBZ2")
 set(CPACK_STRIP_FILES YES)
-if (LFORTRAN_VERSION STREQUAL "0.1.1")
-    set(CPACK_PACKAGE_FILE_NAME lfortran-git-${CMAKE_SYSTEM_NAME})
-endif()
+set(CPACK_PACKAGE_FILE_NAME lfortran-${LFORTRAN_VERSION}-${CMAKE_SYSTEM_NAME})
 include(CPack)
 # So that CPACK_PACKAGE_FILE_NAME prints the correct value below
-if (LFORTRAN_VERSION STREQUAL "0.1.1")
-    set(CPACK_PACKAGE_FILE_NAME lfortran-git-${CMAKE_SYSTEM_NAME})
-endif()
+set(CPACK_PACKAGE_FILE_NAME lfortran-${LFORTRAN_VERSION}-${CMAKE_SYSTEM_NAME})
 
 
 if (NOT CMAKE_CXX_STANDARD)
@@ -96,6 +92,28 @@ if (WITH_LLVM)
     set(HAVE_LFORTRAN_LLVM yes)
 endif()
 
+# XEUS (Fortran kernel)
+set(WITH_XEUS no CACHE BOOL "Build with XEUS support")
+if (WITH_XEUS)
+    find_package(xeus 0.24.1 REQUIRED)
+    set(HAVE_LFORTRAN_XEUS yes)
+
+    # Generate kernel.json with correct paths
+    configure_file (
+        "${CMAKE_CURRENT_SOURCE_DIR}/share/jupyter/kernels/fortran/kernel.json.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/share/jupyter/kernels/fortran/kernel.json"
+    )
+
+    # Configuration and data directories for Jupyter and LFortran
+    set(XJUPYTER_DATA_DIR "share/jupyter" CACHE STRING "Jupyter data directory")
+
+    # Install Jupyter kernelspecs
+    set(XEUS_CALCSPEC_DIR ${CMAKE_CURRENT_BINARY_DIR}/share/jupyter/kernels)
+    install(DIRECTORY ${XEUS_CALCSPEC_DIR}
+            DESTINATION ${XJUPYTER_DATA_DIR}
+            PATTERN "*.in" EXCLUDE)
+endif()
+
 # JSON
 set(WITH_JSON no CACHE BOOL "Build with JSON support")
 if (WITH_JSON)
@@ -111,17 +129,36 @@ if (MSVC)
 endif()
 
 # Stacktrace
+set(WITH_UNWIND no
+    CACHE BOOL "Build with unwind support")
+set(WITH_BFD no
+    CACHE BOOL "Build with BFD support")
+set(WITH_LINKH no
+    CACHE BOOL "Build with link.h support")
+set(WITH_MACHO no
+    CACHE BOOL "Build with mach-o support")
 set(WITH_STACKTRACE no
     CACHE BOOL "Build with stacktrace support (requires binutils-dev)")
-
 if (WITH_STACKTRACE)
-    find_package(BFD REQUIRED)
-    find_package(LINK REQUIRED)
-    find_package(EXECINFO REQUIRED)
-    set(HAVE_LFORTRAN_BFD yes)
-    set(HAVE_LFORTRAN_LINK yes)
-    set(HAVE_LFORTRAN_EXECINFO yes)
+    set(WITH_UNWIND yes)
+    set(WITH_BFD yes)
+    set(WITH_LINKH yes)
     set(HAVE_LFORTRAN_STACKTRACE yes)
+endif()
+if (WITH_BFD)
+    find_package(BFD REQUIRED)
+    set(HAVE_LFORTRAN_BFD yes)
+endif()
+if (WITH_LINKH)
+    find_package(LINKH REQUIRED)
+    set(HAVE_LFORTRAN_LINK yes)
+endif()
+if (WITH_MACHO)
+    find_package(MACHO REQUIRED)
+    set(HAVE_LFORTRAN_MACHO yes)
+endif()
+if (WITH_UNWIND)
+    set(HAVE_LFORTRAN_UNWIND yes)
 endif()
 
 enable_testing()
@@ -129,7 +166,7 @@ enable_testing()
 message("\n")
 message("Configuration results")
 message("---------------------")
-message("CMAKE_PROJECT_VERSION: ${CMAKE_PROJECT_VERSION}")
+message("LFORTRAN_VERSION: ${LFORTRAN_VERSION}")
 message("CPACK_PACKAGE_FILE_NAME: ${CPACK_PACKAGE_FILE_NAME}")
 message("C compiler      : ${CMAKE_C_COMPILER}")
 message("C++ compiler    : ${CMAKE_CXX_COMPILER}")
@@ -145,8 +182,13 @@ message("Installation prefix: ${CMAKE_INSTALL_PREFIX}")
 message("WITH_LFORTRAN_ASSERT: ${WITH_LFORTRAN_ASSERT}")
 message("LFORTRAN_STATIC_BIN: ${LFORTRAN_STATIC_BIN}")
 message("WITH_STACKTRACE: ${WITH_STACKTRACE}")
+message("WITH_UNWIND: ${WITH_UNWIND}")
+message("WITH_BFD: ${WITH_BFD}")
+message("WITH_LINKH: ${WITH_LINKH}")
+message("WITH_MACHO: ${WITH_MACHO}")
 message("HAVE_LFORTRAN_DEMANGLE: ${HAVE_LFORTRAN_DEMANGLE}")
 message("WITH_LLVM: ${WITH_LLVM}")
+message("WITH_XEUS: ${WITH_XEUS}")
 message("WITH_JSON: ${WITH_JSON}")
 
 
