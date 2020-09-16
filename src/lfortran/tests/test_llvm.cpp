@@ -16,6 +16,10 @@
 using LFortran::FortranEvaluator;
 
 
+#define DOCTEST_CHECK_THROWS_AS(x, y)
+#define DOCTEST_CHECK_THROWS_WITH(x, y)
+
+
 TEST_CASE("llvm 1") {
     std::cout << "LLVM Version:" << std::endl;
     LFortran::LLVMEvaluator::print_version_message();
