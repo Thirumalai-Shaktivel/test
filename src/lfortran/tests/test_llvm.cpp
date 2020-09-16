@@ -1,3 +1,7 @@
+#define DOCTEST_CONFIG_NO_EXCEPTIONS
+#define DOCTEST_CONFIG_NO_POSIX_SIGNALS
+#define DOCTEST_CONFIG_NO_TRY_CATCH_IN_ASSERTS
+#define DOCTEST_CONFIG_SUPER_FAST_ASSERTS
 #include <tests/doctest.h>
 
 #include <lfortran/codegen/evaluator.h>
