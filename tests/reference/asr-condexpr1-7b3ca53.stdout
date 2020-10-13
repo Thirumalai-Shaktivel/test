@@ -1,0 +1,1 @@
+(TranslationUnit (SymbolTable c7f0b7c4 {condexpr_01: (Program (SymbolTable 06aa2484 {i: (Variable 06aa2484 i Local (Integer 4 []))}) condexpr_01 [(= (Var 06aa2484 i) (CondExpr (ConstantLogical Unimplementedconstant (Logical 4 [])) (ConstantInteger 10 (Integer 4 [])) (ConstantInteger 20 (Integer 4 [])) (Integer 4 []))) (Print () [(Var 06aa2484 i)])])}) [])

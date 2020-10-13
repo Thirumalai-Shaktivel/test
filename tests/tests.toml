@@ -584,3 +584,9 @@ ast_f90 = true
 [[test]]
 filename = "../integration_tests/reserved_02.f90"
 ast_f90 = true
+
+[[test]]
+filename = "condexpr1.f90"
+ast = true
+asr = true
+llvm = true

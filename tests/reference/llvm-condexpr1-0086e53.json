@@ -1,0 +1,13 @@
+{
+    "basename": "llvm-condexpr1-0086e53",
+    "cmd": "lfortran --show-llvm {infile} -o {outfile}",
+    "infile": "tests/condexpr1.f90",
+    "infile_hash": "265cb984ee2ea4a18cf93f1277aebceed03cb5c68d599d63025b5170",
+    "outfile": null,
+    "outfile_hash": null,
+    "stdout": "llvm-condexpr1-0086e53.stdout",
+    "stdout_hash": "b24437688b33cf53262a7d65b28862e60f2f4b011432632de1a7f935",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

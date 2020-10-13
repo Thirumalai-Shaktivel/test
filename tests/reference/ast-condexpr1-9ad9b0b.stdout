@@ -1,0 +1,1 @@
+(TranslationUnit [(Program condexpr_01 [] [(Declaration [(i "integer" [] [] [] ())])] [(= i (CondExpr (Constant Unimplementedconstant) 10 20)) (Print () [i])] [])])
