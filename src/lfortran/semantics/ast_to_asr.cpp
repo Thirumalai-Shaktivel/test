@@ -935,6 +935,29 @@ public:
                 body.size(), orelse.p, orelse.size());
     }
 
+    void visit_CondExpr(const AST::CondExpr_t &x) {
+        visit_expr(*x.m_test);
+        ASR::expr_t *test = ASR::down_cast<ASR::expr_t>(tmp);
+        visit_expr(*x.m_body);
+        ASR::expr_t *body = ASR::down_cast<ASR::expr_t>(tmp);
+        visit_expr(*x.m_orelse);
+        ASR::expr_t *orelse = ASR::down_cast<ASR::expr_t>(tmp);
+
+        ASR::ttype_t *body_type = expr_type(body);
+        ASR::ttype_t *orelse_type = expr_type(orelse);
+        ASR::ttype_t *type;
+        if (body_type->type == orelse_type->type) {
+            // TODO: convert/cast kinds if they differ or emit an error
+            type = body_type;
+        } else {
+            throw SemanticError("The type of then and else expressions must match in conditional expression",
+                x.base.base.loc);
+        }
+
+        tmp = ASR::make_CondExpr_t(al, x.base.base.loc, test, body,
+                orelse, type);
+    }
+
     void visit_WhileLoop(const AST::WhileLoop_t &x) {
         visit_expr(*x.m_test);
         ASR::expr_t *test = EXPR(tmp);

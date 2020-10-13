@@ -43,6 +43,7 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
         case ASR::exprType::ExplicitCast: { return ((ASR::ExplicitCast_t*)f)->m_type; }
         case ASR::exprType::Var: { return EXPR2VAR(f)->m_type; }
         case ASR::exprType::ConstantLogical: { return ((ASR::ConstantLogical_t*)f)->m_type; }
+        case ASR::exprType::CondExpr: { return ((ASR::CondExpr_t*)f)->m_type; }
         default : throw LFortranException("Not implemented");
     }
 }

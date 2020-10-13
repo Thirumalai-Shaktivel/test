@@ -66,6 +66,7 @@ expr
     | ArrayRef(symbol v, array_index* args, ttype type)
     | ImplicitCast(expr arg, cast_kind kind, ttype type)
     | ExplicitCast(expr arg, cast_kind kind, ttype type)
+    | CondExpr(expr test, expr body, expr orelse, ttype type)
 
 ttype
     = Integer(int kind, dimension* dims)
