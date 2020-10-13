@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    430 // shift/reduce conflicts
+%expect    438 // shift/reduce conflicts
 %expect-rr 78  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -1304,6 +1304,8 @@ expr
     | "(" expr ")" { $$ = $2; }
     | "(" expr "," expr ")" { $$ = $2; } // TODO: return a complex here
     | "(" expr "," id "=" expr "," expr ")" { $$ = $2; } // TODO: return a generator expression
+    | KW_IF "(" expr ")" KW_THEN expr KW_ELSE expr endif {
+        $$ = CONDITIONAL_EXPR($3, $6, $8, @$); }
 
 // ### level-1
 

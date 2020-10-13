@@ -530,6 +530,12 @@ char *fn_type2return_type(const LFortran::Vec<ast_t*> &v) {
         /*n_contains*/ contains.size())
 #define RESULT(x) p.result.push_back(p.m_a, x)
 
+#define CONDITIONAL_EXPR(cond, body, orelse, l) LFortran::AST::make_CondExpr_t(\
+        p.m_a, l, \
+        down_cast<expr_t>(cond), \
+        down_cast<expr_t>(body), \
+        down_cast<expr_t>(orelse))
+
 #define IFSINGLE(cond, body, l) make_If_t(p.m_a, l, \
         /*test*/ EXPR(cond), \
         /*body*/ IFSTMTS(p.m_a, body), \

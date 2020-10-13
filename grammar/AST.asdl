@@ -84,6 +84,7 @@ expr
     | Str(string s)
     | Name(identifier id)
     | Constant(constant value)
+    | CondExpr(expr test, expr body, expr orelse)
 
 boolop = And | Or | Eqv | NEqv
 
