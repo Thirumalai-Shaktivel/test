@@ -249,6 +249,8 @@ void LLVMEvaluator::save_object_file(llvm::Module &m, const std::string &filenam
     if (EC) {
         throw std::runtime_error("raw_fd_ostream failed");
     }
+    m.setTargetTriple(target_triple);
+    m.setDataLayout(jit->getTargetMachine().createDataLayout());
     if (jit->getTargetMachine().addPassesToEmitFile(pass, dest, nullptr, ft)) {
         throw std::runtime_error("TargetMachine can't emit a file of this type");
     }
