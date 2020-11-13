@@ -49,7 +49,7 @@ public:
               return findMangledSymbol(Name);
             },
             [](Error Err) { cantFail(std::move(Err), "lookupFlags failed"); })),
-        TM(EngineBuilder().setRelocationModel(Reloc::Model::PIC_).selectTarget()), DL(TM->createDataLayout()),
+        TM(EngineBuilder().setRelocationModel(Reloc::Model::Static).selectTarget()), DL(TM->createDataLayout()),
         ObjectLayer(ES,
                     [this](VModuleKey) {
                       return ObjLayerT::Resources{
