@@ -252,6 +252,7 @@ void LLVMEvaluator::save_object_file(llvm::Module &m, const std::string &filenam
     m.setTargetTriple(target_triple);
     m.setDataLayout(jit->getTargetMachine().createDataLayout());
     std::cout << "RELOC: " << jit->getTargetMachine().getRelocationModel() << std::endl;
+    std::cout << "PIC: " << jit->getTargetMachine().isPositionIndependent() << std::endl;
     if (jit->getTargetMachine().addPassesToEmitFile(pass, dest, nullptr, ft)) {
         throw std::runtime_error("TargetMachine can't emit a file of this type");
     }
