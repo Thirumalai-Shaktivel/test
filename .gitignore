@@ -98,6 +98,8 @@ MANIFEST
 
 ## Jupyter
 *-checkpoint.ipynb
-/.ccls-cache/
-/inst/
-/output
+*.ccls-cache/
+*/bin/*
+*/lib/*
+*.o
+*.out
