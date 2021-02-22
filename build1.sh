@@ -10,7 +10,10 @@ then
     install_path="$1"
 fi
 
-echo $install_path
+if [ ! -z "$LFORTRAN_CMAKE_INSTALL_PREFIX" ]
+then
+    install_path="$LFORTRAN_CMAKE_INSTALL_PREFIX"
+fi
 
 cmake \
     -DCMAKE_BUILD_TYPE=Debug \
