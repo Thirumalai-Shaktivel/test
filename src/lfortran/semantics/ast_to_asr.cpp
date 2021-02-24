@@ -8,10 +8,68 @@
 #include <lfortran/pickle.h>
 #include <lfortran/semantics/ast_to_asr.h>
 #include <lfortran/parser/parser_stype.h>
-
+#include <string>
 
 namespace LFortran {
 
+    class ImplicitCastRules {
+
+        private:
+
+            static int defaultArgs = -1;
+            static int errorArgs = -2;
+            static int integerToReal = ASR::cast_kindType::IntegerToReal;
+            static int realToInteger = ASR::cast_kindType::RealToInteger;
+            static int realToComplex = ASR::cast_kindType::RealToComplex;
+
+            static std::string type_names[6][2] = {
+                {"Integer", ""}, 
+                {"Real", "Integer or Real"}, 
+                {"Complex", ""},
+                {"Character", ""},
+                {"Logical", "",
+                {"Derived", ""}
+            }; 
+
+            static int ruleMap[6][6] = {
+
+                {defaultArgs, integerToReal, errorArgs, errorArgs, errorArgs, errorArgs},
+                {realToInteger, realToComplex, defaultArgs, defaultArgs, defaultArgs, defaultArgs},
+                {defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs},
+                {defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs},
+                {defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs},
+                {defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs}
+
+            }
+
+        public:
+
+            static ASR::expr_t* getConvertedValue
+            (Allocator &al, const Location &a_loc, 
+             ASR::expr_t* value, ASR::expr_t* target) {
+
+                ASR::ttype_t* value_type = expr_type(value);
+                ASR::ttype_t* target_type = expr_type(target);
+                int cast_kind = ruleMap[value_type->type][target_type->type];
+                if( cast_kind == defaultArgs )
+                {
+                    return NULL;
+                }
+                else if( cast_kind == errorArgs )
+                {
+                    std::string error_msg = "Only " + type_names[target_type->type][1] + 
+                                            " can be assigned to " + type_names[target_type->type][0];
+                    throw SemanticError(error_msg, x.base.base.loc);
+                }
+                else
+                {
+                    return (ASR::expr_t*) ASR::make_ImplicitCast_t(
+                        al, a_loc, value, cast_kind, target_type
+                    );
+                }
+            }
+
+    };
 
 class SymbolTableVisitor : public AST::BaseVisitor<SymbolTableVisitor>
 {
@@ -576,43 +634,46 @@ public:
     void visit_Assignment(const AST::Assignment_t &x) {
         this->visit_expr(*x.m_target);
         ASR::expr_t *target = EXPR(tmp);
-        if (target->type == ASR::exprType::Var) {
-            // integer :: i
-            // i = ...
-        } else if (target->type == ASR::exprType::ArrayRef) {
-            // integer :: i(5)
-            // i(3) = ...
-        } else {
-            throw SemanticError("The LHS of assignment can only be a variable or an array reference",
-                x.base.base.loc);
+        if( target->type != ASR::exprType::Var && 
+            target->type != AST::exprType::ArrayRef )
+        {
+            throw SemanticError(
+                "The LHS of assignment can only be a variable or an array reference",
+                x.base.base.loc
+            );
         }
+
         this->visit_expr(*x.m_value);
         ASR::expr_t *value = EXPR(tmp);
         if (target->type == ASR::exprType::Var) {
-            // integer :: i
-            // i = ...
-            if (expr_type(target)->type == ASR::ttypeType::Real) {
-                if (expr_type(value)->type == ASR::ttypeType::Real) {
-                    // TODO: convert/cast kinds if they differ
-                } else if (expr_type(value)->type == ASR::ttypeType::Integer) {
-                    value = (ASR::expr_t*)ASR::make_ImplicitCast_t(al, x.base.base.loc,
-                        value, ASR::cast_kindType::IntegerToReal, expr_type(target));
-                } else {
-                    throw SemanticError("Only Integer or Real can be assigned to Real",
-                        x.base.base.loc);
-                }
-            } else if (expr_type(target)->type == ASR::ttypeType::Integer) {
-                if (expr_type(value)->type == ASR::ttypeType::Real) {
-                    value = (ASR::expr_t*)ASR::make_ImplicitCast_t(al, x.base.base.loc,
-                        value, ASR::cast_kindType::RealToInteger, expr_type(target));
-                } else if (expr_type(value)->type == ASR::ttypeType::Integer) {
-                    // TODO: convert/cast kinds if they differ
-                } else {
-                    throw SemanticError("Only Integer or Real can be assigned to Integer",
-                        x.base.base.loc);
-                }
+
+            ASR::expr_t* temp_value = ImplicitCastRules::getConvertedValue(al, x.base.base.loc, value, target);
+            if( temp_value != (ASR::expr_t*) NULL )
+            {
+                value = temp_value;
             }
-        }
+        //     if (expr_type(target)->type == ASR::ttypeType::Real) {
+        //         if (expr_type(value)->type == ASR::ttypeType::Real) {
+        //             // TODO: convert/cast kinds if they differ
+        //         } else if (expr_type(value)->type == ASR::ttypeType::Integer) {
+        //             value = (ASR::expr_t*)ASR::make_ImplicitCast_t(al, x.base.base.loc,
+        //                 value, ASR::cast_kindType::IntegerToReal, expr_type(target));
+        //         } else {
+        //             throw SemanticError("Only Integer or Real can be assigned to Real",
+        //                 x.base.base.loc);
+        //         }
+        //     } else if (expr_type(target)->type == ASR::ttypeType::Integer) {
+        //         if (expr_type(value)->type == ASR::ttypeType::Real) {
+        //             value = (ASR::expr_t*)ASR::make_ImplicitCast_t(al, x.base.base.loc,
+        //                 value, ASR::cast_kindType::RealToInteger, expr_type(target));
+        //         } else if (expr_type(value)->type == ASR::ttypeType::Integer) {
+        //             // TODO: convert/cast kinds if they differ
+        //         } else {
+        //             throw SemanticError("Only Integer or Real can be assigned to Integer",
+        //                 x.base.base.loc);
+        //         }
+        //     }
+        // }
         tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value);
     }
 
