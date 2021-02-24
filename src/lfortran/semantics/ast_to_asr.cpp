@@ -16,22 +16,22 @@ namespace LFortran {
 
         private:
 
-            static int defaultArgs = -1;
-            static int errorArgs = -2;
-            static int integerToReal = ASR::cast_kindType::IntegerToReal;
-            static int realToInteger = ASR::cast_kindType::RealToInteger;
-            static int realToComplex = ASR::cast_kindType::RealToComplex;
+            static const int defaultArgs = -1;
+            static const int errorArgs = -2;
+            static const int integerToReal = ASR::cast_kindType::IntegerToReal;
+            static const int realToInteger = ASR::cast_kindType::RealToInteger;
+            static const int realToComplex = ASR::cast_kindType::RealToComplex;
 
-            static std::string type_names[6][2] = {
+            static constexpr const char* type_names[num_types][2] = {
                 {"Integer", ""}, 
                 {"Real", "Integer or Real"}, 
                 {"Complex", ""},
                 {"Character", ""},
-                {"Logical", "",
+                {"Logical", ""},
                 {"Derived", ""}
             }; 
 
-            static int ruleMap[6][6] = {
+            static constexpr const int ruleMap[num_types][num_types] = {
 
                 {defaultArgs, integerToReal, errorArgs, errorArgs, errorArgs, errorArgs},
                 {realToInteger, realToComplex, defaultArgs, defaultArgs, defaultArgs, defaultArgs},
@@ -40,7 +40,7 @@ namespace LFortran {
                 {defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs},
                 {defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs}
 
-            }
+            };
 
         public:
 
@@ -51,22 +51,23 @@ namespace LFortran {
                 ASR::ttype_t* value_type = expr_type(value);
                 ASR::ttype_t* target_type = expr_type(target);
                 int cast_kind = ruleMap[value_type->type][target_type->type];
-                if( cast_kind == defaultArgs )
+                ASR::expr_t* return_val = NULL;
+                if( cast_kind == errorArgs )
                 {
-                    return NULL;
-                }
-                else if( cast_kind == errorArgs )
-                {
-                    std::string error_msg = "Only " + type_names[target_type->type][1] + 
-                                            " can be assigned to " + type_names[target_type->type][0];
-                    throw SemanticError(error_msg, x.base.base.loc);
+                    std::string allowed_types = type_names[target_type->type][1];
+                    std::string dest_type = type_names[target_type->type][0];
+                    std::string error_msg = "Only " + allowed_types + 
+                                            " can be assigned to " + dest_type;
+                    throw SemanticError(error_msg, a_loc);
                 }
                 else
                 {
-                    return (ASR::expr_t*) ASR::make_ImplicitCast_t(
-                        al, a_loc, value, cast_kind, target_type
+                    return_val = (ASR::expr_t*) ASR::make_ImplicitCast_t(
+                        al, a_loc, value, (ASR::cast_kindType) cast_kind, 
+                        target_type
                     );
                 }
+                return return_val;
             }
 
     };
