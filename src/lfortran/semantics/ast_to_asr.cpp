@@ -636,7 +636,7 @@ public:
         this->visit_expr(*x.m_target);
         ASR::expr_t *target = EXPR(tmp);
         if( target->type != ASR::exprType::Var && 
-            target->type != AST::exprType::ArrayRef )
+            target->type != ASR::exprType::ArrayRef )
         {
             throw SemanticError(
                 "The LHS of assignment can only be a variable or an array reference",
@@ -674,7 +674,7 @@ public:
         //                 x.base.base.loc);
         //         }
         //     }
-        // }
+        }
         tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value);
     }
 
