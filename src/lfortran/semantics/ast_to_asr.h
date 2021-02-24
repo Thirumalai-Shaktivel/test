@@ -4,8 +4,6 @@
 #include <lfortran/ast.h>
 #include <lfortran/asr.h>
 
-#define num_types 6
-
 namespace LFortran {
 
     ASR::TranslationUnit_t *ast_to_asr(Allocator &al,
