@@ -16,8 +16,8 @@ namespace LFortran {
 
         private:
 
-            static const int defaultArgs = -1;
-            static const int errorArgs = -2;
+            static const int defaultCase = -1;
+            static const int errorCase = -2;
             static const int integerToReal = ASR::cast_kindType::IntegerToReal;
             static const int realToInteger = ASR::cast_kindType::RealToInteger;
             static const int realToComplex = ASR::cast_kindType::RealToComplex;
@@ -33,12 +33,12 @@ namespace LFortran {
 
             static constexpr const int ruleMap[num_types][num_types] = {
 
-                {defaultArgs, integerToReal, errorArgs, errorArgs, errorArgs, errorArgs},
-                {realToInteger, realToComplex, defaultArgs, defaultArgs, defaultArgs, defaultArgs},
-                {defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs},
-                {defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs},
-                {defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs},
-                {defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs, defaultArgs}
+                {defaultCase, integerToReal, errorCase, errorCase, errorCase, errorCase},
+                {realToInteger, realToComplex, defaultCase, defaultCase, defaultCase, defaultCase},
+                {defaultCase, defaultCase, defaultCase, defaultCase, defaultCase, defaultCase},
+                {defaultCase, defaultCase, defaultCase, defaultCase, defaultCase, defaultCase},
+                {defaultCase, defaultCase, defaultCase, defaultCase, defaultCase, defaultCase},
+                {defaultCase, defaultCase, defaultCase, defaultCase, defaultCase, defaultCase}
 
             };
 
@@ -52,7 +52,8 @@ namespace LFortran {
                 ASR::ttype_t* target_type = expr_type(target);
                 int cast_kind = ruleMap[value_type->type][target_type->type];
                 ASR::expr_t* return_val = NULL;
-                if( cast_kind == errorArgs )
+                std::cout<<value_type->type<<" "<<target_type->type<<" "<<cast_kind<<std::endl;
+                if( cast_kind == errorCase )
                 {
                     std::string allowed_types = type_names[target_type->type][1];
                     std::string dest_type = type_names[target_type->type][0];
@@ -60,7 +61,7 @@ namespace LFortran {
                                             " can be assigned to " + dest_type;
                     throw SemanticError(error_msg, a_loc);
                 }
-                else
+                else if( cast_kind != defaultCase )
                 {
                     return_val = (ASR::expr_t*) ASR::make_ImplicitCast_t(
                         al, a_loc, value, (ASR::cast_kindType) cast_kind, 
