@@ -101,3 +101,4 @@ MANIFEST
 
 ## Editor Files
 .vscode/
+*/bin/*
