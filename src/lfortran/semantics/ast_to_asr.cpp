@@ -18,12 +18,15 @@ namespace LFortran {
 
         private:
 
+            //! Default case when no conversion is needed.
             static const int defaultCase = -1;
+            //! Error case when conversion is not possible or is illegal.
             static const int errorCase = -2;
             static const int integerToReal = ASR::cast_kindType::IntegerToReal;
             static const int realToInteger = ASR::cast_kindType::RealToInteger;
             static const int realToComplex = ASR::cast_kindType::RealToComplex;
 
+            //! Stores the variable part of error messages to be passed to SemanticError.
             static constexpr const char* type_names[num_types][2] = {
                 {"Integer", ""}, 
                 {"Real", "Integer or Real"}, 
@@ -33,6 +36,12 @@ namespace LFortran {
                 {"Derived", ""}
             }; 
 
+            /*
+            * Rule map for performing implicit cast represented by a 2D integer array.
+            * 
+            * Key is the pair of indices with row index denoting the source type
+            * and column index denoting the destination type.
+            */
             static constexpr const int ruleMap[num_types][num_types] = {
 
                 {defaultCase, integerToReal, errorCase, errorCase, errorCase, errorCase},
@@ -44,6 +53,10 @@ namespace LFortran {
 
             };
 
+            /*
+            * Priority of different types to be used in conversion
+            * when source and destination are directly not deducible.
+            */
             static constexpr const int typePriority[num_types] = {
                 4, // Integer
                 5, // Real
@@ -55,6 +68,16 @@ namespace LFortran {
 
         public:
 
+            /*
+            * Adds ImplicitCast node if necessary.
+            * 
+            * @param al Allocator&
+            * @param a_loc Location&
+            * @param convertCan ASR::expr_t** Address of the pointer to 
+            *                                 conversion candidate.
+            * @param sourceType ASR::ttype_t* Source type.
+            * @param destType AST::ttype_t* Destination type.
+            */
             static void setConvertedValue
             (Allocator &al, const Location &a_loc, 
              ASR::expr_t** convertCan, ASR::ttype_t* sourceType, ASR::ttype_t* destType) {
@@ -76,6 +99,33 @@ namespace LFortran {
                 }
             }
 
+            /*
+            * Deduces the candidate which is to be casted
+            * based on the priority of types.
+            * 
+            * @param left ASR::expr_t** Address of the pointer to left 
+            *                           element in the operation.
+            * @param right ASR::expr_t** Address of the pointer to right
+            *                            element in the operation.
+            * @param left_type ASR::ttype_t* Pointer to the type of left element.
+            * @param right_type ASR::ttype_t* Pointer to the type of right element.
+            * @param conversionCand ASR::expr_t**& Reference to the address of
+            *                                      the pointer of conversion
+            *                                      candidate.
+            * @param sourceType ASR::ttype_t** For storing the address of pointer
+            *                                  to source type.
+            * @param destType ASR::ttype_t** For stroing the address of pointer to
+            *                                destination type.
+            * 
+            * Note
+            * ====
+            * 
+            * Address of pointer have been used so that the contents 
+            * of the pointer variables are modified which are then 
+            * used in making the node of different operations. If directly
+            * the pointer values are used, then no effect on left or right
+            * is observed and ASR construction fails.
+            */
             static void findConversionCandidate
             (ASR::expr_t** left, ASR::expr_t** right,
              ASR::ttype_t* left_type, ASR::ttype_t* right_type,
