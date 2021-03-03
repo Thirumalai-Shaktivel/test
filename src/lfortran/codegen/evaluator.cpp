@@ -262,11 +262,11 @@ void LLVMEvaluator::save_object_file(llvm::Module &m, const std::string &filenam
 
 void LLVMEvaluator::save_object_file2(llvm::Module &m, const std::string &filename) {
     // Initialize the target registry etc.
-    llvm::InitializeAllTargetInfos();
-    llvm::InitializeAllTargets();
-    llvm::InitializeAllTargetMCs();
-    llvm::InitializeAllAsmParsers();
-    llvm::InitializeAllAsmPrinters();
+    //llvm::InitializeAllTargetInfos();
+    //llvm::InitializeAllTargets();
+    //llvm::InitializeAllTargetMCs();
+    //llvm::InitializeAllAsmParsers();
+    //llvm::InitializeAllAsmPrinters();
 
     auto TargetTriple = llvm::sys::getDefaultTargetTriple();
     m.setTargetTriple(TargetTriple);

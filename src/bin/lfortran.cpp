@@ -583,7 +583,7 @@ int compile_to_object_file(const std::string &infile, const std::string &outfile
     if (assembly) {
         e.save_asm_file(*(m->m_m), outfile);
     } else {
-        e.save_object_file(*(m->m_m), outfile);
+        e.save_object_file2(*(m->m_m), outfile);
     }
 
     return 0;
