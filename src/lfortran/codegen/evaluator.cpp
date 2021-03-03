@@ -260,6 +260,58 @@ void LLVMEvaluator::save_object_file(llvm::Module &m, const std::string &filenam
     dest.flush();
 }
 
+void LLVMEvaluator::save_object_file2(llvm::Module &m, const std::string &filename) {
+    // Initialize the target registry etc.
+    llvm::InitializeAllTargetInfos();
+    llvm::InitializeAllTargets();
+    llvm::InitializeAllTargetMCs();
+    llvm::InitializeAllAsmParsers();
+    llvm::InitializeAllAsmPrinters();
+
+    auto TargetTriple = llvm::sys::getDefaultTargetTriple();
+    m.setTargetTriple(TargetTriple);
+
+    std::string Error;
+    auto Target = llvm::TargetRegistry::lookupTarget(TargetTriple, Error);
+
+    // Print an error and exit if we couldn't find the requested target.
+    // This generally occurs if we've forgotten to initialise the
+    // TargetRegistry or we have a bogus target triple.
+    if (!Target) {
+        throw LFortran::LFortranException("Error");
+    }
+
+    auto CPU = "generic";
+    auto Features = "";
+
+    llvm::TargetOptions opt;
+    auto RM = llvm::Optional<llvm::Reloc::Model>();
+    auto TheTargetMachine =
+        Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
+
+    m.setDataLayout(TheTargetMachine->createDataLayout());
+
+    auto Filename = filename;
+    std::error_code EC;
+    llvm::raw_fd_ostream dest(Filename, EC, llvm::sys::fs::F_None);
+
+    if (EC) {
+        throw LFortran::LFortranException("file open");
+    }
+
+    llvm::legacy::PassManager pass;
+    auto FileType = llvm::TargetMachine::CGFT_ObjectFile;
+
+    if (TheTargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+        throw LFortran::LFortranException("target machine");
+    }
+
+    pass.run(m);
+    dest.flush();
+
+    std::cout << "Wrote " << Filename << "\n";
+}
+
 std::string LLVMEvaluator::module_to_string(llvm::Module &m) {
     std::string buf;
     llvm::raw_string_ostream os(buf);
