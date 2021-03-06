@@ -123,6 +123,11 @@ The build steps are the same as with the `ci`:
 ./build0.sh
 ./build1.sh
 ```
+
+To change the compilation environment from `gcc` (default) to `clang` we can use `--argstr`:
+```bash
+nix-shell --run "bash" --cores 4 -j4 --pure ci/shell.nix --argstr clangOnly "yes"
+```
 ## Note About Dependencies
 
 End users (and distributions) are encouraged to use the tarball

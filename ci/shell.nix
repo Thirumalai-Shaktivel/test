@@ -1,4 +1,4 @@
-{ clangSupport ? true }:
+{ clangOnly ? "no" }:
 let
   sources = import ./nix/sources.nix;
   pkgs = import sources.nixpkgs { };
@@ -16,8 +16,8 @@ let
     '';
   };
   llvmPkgs = pkgs.buildPackages.llvmPackages_11;
-  myStdenv = if clangSupport then llvmPkgs.stdenv else pkgs.gcc10Stdenv;
-  myBinutils = if clangSupport then llvmPkgs.bintools else pkgs.binutils;
+  myStdenv = if clangOnly=="yes" then llvmPkgs.stdenv else pkgs.gcc10Stdenv;
+  myBinutils = if clangOnly=="yes" then llvmPkgs.bintools else pkgs.binutils;
   mkShellNewEnv = pkgs.mkShell.override { stdenv = myStdenv; };
 in mkShellNewEnv {
   nativeBuildInputs = [ pkgs.cmake ];
