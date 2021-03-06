@@ -92,7 +92,8 @@ cd lfortran
 ```
 Build:
 ```bash
-./build.sh
+./build0.sh
+./build1.sh
 ```
 Run tests:
 ```bash
@@ -104,6 +105,24 @@ Run an interactive prompt:
 ./src/bin/lfortran
 ```
 
+## From Git with Nix
+The best way to ensure the exact environment and dependencies is with `nix`. This will ensure that system dependencies do not interfere with the development environment. Note that it is preferred to have bugs reproduced in the `nix-shell` environment.
+
+We start by getting `nix`. The following multi-user intstallation will work on any machine with a Linux distribution, MacOS or Windows (via WSL):
+```bash
+sh <(curl -L https://nixos.org/nix/install) --daemon
+```
+Now we can enter the development environment:
+```bash
+nix-shell --run "bash" --cores 4 -j4 --pure ci/shell.nix
+```
+The `--pure` flag ensures no system dependencies are used in the environment.
+
+The build steps are the same as with the `ci`:
+```bash
+./build0.sh
+./build1.sh
+```
 ## Note About Dependencies
 
 End users (and distributions) are encouraged to use the tarball
