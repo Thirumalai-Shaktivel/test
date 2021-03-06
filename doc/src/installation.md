@@ -106,7 +106,7 @@ Run an interactive prompt:
 ```
 
 ## From Git with Nix
-The best way to ensure the exact environment and dependencies is with `nix`. This will ensure that system dependencies do not interfere with the development environment. Note that it is preferred to have bugs reproduced in the `nix-shell` environment.
+One of the ways to ensure exact environment and dependencies is with `nix`. This will ensure that system dependencies do not interfere with the development environment. If you want, you can report bugs in a `nix-shell` environment to make it easier for others to reproduce.
 
 We start by getting `nix`. The following multi-user intstallation will work on any machine with a Linux distribution, MacOS or Windows (via WSL):
 ```bash
