@@ -108,10 +108,24 @@ Run an interactive prompt:
 ## From Git with Nix
 One of the ways to ensure exact environment and dependencies is with `nix`. This will ensure that system dependencies do not interfere with the development environment. If you want, you can report bugs in a `nix-shell` environment to make it easier for others to reproduce.
 
+### With Root
 We start by getting `nix`. The following multi-user intstallation will work on any machine with a Linux distribution, MacOS or Windows (via WSL):
 ```bash
 sh <(curl -L https://nixos.org/nix/install) --daemon
 ```
+### Without Root
+If you would like to not provide `nix` with root access to your machine, on Linux distributions we can use [nix-portable](https://github.com/DavHau/nix-portable).
+```bash
+wget https://github.com/DavHau/nix-portable/releases/download/v003/nix-portable
+```
+Now just prepend all `nix-shell` commands with `NP_RUNTIME=bwrap ./nix-portable `. So:
+```bash
+# Do not
+nix-shell --run "bash"
+# Do
+NP_RUNTIME=bwrap ./nix-portable nix-shell --run "bash"
+```
+### Development
 Now we can enter the development environment:
 ```bash
 nix-shell --run "bash" --cores 4 -j4 --pure ci/shell.nix
