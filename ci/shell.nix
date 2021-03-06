@@ -17,6 +17,7 @@ let
   };
   llvmPkgs = pkgs.buildPackages.llvmPackages_11;
   myStdenv = if clangSupport then llvmPkgs.stdenv else pkgs.gcc10Stdenv;
+  myBinutils = if clangSupport then llvmPkgs.bintools else pkgs.binutils;
   mkShellNewEnv = pkgs.mkShell.override { stdenv = myStdenv; };
 in mkShellNewEnv {
   nativeBuildInputs = [ pkgs.cmake ];
@@ -30,7 +31,7 @@ in mkShellNewEnv {
     fmt
     llvm_11
     lld_11
-    llvmPkgs.bintools
+    myBinutils
     bison_3_5
     zlib
     libbfd
