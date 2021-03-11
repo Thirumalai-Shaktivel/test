@@ -34,8 +34,13 @@ unit
 symbol
     = Program(symbol_table symtab, identifier name, stmt* body)
     | Module(symbol_table symtab, symbol* public, identifier name)
--- Alternative:
+-- Alternatives:
+--   Just names:
 --    | Module(symbol_table symtab, identifier* public, identifier name)
+--   These would be Var(), similarly like `expr* args` for Subroutine,
+--   but we are not referencing (loading) the variable, so perhaps both should
+--   be changed to identifier/symbol
+--    | Module(symbol_table symtab, expr* public, identifier name)
     | Subroutine(symbol_table symtab, identifier name, expr* args, stmt* body,
         tbind? bind, proc_external? external, access access)
     | Function(symbol_table symtab, identifier name, expr* args, stmt* body,
