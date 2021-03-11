@@ -244,10 +244,46 @@ public:
             visit_program_unit(*x.m_contains[i]);
         }
         add_generic_procedures();
+        Vec<ASR::symbol_t*> public_list;
+        public_list.reserve(al, 4);
+        for (auto &s : current_scope->scope) {
+            ASR::symbol_t *sym = s.second;
+            switch (sym->type) {
+                case (ASR::symbolType::Variable) : {
+                    if (ASR::down_cast<ASR::Variable_t>(sym)->m_access ==
+                        ASR::accessType::Public) {
+                            public_list.push_back(al, sym);
+                        }
+                    break;
+                }
+                case (ASR::symbolType::Subroutine) : {
+                    if (ASR::down_cast<ASR::Subroutine_t>(sym)->m_access ==
+                        ASR::accessType::Public) {
+                            public_list.push_back(al, sym);
+                        }
+                    break;
+                }
+                case (ASR::symbolType::Function) : {
+                    if (ASR::down_cast<ASR::Function_t>(sym)->m_access ==
+                        ASR::accessType::Public) {
+                            public_list.push_back(al, sym);
+                        }
+                    break;
+                }
+                case (ASR::symbolType::GenericProcedure) : {
+                    if (ASR::down_cast<ASR::GenericProcedure_t>(sym)->m_access ==
+                        ASR::accessType::Public) {
+                            public_list.push_back(al, sym);
+                        }
+                    break;
+                }
+                default : {}
+            }
+        }
         asr = ASR::make_Module_t(
             al, x.base.base.loc,
             /* a_symtab */ current_scope,
-            nullptr, 0,
+            public_list.p, public_list.n,
             /* a_name */ x.m_name);
         std::string sym_name = x.m_name;
         if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
