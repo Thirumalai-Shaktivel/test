@@ -33,7 +33,9 @@ unit
 
 symbol
     = Program(symbol_table symtab, identifier name, stmt* body)
-    | Module(symbol_table symtab, identifier name)
+    | Module(symbol_table symtab, symbol* public, identifier name)
+-- Alternative:
+--    | Module(symbol_table symtab, identifier* public, identifier name)
     | Subroutine(symbol_table symtab, identifier name, expr* args, stmt* body,
         tbind? bind, proc_external? external, access access)
     | Function(symbol_table symtab, identifier name, expr* args, stmt* body,

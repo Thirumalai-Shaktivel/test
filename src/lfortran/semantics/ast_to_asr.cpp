@@ -247,6 +247,7 @@ public:
         asr = ASR::make_Module_t(
             al, x.base.base.loc,
             /* a_symtab */ current_scope,
+            nullptr, 0,
             /* a_name */ x.m_name);
         std::string sym_name = x.m_name;
         if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
