@@ -269,6 +269,84 @@ public:
         return builder->CreateLoad(presult);
     }
 
+    // This function is called as:
+    // float lfortran_sinh(float *x)
+    // Internally it get transformed into a runtime call:
+    // void _lfortran_sinh(float x, float *result)
+    llvm::Value* lfortran_sinh(llvm::Value* pa)
+    {
+        llvm::Function *fn = module->getFunction("_lfortran_sinh");
+        if (!fn) {
+            llvm::FunctionType *function_type = llvm::FunctionType::get(
+                    llvm::Type::getVoidTy(context), {
+                        llvm::Type::getFloatTy(context),
+                        llvm::Type::getFloatPtrTy(context)
+                    }, false);
+            fn = llvm::Function::Create(function_type,
+                    llvm::Function::ExternalLinkage, "_lfortran_sinh", *module);
+        }
+
+        llvm::AllocaInst *presult = builder->CreateAlloca(
+            llvm::Type::getFloatTy(context),
+            nullptr);
+        llvm::Value *a = builder->CreateLoad(pa);
+        std::vector<llvm::Value*> args = {a, presult};
+        builder->CreateCall(fn, args);
+        return builder->CreateLoad(presult);
+    }
+
+    // This function is called as:
+    // float lfortran_cosh(float *x)
+    // Internally it get transformed into a runtime call:
+    // void _lfortran_cosh(float x, float *result)
+    llvm::Value* lfortran_cosh(llvm::Value* pa)
+    {
+        llvm::Function *fn = module->getFunction("_lfortran_cosh");
+        if (!fn) {
+            llvm::FunctionType *function_type = llvm::FunctionType::get(
+                    llvm::Type::getVoidTy(context), {
+                        llvm::Type::getFloatTy(context),
+                        llvm::Type::getFloatPtrTy(context)
+                    }, false);
+            fn = llvm::Function::Create(function_type,
+                    llvm::Function::ExternalLinkage, "_lfortran_cosh", *module);
+        }
+
+        llvm::AllocaInst *presult = builder->CreateAlloca(
+            llvm::Type::getFloatTy(context),
+            nullptr);
+        llvm::Value *a = builder->CreateLoad(pa);
+        std::vector<llvm::Value*> args = {a, presult};
+        builder->CreateCall(fn, args);
+        return builder->CreateLoad(presult);
+    }
+
+    // This function is called as:
+    // float lfortran_tanh(float *x)
+    // Internally it get transformed into a runtime call:
+    // void _lfortran_tanh(float x, float *result)
+    llvm::Value* lfortran_tanh(llvm::Value* pa)
+    {
+        llvm::Function *fn = module->getFunction("_lfortran_tanh");
+        if (!fn) {
+            llvm::FunctionType *function_type = llvm::FunctionType::get(
+                    llvm::Type::getVoidTy(context), {
+                        llvm::Type::getFloatTy(context),
+                        llvm::Type::getFloatPtrTy(context)
+                    }, false);
+            fn = llvm::Function::Create(function_type,
+                    llvm::Function::ExternalLinkage, "_lfortran_tanh", *module);
+        }
+
+        llvm::AllocaInst *presult = builder->CreateAlloca(
+            llvm::Type::getFloatTy(context),
+            nullptr);
+        llvm::Value *a = builder->CreateLoad(pa);
+        std::vector<llvm::Value*> args = {a, presult};
+        builder->CreateCall(fn, args);
+        return builder->CreateLoad(presult);
+    }
+
     void visit_TranslationUnit(const ASR::TranslationUnit_t &x) {
         module = std::make_unique<llvm::Module>("LFortran", context);
         module->setDataLayout("");
