@@ -31,29 +31,61 @@ module ASR {
 unit
     = TranslationUnit(symbol_table global_scope, node* items)
 
+-- Each symbol has either `symtab` (local symbol table) or `parent_symtab`
+-- (where this symbol is stored). One can get to parent_symtab via symtab, so
+-- only one is present.
+-- Each symbol has a `name` for easy lookup of the name of the symbol when only
+-- having a pointer to it.
+-- Each symbol except ExternalSymbol means the symbol is declared and defined in
+-- that symbol table (such as in a given module). If that symbol is imported to
+-- another symbol table (such as used in another module or in another REPL
+-- prompt), the ExternalSymbol is used for that.
+-- If the implementation of the symbol (such as the body of a function or
+-- storage of a global variable) is not available (such as for a compiled
+-- module) then the function is an interface and the symbol_external_type shows
+-- how to obtain the body (whether LFortran/GFortran ABI or interactive /
+-- intrinsic).
+-- A procedure interface is represented by Subroutine/Function with
+-- external_type set to not None. With None the body is present.
+
 symbol
-    = Program(symbol_table symtab, identifier name, stmt* body)
-    | Module(symbol_table symtab, identifier name)
-    | Subroutine(symbol_table symtab, identifier name, expr* args, stmt* body,
-        tbind? bind, proc_external? external, access access)
-    | Function(symbol_table symtab, identifier name, expr* args, stmt* body,
-        tbind? bind, expr return_var, proc_external? external, access access)
+    = Program         (symbol_table        symtab, identifier name,
+        stmt* body)
+
+    | Module          (symbol_table        symtab, identifier name)
+
+    | Subroutine      (symbol_table        symtab, identifier name,
+        expr* args, stmt* body, tbind? bind,
+        symbol_external_type external, access access)
+
+    | Function        (symbol_table        symtab, identifier name,
+        expr* args, stmt* body, tbind? bind, expr return_var,
+        symbol_external_type external, access access)
+
     | GenericProcedure(symbol_table parent_symtab, identifier name,
         symbol* procs, access access)
-    | ExternalProc(symbol_table parent_symtab, identifier name,
-        proc_external external)
-    | DerivedType(symbol_table symtab, identifier name)
-    | Variable(symbol_table parent_symtab, identifier name, intent intent,
-        expr? value, storage_type storage, ttype type, access access)
+
+    | DerivedType     (symbol_table        symtab, identifier name,
+        access access)
+
+    | Variable        (symbol_table parent_symtab, identifier name,
+        intent intent, expr? value, storage_type storage, ttype type,
+        symbol_external_type external, access access)
+
+    | ExternalSymbol  (symbol_table parent_symtab, identifier name,
+        symbol sym, access access)
 
 storage_type = Default | Save | Parameter
 access = Public | Private
-
-proc_external = (proc_external_type type, symbol? module_proc)
-proc_external_type
-    = LFortranModule
+intent = Local | In | Out | InOut | ReturnVar
+symbol_external_type
+-- Symbol is present / defined in the current translation unit:
+    = None
+-- Symbol is in a compiled LFortran module, this is only an "interface" to it
+    | LFortranModule
+-- Symbol is in a compiled GFortran module, this is only an "interface" to it
     | GFortranModule
-    | Interactive
+-- Symbol is an intrinsic function/subroutine
     | Intrinsic
 
 stmt
@@ -104,8 +136,6 @@ binop = Add | Sub | Mul | Div | Pow
 unaryop = Invert | Not | UAdd | USub
 
 cmpop = Eq | NotEq | Lt | LtE | Gt | GtE
-
-intent = Local | In | Out | InOut | ReturnVar | External
 
 cast_kind
     = RealToInteger
