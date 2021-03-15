@@ -270,32 +270,24 @@ public:
         // (global variable declared/initialized in this translation unit), or
         // external (global variable not declared/initialized in this
         // translation unit, just referenced).
-        LFORTRAN_ASSERT(x.m_intent == intent_local
-            || x.m_intent == intent_external);
-        bool external = (x.m_intent == intent_external);
+        LFORTRAN_ASSERT(x.m_intent == intent_local)
         if (x.m_type->type == ASR::ttypeType::Integer) {
             llvm::Constant *ptr = module->getOrInsertGlobal(x.m_name,
                 llvm::Type::getInt64Ty(context));
-            if (!external) {
-                module->getNamedGlobal(x.m_name)->setInitializer(
-                    llvm::ConstantInt::get(context, llvm::APInt(64, 0)));
-            }
+            module->getNamedGlobal(x.m_name)->setInitializer(
+                llvm::ConstantInt::get(context, llvm::APInt(64, 0)));
             llvm_symtab[h] = ptr;
         } else if (x.m_type->type == ASR::ttypeType::Real) {
             llvm::Constant *ptr = module->getOrInsertGlobal(x.m_name,
                 llvm::Type::getFloatTy(context));
-            if (!external) {
-                module->getNamedGlobal(x.m_name)->setInitializer(
-                    llvm::ConstantFP::get(context, llvm::APFloat((float)0)));
-            }
+            module->getNamedGlobal(x.m_name)->setInitializer(
+                llvm::ConstantFP::get(context, llvm::APFloat((float)0)));
             llvm_symtab[h] = ptr;
         } else if (x.m_type->type == ASR::ttypeType::Logical) {
             llvm::Constant *ptr = module->getOrInsertGlobal(x.m_name,
                 llvm::Type::getInt1Ty(context));
-            if (!external) {
-                module->getNamedGlobal(x.m_name)->setInitializer(
-                    llvm::ConstantInt::get(context, llvm::APInt(1, 0)));
-            }
+            module->getNamedGlobal(x.m_name)->setInitializer(
+                llvm::ConstantInt::get(context, llvm::APInt(1, 0)));
             llvm_symtab[h] = ptr;
         } else {
             throw CodeGenError("Variable type not supported");
@@ -487,15 +479,6 @@ public:
     }
 
     void visit_Function(const ASR::Function_t &x) {
-        bool interactive = false;
-        if (x.m_external) {
-            if (x.m_external->m_type == ASR::proc_external_typeType::Interactive) {
-                interactive = true;
-            } else {
-                return;
-            }
-        }
-
         uint32_t h = get_hash((ASR::asr_t*)&x);
         llvm::Function *F = nullptr;
         if (llvm_symtab_fn.find(h) != llvm_symtab_fn.end()) {
@@ -537,8 +520,6 @@ public:
             llvm_symtab_fn[h] = F;
         }
 
-        if (interactive) return;
-
         if (!prototype_only) {
             llvm::BasicBlock *BB = llvm::BasicBlock::Create(context,
                     ".entry", F);
@@ -562,15 +543,6 @@ public:
     }
 
     void visit_Subroutine(const ASR::Subroutine_t &x) {
-        bool interactive = false;
-        if (x.m_external) {
-            if (x.m_external->m_type == ASR::proc_external_typeType::Interactive) {
-                interactive = true;
-            } else {
-                return;
-            }
-        }
-
         uint32_t h = get_hash((ASR::asr_t*)&x);
         llvm::Function *F = nullptr;
         if (llvm_symtab_fn.find(h) != llvm_symtab_fn.end()) {
@@ -587,8 +559,6 @@ public:
                     llvm::Function::ExternalLinkage, mangle_prefix + x.m_name, module.get());
             llvm_symtab_fn[h] = F;
         }
-
-        if (interactive) return;
 
         if (!prototype_only) {
             llvm::BasicBlock *BB = llvm::BasicBlock::Create(context,
@@ -1231,16 +1201,10 @@ public:
     void visit_SubroutineCall(const ASR::SubroutineCall_t &x) {
         ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(x.m_name);
         uint32_t h;
-        if (s->m_external) {
-            if (s->m_external->m_type == ASR::proc_external_typeType::LFortranModule) {
-                h = get_hash((ASR::asr_t*)s->m_external->m_module_proc);
-            } else if (s->m_external->m_type == ASR::proc_external_typeType::Interactive) {
-                h = get_hash((ASR::asr_t*)s);
-            } else {
-                throw CodeGenError("External type not implemented yet.");
-            }
-        } else {
+        if (s->m_external == ASR::symbol_external_typeType::None) {
             h = get_hash((ASR::asr_t*)s);
+        } else {
+            throw CodeGenError("External type not implemented yet.");
         }
         if (llvm_symtab_fn.find(h) == llvm_symtab_fn.end()) {
             throw CodeGenError("Subroutine code not generated for '"
@@ -1252,28 +1216,23 @@ public:
     }
 
     void visit_FuncCall(const ASR::FuncCall_t &x) {
+        // TODO: this can now be ExternalSymbol
         ASR::Function_t *s = ASR::down_cast<ASR::Function_t>(x.m_name);
         uint32_t h;
-        if (s->m_external) {
-            if (s->m_external->m_type == ASR::proc_external_typeType::LFortranModule) {
-                h = get_hash((ASR::asr_t*)s->m_external->m_module_proc);
-            } else if (s->m_external->m_type == ASR::proc_external_typeType::Interactive) {
-                h = get_hash((ASR::asr_t*)s);
-            } else if (s->m_external->m_type == ASR::proc_external_typeType::Intrinsic) {
-                if (std::string(s->m_name) == "sin") {
-                    std::vector<llvm::Value *> args = convert_call_args(x);
-                    LFORTRAN_ASSERT(args.size() == 1);
-                    tmp = lfortran_sin(args[0]);
-                    return;
-                } else {
-                    throw CodeGenError("Intrinsic not implemented yet.");
-                }
-                h = get_hash((ASR::asr_t*)s);
-            } else {
-                throw CodeGenError("External type not implemented yet.");
-            }
-        } else {
+        if (s->m_external == ASR::symbol_external_typeType::None) {
             h = get_hash((ASR::asr_t*)s);
+        } else if (s->m_external == ASR::symbol_external_typeType::Intrinsic) {
+            if (std::string(s->m_name) == "sin") {
+                std::vector<llvm::Value *> args = convert_call_args(x);
+                LFORTRAN_ASSERT(args.size() == 1);
+                tmp = lfortran_sin(args[0]);
+                return;
+            } else {
+                throw CodeGenError("Intrinsic not implemented yet.");
+            }
+            h = get_hash((ASR::asr_t*)s);
+        } else {
+            throw CodeGenError("External type not implemented yet.");
         }
         if (llvm_symtab_fn.find(h) == llvm_symtab_fn.end()) {
             throw CodeGenError("Function code not generated for '"

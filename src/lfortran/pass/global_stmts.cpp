@@ -43,7 +43,9 @@ void pass_wrap_global_stmts_into_function(Allocator &al,
                     type = TYPE(ASR::make_Integer_t(al, loc, 4, nullptr, 0));
                     return_var = ASR::make_Variable_t(al, loc,
                         fn_scope, var_name, intent_local, nullptr,
-                        ASR::storage_typeType::Default, type, ASR::Public);
+                        ASR::storage_typeType::Default, type,
+                        ASR::symbol_external_typeType::None,
+                        ASR::Public);
                     return_var_ref = EXPR(ASR::make_Var_t(al, loc,
                         down_cast<ASR::symbol_t>(return_var)));
                     fn_scope->scope[std::string(var_name)] = down_cast<ASR::symbol_t>(return_var);
@@ -55,7 +57,9 @@ void pass_wrap_global_stmts_into_function(Allocator &al,
                     type = TYPE(ASR::make_Real_t(al, loc, 4, nullptr, 0));
                     return_var = ASR::make_Variable_t(al, loc,
                         fn_scope, var_name, intent_local, nullptr,
-                        ASR::storage_typeType::Default, type, ASR::Public);
+                        ASR::storage_typeType::Default, type,
+                        ASR::symbol_external_typeType::None,
+                        ASR::Public);
                     return_var_ref = EXPR(ASR::make_Var_t(al, loc,
                         down_cast<ASR::symbol_t>(return_var)));
                     fn_scope->scope[std::string(var_name)] = down_cast<ASR::symbol_t>(return_var);
@@ -92,7 +96,7 @@ void pass_wrap_global_stmts_into_function(Allocator &al,
                 /* n_body */ body.size(),
                 /* a_bind */ nullptr,
                 /* a_return_var */ return_var_ref,
-                /* a_module */ nullptr, ASR::Public);
+                ASR::symbol_external_typeType::None, ASR::Public);
             std::string sym_name = fn_name;
             if (unit.m_global_scope->scope.find(sym_name) != unit.m_global_scope->scope.end()) {
                 throw SemanticError("Function already defined", fn->loc);
@@ -110,7 +114,7 @@ void pass_wrap_global_stmts_into_function(Allocator &al,
                 /* a_body */ body.p,
                 /* n_body */ body.size(),
                 /* a_bind */ nullptr,
-                nullptr, ASR::Public);
+                ASR::symbol_external_typeType::None, ASR::Public);
             std::string sym_name = fn_name;
             if (unit.m_global_scope->scope.find(sym_name) != unit.m_global_scope->scope.end()) {
                 throw SemanticError("Function already defined", fn->loc);
