@@ -55,23 +55,25 @@ symbol
     | Module          (symbol_table        symtab, identifier name)
 
     | Subroutine      (symbol_table        symtab, identifier name,
-        expr* args, stmt* body, tbind? bind,
-        symbol_external_type external, access access)
+        expr* args, stmt* body,
+        abi abi, access access)
 
     | Function        (symbol_table        symtab, identifier name,
-        expr* args, stmt* body, tbind? bind, expr return_var,
-        symbol_external_type external, access access)
+        expr* args, stmt* body, expr return_var,
+        abi abi, access access)
 
     | GenericProcedure(symbol_table parent_symtab, identifier name,
         symbol* procs, access access)
 
     | DerivedType     (symbol_table        symtab, identifier name,
+-- Commented out for now, so that tests do not change too much:
+--        abi abi,
         access access)
 
     | Variable        (symbol_table parent_symtab, identifier name,
         intent intent, expr? value, storage_type storage, ttype type,
 -- Commented out for now, so that tests do not change too much:
---        symbol_external_type external,
+--        abi abi,
         access access)
 
     | ExternalSymbol  (symbol_table parent_symtab, identifier name,
@@ -80,13 +82,17 @@ symbol
 storage_type = Default | Save | Parameter
 access = Public | Private
 intent = Local | In | Out | InOut | ReturnVar
-symbol_external_type
--- Symbol is present / defined in the current translation unit:
-    = None
+abi
+-- Symbol's implementation is present / defined in the ASR itself:
+    = Source
 -- Symbol is in a compiled LFortran module, this is only an "interface" to it
     | LFortranModule
 -- Symbol is in a compiled GFortran module, this is only an "interface" to it
     | GFortranModule
+-- Symbol is implemented in some C library using the C ABI
+    | BindC
+-- Symbol is implemented by a previous REPL execution
+    | Interactive
 -- Symbol is an intrinsic function/subroutine
     | Intrinsic
 
@@ -157,8 +163,6 @@ attribute_arg = (identifier arg)
 arg = (identifier arg)
 
 keyword = (identifier? arg, expr value)
-
-tbind = Bind(string lang, string name)
 
 array_index = (expr? left, expr? right, expr? step)
 
