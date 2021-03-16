@@ -109,20 +109,23 @@ symbol
 storage_type = Default | Save | Parameter
 access = Public | Private
 intent = Local | In | Out | InOut | ReturnVar
+-- ABI is either:
+-- * Source: the implementation of the Symbol is in the ASR itself
+-- * Everything else: the implementation is external, ASR only contains an
+--   interface to the external Symbol (interface means "body" gets removed and
+--   abi gets changed from Source to something else)
 abi
--- Symbol's implementation is present / defined in the ASR itself:
+-- Symbol's implementation is present / defined in the ASR itself
     = Source
--- Symbol is in a compiled LFortran module, this is only an "interface" to it
+-- Symbol is in a compiled LFortran module (LFortran ABI)
     | LFortranModule
--- Symbol is in a compiled GFortran module, this is only an "interface" to it
+-- Symbol is in a compiled GFortran module (GFortran ABI)
     | GFortranModule
--- Symbol is implemented in some C library using the C ABI
+-- Symbol is in a compiled C library (C ABI)
     | BindC
--- Symbol is implemented by a previous REPL execution (for example a module)
--- Interactive works similarly to LFortranModule, the body gets removed and the
--- ASR becomes an "interface" ASR
+-- Symbol is compiled in a previous REPL execution
     | Interactive
--- Symbol is an intrinsic function/subroutine
+-- Symbol is available as an intrinsic function/subroutine
     | Intrinsic
 
 stmt
