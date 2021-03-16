@@ -15,6 +15,8 @@ struct SymbolTable {
     std::map<std::string, ASR::symbol_t*> scope;
     SymbolTable *parent;
     unsigned int counter;
+    // The Symbol or TranslationUnit ASR node that owns this SymbolTable
+    ASR::asr_t *owner_node;
 
     SymbolTable(SymbolTable *parent);
 
