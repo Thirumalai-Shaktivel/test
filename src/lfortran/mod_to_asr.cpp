@@ -254,7 +254,7 @@ ASR::TranslationUnit_t* parse_gfortran_mod_file(Allocator &al, const std::string
                 ASR::asr_t *asr = ASR::make_Variable_t(al, loc, nullptr,
                     name, ASR::intentType::In, nullptr,
                     ASR::storage_typeType::Default, s.v.type,
-                    ASR::symbol_external_typeType::GFortranModule,
+                    //ASR::symbol_external_typeType::GFortranModule,
                     ASR::Public);
                 s.v.var = down_cast<ASR::symbol_t>(asr);
             } else if (kind == "PROCEDURE") {

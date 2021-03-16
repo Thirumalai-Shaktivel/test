@@ -393,7 +393,7 @@ public:
             return_var = ASR::make_Variable_t(al, x.base.base.loc,
                 current_scope, return_var_name, intent_return_var, nullptr,
                 ASR::storage_typeType::Default, type,
-                ASR::symbol_external_typeType::None,
+                //ASR::symbol_external_typeType::None,
                 ASR::Public);
             current_scope->scope[std::string(return_var_name)]
                 = ASR::down_cast<ASR::symbol_t>(return_var);
@@ -823,7 +823,7 @@ public:
             }
             ASR::asr_t *v = ASR::make_Variable_t(al, x.loc, current_scope,
                     x.m_sym, s_intent, init_expr, storage_type, type,
-                    ASR::symbol_external_typeType::None,
+                    //ASR::symbol_external_typeType::None,
                     s_access);
             current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(v);
 
@@ -1282,7 +1282,7 @@ public:
                 ASR::asr_t *return_var = ASR::make_Variable_t(al,
                     x.base.base.loc, fn_scope, fn_name, intent_return_var,
                     nullptr, ASR::storage_typeType::Default, type,
-                    ASR::symbol_external_typeType::None,
+                    //ASR::symbol_external_typeType::None,
                     ASR::Public);
                 fn_scope->scope[std::string(fn_name)] = ASR::down_cast<ASR::symbol_t>(return_var);
                 ASR::asr_t *return_var_ref = ASR::make_Var_t(al, x.base.base.loc,
@@ -1312,7 +1312,7 @@ public:
                 ASR::asr_t *return_var = ASR::make_Variable_t(al,
                     x.base.base.loc, fn_scope, fn_name, intent_return_var,
                     nullptr, ASR::storage_typeType::Default, type,
-                    ASR::symbol_external_typeType::None,
+                    //ASR::symbol_external_typeType::None,
                     ASR::Public);
                 fn_scope->scope[std::string(fn_name)] = ASR::down_cast<ASR::symbol_t>(return_var);
                 ASR::asr_t *return_var_ref = ASR::make_Var_t(al, x.base.base.loc,
@@ -1348,7 +1348,7 @@ public:
                 ASR::asr_t *arg0 = ASR::make_Variable_t(al, x.base.base.loc,
                     fn_scope, arg0_s, intent_in, nullptr,
                     ASR::storage_typeType::Default, type,
-                    ASR::symbol_external_typeType::None,
+                    //ASR::symbol_external_typeType::None,
                     ASR::Public);
                 ASR::symbol_t *var = ASR::down_cast<ASR::symbol_t>(arg0);
                 fn_scope->scope[std::string(arg0_s)] = var;
@@ -1360,7 +1360,7 @@ public:
                 ASR::asr_t *return_var = ASR::make_Variable_t(al,
                     x.base.base.loc, fn_scope, fn_name, intent_return_var,
                     nullptr, ASR::storage_typeType::Default, type,
-                    ASR::symbol_external_typeType::None,
+                    //ASR::symbol_external_typeType::None,
                     ASR::Public);
                 fn_scope->scope[std::string(fn_name)] = ASR::down_cast<ASR::symbol_t>(return_var);
                 ASR::asr_t *return_var_ref = ASR::make_Var_t(al, x.base.base.loc,

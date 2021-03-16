@@ -70,7 +70,9 @@ symbol
 
     | Variable        (symbol_table parent_symtab, identifier name,
         intent intent, expr? value, storage_type storage, ttype type,
-        symbol_external_type external, access access)
+-- Commented out for now, so that tests do not change too much:
+--        symbol_external_type external,
+        access access)
 
     | ExternalSymbol  (symbol_table parent_symtab, identifier name,
         symbol sym, access access)
