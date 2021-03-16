@@ -74,6 +74,13 @@ unit
 -- as an argument.
 --
 -- iso_c_binding interface gets transformed into abi BindC.
+--
+-- When FuncCall or SubroutineCall is calling an ExternalSymbol, it is
+-- substituted for the actual Subroutine or Function to call, as that is what
+-- the LLVM backend mostly wants to know. Down the road we can add another field
+-- such as "original_name" to FuncCall/SubroutineCall to also store the
+-- original ExternalSymbol, this can be helpful for the C++ backend to
+-- translate using the original name.
 
 symbol
     = Program         (symbol_table        symtab, identifier name,
