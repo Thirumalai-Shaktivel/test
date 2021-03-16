@@ -47,6 +47,20 @@ unit
 -- intrinsic).
 -- A procedure interface is represented by Subroutine/Function with
 -- external_type set to not None. With None the body is present.
+-- When a module is compiled, it will get parsed to ASR, ASR gets compiled to
+-- an object file and a mod file, the mod file will contain the full ASR (where
+-- all abi is Source) as well as an interface ASR, where abi is LFortranModule
+-- and "body" of Subroutine/Function is empty.
+-- When a module is "used", then LFortran will inspect if the ASR is already
+-- loaded (and use it), otherwise it finds a `.mod` file and loads it into ASR
+-- (for LFortran module it loads either the full ASR or the interface ASR, for
+-- GFortran module it parses the GFortran module file and constructs an
+-- interface ASR with abi set to GFortranModule).
+-- It can decide (based on command line
+-- options) to either use the interface ASR or the full ASR. Those symbols will
+-- be referenced via ExternalSymbol. Then in the LLVM backend, depending on the
+-- abi of the actual symbol it will either be compiled (if Source) or linked
+-- (if LFortranModule or GFortranModule).
 
 symbol
     = Program         (symbol_table        symtab, identifier name,
@@ -91,7 +105,7 @@ abi
     | GFortranModule
 -- Symbol is implemented in some C library using the C ABI
     | BindC
--- Symbol is implemented by a previous REPL execution
+-- Symbol is implemented by a previous REPL execution (for example a module)
     | Interactive
 -- Symbol is an intrinsic function/subroutine
     | Intrinsic
