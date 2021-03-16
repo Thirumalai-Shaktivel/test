@@ -61,6 +61,19 @@ unit
 -- be referenced via ExternalSymbol. Then in the LLVM backend, depending on the
 -- abi of the actual symbol it will either be compiled (if Source) or linked
 -- (if LFortranModule or GFortranModule).
+-- REPL: each cell is a new SymbolTable, where the previous SymbolTable is set
+-- as a parent. So a new declaration or new function will automatically shadow
+-- any previous declaration / function.
+-- When a cell is finished, the ASR is converted from full (abi Source) ASR to
+-- interface (abi Interactive) ASR.
+--
+-- The ExternalSymbol will mostly be used to reference some symbol in a module.
+-- If so, down the road we can consider renaming ExternalSymbol to a
+-- ModuleSymbol or ExternalModuleSymbol. One other use case is a callback, that
+-- can be a function in a main program or inside another function, being passed
+-- as an argument.
+--
+-- iso_c_binding interface gets transformed into abi BindC.
 
 symbol
     = Program         (symbol_table        symtab, identifier name,
@@ -106,6 +119,8 @@ abi
 -- Symbol is implemented in some C library using the C ABI
     | BindC
 -- Symbol is implemented by a previous REPL execution (for example a module)
+-- Interactive works similarly to LFortranModule, the body gets removed and the
+-- ASR becomes an "interface" ASR
     | Interactive
 -- Symbol is an intrinsic function/subroutine
     | Intrinsic
