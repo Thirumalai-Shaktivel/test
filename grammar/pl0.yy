@@ -42,6 +42,7 @@ procedure_star
 var_opt
     : "var" ident_plus ";"
     | %empty
+    ;
 
 const_opt
     : "const" const_decl_plus ";"
@@ -53,7 +54,7 @@ const_decl_plus
     | const_decl
     ;
 
-const_decl : ident "=" number;
+const_decl : ident "=" number ;
 
 ident_plus
     : ident "," ident_plus
