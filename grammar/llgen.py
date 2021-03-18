@@ -84,7 +84,7 @@ class Parser:
         return Rule(name, rhs)
 
 def ast_to_asr(ast):
-    token_defs, rules = ast
+    token_defs, ast_rules = ast
 
     tokens = []
     name2token = {}
@@ -100,8 +100,27 @@ def ast_to_asr(ast):
             string2token[t.string] = idx
         idx += 1
 
-    for rule in rules:
-        print(rule)
+    rules = {}
+
+    for rule in ast_rules:
+        assert rule.name not in name2token
+        assert rule.name not in rules
+        rules[rule.name] = True
+
+    print(tokens)
+    print(rules)
+
+    for rule in ast_rules:
+        for alt in rule.alternatives:
+            for item in alt.items:
+                if isinstance(item, RHSName):
+                    print("RULE: ", item.name)
+                    if item.name in rules:
+                        pass
+                    elif item.name in tokens:
+                        pass
+                    else:
+                        assert False
 
 p = Parser()
 ast = p.parse_file(sys.argv[1])
