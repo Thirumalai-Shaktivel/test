@@ -46,11 +46,10 @@ class Parser:
 
     def parse_rules(self):
         rules = []
-        i = 0
         while True:
-            i += 1
-            if i > 3: break
             self.line = self.file.readline()
+            if self.line == "":
+                break
             while len(self.line.split()) == 0:
                 self.line = self.file.readline()
             rules.append(self.parse_rule());
@@ -84,6 +83,26 @@ class Parser:
         rhs.append(RuleAlt(var))
         return Rule(name, rhs)
 
+def ast_to_asr(ast):
+    token_defs, rules = ast
+
+    tokens = []
+    name2token = {}
+    string2token = {}
+    idx = 0
+
+    for t in token_defs:
+        assert t.name not in string2token
+        name2token[t.name] = idx
+        tokens.append(t.name)
+        if t.string:
+            assert t.string not in string2token
+            string2token[t.string] = idx
+        idx += 1
+
+    for rule in rules:
+        print(rule)
+
 p = Parser()
 ast = p.parse_file(sys.argv[1])
-print(ast)
+asr = ast_to_asr(ast)
