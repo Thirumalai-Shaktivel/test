@@ -352,6 +352,19 @@ public:
                 }
             }
             llvm_symtab[h] = ptr;
+        } else if (x.m_type->type == ASR::ttypeType::Character) {
+            llvm::Constant *ptr = module->getOrInsertGlobal(x.m_name,
+                character_type);
+            if (!external) {
+                if (init_value) {
+                    module->getNamedGlobal(x.m_name)->setInitializer(
+                            init_value);
+                } else {
+                    module->getNamedGlobal(x.m_name)->setInitializer(
+                        llvm::ConstantPointerNull::get(character_type));
+                }
+            }
+            llvm_symtab[h] = ptr;
         } else {
             throw CodeGenError("Variable type not supported");
         }
@@ -545,7 +558,7 @@ public:
                     throw CodeGenError("Complex return type not implemented yet");
                     break;
                 case (ASR::ttypeType::Character) :
-                    throw CodeGenError("Character return type not implemented yet");
+                    return_type = character_type;
                     break;
                 case (ASR::ttypeType::Logical) :
                     return_type = llvm::Type::getInt1Ty(context);
@@ -1027,6 +1040,7 @@ public:
 
 
     void visit_Str(const ASR::Str_t &x) {
+        //tmp = llvm::ConstantPointerNull::get(character_type);
         tmp = builder->CreateGlobalStringPtr(x.m_s);
     }
 

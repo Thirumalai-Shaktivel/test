@@ -98,6 +98,8 @@ std::string LLVMModule::get_return_type(const std::string &fn_name)
         return "integer";
     } else if (type->isVoidTy()) {
         return "void";
+    } else if (type->isPointerTy()) {
+        return "character";
     } else {
         throw LFortranException("Return type not supported");
     }
@@ -231,6 +233,12 @@ void LLVMEvaluator::voidfn(const std::string &name) {
     f();
 }
 
+char LLVMEvaluator::charfn(const std::string &name) {
+    intptr_t addr = get_symbol_address(name);
+    char (*f)() = (char (*)())addr;
+    return f();
+}
+
 void write_file(const std::string &filename, const std::string &contents)
 {
     std::ofstream out;
@@ -360,6 +368,10 @@ Result<FortranEvaluator::EvalResult> FortranEvaluator::evaluate(const std::strin
         } else if (return_type == "void") {
             e.voidfn(run_fn);
             result.type = EvalResult::statement;
+        } else if (return_type == "character") {
+            char s =  e.charfn(run_fn);
+            result.type = EvalResult::character;
+            result.s = s;
         } else if (return_type == "none") {
             result.type = EvalResult::none;
         } else {

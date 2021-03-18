@@ -293,6 +293,12 @@ int prompt(bool verbose)
                 std::cout << r.f << std::endl;
                 break;
             }
+            case (LFortran::FortranEvaluator::EvalResult::character) : {
+                if (verbose) std::cout << "Return type: character" << std::endl;
+                if (verbose) section("Result:");
+                std::cout << r.s << std::endl;
+                break;
+            }
             case (LFortran::FortranEvaluator::EvalResult::statement) : {
                 if (verbose) {
                     std::cout << "Return type: none" << std::endl;

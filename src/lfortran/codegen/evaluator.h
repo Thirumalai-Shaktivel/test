@@ -55,6 +55,7 @@ public:
     bool boolfn(const std::string &name);
     float floatfn(const std::string &name);
     void voidfn(const std::string &name);
+    char charfn(const std::string &name);
     std::string get_asm(llvm::Module &m);
     void save_asm_file(llvm::Module &m, const std::string &filename);
     void save_object_file(llvm::Module &m, const std::string &filename);
@@ -71,12 +72,13 @@ public:
 
     struct EvalResult {
         enum {
-            integer, real, statement, none
+            integer, real, statement, character, none
         } type;
         union {
             int64_t i;
             float f;
         };
+        char s;
         std::string ast;
         std::string asr;
         std::string llvm_ir;
