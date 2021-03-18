@@ -162,7 +162,72 @@ def print_asr(asr):
             print("    | ", print_alt(alt.items))
         print()
 
+def get_first_token(rules, t):
+    if isinstance(t, ASRTokenRef):
+        return t
+    elif isinstance(t, ASRRuleRef):
+        rule = rules[t.name]
+        # TODO: go over alternatives and collect first tokens
+        return "TODO_ALTS";
+    elif isinstance(t, ASREmpty):
+        return None
+    else:
+        assert False
+
+
+def asr2c(asr):
+    tokens, name2token, rules = asr
+    s = ""
+    s += "typedef enum {%s} Symbol;\n" % (", ".join(tokens))
+    s += """\
+
+Symbol sym;
+void nextsym(void);
+void error(const char msg[]);
+
+int accept(Symbol s) {
+    if (sym == s) {
+        nextsym();
+        return 1;
+    }
+    return 0;
+}
+
+int expect(Symbol s) {
+    if (accept(s))
+        return 1;
+    error("expect: unexpected symbol");
+    return 0;
+}
+
+"""
+    for r in rules:
+        rule = rules[r]
+        s += "void %s() {\n" % rule.name
+        s += "    ";
+        for alt in rule.alternatives:
+            first = get_first_token(rules, alt.items[0])
+            s += "if (accept(%s)) {\n" % first;
+            for item in alt.items[1:]:
+                s += "        "
+                if isinstance(item, ASRRuleRef):
+                    s += "%s();\n" % item.name
+                elif isinstance(item, ASRTokenRef):
+                    s += "expect(%s);\n" % item.name
+                else:
+                    assert False
+            s += "    } else ";
+        s += "{\n";
+        s += '         error("%s: syntax error");\n' % rule.name;
+        s += '         nextsym();\n';
+        s += "     }\n";
+
+        s += "}\n\n"
+    return s
+
 p = Parser()
 ast = p.parse_file(sys.argv[1])
 asr = ast_to_asr(ast)
-print_asr(asr)
+#print_asr(asr)
+c = asr2c(asr)
+print(c)
