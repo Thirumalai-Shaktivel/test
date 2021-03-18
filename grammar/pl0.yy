@@ -84,9 +84,9 @@ condition
     ;
 
 expression
-    : term_plus ;
-    | "+" term_plus ;
-    | "-" term_plus ;
+    : term_plus
+    | "+" term_plus
+    | "-" term_plus
     ;
 
 term_plus
