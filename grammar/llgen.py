@@ -136,7 +136,33 @@ def ast_to_asr(ast):
         rules[rule.name] = ASRRule(rule.name, alts)
     return tokens, name2token, rules
 
+def print_alt(l):
+    s = []
+    for a in l:
+        if isinstance(a, ASRRuleRef):
+            s.append(a.name)
+        elif isinstance(a, ASRTokenRef):
+            s.append("TK_%s" % a.name)
+        elif isinstance(a, ASREmpty):
+            s.append("ε")
+        else:
+            assert False
+    return " ".join(s)
+
+
+def print_asr(asr):
+    tokens, name2token, rules = asr
+    for t in tokens:
+        print("TOKEN: TK_%s = %d" % (t, name2token[t]))
+    print()
+    for r in rules:
+        rule = rules[r]
+        print("RULE:", rule.name)
+        for alt in rule.alternatives:
+            print("    | ", print_alt(alt.items))
+        print()
+
 p = Parser()
 ast = p.parse_file(sys.argv[1])
 asr = ast_to_asr(ast)
-print(asr)
+print_asr(asr)
