@@ -12,6 +12,12 @@ RHSString = namedtuple("RHSString", ["string"])
 RHSName = namedtuple("RHSName", ["name"])
 RHSEmpty = namedtuple("RHSEmpty", [])
 
+ASRRule = namedtuple("ASRRule", ["name", "alternatives"])
+ASRAlt = namedtuple("ASRAlt", ["items"])
+ASRRuleRef = namedtuple("ASRRuleRef", ["name"])
+ASRTokenRef = namedtuple("ASRTokenRef", ["name"])
+ASREmpty = namedtuple("ASREmpty", [])
+
 
 class Parser:
 
@@ -107,21 +113,30 @@ def ast_to_asr(ast):
         assert rule.name not in rules
         rules[rule.name] = True
 
-    print(tokens)
-    print(rules)
-
     for rule in ast_rules:
+        alts = []
         for alt in rule.alternatives:
+            tmp = []
             for item in alt.items:
                 if isinstance(item, RHSName):
-                    print("RULE: ", item.name)
                     if item.name in rules:
-                        pass
+                        tmp.append(ASRRuleRef(item.name))
                     elif item.name in tokens:
-                        pass
+                        tmp.append(ASRTokenRef(item.name))
                     else:
                         assert False
+                elif isinstance(item, RHSString):
+                    assert item.string in string2token
+                    tmp.append(ASRTokenRef(tokens[string2token[item.string]]))
+                elif isinstance(item, RHSEmpty):
+                    tmp.append(ASREmpty())
+                else:
+                    assert False
+            alts.append(ASRAlt(tmp))
+        rules[rule.name] = ASRRule(rule.name, alts)
+    return tokens, name2token, rules
 
 p = Parser()
 ast = p.parse_file(sys.argv[1])
 asr = ast_to_asr(ast)
+print(asr)
