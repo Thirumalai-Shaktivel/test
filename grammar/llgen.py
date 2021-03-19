@@ -89,23 +89,28 @@ class Parser:
         rhs.append(RuleAlt(var))
         return Rule(name, rhs)
 
+def first_set_items(rules, items):
+    s = set([])
+    all_contain_empty = True
+    for Y in items:
+        f1 = first_set(rules, Y)
+        if -1 in f1:
+            s = s | (f1 - set([-1]))
+        else:
+            all_contain_empty = False
+            s = s | f1
+            break
+    if all_contain_empty:
+        s = s | set([-1])
+    return s
+
 def first_set(rules, X):
     if isinstance(X, ASRTokenRef):
         return set([X.id])
     elif isinstance(X, ASRRule):
         s = set([])
         for item in X.alternatives:
-            all_contain_empty = True
-            for Y in item.items:
-                f1 = first_set(rules, Y)
-                if -1 in f1:
-                    s = s | (f1 - set([-1]))
-                else:
-                    all_contain_empty = False
-                    s = s | f1
-                    break
-            if all_contain_empty:
-                s = s | set([-1])
+            s = s | first_set_items(rules, item.items)
         return s
     elif isinstance(X, ASREmpty):
         return set([-1]) # empty
@@ -191,17 +196,6 @@ def print_asr(asr):
             print("    | ", print_alt(alt.items))
         print()
 
-def get_first_token(rules, t):
-    if isinstance(t, ASRTokenRef):
-        return t
-    elif isinstance(t, ASRRuleRef):
-        rule = rules[t.name]
-        # TODO: go over alternatives and collect first tokens
-        return "TODO_ALTS";
-    else:
-        assert False
-
-
 def asr2c(asr, header_filename):
     tokens, name2token, rules = asr
 
@@ -271,7 +265,6 @@ int expect(Symbol s) {
                     s += "    }\n";
                     break
                 if isinstance(alt.items[0], ASRTokenRef):
-                    #first = get_first_token(rules, alt.items[0])
                     first = alt.items[0]
                     s += "if (accept(%s)) {\n" % first.name;
                     n0 = 1
@@ -280,6 +273,7 @@ int expect(Symbol s) {
                         s += "{\n"
                         n0 = 0
                     else:
+                        print(alt)
                         raise Exception("Multiple expressions not implemented")
                 else:
                     assert False
