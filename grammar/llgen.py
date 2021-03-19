@@ -206,6 +206,8 @@ int expect(Symbol s) {
         s += "void %s() {\n" % rule.name
         s += "    ";
         for alt in rule.alternatives:
+            if isinstance(alt.items[0], ASREmpty):
+                break
             first = get_first_token(rules, alt.items[0])
             s += "if (accept(%s)) {\n" % first;
             n0 = 1
@@ -220,10 +222,15 @@ int expect(Symbol s) {
                 else:
                     assert False
             s += "    } else ";
-        s += "{\n";
-        s += '         error("%s: syntax error");\n' % rule.name;
-        s += '         nextsym();\n';
-        s += "     }\n";
+        if isinstance(rule.alternatives[-1].items[0], ASREmpty):
+            s += "{\n";
+            s += "        // Empty\n";
+            s += "    }\n";
+        else:
+            s += "{\n";
+            s += '        error("%s: syntax error");\n' % rule.name;
+            s += '        nextsym();\n';
+            s += "    }\n";
 
         s += "}\n\n"
     return s
