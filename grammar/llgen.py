@@ -15,7 +15,7 @@ RHSEmpty = namedtuple("RHSEmpty", [])
 ASRRule = namedtuple("ASRRule", ["name", "alternatives"])
 ASRAlt = namedtuple("ASRAlt", ["items"])
 ASRRuleRef = namedtuple("ASRRuleRef", ["name"])
-ASRTokenRef = namedtuple("ASRTokenRef", ["name"])
+ASRTokenRef = namedtuple("ASRTokenRef", ["name", "id"])
 ASREmpty = namedtuple("ASREmpty", [])
 
 
@@ -89,6 +89,22 @@ class Parser:
         rhs.append(RuleAlt(var))
         return Rule(name, rhs)
 
+def first_set(rules, X):
+    if isinstance(X, ASRTokenRef):
+        return set([X.id])
+    elif isinstance(X, ASRRule):
+        s = set([])
+        for item in X.alternatives:
+            s = s | first_set(rules, item.items[0])
+        return s
+    elif isinstance(X, ASREmpty):
+        return set([])
+    elif isinstance(X, ASRRuleRef):
+        return first_set(rules, rules[X.name])
+    else:
+        print(type(X))
+        assert False
+
 def ast_to_asr(ast):
     token_defs, ast_rules = ast
 
@@ -122,13 +138,15 @@ def ast_to_asr(ast):
                     if item.name in rules:
                         tmp.append(ASRRuleRef(item.name))
                     elif item.name in tokens:
-                        tmp.append(ASRTokenRef(item.name))
+                        tmp.append(ASRTokenRef(item.name,
+                            name2token[item.name]))
                     else:
                         print(item.name)
                         assert False
                 elif isinstance(item, RHSString):
                     assert item.string in string2token
-                    tmp.append(ASRTokenRef(tokens[string2token[item.string]]))
+                    token_id = string2token[item.string]
+                    tmp.append(ASRTokenRef(tokens[token_id], token_id))
                 elif isinstance(item, RHSEmpty):
                     tmp.append(ASREmpty())
                 else:
