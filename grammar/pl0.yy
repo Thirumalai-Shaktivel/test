@@ -96,10 +96,12 @@ term_plus
     | term
     ;
 
-term
-    : factor "*" term
-    | factor "/" term
-    | factor
+term : factor term_rest ;
+
+term_rest
+    : "*" term
+    | "/" term
+    | %empty
     ;
 
 factor
