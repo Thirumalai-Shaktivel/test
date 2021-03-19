@@ -310,6 +310,12 @@ def main():
     p = Parser()
     ast = p.parse_file(filename_yy)
     asr = ast_to_asr(ast)
+
+    print("First set")
+    tokens, _, rules = asr
+    print([tokens[x] for x in first_set(rules, rules["Ep"])])
+    stop
+
     h, c = asr2c(asr, filename_h)
     with open(filename_h, "w") as f:
         f.write(h)
