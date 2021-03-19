@@ -204,33 +204,43 @@ int expect(Symbol s) {
     for r in rules:
         rule = rules[r]
         s += "void %s() {\n" % rule.name
-        s += "    ";
-        for alt in rule.alternatives:
-            if isinstance(alt.items[0], ASREmpty):
-                break
-            first = get_first_token(rules, alt.items[0])
-            s += "if (accept(%s)) {\n" % first;
-            n0 = 1
-            if isinstance(alt.items[0], ASRRuleRef):
-                n0 = 0
-            for item in alt.items[n0:]:
-                s += "        "
+        if len(rule.alternatives) == 1:
+            for item in rule.alternatives[0].items:
+                s += "    "
                 if isinstance(item, ASRRuleRef):
                     s += "%s();\n" % item.name
                 elif isinstance(item, ASRTokenRef):
                     s += "expect(%s);\n" % item.name
                 else:
                     assert False
-            s += "    } else ";
-        if isinstance(rule.alternatives[-1].items[0], ASREmpty):
-            s += "{\n";
-            s += "        // Empty\n";
-            s += "    }\n";
         else:
-            s += "{\n";
-            s += '        error("%s: syntax error");\n' % rule.name;
-            s += '        nextsym();\n';
-            s += "    }\n";
+            s += "    ";
+            for alt in rule.alternatives:
+                if isinstance(alt.items[0], ASREmpty):
+                    break
+                first = get_first_token(rules, alt.items[0])
+                s += "if (accept(%s)) {\n" % first;
+                n0 = 1
+                if isinstance(alt.items[0], ASRRuleRef):
+                    n0 = 0
+                for item in alt.items[n0:]:
+                    s += "        "
+                    if isinstance(item, ASRRuleRef):
+                        s += "%s();\n" % item.name
+                    elif isinstance(item, ASRTokenRef):
+                        s += "expect(%s);\n" % item.name
+                    else:
+                        assert False
+                s += "    } else ";
+            if isinstance(rule.alternatives[-1].items[0], ASREmpty):
+                s += "{\n";
+                s += "        // Empty\n";
+                s += "    }\n";
+            else:
+                s += "{\n";
+                s += '        error("%s: syntax error");\n' % rule.name;
+                s += '        nextsym();\n';
+                s += "    }\n";
 
         s += "}\n\n"
     return s
