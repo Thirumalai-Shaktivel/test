@@ -272,7 +272,7 @@ int expect(Symbol s) {
                 if isinstance(alt.items[0], ASRTokenRef):
                     #first = get_first_token(rules, alt.items[0])
                     first = alt.items[0]
-                    s += "if (accept(%s)) {\n" % first;
+                    s += "if (accept(%s)) {\n" % first.name;
                     n0 = 1
                 elif isinstance(alt.items[0], ASRRuleRef):
                     if alt is rule.alternatives[-1]:
@@ -321,12 +321,12 @@ def main():
     ast = p.parse_file(filename_yy)
     asr = ast_to_asr(ast)
 
-    print("First set")
+    print("First set for each rule")
     tokens, _, rules = asr
     tmp = tokens[:] + ["empty"]
     for r in rules:
         print(r, [tmp[x] for x in first_set(rules, rules[r])])
-    stop
+    print()
 
     h, c = asr2c(asr, filename_h)
     with open(filename_h, "w") as f:
