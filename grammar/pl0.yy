@@ -96,11 +96,9 @@ term_plus
     | term
     ;
 
-term : factor_plus ;
-
-factor_plus
-    : factor "*" factor_plus
-    | factor "/" factor_plus
+term
+    : factor "*" term
+    | factor "/" term
     | factor
     ;
 
