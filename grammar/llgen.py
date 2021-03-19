@@ -98,7 +98,7 @@ def first_set(rules, X):
             s = s | first_set(rules, item.items[0])
         return s
     elif isinstance(X, ASREmpty):
-        return set([])
+        return set([-1]) # empty
     elif isinstance(X, ASRRuleRef):
         return first_set(rules, rules[X.name])
     else:
@@ -313,7 +313,9 @@ def main():
 
     print("First set")
     tokens, _, rules = asr
-    print([tokens[x] for x in first_set(rules, rules["Ep"])])
+    tmp = tokens[:] + ["empty"]
+    for r in rules:
+        print(r, [tmp[x] for x in first_set(rules, rules[r])])
     stop
 
     h, c = asr2c(asr, filename_h)
