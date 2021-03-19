@@ -208,7 +208,10 @@ int expect(Symbol s) {
         for alt in rule.alternatives:
             first = get_first_token(rules, alt.items[0])
             s += "if (accept(%s)) {\n" % first;
-            for item in alt.items[1:]:
+            n0 = 1
+            if isinstance(alt.items[0], ASRRuleRef):
+                n0 = 0
+            for item in alt.items[n0:]:
                 s += "        "
                 if isinstance(item, ASRRuleRef):
                     s += "%s();\n" % item.name
