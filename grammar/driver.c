@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+extern unsigned char *cur;
+
 void error(const char msg[])
 {
     printf("%s\n", msg);
@@ -10,6 +12,8 @@ void error(const char msg[])
 
 int main()
 {
+    char *s = "begin .";
+    cur = (unsigned char*)s;
     nextsym();
     program();
     printf("OK\n");
