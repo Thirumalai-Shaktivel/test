@@ -169,8 +169,6 @@ def get_first_token(rules, t):
         rule = rules[t.name]
         # TODO: go over alternatives and collect first tokens
         return "TODO_ALTS";
-    elif isinstance(t, ASREmpty):
-        return None
     else:
         assert False
 
