@@ -294,8 +294,8 @@ def main():
         filename_c))
 
     filename_o = os.path.splitext(filename_yy)[0] + ".o"
-    driver_c = os.path.splitext(filename_yy)[0] + "_driver.c"
-    driver_o = os.path.splitext(filename_yy)[0] + "_driver.o"
+    driver_c = "driver.c"
+    driver_o = "driver.o"
     exe = os.path.splitext(filename_yy)[0]
     cmd = "clang -c %s -o %s" % (filename_c, filename_o)
     print(cmd)
