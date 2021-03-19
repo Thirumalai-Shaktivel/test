@@ -49,21 +49,27 @@ const_opt
     | %empty
     ;
 
-const_decl_plus
-    : const_decl "," const_decl_plus
-    | const_decl
+const_decl_plus : const_decl const_decl_rest ;
+
+const_decl_rest
+    : "," const_decl_plus
+    | %empty
     ;
 
 const_decl : ident "=" number ;
 
-ident_plus
-    : ident "," ident_plus
-    | ident
+ident_plus : ident ident_plus_rest ;
+
+ident_plus_rest
+    : "," ident_plus
+    | %empty
     ;
 
-statement_plus
-    : statement ";" statement_plus
-    | statement
+statement_plus : statement statement_plus_rest ;
+
+statement_plus_rest
+    : ";" statement_plus
+    | %empty
     ;
 
 statement
@@ -76,12 +82,16 @@ statement
 
 condition
     : "odd" expression
-    | expression "=" expression
-    | expression "#" expression
-    | expression "<" expression
-    | expression "<=" expression
-    | expression ">" expression
-    | expression ">=" expression
+    | expression condition_rest
+    ;
+
+condition_rest
+    : "=" expression
+    | "#" expression
+    | "<" expression
+    | "<=" expression
+    | ">" expression
+    | ">=" expression
     ;
 
 expression
