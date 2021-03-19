@@ -4,15 +4,13 @@
 void error(const char msg[])
 {
     printf("%s\n", msg);
-}
-
-void nextsym(void)
-{
-    sym = ident;
+    exit(1);
 }
 
 int main()
 {
+    nextsym();
+    program();
     printf("OK\n");
     return 0;
 }
