@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 from collections import namedtuple
+import os
 import re
-from struct import pack
 import sys
 
 TokenDefinition = namedtuple("TokenDefinition", ["name", "string"])
@@ -262,9 +262,16 @@ int expect(Symbol s) {
         s += "}\n\n"
     return s
 
-p = Parser()
-ast = p.parse_file(sys.argv[1])
-asr = ast_to_asr(ast)
-#print_asr(asr)
-c = asr2c(asr)
-print(c)
+def main():
+    filename_in = sys.argv[1]
+    filename_out = os.path.splitext(filename_in)[0] + ".c"
+    p = Parser()
+    ast = p.parse_file(sys.argv[1])
+    asr = ast_to_asr(ast)
+    #print_asr(asr)
+    c = asr2c(asr)
+    with open(filename_out, "w") as f:
+        f.write(c)
+    print("Parser generated from '%s' to '%s'." % (filename_in, filename_out))
+
+main()
