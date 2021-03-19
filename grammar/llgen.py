@@ -278,6 +278,12 @@ int expect(Symbol s) {
         s += "}\n\n"
     return h, s
 
+def run(s):
+    print("+ " + s)
+    if os.system(s) != 0:
+        print("Command failed.")
+        sys.exit(1)
+
 def main():
     filename_yy = sys.argv[1]
     filename_h = os.path.splitext(filename_yy)[0] + ".h"
@@ -297,14 +303,10 @@ def main():
     driver_c = "driver.c"
     driver_o = "driver.o"
     exe = os.path.splitext(filename_yy)[0]
-    cmd = "clang -c %s -o %s" % (filename_c, filename_o)
-    print(cmd)
-    os.system(cmd)
-    cmd = "clang -c %s -o %s" % (driver_c, driver_o)
-    print(cmd)
-    os.system(cmd)
-    cmd = "clang %s %s -o %s" % (driver_o, filename_o, exe)
-    print(cmd)
-    os.system(cmd)
+    run("clang -Wall -c %s -o %s" % (filename_c, filename_o))
+    run("clang -Wall -c %s -o %s" % (driver_c, driver_o))
+    run("re2c -W -b tokenizer.re -o tokenizer.c")
+    run("clang -Wall -c tokenizer.c -o tokenizer.o")
+    run("clang -Wall %s %s tokenizer.o -o %s" % (driver_o, filename_o, exe))
 
 main()
