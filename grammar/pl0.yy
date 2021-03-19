@@ -95,9 +95,9 @@ condition_rest
     ;
 
 expression
-    : term_plus
-    | "+" term_plus
+    : "+" term_plus
     | "-" term_plus
+    | term_plus
     ;
 
 term_plus : term term_plus_rest ;

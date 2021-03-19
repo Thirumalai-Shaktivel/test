@@ -215,12 +215,23 @@ int expect(Symbol s) {
             s += "    ";
             for alt in rule.alternatives:
                 if isinstance(alt.items[0], ASREmpty):
+                    s += "{\n";
+                    s += "        // Empty\n";
+                    s += "    }\n";
                     break
-                first = get_first_token(rules, alt.items[0])
-                s += "if (accept(%s)) {\n" % first;
-                n0 = 1
-                if isinstance(alt.items[0], ASRRuleRef):
-                    n0 = 0
+                if isinstance(alt.items[0], ASRTokenRef):
+                    #first = get_first_token(rules, alt.items[0])
+                    first = alt.items[0]
+                    s += "if (accept(%s)) {\n" % first;
+                    n0 = 1
+                elif isinstance(alt.items[0], ASRRuleRef):
+                    if alt is rule.alternatives[-1]:
+                        s += "{\n"
+                        n0 = 0
+                    else:
+                        raise Exception("Multiple expressions not implemented")
+                else:
+                    assert False
                 for item in alt.items[n0:]:
                     s += "        "
                     if isinstance(item, ASRRuleRef):
@@ -229,11 +240,14 @@ int expect(Symbol s) {
                         s += "expect(%s);\n" % item.name
                     else:
                         assert False
-                s += "    } else ";
+                if isinstance(alt.items[0], ASRRuleRef):
+                    s += "    }";
+                else:
+                    s += "    } else ";
             if isinstance(rule.alternatives[-1].items[0], ASREmpty):
-                s += "{\n";
-                s += "        // Empty\n";
-                s += "    }\n";
+                pass
+            elif isinstance(rule.alternatives[-1].items[0], ASRRuleRef):
+                pass
             else:
                 s += "{\n";
                 s += '        error("%s: syntax error");\n' % rule.name;
