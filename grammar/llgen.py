@@ -265,6 +265,7 @@ int expect(Symbol s) {
             s += "    ";
             for alt in rule.alternatives:
                 if isinstance(alt.items[0], ASREmpty):
+                    assert len(alt.items) == 1
                     s += "{\n";
                     s += "        // Empty\n";
                     s += "    }\n";
