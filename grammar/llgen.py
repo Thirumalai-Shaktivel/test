@@ -95,7 +95,13 @@ def first_set(rules, X):
     elif isinstance(X, ASRRule):
         s = set([])
         for item in X.alternatives:
-            s = s | first_set(rules, item.items[0])
+            f1 = first_set(rules, item.items[0])
+            if -1 in f1:
+                s = s | (f1 - set([-1])) | first_set(rules,
+                        ASRRule("tmp", item.items[1:]))
+                # TODO: if all items contain ASREmpty, then add it to `s`
+            else:
+                s = s | first_set(rules, item.items[0])
         return s
     elif isinstance(X, ASREmpty):
         return set([-1]) # empty
