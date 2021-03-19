@@ -3,12 +3,10 @@
 unsigned char *cur;
 unsigned char *mar;
 unsigned char *ctxmar;
-unsigned char *tok;
 
 void nextsym(void)
 {
     for (;;) {
-        tok = cur;
         /*
         Re2c has an excellent documentation at:
 
