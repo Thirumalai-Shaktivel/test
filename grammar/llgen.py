@@ -173,15 +173,35 @@ def get_first_token(rules, t):
         assert False
 
 
-def asr2c(asr):
+def asr2c(asr, header_filename):
     tokens, name2token, rules = asr
+
+    # Header file
+    header_macro_guard = "PARSER_%s" % (header_filename.replace(".",
+        "_").upper())
+    h = "#ifndef " + header_macro_guard + "\n"
+    h += "#define " + header_macro_guard + "\n\n"
+    h += "typedef enum {%s} Symbol;\n" % (", ".join(tokens))
+    h += """\
+
+extern Symbol sym;
+void nextsym(void);
+void error(const char msg[]);
+
+"""
+
+    for r in rules:
+        rule = rules[r]
+        h += "void %s();\n" % rule.name
+    h += "\n"
+    h += "#endif // " + header_macro_guard + "\n"
+
+    # Source file
     s = ""
-    s += "typedef enum {%s} Symbol;\n" % (", ".join(tokens))
+    s += """#include "%s"\n""" % (header_filename)
     s += """\
 
 Symbol sym;
-void nextsym(void);
-void error(const char msg[]);
 
 int accept(Symbol s) {
     if (sym == s) {
@@ -199,10 +219,6 @@ int expect(Symbol s) {
 }
 
 """
-    for r in rules:
-        rule = rules[r]
-        s += "void %s();\n" % rule.name
-    s += "\n\n"
 
     for r in rules:
         rule = rules[r]
@@ -260,18 +276,21 @@ int expect(Symbol s) {
                 s += "    }\n";
 
         s += "}\n\n"
-    return s
+    return h, s
 
 def main():
-    filename_in = sys.argv[1]
-    filename_out = os.path.splitext(filename_in)[0] + ".c"
+    filename_yy = sys.argv[1]
+    filename_h = os.path.splitext(filename_yy)[0] + ".h"
+    filename_c = os.path.splitext(filename_yy)[0] + ".c"
     p = Parser()
-    ast = p.parse_file(sys.argv[1])
+    ast = p.parse_file(filename_yy)
     asr = ast_to_asr(ast)
-    #print_asr(asr)
-    c = asr2c(asr)
-    with open(filename_out, "w") as f:
+    h, c = asr2c(asr, filename_h)
+    with open(filename_h, "w") as f:
+        f.write(h)
+    with open(filename_c, "w") as f:
         f.write(c)
-    print("Parser generated from '%s' to '%s'." % (filename_in, filename_out))
+    print("Parser generated from %s to %s/%s." % (filename_yy, filename_h,
+        filename_c))
 
 main()
