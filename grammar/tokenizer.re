@@ -42,7 +42,17 @@ void nextsym(void)
             whitespace { continue; }
 
             // Keywords
+            'call' { sym = callsym; return; }
+            'begin' { sym = beginsym; return; }
+            'end' { sym = endsym; return; }
+            'if' { sym = ifsym; return; }
             'while' { sym = whilesym; return; }
+            'then' { sym = thensym; return; }
+            'do' { sym = dosym; return; }
+            'const' { sym = constsym; return; }
+            'var' { sym = varsym; return; }
+            'procedure' { sym = procsym; return; }
+            'odd' { sym = oddsym; return; }
 
             newline { continue; }
 
