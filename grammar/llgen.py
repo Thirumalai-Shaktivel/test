@@ -124,6 +124,7 @@ def ast_to_asr(ast):
                     elif item.name in tokens:
                         tmp.append(ASRTokenRef(item.name))
                     else:
+                        print(item.name)
                         assert False
                 elif isinstance(item, RHSString):
                     assert item.string in string2token
