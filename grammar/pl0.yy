@@ -27,6 +27,8 @@
 %token procsym "procedure"
 %token period "."
 %token oddsym "odd"
+%token questionmark "?"
+%token exclamationpoint "!"
 
 %%
 
@@ -78,6 +80,8 @@ statement
     | "begin" statement_plus "end"
     | "if" condition "then" statement
     | "while" condition "do" statement
+    | "!" expression
+    | "?" expression
     ;
 
 condition

@@ -68,6 +68,8 @@ void nextsym(void)
             ":=" { sym = becomes; return; }
             "," { sym = comma; return; }
             "." { sym = period; return; }
+            "!" { sym = exclamationpoint; return; }
+            "?" { sym = questionmark; return; }
 
             // Relational operators
             "=" { sym = eql; return; }
