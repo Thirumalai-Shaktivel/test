@@ -12,7 +12,7 @@ void error(const char msg[])
 
 int main()
 {
-    char *s = "begin .";
+    char *s = "call primes .";
     cur = (unsigned char*)s;
     nextsym();
     program();

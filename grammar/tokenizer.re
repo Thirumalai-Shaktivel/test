@@ -38,7 +38,7 @@ void nextsym(void)
             integer = digit+;
 
             * { error("Token not recognized"); }
-            end { error("End of file reached"); }
+            end { return; }
             whitespace { continue; }
 
             // Keywords
