@@ -201,6 +201,11 @@ int expect(Symbol s) {
 """
     for r in rules:
         rule = rules[r]
+        s += "void %s();\n" % rule.name
+    s += "\n\n"
+
+    for r in rules:
+        rule = rules[r]
         s += "void %s() {\n" % rule.name
         if len(rule.alternatives) == 1:
             for item in rule.alternatives[0].items:
