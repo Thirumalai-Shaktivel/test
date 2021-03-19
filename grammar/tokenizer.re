@@ -64,6 +64,11 @@ void nextsym(void)
             "+" { sym = plus; return; }
             "-" { sym = minus; return; }
 
+            ";" { sym = semicolon; return; }
+            ":=" { sym = becomes; return; }
+            "," { sym = comma; return; }
+            "." { sym = period; return; }
+
             // Relational operators
             "=" { sym = eql; return; }
             "#" { sym = neq; return; }
