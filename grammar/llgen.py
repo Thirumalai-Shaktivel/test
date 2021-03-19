@@ -293,4 +293,18 @@ def main():
     print("Parser generated from %s to %s/%s." % (filename_yy, filename_h,
         filename_c))
 
+    filename_o = os.path.splitext(filename_yy)[0] + ".o"
+    driver_c = os.path.splitext(filename_yy)[0] + "_driver.c"
+    driver_o = os.path.splitext(filename_yy)[0] + "_driver.o"
+    exe = os.path.splitext(filename_yy)[0]
+    cmd = "clang -c %s -o %s" % (filename_c, filename_o)
+    print(cmd)
+    os.system(cmd)
+    cmd = "clang -c %s -o %s" % (driver_c, driver_o)
+    print(cmd)
+    os.system(cmd)
+    cmd = "clang %s %s -o %s" % (driver_o, filename_o, exe)
+    print(cmd)
+    os.system(cmd)
+
 main()
