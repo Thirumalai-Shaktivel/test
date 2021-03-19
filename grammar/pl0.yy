@@ -90,10 +90,12 @@ expression
     | "-" term_plus
     ;
 
-term_plus
-    : term "+" term_plus
-    | term "-" term_plus
-    | term
+term_plus : term term_plus_rest ;
+
+term_plus_rest
+    : "+" term_plus
+    | "-" term_plus
+    | %empty
     ;
 
 term : factor term_rest ;
