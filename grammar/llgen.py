@@ -102,7 +102,7 @@ def first_set(rules, X):
                     s = s | (f1 - set([-1]))
                 else:
                     all_contain_empty = False
-                    s = s | first_set(rules, item.items[0])
+                    s = s | f1
                     break
             if all_contain_empty:
                 s = s | set([-1])
