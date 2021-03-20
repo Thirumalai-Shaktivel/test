@@ -513,6 +513,12 @@ public:
                     llvm::AllocaInst *ptr = builder->CreateAlloca(
                         type, nullptr, v->m_name);
                     llvm_symtab[h] = ptr;
+                    if( v->m_value != nullptr ) {
+                        llvm::Value *target_var = ptr;
+                        this->visit_expr(*v->m_value);
+                        llvm::Value *init_value = tmp;
+                        builder->CreateStore(init_value, target_var);
+                    }
                 }
             }
         }
