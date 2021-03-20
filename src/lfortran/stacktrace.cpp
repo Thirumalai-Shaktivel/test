@@ -562,7 +562,33 @@ void address_to_line_number(const std::vector<std::string> &filenames,
           std::string &filename,
           int &line_number) {
     int n = addresses.size() / 3;
-    // TODO: Using a bisection would be a lot faster: O(log(n) instead of O(n)
+    // Bisection-Search 
+    int start_ind =0, end_ind = n-1;
+
+    int mid = (start_ind + end_ind)/2;
+
+    while (start_ind <= end_ind) {
+
+      if ( addresses[3*mid] > (address-8) ) {
+        filename = filenames[addresses[3*mid+2]];
+        line_number = addresses[3*mid + 1];
+        return;
+      }
+      else{
+        start_ind = mid+1;
+      }
+      mid = (start_ind + end_ind)/2;
+    }
+    filename = "";
+    line_number = -1;
+}
+// address_to_line_number_l this is linear search
+void address_to_line_number_l(const std::vector<std::string> &filenames,
+          const std::vector<uint64_t> &addresses,
+          uintptr_t address,
+          std::string &filename,
+          int &line_number) {
+    int n = addresses.size() / 3;
     for (int i=0; i < n; i++) {
       uint64_t addr, line, fileid;
       addr = addresses[3*i+0];
@@ -574,9 +600,12 @@ void address_to_line_number(const std::vector<std::string> &filenames,
         return;
       }
     }
+
     filename = "";
     line_number = -1;
 }
+
+
 
 void get_local_info_dwarfdump(std::vector<StacktraceItem> &d)
 {
