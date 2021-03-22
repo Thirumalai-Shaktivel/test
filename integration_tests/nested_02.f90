@@ -14,7 +14,7 @@ end subroutine b
 
 end module
 
-program modules_07
+program nested_02
 use a, only: b
 implicit none
 
