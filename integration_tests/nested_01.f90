@@ -17,7 +17,7 @@ end function b
 
 end module
 
-program modules_08
+program nested_01
 use a, only: b
 implicit none
 integer c
