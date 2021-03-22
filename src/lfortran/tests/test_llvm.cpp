@@ -743,3 +743,18 @@ TEST_CASE("FortranEvaluator 8") {
     CHECK(r.result.type == FortranEvaluator::EvalResult::real);
     CHECK(r.result.f == 3.5);
 }
+
+TEST_CASE("FortranEvaluator 9") {
+    FortranEvaluator e;
+    FortranEvaluator::Result<FortranEvaluator::EvalResult>
+    r = e.evaluate("character(length = 1) :: a");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::none);
+    r = e.evaluate("a = 'b'");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::statement);
+    r = e.evaluate("a");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::character);
+    CHECK(r.result.s == 'b');
+}
