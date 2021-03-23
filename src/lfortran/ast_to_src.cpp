@@ -859,7 +859,6 @@ public:
         s += x.m_s;
         s += "\"";
         s += syn();
-        last_binary_plus = false;
     }
 
     void visit_Name(const Name_t &x) {
@@ -875,7 +874,6 @@ public:
             s += ".false.";
         }
         s += syn();
-        last_binary_plus = false;
     }
 
     std::string kind_value(const AST::kind_item_typeType &type,
