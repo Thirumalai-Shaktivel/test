@@ -729,7 +729,10 @@ public:
         std::string left = std::move(s);
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        s = "(" + left + ")" + op2str(x.m_op) + "(" + right + ")";
+        if(x.m_op == operatorType::Add || x.m_op == operatorType::Sub)
+          s = left + op2str(x.m_op) + right;
+        else
+            s = "(" + left + ")" + op2str(x.m_op) + "(" + right + ")";
     }
 
     void visit_StrOp(const StrOp_t &x) {
@@ -743,7 +746,7 @@ public:
     void visit_UnaryOp(const UnaryOp_t &x) {
         this->visit_expr(*x.m_operand);
         if (x.m_op == AST::unaryopType::USub) {
-            s = "-(" + s + ")";
+            s = "(-" + s + ")";
         } else if (x.m_op == AST::unaryopType::UAdd) {
             // pass
             // s = s;
