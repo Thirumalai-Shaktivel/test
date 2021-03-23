@@ -1,5 +1,5 @@
 program reserved_02
-if ((integer())/=(1)) then
+if (integer() /= 1) then
     error stop
 end if
 
@@ -7,7 +7,7 @@ contains
 
     integer function integer() 
     integer :: function
-    function = (function)/(function)
+    function = function/function
     integer = function
     end function integer
 

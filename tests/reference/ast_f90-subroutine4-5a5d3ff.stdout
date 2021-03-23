@@ -7,6 +7,6 @@ integer :: N
 integer :: i
 N = size(a)
 do concurrent (i = 1:N)
-    c(i) = (a(i)) + ((scalar)*(b(i)))
+    c(i) = a(i) + scalar * b(i)
 end do
 end subroutine triad

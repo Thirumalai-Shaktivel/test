@@ -722,7 +722,7 @@ public:
         std::string left = std::move(s);
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        s = "(" + left + ")" + boolop2str(x.m_op) + "(" + right + ")";
+        s = left + boolop2str(x.m_op) + right;
     }
 
     void visit_BinOp(const BinOp_t &x) {
@@ -735,7 +735,8 @@ public:
         if (last_binary_plus)
             right = "(" + right + ")";
         s = left + op2str(x.m_op) + right;
-        last_binary_plus = true;
+        if(x.m_op == operatorType::Add || x.m_op == operatorType::Sub)
+            last_binary_plus = true;
     }
 
     void visit_StrOp(const StrOp_t &x) {
@@ -749,7 +750,7 @@ public:
     void visit_UnaryOp(const UnaryOp_t &x) {
         this->visit_expr(*x.m_operand);
         if (x.m_op == AST::unaryopType::USub) {
-            s = "(-" + s + ")";
+            s = "-" + s;
         } else if (x.m_op == AST::unaryopType::UAdd) {
             // pass
             // s = s;
@@ -763,13 +764,8 @@ public:
     void visit_Compare(const Compare_t &x) {
         this->visit_expr(*x.m_left);
         std::string left = std::move(s);
-        if (last_binary_plus)
-            left = "(" + left + ")";
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        if (last_binary_plus)
-            right = "(" + right + ")";
-        last_binary_plus = true;
         s = left + cmpop2str(x.m_op) + right;
     }
 
