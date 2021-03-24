@@ -70,6 +70,7 @@ public:
     int indent_spaces;
     bool indent_unit;
     bool last_binary_plus;
+    bool last_unary_plus;
 
     // Syntax highlighting groups
     enum gr {
@@ -728,15 +729,18 @@ public:
     void visit_BinOp(const BinOp_t &x) {
         this->visit_expr(*x.m_left);
         std::string left = std::move(s);
-        if (last_binary_plus)
+        if (last_unary_plus
+                    && (x.m_op == operatorType::Add
+                        || x.m_op == operatorType::Sub))
             left = "(" + left + ")";
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        if (last_binary_plus)
+        if (last_unary_plus
+                    && (x.m_op == operatorType::Add
+                        || x.m_op == operatorType::Sub))
             right = "(" + right + ")";
         s = left + op2str(x.m_op) + right;
-        if(x.m_op == operatorType::Add || x.m_op == operatorType::Sub)
-            last_binary_plus = true;
+        last_unary_plus = false;
     }
 
     void visit_StrOp(const StrOp_t &x) {
@@ -750,12 +754,17 @@ public:
     void visit_UnaryOp(const UnaryOp_t &x) {
         this->visit_expr(*x.m_operand);
         if (x.m_op == AST::unaryopType::USub) {
+            last_unary_plus = true;
+            last_binary_plus = false;
             s = "-" + s;
         } else if (x.m_op == AST::unaryopType::UAdd) {
             // pass
             // s = s;
+            last_unary_plus = false;
         } else if (x.m_op == AST::unaryopType::Not) {
             s = ".not.(" + s + ")";
+            last_unary_plus = false;
+            last_binary_plus = false;
         } else {
             throw LFortranException("Unary op type not implemented");
         }
@@ -839,6 +848,7 @@ public:
         s = syn(gr::Integer);
         s += std::to_string(x.m_n);
         s += syn();
+        last_unary_plus = false;
         last_binary_plus = false;
     }
 
@@ -846,6 +856,7 @@ public:
         s = syn(gr::Real);
         s += x.m_n;
         s += syn();
+        last_unary_plus = false;
         last_binary_plus = false;
     }
 
@@ -859,6 +870,7 @@ public:
 
     void visit_Name(const Name_t &x) {
         s = std::string(x.m_id);
+        last_unary_plus = false;
         last_binary_plus = false;
     }
 
@@ -870,6 +882,8 @@ public:
             s += ".false.";
         }
         s += syn();
+        last_unary_plus = false;
+        last_binary_plus = false;
     }
 
     std::string kind_value(const AST::kind_item_typeType &type,
