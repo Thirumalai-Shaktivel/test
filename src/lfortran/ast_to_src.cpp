@@ -735,9 +735,7 @@ public:
             left = "(" + left + ")";
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        if (last_unary_plus
-                    && (x.m_op == operatorType::Add
-                        || x.m_op == operatorType::Sub))
+        if (last_unary_plus)
             right = "(" + right + ")";
         s = left + op2str(x.m_op) + right;
         last_unary_plus = false;
