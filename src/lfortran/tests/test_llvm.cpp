@@ -771,6 +771,49 @@ define float @f()
     CHECK(std::abs(r - 8) < 1e-6);
 }
 
+TEST_CASE("llvm nested functions 1") {
+    LFortran::LLVMEvaluator e;
+    e.add_module(R"""(
+declare void @llvm.init.trampoline(i8*, i8*, i8*);
+declare i8* @llvm.adjust.trampoline(i8*);
+
+define i32 @f(i8* nest %c, i32 %x, i32 %y)
+{
+    %1 = add i32 %x, %y
+    %cv = load i8, i8* %c
+    %cc = zext i8 %cv to i32
+    %2 = add i32 %1, %cc
+    ret i32 %2
+}
+
+define i32 @g()
+{
+    %nval = alloca i8
+    store i8 5, i8* %nval
+
+    %xp = alloca i32
+    store i32 3, i32* %xp
+    %x = load i32, i32* %xp
+
+    %yp = alloca i32
+    store i32 4, i32* %yp
+    %y = load i32, i32* %yp
+
+    %tramp = alloca [10 x i8], align 4
+    %tramp1 = getelementptr [10 x i8], [10 x i8]* %tramp, i32 0, i32 0
+    call void @llvm.init.trampoline(i8* %tramp1, i8* bitcast (i32 (i8*, i32, i32)* @f to i8*), i8* %nval)
+    %p = call i8* @llvm.adjust.trampoline(i8* %tramp1)
+    %fp = bitcast i8* %p to i32 (i32, i32)*
+
+    %ret = call i32 %fp(i32 %x, i32 %y)
+
+    ret i32 %ret
+}
+    )""");
+    int r = e.intfn("g");
+    CHECK(r == 12);
+}
+
 TEST_CASE("FortranEvaluator 7") {
     FortranEvaluator e;
     FortranEvaluator::Result<FortranEvaluator::EvalResult>
