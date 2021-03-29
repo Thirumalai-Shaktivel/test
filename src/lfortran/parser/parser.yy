@@ -1305,7 +1305,7 @@ cycle_statement
     ;
 
 continue_statement
-    : KW_CONTINUE { $$ = CYCLE(@$); } // TODO: add CONTINUE AST node
+    : KW_CONTINUE { $$ = CONTINUE(@$); }
     ;
 
 stop_statement

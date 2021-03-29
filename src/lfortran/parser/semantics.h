@@ -49,6 +49,7 @@ using LFortran::AST::make_Attribute_t;
 using LFortran::AST::make_DoLoop_t;
 using LFortran::AST::make_Exit_t;
 using LFortran::AST::make_Cycle_t;
+using LFortran::AST::make_Continue_t;
 using LFortran::AST::make_Print_t;
 using LFortran::AST::make_Return_t;
 using LFortran::AST::make_Stop_t;
@@ -504,6 +505,7 @@ ast_t* SUBROUTINE_CALL0(Allocator &al, const ast_t *id,
 #define EXIT(l) make_Exit_t(p.m_a, l)
 #define RETURN(l) make_Return_t(p.m_a, l)
 #define CYCLE(l) make_Cycle_t(p.m_a, l)
+#define CONTINUE(l) make_Continue_t(p.m_a, l)
 #define SUBROUTINE(name, args, decl, stmts, contains, l) make_Subroutine_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*args*/ ARGS(p.m_a, l, args), \
