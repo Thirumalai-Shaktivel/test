@@ -30,6 +30,11 @@ static inline ASR::Variable_t* EXPR2VAR(const ASR::expr_t *f)
     return ASR::down_cast<ASR::Variable_t>(ASR::down_cast<ASR::Var_t>(f)->m_v);
 }
 
+static inline ASR::ExternalSymbol_t* EXT2VAR(const ASR::expr_t *f)
+{
+    return ASR::down_cast<ASR::ExternalSymbol_t>(ASR::down_cast<ASR::ExtSym_t>(f)->m_v);
+}
+
 
 static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
 {
@@ -50,6 +55,7 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
         case ASR::exprType::Var: { return EXPR2VAR(f)->m_type; }
         case ASR::exprType::ConstantLogical: { return ((ASR::ConstantLogical_t*)f)->m_type; }
         case ASR::exprType::StrOp: { return ((ASR::StrOp_t*)f)->m_type; }
+        case ASR::exprType::ExtSym: { return EXT2VAR(f)->m_type; }
         default : throw LFortranException("Not implemented");
     }
 }

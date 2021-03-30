@@ -769,7 +769,7 @@ public:
                         /* a_symtab */ current_scope,
                         /* a_name */ msub->m_name,
                         (ASR::symbol_t*)msub,
-                        m->m_name, msub->m_name,
+                        m->m_name, nullptr, msub->m_name,
                         dflt_access
                         );
                     std::string sym = msub->m_name;
@@ -781,11 +781,23 @@ public:
                         /* a_symtab */ current_scope,
                         /* a_name */ mfn->m_name,
                         (ASR::symbol_t*)mfn,
-                        m->m_name, mfn->m_name,
+                        m->m_name, nullptr, mfn->m_name,
                         dflt_access
                         );
                     std::string sym = mfn->m_name;
                     current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
+                } else if (ASR::is_a<ASR::Variable_t>(*item.second)) {
+                    ASR::Variable_t *mvar = ASR::down_cast<ASR::Variable_t>(item.second);
+                    ASR::asr_t *var = ASR::make_ExternalSymbol_t(
+                        al, mvar->base.base.loc,
+                        /* a_symtab */ current_scope,
+                        /* a_name */ mvar->m_name,
+                        (ASR::symbol_t*)mvar,
+                        m->m_name, mvar->m_type, mvar->m_name,
+                        dflt_access
+                        );
+                    std::string sym = mvar->m_name;
+                    current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(var);
                 } else {
                     throw LFortranException("Only function / subroutine implemented");
                 }
@@ -822,7 +834,7 @@ public:
                         /* a_symtab */ current_scope,
                         /* a_name */ name.c_str(al),
                         (ASR::symbol_t*)msub,
-                        m->m_name, msub->m_name,
+                        m->m_name, nullptr, msub->m_name,
                         dflt_access
                         );
                     current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(sub);
@@ -840,7 +852,7 @@ public:
                         current_scope,
                         /* a_name */ cname,
                         t,
-                        m->m_name, gp->m_name,
+                        m->m_name, nullptr,  gp->m_name,
                         dflt_access
                         );
                     current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(ep);
@@ -860,7 +872,7 @@ public:
                         /* a_symtab */ current_scope,
                         /* a_name */ cname,
                         (ASR::symbol_t*)mfn,
-                        m->m_name, mfn->m_name,
+                        m->m_name, nullptr, mfn->m_name,
                         dflt_access
                         );
                     current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(fn);
@@ -1401,7 +1413,7 @@ public:
                             /* a_symtab */ current_scope,
                             /* a_name */ cname,
                             final_sym,
-                            p->m_module_name, symbol_name(final_sym),
+                            p->m_module_name, nullptr, symbol_name(final_sym),
                             ASR::accessType::Private
                             );
                         final_sym = ASR::down_cast<ASR::symbol_t>(sub);
@@ -1655,6 +1667,10 @@ public:
         ASR::symbol_t *v = scope->resolve_symbol(var_name);
         if (!v) {
             throw SemanticError("Variable '" + var_name + "' not declared", loc);
+        }
+        if (!ASR::is_a<ASR::Variable_t>(*v)) {
+            //throw SemanticError("Variable '" + var_name + "' not a Var_t", loc);
+            return ASR::make_ExtSym_t(al, loc, v);
         }
         return ASR::make_Var_t(al, loc, v);
     }
