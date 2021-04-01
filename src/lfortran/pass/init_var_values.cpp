@@ -118,7 +118,7 @@ public:
     }
 
     void visit_Variable(const ASR::Variable_t &x) {
-        // init_var_result = replace_initvarvalues(al, x);
+        init_var_result = replace_initvarvalues(al, x);
     }
 };
 
