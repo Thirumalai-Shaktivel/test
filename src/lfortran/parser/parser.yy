@@ -361,6 +361,8 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <kind_arg> kind_arg2
 %type <vec_ast> interface_body
 %type <ast> interface_item
+%type <vec_ast> write_arg_list
+%type <ast> write_arg
 
 // Precedence
 
@@ -1023,24 +1025,21 @@ print_statement
     ;
 
 open_statement
-    : KW_OPEN "(" write_arg_list ")" { $$ = PRINT0(@$); }
+    : KW_OPEN "(" write_arg_list ")" { $$ = OPEN($3, @$); }
 
 close_statement
     : KW_CLOSE "(" write_arg_list ")" { $$ = PRINT0(@$); }
 
 write_arg_list
-    : write_arg_list "," write_arg2
-    | write_arg2
-    ;
-
-write_arg2
-    : write_arg
-    | id "=" write_arg
+    : write_arg_list "," write_arg { $$ = $1; LIST_ADD($$, *$3); }
+    | write_arg { LIST_NEW($$); LIST_ADD($$, *$1); }
     ;
 
 write_arg
-    : expr
-    | "*"
+    : expr        { $$ = WRITE_ARG1($1, @$); }
+    | "*"         { $$ = WRITE_ARG1S(@$); }
+    | id "=" expr { $$ = WRITE_ARG2($1, $3, @$); }
+    | id "=" "*"  { $$ = WRITE_ARG2S($1, @$); }
     ;
 
 write_statement

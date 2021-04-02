@@ -802,6 +802,26 @@ public:
         s = r;
     }
 
+    void visit_Open(const Open_t &x) {
+        //TODO
+        std::string r=indent;
+        r += syn(gr::Keyword);
+        r += "open";
+        r += syn();
+        r += " (";
+        if (x.n_value > 0) {
+            r += ", ";
+            for (size_t i=0; i<x.n_value; i++) {
+                this->visit_expr(*x.m_value[i]);
+                r += s;
+                if (i < x.n_value-1) r += ", ";
+            }
+        }
+        r += ")";
+        r += "\n";
+        s = r;
+    }
+
     void visit_Write(const Write_t &x) {
         std::string r=indent;
         r += syn(gr::Keyword);

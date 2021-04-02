@@ -88,6 +88,7 @@ stmt
     | Return()
     | WhileLoop(expr test, stmt* body)
     | Print(string? fmt, expr* values)
+    | Open(expr? list, expr* value)
     | Write(expr? unit, string? fmt, expr* values)
 
 expr

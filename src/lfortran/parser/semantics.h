@@ -533,6 +533,18 @@ char* print_format_to_str(Allocator &al, const std::string &fmt) {
 #define PRINTF(fmt, args, l) make_Print_t(p.m_a, l, \
         print_format_to_str(p.m_a, fmt.str()), EXPRS(args), args.size())
 
+#define OPEN(list, l) LFortran::AST::make_Open_t(p.m_a, l, list, \
+        nullptr, list.size())
+
+static inline /* return type */ make_arg_t(Allocator &al,
+    Location &loc, char *id, LFortran::AST::ast_t *value) {
+    //TODO
+}
+#define WRITE_ARG1(value, l) make_arg_t(p.m_a, l, nullptr, value)
+#define WRITE_ARG1S(l) make_arg_t(p.m_a, l, nullptr, nullptr)
+#define WRITE_ARG2(id, value, l) make_arg_t(p.m_a, l, name2char(id), value)
+#define WRITE_ARG2S(id, l) make_arg_t(p.m_a, l, name2char(id), nullptr)
+
 #define WRITE0(l) LFortran::AST::make_Write_t(p.m_a, l, nullptr, \
         nullptr, nullptr, 0)
 #define WRITE(args, l) LFortran::AST::make_Write_t(p.m_a, l, nullptr, \
