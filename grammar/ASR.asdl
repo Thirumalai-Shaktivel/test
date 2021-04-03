@@ -86,7 +86,7 @@ symbol
     | GenericProcedure(symbol_table parent_symtab, identifier name,
         symbol* procs, access access)
     | ExternalSymbol(symbol_table parent_symtab, identifier name,
-        symbol external, identifier module_name, identifier original_name,
+        symbol external, identifier module_name, ttype? type, identifier original_name,
         access access)
     | DerivedType(symbol_table symtab, identifier name, abi abi, access access)
     | Variable(symbol_table parent_symtab, identifier name, intent intent,
@@ -167,6 +167,7 @@ expr
     | ConstantLogical(bool value, ttype type)
     | Str(string s, ttype type)
     | Var(symbol v)
+    | ExtSym(symbol v)
     | ArrayRef(symbol v, array_index* args, ttype type)
     | ImplicitCast(expr arg, cast_kind kind, ttype type)
     | ExplicitCast(expr arg, cast_kind kind, ttype type)
