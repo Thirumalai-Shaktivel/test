@@ -15,6 +15,7 @@ set(SRC
     pass/do_loops.cpp
     pass/global_stmts.cpp
     pass/select_case.cpp
+    pass/nested_vars.cpp
 
     asr_verify.cpp
     asr_utils.cpp

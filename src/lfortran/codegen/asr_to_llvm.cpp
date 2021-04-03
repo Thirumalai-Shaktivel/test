@@ -44,6 +44,7 @@
 #include <lfortran/pass/do_loops.h>
 #include <lfortran/pass/select_case.h>
 #include <lfortran/pass/global_stmts.h>
+#include <lfortran/pass/nested_vars.h>
 #include <lfortran/exception.h>
 #include <lfortran/asr_utils.h>
 #include <lfortran/pickle.h>
@@ -967,6 +968,19 @@ public:
                 return;
         }
         bool interactive = (x.m_abi == ASR::abiType::Interactive);
+        // Check all variables in the symbol table, see if they match a hash
+        // for a needed global, if so set them as global.
+        for (auto &item : x.m_symtab->scope) {
+            if (is_a<ASR::Variable_t>(*item.second)) {
+                ASR::Variable_t *v = down_cast<ASR::Variable_t>(
+                        item.second);
+                uint32_t v_h = get_hash((ASR::asr_t*)&v);
+                if (std::find(needed_globals.begin(), needed_globals.end(), 
+                        v_h) == needed_globals.end()) {
+                    visit_Variable(*v);
+                }
+            }
+        }
         visit_procedures(x);
         uint32_t h = get_hash((ASR::asr_t*)&x);
         llvm::Function *F = nullptr;
@@ -2039,6 +2053,7 @@ std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
 
     pass_replace_do_loops(al, asr);
     pass_replace_select_case(al, asr);
+    v.needed_globals = pass_find_nested_vars(al, asr);
     v.visit_asr((ASR::asr_t&)asr);
     std::string msg;
     llvm::raw_string_ostream err(msg);
