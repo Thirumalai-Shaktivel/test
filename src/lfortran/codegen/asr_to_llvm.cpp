@@ -45,6 +45,7 @@
 #include <lfortran/pass/select_case.h>
 #include <lfortran/pass/global_stmts.h>
 #include <lfortran/pass/param_to_const.h>
+#include <lfortran/pass/nested_vars.h>
 #include <lfortran/exception.h>
 #include <lfortran/asr_utils.h>
 #include <lfortran/pickle.h>
@@ -134,6 +135,12 @@ public:
 
     std::map<uint64_t, llvm::Value*> llvm_symtab; // llvm_symtab_value
     std::map<uint64_t, llvm::Function*> llvm_symtab_fn;
+
+    std::vector<uint64_t> needed_globals;
+    std::map<uint64_t, std::vector<llvm::Type*>> runtime_descriptor;
+    llvm::StructType* needed_global_struct;
+    std::string desc_name; // For tracking the name of the global struct
+
 
     ASRToLLVMVisitor(llvm::LLVMContext &context) : context(context),
         prototype_only(false), dim_des(llvm::StructType::create(
@@ -483,6 +490,26 @@ public:
         return builder->CreateLoad(pres);
     }
 
+    llvm::Value *nested_struct_rd(std::vector<llvm::Value*> vals,
+            llvm::StructType* rd) {
+        llvm::AllocaInst *pres = builder->CreateAlloca(rd, nullptr);
+        /*
+        std::vector<llvm::Value *> idx1 = {
+            llvm::ConstantInt::get(context, llvm::APInt(32, 0)),
+            llvm::ConstantInt::get(context, llvm::APInt(32, 0))};
+        std::vector<llvm::Value *> idx2 = {
+            llvm::ConstantInt::get(context, llvm::APInt(32, 0)),
+            llvm::ConstantInt::get(context, llvm::APInt(32, 1))};
+        llvm::Value *pre = builder->CreateGEP(pres, idx1);
+        llvm::Value *pim = builder->CreateGEP(pres, idx2);
+        builder->CreateStore(re, pre);
+        builder->CreateStore(im, pim);
+        */
+        llvm::Value *pim = builder->CreateGEP(pres, vals);
+        //builder->CreateStore(rd, pim);
+        return builder->CreateLoad(pim);
+    }
+
     /**
      * @brief This function generates the
      * @detail This is converted to
@@ -654,8 +681,8 @@ public:
         // (global variable declared/initialized in this translation unit), or
         // external (global variable not declared/initialized in this
         // translation unit, just referenced).
-        LFORTRAN_ASSERT(x.m_intent == intent_local
-            || x.m_abi == ASR::abiType::Interactive);
+        LFORTRAN_ASSERT(x.m_intent == intent_local || x.m_intent ==
+                intent_inout || x.m_abi == ASR::abiType::Interactive);
         bool external = (x.m_abi != ASR::abiType::Source);
         llvm::Constant* init_value = nullptr;
         if (x.m_value != nullptr){
@@ -722,6 +749,81 @@ public:
         }
     }
 
+    void visit_needed_global(const ASR::Variable_t &x) {
+        uint32_t h = get_hash((ASR::asr_t*)&x);
+        // This happens at global scope, so the intent can only be either local
+        // (global variable declared/initialized in this translation unit), or
+        // external (global variable not declared/initialized in this
+        // translation unit, just referenced).
+        LFORTRAN_ASSERT(x.m_intent == intent_local || x.m_intent ==
+                intent_inout || x.m_abi == ASR::abiType::Interactive);
+        bool external = (x.m_abi != ASR::abiType::Source);
+        llvm::Constant* init_value = nullptr;
+        if (x.m_value != nullptr){
+            this->visit_expr_wrapper(x.m_value, true);
+            init_value = llvm::dyn_cast<llvm::Constant>(tmp);
+        }
+        if (x.m_type->type == ASR::ttypeType::Integer) {
+            int a_kind = down_cast<ASR::Integer_t>(x.m_type)->m_kind;
+            llvm::Type *type;
+            int init_value_bits = 8*a_kind;
+            type = getIntType(a_kind);
+            llvm::Constant *ptr = module->getOrInsertGlobal(x.m_name,
+                type);
+            if (!external) {
+                if (init_value) {
+                    module->getNamedGlobal(x.m_name)->setInitializer(
+                            init_value);
+                } else {
+                    module->getNamedGlobal(x.m_name)->setInitializer(
+                            llvm::ConstantInt::get(context, 
+                                llvm::APInt(init_value_bits, 0)));
+                }
+            }
+            llvm_symtab[h] = ptr;
+        } else if (x.m_type->type == ASR::ttypeType::Real) {
+            int a_kind = down_cast<ASR::Real_t>(x.m_type)->m_kind;
+            llvm::Type *type;
+            int init_value_bits = 8*a_kind;
+            type = getFPType(a_kind);
+            llvm::Constant *ptr = module->getOrInsertGlobal(x.m_name, type);
+            if (!external) {
+                if (init_value) {
+                    module->getNamedGlobal(x.m_name)->setInitializer(
+                            init_value);
+                } else {
+                    if( init_value_bits == 32 ) {
+                        module->getNamedGlobal(x.m_name)->setInitializer(
+                                llvm::ConstantFP::get(context, 
+                                    llvm::APFloat((float)0)));
+                    } else if( init_value_bits == 64 ) {
+                        module->getNamedGlobal(x.m_name)->setInitializer(
+                                llvm::ConstantFP::get(context, 
+                                    llvm::APFloat((double)0)));
+                    }
+                }
+            }
+            llvm_symtab[h] = ptr;
+        } else if (x.m_type->type == ASR::ttypeType::Logical) {
+            llvm::Constant *ptr = module->getOrInsertGlobal(x.m_name,
+                llvm::Type::getInt1Ty(context));
+            if (!external) {
+                if (init_value) {
+                    module->getNamedGlobal(x.m_name)->setInitializer(
+                            init_value);
+                } else {
+                    module->getNamedGlobal(x.m_name)->setInitializer(
+                            llvm::ConstantInt::get(context, 
+                                llvm::APInt(1, 0)));
+                }
+            }
+            llvm_symtab[h] = ptr;
+        } else {
+            throw CodeGenError("Variable type not supported");
+        }
+    }
+
+
     void visit_Module(const ASR::Module_t &x) {
         mangle_prefix = "__module_" + std::string(x.m_name) + "_";
         for (auto &item : x.m_symtab->scope) {
@@ -758,19 +860,24 @@ public:
 
     template<typename T>
     void declare_vars(const T &x) {
+        std::vector<llvm::Value*> needed_glob_vals;
+        bool needed_globs = false;
+        llvm::Value *target_var;
         for (auto &item : x.m_symtab->scope) {
             if (is_a<ASR::Variable_t>(*item.second)) {
                 ASR::Variable_t *v = down_cast<ASR::Variable_t>(item.second);
                 uint32_t h = get_hash((ASR::asr_t*)v);
-                llvm::Type *type;
-                ASR::ttypeType type_;
-                int n_dims = 0, a_kind = 4;
-                ASR::dimension_t* m_dims = nullptr;
-                if (v->m_intent == intent_local || 
-                    v->m_intent == intent_return_var || 
-                    !v->m_intent) { 
-                    switch (v->m_type->type) {
-                        case (ASR::ttypeType::Integer) : {
+                if (std::find(needed_globals.begin(), needed_globals.end(), 
+                        h) == needed_globals.end()) {
+                    llvm::Type *type;
+                    ASR::ttypeType type_;
+                    int n_dims = 0, a_kind = 4;
+                    ASR::dimension_t* m_dims = nullptr;
+                    if (v->m_intent == intent_local || 
+                        v->m_intent == intent_return_var || 
+                        !v->m_intent) { 
+                        switch (v->m_type->type) {
+                            case (ASR::ttypeType::Integer) : {
                             ASR::Integer_t* v_type = down_cast<ASR::Integer_t>(v->m_type);
                             type_ = v_type->class_type;
                             m_dims = v_type->m_dims;
@@ -781,67 +888,115 @@ public:
                             } else {
                                 int a_kind = down_cast<ASR::Integer_t>(v->m_type)->m_kind;
                                 type = getIntType(a_kind);
+                                }
+                                break;
                             }
-                            break;
+                            case (ASR::ttypeType::Real) : {
+                                int a_kind = down_cast<ASR::Real_t>(v->m_type)->m_kind;
+                                type = getFPType(a_kind);
+                                break;
+                            }
+                            case (ASR::ttypeType::Complex) : {
+                                int a_kind = down_cast<ASR::Complex_t>(v->m_type)->m_kind;
+                                type = getComplexType(a_kind);
+                                break;
+                            }
+                            case (ASR::ttypeType::Character) :
+                                type = character_type;
+                                break;
+                            case (ASR::ttypeType::Logical) :
+                                type = llvm::Type::getInt1Ty(context);
+                                break;
+                            case (ASR::ttypeType::Derived) :
+                                throw CodeGenError("Derived type argument not implemented yet in conversion");
+                                break;
+                            case (ASR::ttypeType::IntegerPointer) : {
+                                int a_kind = down_cast<ASR::IntegerPointer_t>(v->m_type)->m_kind;
+                                type = getIntType(a_kind, true);
+                                break;
+                            } 
+                            case (ASR::ttypeType::RealPointer) : {
+                                int a_kind = down_cast<ASR::RealPointer_t>(v->m_type)->m_kind;
+                                type = getFPType(a_kind, true);
+                                break;
+                            }
+                            case (ASR::ttypeType::ComplexPointer) : {
+                                throw CodeGenError("Pointers for Complex type not implemented yet in conversion");
+                                break;
+                            }
+                            case (ASR::ttypeType::CharacterPointer) : {
+                                type = llvm::Type::getInt8PtrTy(context);
+                                break;
+                            }
+                            case (ASR::ttypeType::DerivedPointer) : {
+                                throw CodeGenError("Pointers for Derived type not implemented yet in conversion");
+                                break;
+                            }
+                            case (ASR::ttypeType::LogicalPointer) :
+                                type = llvm::Type::getInt1Ty(context);
+                                break;
+                            default :
+                                LFORTRAN_ASSERT(false);
                         }
-                        case (ASR::ttypeType::Real) : {
-                            int a_kind = down_cast<ASR::Real_t>(v->m_type)->m_kind;
-                            type = getFPType(a_kind);
-                            break;
+                        llvm::AllocaInst *ptr = builder->CreateAlloca(type, nullptr, v->m_name);
+                        llvm_symtab[h] = ptr;
+                        fill_array_details(ptr, m_dims, n_dims);
+                        if( v->m_value != nullptr ) {
+                            llvm::Value *target_var = ptr;
+                            this->visit_expr_wrapper(v->m_value, true);
+                            llvm::Value *init_value = tmp;
+                            builder->CreateStore(init_value, target_var);
                         }
-                        case (ASR::ttypeType::Complex) : {
-                            int a_kind = down_cast<ASR::Complex_t>(v->m_type)->m_kind;
-                            type = getComplexType(a_kind);
-                            break;
-                        }
-                        case (ASR::ttypeType::Character) :
-                            type = character_type;
-                            break;
-                        case (ASR::ttypeType::Logical) :
-                            type = llvm::Type::getInt1Ty(context);
-                            break;
-                        case (ASR::ttypeType::Derived) :
-                            throw CodeGenError("Derived type argument not implemented yet in conversion");
-                            break;
-                        case (ASR::ttypeType::IntegerPointer) : {
-                            int a_kind = down_cast<ASR::IntegerPointer_t>(v->m_type)->m_kind;
-                            type = getIntType(a_kind, true);
-                            break;
-                        } 
-                        case (ASR::ttypeType::RealPointer) : {
-                            int a_kind = down_cast<ASR::RealPointer_t>(v->m_type)->m_kind;
-                            type = getFPType(a_kind, true);
-                            break;
-                        }
-                        case (ASR::ttypeType::ComplexPointer) : {
-                            throw CodeGenError("Pointers for Complex type not implemented yet in conversion");
-                            break;
-                        }
-                        case (ASR::ttypeType::CharacterPointer) : {
-                            type = llvm::Type::getInt8PtrTy(context);
-                            break;
-                        }
-                        case (ASR::ttypeType::DerivedPointer) : {
-                            throw CodeGenError("Pointers for Derived type not implemented yet in conversion");
-                            break;
-                        }
-                        case (ASR::ttypeType::LogicalPointer) :
-                            type = llvm::Type::getInt1Ty(context);
-                            break;
-                        default :
-                            throw CodeGenError("Type not implemented");
                     }
-                    llvm::AllocaInst *ptr = builder->CreateAlloca(type, nullptr, v->m_name);
-                    llvm_symtab[h] = ptr;
-                    fill_array_details(ptr, m_dims, n_dims);
-                    if( v->m_value != nullptr ) {
-                        llvm::Value *target_var = ptr;
-                        this->visit_expr_wrapper(v->m_value, true);
-                        llvm::Value *init_value = tmp;
-                        builder->CreateStore(init_value, target_var);
+                } else {
+                    needed_globs = true;
+                    llvm::Type *type;
+                    ASR::ttypeType type_;
+                    int n_dims = 0, a_kind = 4;
+                    ASR::dimension_t* m_dims = nullptr;
+                    if (v->m_intent == intent_local || 
+                        v->m_intent == intent_return_var || 
+                        !v->m_intent) { 
+                        switch (v->m_type->type) {
+                            case (ASR::ttypeType::Integer) : {
+                            ASR::Integer_t* v_type = down_cast<ASR::Integer_t>(v->m_type);
+                            type_ = v_type->class_type;
+                            m_dims = v_type->m_dims;
+                            n_dims = v_type->n_dims;
+                            a_kind = v_type->m_kind;
+                            if( n_dims > 0 ) {
+                                type = get_array_type(type_, a_kind, n_dims, m_dims);
+                            } else {
+                                int a_kind = down_cast<ASR::Integer_t>(v->m_type)->m_kind;
+                                type = getIntType(a_kind);
+                                }
+                                break;
+                            }
+                        }
+                        llvm::AllocaInst *ptr = builder->CreateAlloca(type, nullptr, v->m_name);
+                        llvm_symtab[h] = ptr;
+                        fill_array_details(ptr, m_dims, n_dims);
+                        if( v->m_value != nullptr ) {
+                            target_var = ptr;
+                            this->visit_expr_wrapper(v->m_value, true);
+                            llvm::Value *init_value = tmp;
+                            needed_glob_vals.push_back(tmp);
+                            builder->CreateStore(init_value, target_var);
+                        }
                     }
                 }
             }
+        }
+        if (needed_globs) {
+            llvm::Value* ptr = module->getOrInsertGlobal(desc_name, 
+                    needed_global_struct);
+            /*
+            builder->CreateStore(builder->CreateLoad(target_var), 
+                    builder->CreateGEP(ptr, needed_glob_vals));
+                    */
+            builder->CreateStore(builder->CreateLoad(target_var), 
+                    create_gep(ptr, 0));
+            //builder->CreateStore(ptr, builder->CreateGEP(ptr, needed_glob_vals));
         }
     }
 
@@ -910,10 +1065,26 @@ public:
             x.m_abi != ASR::abiType::Interactive) {
                 return;
         }
+        uint32_t h = get_hash((ASR::asr_t*)&x);
+        // Check if the procedure has a nested function that needs access to
+        // some variables in it's local scope
+        std::vector<llvm::Type*> nested_type;
+        if (runtime_descriptor[h].size() > 0) {
+            nested_type = runtime_descriptor[h];
+            needed_global_struct = llvm::StructType::create(
+                context, nested_type, x.m_name);
+            std::string desc_name = x.m_name;
+            std::string desc_string = "_rtd";
+            desc_name += desc_string;
+            llvm::Constant *ptr = module->getOrInsertGlobal(desc_name, 
+                needed_global_struct);
+            llvm::ConstantAggregateZero* initializer = 
+                llvm::ConstantAggregateZero::get(needed_global_struct);
+            module->getNamedGlobal(desc_name)->setInitializer(initializer);
+        }
         visit_procedures(x);
         bool interactive = (x.m_abi == ASR::abiType::Interactive);
 
-        uint32_t h = get_hash((ASR::asr_t*)&x);
         llvm::Function *F = nullptr;
         if (llvm_symtab_fn.find(h) != llvm_symtab_fn.end()) {
             /*
@@ -992,8 +1163,24 @@ public:
                 return;
         }
         bool interactive = (x.m_abi == ASR::abiType::Interactive);
-        visit_procedures(x);
+        // Check if the procedure has a nested function that needs access to
+        // some variables in it's local scope
         uint32_t h = get_hash((ASR::asr_t*)&x);
+        std::vector<llvm::Type*> nested_type;
+        if (runtime_descriptor[h].size() > 0) {
+            nested_type = runtime_descriptor[h];
+            needed_global_struct = llvm::StructType::create(
+                context, nested_type, x.m_name);
+            desc_name = x.m_name;
+            std::string desc_string = "_rtd";
+            desc_name += desc_string;
+            llvm::Constant *ptr = module->getOrInsertGlobal(desc_name, 
+                needed_global_struct);
+            llvm::ConstantAggregateZero* initializer = 
+                llvm::ConstantAggregateZero::get(needed_global_struct);
+            module->getNamedGlobal(desc_name)->setInitializer(initializer);
+        }
+        visit_procedures(x);
         llvm::Function *F = nullptr;
         if (llvm_symtab_fn.find(h) != llvm_symtab_fn.end()) {
             /*
@@ -1016,6 +1203,16 @@ public:
             llvm::BasicBlock *BB = llvm::BasicBlock::Create(context,
                     ".entry", F);
             builder->SetInsertPoint(BB);
+
+
+        /*
+        if (runtime_descriptor[h].size() > 0) {
+                nested_struct_rd(test2, needed_global_struct);
+                module->getNamedGlobal("test")->setInitializer(
+                        init_value);
+
+        }
+        */
 
             declare_args(x, *F);
 
@@ -1542,9 +1739,26 @@ public:
 
     inline void fetch_val(ASR::Variable_t* x) {
         uint32_t x_h = get_hash((ASR::asr_t*)x);
-        LFORTRAN_ASSERT(llvm_symtab.find(x_h) != llvm_symtab.end());
-        llvm::Value* x_v = llvm_symtab[x_h];
-        tmp = builder->CreateLoad(x_v);
+        llvm::Value* x_v;
+        // Check if x is a needed global here, if so, it should exist as an
+        // element in the runtime descriptor, get element pointer and create
+        // load
+        if (llvm_symtab.find(x_h) == llvm_symtab.end()) {
+            LFORTRAN_ASSERT(std::find(needed_globals.begin(), 
+                    needed_globals.end(), x_h) != needed_globals.end());
+            //llvm::Value* x_v = runtime_descriptor[x_h];
+            llvm::Constant *ptr = module->getOrInsertGlobal(desc_name,
+                needed_global_struct);
+            // TODO: Correctly index
+            int idx = 0;
+            std::vector<llvm::Value*> idx_vec = {
+            llvm::ConstantInt::get(context, llvm::APInt(32, 0)),
+            llvm::ConstantInt::get(context, llvm::APInt(32, idx))};
+            x_v = builder->CreateGEP(ptr, idx_vec);
+        } else {
+            x_v = llvm_symtab[x_h];
+        }
+            tmp = builder->CreateLoad(x_v);
     }
 
     inline void fetch_var(ASR::Variable_t* x) {
@@ -2064,8 +2278,11 @@ std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
     pass_replace_param_to_const(al, asr);
     // Uncomment for debugging the ASR after the transformation
     // std::cout << pickle(asr) << std::endl;
+
     pass_replace_do_loops(al, asr);
     pass_replace_select_case(al, asr);
+    v.runtime_descriptor = pass_find_nested_vars(asr, context, 
+            v.needed_globals);
     v.visit_asr((ASR::asr_t&)asr);
     std::string msg;
     llvm::raw_string_ostream err(msg);
