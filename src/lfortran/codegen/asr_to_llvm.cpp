@@ -134,6 +134,8 @@ public:
     std::map<uint64_t, llvm::Value*> llvm_symtab; // llvm_symtab_value
     std::map<uint64_t, llvm::Function*> llvm_symtab_fn;
 
+    std::vector<uint64_t> needed_globals;
+
     ASRToLLVMVisitor(llvm::LLVMContext &context) : context(context),
         prototype_only(false), dim_des(llvm::StructType::create(
             context, 
@@ -635,8 +637,10 @@ public:
         // (global variable declared/initialized in this translation unit), or
         // external (global variable not declared/initialized in this
         // translation unit, just referenced).
+        /*
         LFORTRAN_ASSERT(x.m_intent == intent_local
             || x.m_abi == ASR::abiType::Interactive);
+        */
         bool external = (x.m_abi != ASR::abiType::Source);
         llvm::Constant* init_value = nullptr;
         if (x.m_value != nullptr){
@@ -743,15 +747,17 @@ public:
             if (is_a<ASR::Variable_t>(*item.second)) {
                 ASR::Variable_t *v = down_cast<ASR::Variable_t>(item.second);
                 uint32_t h = get_hash((ASR::asr_t*)v);
-                llvm::Type *type;
-                ASR::ttypeType type_;
-                int n_dims = 0, a_kind = 4;
-                ASR::dimension_t* m_dims = nullptr;
-                if (v->m_intent == intent_local || 
-                    v->m_intent == intent_return_var || 
-                    !v->m_intent) { 
-                    switch (v->m_type->type) {
-                        case (ASR::ttypeType::Integer) : {
+                if (std::find(needed_globals.begin(), needed_globals.end(), 
+                        h) == needed_globals.end()) {
+                    llvm::Type *type;
+                    ASR::ttypeType type_;
+                    int n_dims = 0, a_kind = 4;
+                    ASR::dimension_t* m_dims = nullptr;
+                    if (v->m_intent == intent_local || 
+                        v->m_intent == intent_return_var || 
+                        !v->m_intent) { 
+                        switch (v->m_type->type) {
+                            case (ASR::ttypeType::Integer) : {
                             ASR::Integer_t* v_type = down_cast<ASR::Integer_t>(v->m_type);
                             type_ = v_type->class_type;
                             m_dims = v_type->m_dims;
@@ -762,64 +768,65 @@ public:
                             } else {
                                 int a_kind = down_cast<ASR::Integer_t>(v->m_type)->m_kind;
                                 type = getIntType(a_kind);
+                                }
+                                break;
                             }
-                            break;
+                            case (ASR::ttypeType::Real) : {
+                                int a_kind = down_cast<ASR::Real_t>(v->m_type)->m_kind;
+                                type = getFPType(a_kind);
+                                break;
+                            }
+                            case (ASR::ttypeType::Complex) : {
+                                int a_kind = down_cast<ASR::Complex_t>(v->m_type)->m_kind;
+                                type = getComplexType(a_kind);
+                                break;
+                            }
+                            case (ASR::ttypeType::Character) :
+                                type = character_type;
+                                break;
+                            case (ASR::ttypeType::Logical) :
+                                type = llvm::Type::getInt1Ty(context);
+                                break;
+                            case (ASR::ttypeType::Derived) :
+                                throw CodeGenError("Derived type argument not implemented yet in conversion");
+                                break;
+                            case (ASR::ttypeType::IntegerPointer) : {
+                                int a_kind = down_cast<ASR::IntegerPointer_t>(v->m_type)->m_kind;
+                                type = getIntType(a_kind, true);
+                                break;
+                            } 
+                            case (ASR::ttypeType::RealPointer) : {
+                                int a_kind = down_cast<ASR::RealPointer_t>(v->m_type)->m_kind;
+                                type = getFPType(a_kind, true);
+                                break;
+                            }
+                            case (ASR::ttypeType::ComplexPointer) : {
+                                throw CodeGenError("Pointers for Complex type not implemented yet in conversion");
+                                break;
+                            }
+                            case (ASR::ttypeType::CharacterPointer) : {
+                                type = llvm::Type::getInt8PtrTy(context);
+                                break;
+                            }
+                            case (ASR::ttypeType::DerivedPointer) : {
+                                throw CodeGenError("Pointers for Derived type not implemented yet in conversion");
+                                break;
+                            }
+                            case (ASR::ttypeType::LogicalPointer) :
+                                type = llvm::Type::getInt1Ty(context);
+                                break;
+                            default :
+                                LFORTRAN_ASSERT(false);
                         }
-                        case (ASR::ttypeType::Real) : {
-                            int a_kind = down_cast<ASR::Real_t>(v->m_type)->m_kind;
-                            type = getFPType(a_kind);
-                            break;
+                        llvm::AllocaInst *ptr = builder->CreateAlloca(type, nullptr, v->m_name);
+                        llvm_symtab[h] = ptr;
+                        fill_array_details(ptr, m_dims, n_dims);
+                        if( v->m_value != nullptr ) {
+                            llvm::Value *target_var = ptr;
+                            this->visit_expr_wrapper(v->m_value, true);
+                            llvm::Value *init_value = tmp;
+                            builder->CreateStore(init_value, target_var);
                         }
-                        case (ASR::ttypeType::Complex) : {
-                            int a_kind = down_cast<ASR::Complex_t>(v->m_type)->m_kind;
-                            type = getComplexType(a_kind);
-                            break;
-                        }
-                        case (ASR::ttypeType::Character) :
-                            type = character_type;
-                            break;
-                        case (ASR::ttypeType::Logical) :
-                            type = llvm::Type::getInt1Ty(context);
-                            break;
-                        case (ASR::ttypeType::Derived) :
-                            throw CodeGenError("Derived type argument not implemented yet in conversion");
-                            break;
-                        case (ASR::ttypeType::IntegerPointer) : {
-                            int a_kind = down_cast<ASR::IntegerPointer_t>(v->m_type)->m_kind;
-                            type = getIntType(a_kind, true);
-                            break;
-                        } 
-                        case (ASR::ttypeType::RealPointer) : {
-                            int a_kind = down_cast<ASR::RealPointer_t>(v->m_type)->m_kind;
-                            type = getFPType(a_kind, true);
-                            break;
-                        }
-                        case (ASR::ttypeType::ComplexPointer) : {
-                            throw CodeGenError("Pointers for Complex type not implemented yet in conversion");
-                            break;
-                        }
-                        case (ASR::ttypeType::CharacterPointer) : {
-                            type = llvm::Type::getInt8PtrTy(context);
-                            break;
-                        }
-                        case (ASR::ttypeType::DerivedPointer) : {
-                            throw CodeGenError("Pointers for Derived type not implemented yet in conversion");
-                            break;
-                        }
-                        case (ASR::ttypeType::LogicalPointer) :
-                            type = llvm::Type::getInt1Ty(context);
-                            break;
-                        default :
-                            LFORTRAN_ASSERT(false);
-                    }
-                    llvm::AllocaInst *ptr = builder->CreateAlloca(type, nullptr, v->m_name);
-                    llvm_symtab[h] = ptr;
-                    fill_array_details(ptr, m_dims, n_dims);
-                    if( v->m_value != nullptr ) {
-                        llvm::Value *target_var = ptr;
-                        this->visit_expr_wrapper(v->m_value, true);
-                        llvm::Value *init_value = tmp;
-                        builder->CreateStore(init_value, target_var);
                     }
                 }
             }
