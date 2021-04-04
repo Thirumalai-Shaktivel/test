@@ -5,8 +5,7 @@
 
 namespace LFortran {
 
-    std::vector<uint64_t> pass_find_nested_vars(Allocator &al, 
-            ASR::TranslationUnit_t &unit);
+    std::vector<uint64_t> pass_find_nested_vars(ASR::TranslationUnit_t &unit);
 
 } // namespace LFortran
 

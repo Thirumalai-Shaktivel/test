@@ -2053,7 +2053,7 @@ std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
 
     pass_replace_do_loops(al, asr);
     pass_replace_select_case(al, asr);
-    v.needed_globals = pass_find_nested_vars(al, asr);
+    v.needed_globals = pass_find_nested_vars(asr);
     v.visit_asr((ASR::asr_t&)asr);
     std::string msg;
     llvm::raw_string_ostream err(msg);
