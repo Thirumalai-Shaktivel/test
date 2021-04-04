@@ -31,6 +31,7 @@ class NestedVarVisitor : public ASR::BaseWalkVisitor<NestedVarVisitor>
 private:
     size_t nesting_depth = 0;
     SymbolTable* parent_scope;
+    SymbolTable* current_scope;
 public:
     std::vector<uint64_t> needed_globals;
 
@@ -61,11 +62,35 @@ public:
                 }
             }
         } else {
-            // We don't need to keep track of the scope for outer procedures,
-            // that's a semantic issue that will be checked at the ASR level.
-            // Now we're in a nested procedure, so we need to track what 
-            // variables are accessed
+            current_scope = x.m_symtab;
             ASR::Subroutine_t &xx = const_cast<ASR::Subroutine_t&>(x);
+            track_vars(xx.m_body, xx.n_body);
+        }
+        nesting_depth--;
+    }
+
+
+    void visit_Function(const ASR::Function_t &x) {
+        // FIXME: this is a hack, we need to pass in a non-const `x`,
+        // which requires to generate a TransformVisitor.
+        nesting_depth++;
+        if (nesting_depth == 1) {
+            parent_scope = x.m_symtab;
+            for (auto &item : parent_scope->scope) {
+                if (is_a<ASR::Subroutine_t>(*item.second)) {
+                    ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(
+                            item.second);
+                    visit_Subroutine(*s);
+                }
+                if (is_a<ASR::Function_t>(*item.second)) {
+                    ASR::Function_t *s = ASR::down_cast<ASR::Function_t>(
+                            item.second);
+                    visit_Function(*s);
+                }
+            }
+        } else {
+            current_scope = x.m_symtab;
+            ASR::Function_t &xx = const_cast<ASR::Function_t&>(x);
             track_vars(xx.m_body, xx.n_body);
         }
         nesting_depth--;
@@ -73,19 +98,24 @@ public:
 
     void visit_Var(const ASR::Var_t &x) {
         if ((bool&)x) { }
-        ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(
-                symbol_get_past_external(x.m_v));
-        uint32_t h = get_hash((ASR::asr_t*)v);
-        needed_globals.push_back(h);
+
+        // Only attempt if we are actually in a nested function
+
+        if (nesting_depth > 1) {
+            ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(
+                    symbol_get_past_external(x.m_v));
+            // If the variable is defined in the parent scope and not defined in
+            // the current scope, it is a "needed global" since we need to be able
+            // to access it from the nested procedure.
+            if (parent_scope->scope.find(v->m_name) != parent_scope->scope.end() 
+                    && current_scope->scope.find(v->m_name) == 
+                    current_scope->scope.end()) {
+                uint32_t h = get_hash((ASR::asr_t*)v);
+                needed_globals.push_back(h);
+            }
+        }
     }
 
-/*
-    void visit_Function(const ASR::Function_t &x) {
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        // TODO: Implement for functions
-    }
-*/
 
 };
 
