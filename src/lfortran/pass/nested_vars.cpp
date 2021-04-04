@@ -70,17 +70,12 @@ public:
             track_vars(xx.m_body, xx.n_body);
         }
         nesting_depth--;
-        /*
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Variable_t>(*item.second)) {
-                // Compare with the names of saved 
-            }
-            */
     }
 
     void visit_Var(const ASR::Var_t &x) {
         if ((bool&)x) { }
-        ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(x.m_v);
+        ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(
+                symbol_get_past_external(x.m_v));
         uint32_t h = get_hash((ASR::asr_t*)v);
         needed_globals.push_back(h);
     }
