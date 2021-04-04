@@ -81,7 +81,7 @@ public:
     void visit_Var(const ASR::Var_t &x) {
         if ((bool&)x) { }
         ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(x.m_v);
-        uint32_t h = get_hash((ASR::asr_t*)&x);
+        uint32_t h = get_hash((ASR::asr_t*)v);
         needed_globals.push_back(h);
     }
 

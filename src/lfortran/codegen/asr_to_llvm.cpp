@@ -974,9 +974,9 @@ public:
             if (is_a<ASR::Variable_t>(*item.second)) {
                 ASR::Variable_t *v = down_cast<ASR::Variable_t>(
                         item.second);
-                uint32_t v_h = get_hash((ASR::asr_t*)&v);
+                uint32_t v_h = get_hash((ASR::asr_t*)v);
                 if (std::find(needed_globals.begin(), needed_globals.end(), 
-                        v_h) == needed_globals.end()) {
+                        v_h) != needed_globals.end()) {
                     visit_Variable(*v);
                 }
             }

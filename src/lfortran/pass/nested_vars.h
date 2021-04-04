@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PASS_nested_vars_H
-#define LFORTRAN_PASS_nested_vars_H
+#ifndef LFORTRAN_PASS_NESTED_VARS_H
+#define LFORTRAN_PASS_NESTED_VARS_H
 
 #include <lfortran/asr.h>
 
@@ -10,4 +10,4 @@ namespace LFortran {
 
 } // namespace LFortran
 
-#endif // LFORTRAN_PASS_nested_vars_H
+#endif // LFORTRAN_PASS_NESTED_VARS_H
