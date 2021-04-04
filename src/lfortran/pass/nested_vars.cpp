@@ -65,7 +65,6 @@ public:
             // that's a semantic issue that will be checked at the ASR level.
             // Now we're in a nested procedure, so we need to track what 
             // variables are accessed
-            SymbolTable* current_scope = x.m_symtab;
             ASR::Subroutine_t &xx = const_cast<ASR::Subroutine_t&>(x);
             track_vars(xx.m_body, xx.n_body);
         }
