@@ -28,11 +28,6 @@ to:
 
 */
 
-Vec<ASR::stmt_t*> replace_paramtoconst(Allocator &al, const ASR::Var_t &var) {
-
-    
-}
-
 class VarVisitor : public ASR::BaseWalkVisitor<VarVisitor>
 {
 private:
@@ -108,7 +103,7 @@ public:
         transform_stmts(xx.m_body, xx.n_body);
     }
 
-    void visit_BinOp(ASR::BinOp_t& x) {
+    void visit_BinOp(const ASR::BinOp_t& x) {
         this->visit_expr(*x.m_left);
         ASR::expr_t* left = x.m_left;
         this->visit_expr(*x.m_right);
@@ -133,17 +128,24 @@ public:
                             ASR::ttype_t *type = TYPE(ASR::make_Integer_t(al, x.base.base.loc,
                             4, nullptr, 0));
                             ASR::expr_t* x_const = EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc, res_val, type));
-                            x.m_value = x_const;
+                            ASR::expr_t* x_expr_ptr = x.m_value;
+                            ASR::expr_t** addr_of_x_expr_ptr = &x_expr_ptr;
+                            *addr_of_x_expr_ptr = x_const;
+                            break;
                         }
+                        default:
+                            break;
                     }
+                    break;
                 }
+                default:
+                    break;
             }
         }
 
     }
 
     void visit_Var(const ASR::Var_t &x) {
-        Vec<ASR::stmt_t*> body;
         ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(
                     symbol_get_past_external(x.m_v));
         if( v->m_storage == ASR::storage_typeType::Parameter ) {
@@ -166,5 +168,6 @@ void pass_replace_param_to_const(Allocator &al, ASR::TranslationUnit_t &unit) {
     LFORTRAN_ASSERT(asr_verify(unit));
 }
 
+};
 
 } // namespace LFortran
