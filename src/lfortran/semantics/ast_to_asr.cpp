@@ -102,6 +102,35 @@ namespace LFortran {
 
                 return HelperMethods::is_same_type_pointer(x, y);
             }
+
+            inline static int extract_kind_from_ttype_t(const ASR::ttype_t* curr_type) {
+                if( curr_type == nullptr ) {
+                    return -1;
+                }
+                switch (curr_type->type) {
+                    case ASR::ttypeType::Real : {
+                        return ((ASR::Real_t*)(&(curr_type->base)))->m_kind;
+                    }
+                    case ASR::ttypeType::RealPointer : {
+                        return ((ASR::RealPointer_t*)(&(curr_type->base)))->m_kind;
+                    }
+                    case ASR::ttypeType::Integer : {
+                        return ((ASR::Integer_t*)(&(curr_type->base)))->m_kind;
+                    } 
+                    case ASR::ttypeType::IntegerPointer : {
+                        return ((ASR::IntegerPointer_t*)(&(curr_type->base)))->m_kind;
+                    }
+                    case ASR::ttypeType::Complex: {
+                        return ((ASR::Complex_t*)(&(curr_type->base)))->m_kind;
+                    }
+                    case ASR::ttypeType::ComplexPointer: {
+                        return ((ASR::ComplexPointer_t*)(&(curr_type->base)))->m_kind;
+                    }
+                    default : {
+                        return -1;
+                    }
+                }
+            }
     };
 
     class ImplicitCastRules {
@@ -118,6 +147,7 @@ namespace LFortran {
             static const int real_to_complex = ASR::cast_kindType::RealToComplex;
             static const int integer_to_complex = ASR::cast_kindType::IntegerToComplex;
             static const int integer_to_logical = ASR::cast_kindType::IntegerToLogical;
+            static const int complex_to_complex = ASR::cast_kindType::ComplexToComplex;
             static const int real_to_real = ASR::cast_kindType::RealToReal;
 
             //! Stores the variable part of error messages to be passed to SemanticError.
@@ -148,8 +178,8 @@ namespace LFortran {
                  integer_to_integer, integer_to_real, integer_to_complex, error_case, integer_to_logical, error_case},
                 {real_to_integer, real_to_real, real_to_complex, default_case, default_case, default_case,
                  real_to_integer, real_to_real, real_to_complex, default_case, default_case, default_case},
-                {default_case, default_case, default_case, default_case, default_case, default_case,
-                 default_case, default_case, default_case, default_case, default_case, default_case},
+                {default_case, default_case, complex_to_complex, default_case, default_case, default_case,
+                 default_case, default_case, complex_to_complex, default_case, default_case, default_case},
                 {default_case, default_case, default_case, default_case, default_case, default_case,
                  default_case, default_case, default_case, default_case, default_case, default_case},
                 {default_case, default_case, default_case, default_case, default_case, default_case,
@@ -196,30 +226,8 @@ namespace LFortran {
                         dest_type = temp;
                     }
                     int source_kind = 0, dest_kind = 1;
-                    switch (dest_type->type) {
-                        
-                        case ASR::ttypeType::Real : {
-                            source_kind = ((ASR::Real_t*)(&(source_type->base)))->m_kind;
-                            dest_kind = ((ASR::Real_t*)(&(dest_type->base)))->m_kind;
-                            break;
-                        } case ASR::ttypeType::RealPointer : {
-                            source_kind = ((ASR::Real_t*)(&(source_type->base)))->m_kind;
-                            dest_kind = ((ASR::RealPointer_t*)(&(dest_type->base)))->m_kind;
-                            break;
-                        } case ASR::ttypeType::Integer : {
-                            source_kind = ((ASR::Integer_t*)(&(source_type->base)))->m_kind;
-                            dest_kind = ((ASR::Integer_t*)(&(dest_type->base)))->m_kind;
-                            break;
-                        } case ASR::ttypeType::IntegerPointer : {
-                            source_kind = ((ASR::Integer_t*)(&(source_type->base)))->m_kind;
-                            dest_kind = ((ASR::IntegerPointer_t*)(&(dest_type->base)))->m_kind;
-                            break;
-                        }
-                        default : {
-                            break;
-                        }
-
-                    }
+                    source_kind = HelperMethods::extract_kind_from_ttype_t(source_type);
+                    dest_kind = HelperMethods::extract_kind_from_ttype_t(dest_type);
                     if( source_kind == dest_kind ) {
                         return ;
                     }
@@ -778,6 +786,18 @@ public:
                         );
                     std::string sym = mfn->m_name;
                     current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
+                } else if (ASR::is_a<ASR::Variable_t>(*item.second)) {
+                    ASR::Variable_t *mvar = ASR::down_cast<ASR::Variable_t>(item.second);
+                    ASR::asr_t *var = ASR::make_ExternalSymbol_t(
+                        al, mvar->base.base.loc,
+                        /* a_symtab */ current_scope,
+                        /* a_name */ mvar->m_name,
+                        (ASR::symbol_t*)mvar,
+                        m->m_name, mvar->m_name,
+                        dflt_access
+                        );
+                    std::string sym = mvar->m_name;
+                    current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(var);
                 } else {
                     throw LFortranException("Only function / subroutine implemented");
                 }
@@ -1040,7 +1060,7 @@ public:
             } else if (sym_type == "logical") {
                 type = TYPE(ASR::make_Logical_t(al, x.loc, 4, dims.p, dims.size()));
             } else if (sym_type == "complex") {
-                type = TYPE(ASR::make_Complex_t(al, x.loc, 4, dims.p, dims.size()));
+                type = TYPE(ASR::make_Complex_t(al, x.loc, a_kind, dims.p, dims.size()));
             } else if (sym_type == "character") {
                 type = TYPE(ASR::make_Character_t(al, x.loc, 4, dims.p, dims.size()));
             } else if (sym_type == "type") {
@@ -1155,7 +1175,9 @@ public:
                 case_body_vec.reserve(al, Case_Stmt->n_body);
                 for( std::uint32_t i = 0; i < Case_Stmt->n_body; i++ ) {
                     this->visit_stmt(*(Case_Stmt->m_body[i]));
-                    case_body_vec.push_back(al, STMT(tmp));
+                    if (tmp != nullptr) {
+                        case_body_vec.push_back(al, STMT(tmp));
+                    }
                 }
                 tmp = ASR::make_CaseStmt_t(al, x.base.loc, a_test_vec.p, a_test_vec.size(), 
                                      case_body_vec.p, case_body_vec.size());
@@ -1184,7 +1206,9 @@ public:
                 case_body_vec.reserve(al, Case_Stmt->n_body);
                 for( std::uint32_t i = 0; i < Case_Stmt->n_body; i++ ) {
                     this->visit_stmt(*(Case_Stmt->m_body[i]));
-                    case_body_vec.push_back(al, STMT(tmp));
+                    if (tmp != nullptr) {
+                        case_body_vec.push_back(al, STMT(tmp));
+                    }
                 }
                 tmp = ASR::make_CaseStmt_Range_t(al, x.base.loc, m_start, m_end, 
                                      case_body_vec.p, case_body_vec.size());
@@ -1214,7 +1238,9 @@ public:
         def_body.reserve(al, x.n_default);
         for( std::uint32_t i = 0; i < x.n_default; i++ ) {
             this->visit_stmt(*(x.m_default[i]));
-            def_body.push_back(al, STMT(tmp));
+            if (tmp != nullptr) {
+                def_body.push_back(al, STMT(tmp));
+            }
         }
         tmp = ASR::make_Select_t(al, x.base.base.loc, a_test, a_body_vec.p, 
                            a_body_vec.size(), def_body.p, def_body.size());
@@ -1244,8 +1270,9 @@ public:
         body.reserve(al, x.n_body);
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
-            ASR::stmt_t *stmt = STMT(tmp);
-            body.push_back(al, stmt);
+            if (tmp != nullptr) {
+                body.push_back(al, STMT(tmp));
+            }
         }
         v->m_body = body.p;
         v->n_body = body.size();
@@ -1270,8 +1297,9 @@ public:
         body.reserve(al, x.n_body);
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
-            ASR::stmt_t *stmt = STMT(tmp);
-            body.push_back(al, stmt);
+            if (tmp != nullptr) {
+                body.push_back(al, STMT(tmp));
+            }
         }
         v->m_body = body.p;
         v->n_body = body.size();
@@ -1293,8 +1321,9 @@ public:
         body.reserve(al, x.n_body);
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
-            ASR::stmt_t *stmt = STMT(tmp);
-            body.push_back(al, stmt);
+            if (tmp != nullptr) {
+                body.push_back(al, STMT(tmp));
+            }
         }
         v->m_body = body.p;
         v->n_body = body.size();
@@ -1862,12 +1891,14 @@ public:
     }
 
     void visit_Complex(const AST::Complex_t &x) {
-        ASR::ttype_t *type = TYPE(ASR::make_Complex_t(al, x.base.base.loc,
-                4, nullptr, 0));
         this->visit_expr(*x.m_re);
         ASR::expr_t *re = EXPR(tmp);
+        int a_kind_r = HelperMethods::extract_kind_from_ttype_t(expr_type(re));
         this->visit_expr(*x.m_im);
         ASR::expr_t *im = EXPR(tmp);
+        int a_kind_i = HelperMethods::extract_kind_from_ttype_t(expr_type(im));
+        ASR::ttype_t *type = TYPE(ASR::make_Complex_t(al, x.base.base.loc,
+                std::max(a_kind_r, a_kind_i), nullptr, 0)); // Extract kind here.
         tmp = ASR::make_ConstantComplex_t(al, x.base.base.loc,
                 re, im, type);
     }
@@ -1913,13 +1944,17 @@ public:
         body.reserve(al, x.n_body);
         for (size_t i=0; i<x.n_body; i++) {
             visit_stmt(*x.m_body[i]);
-            body.push_back(al, STMT(tmp));
+            if (tmp != nullptr) {
+                body.push_back(al, STMT(tmp));
+            }
         }
         Vec<ASR::stmt_t*> orelse;
         orelse.reserve(al, x.n_orelse);
         for (size_t i=0; i<x.n_orelse; i++) {
             visit_stmt(*x.m_orelse[i]);
-            orelse.push_back(al, STMT(tmp));
+            if (tmp != nullptr) {
+                orelse.push_back(al, STMT(tmp));
+            }
         }
         tmp = ASR::make_If_t(al, x.base.base.loc, test, body.p,
                 body.size(), orelse.p, orelse.size());
@@ -1932,7 +1967,9 @@ public:
         body.reserve(al, x.n_body);
         for (size_t i=0; i<x.n_body; i++) {
             visit_stmt(*x.m_body[i]);
-            body.push_back(al, STMT(tmp));
+            if (tmp != nullptr) {
+                body.push_back(al, STMT(tmp));
+            }
         }
         tmp = ASR::make_WhileLoop_t(al, x.base.base.loc, test, body.p,
                 body.size());
@@ -1968,7 +2005,9 @@ public:
         body.reserve(al, x.n_body);
         for (size_t i=0; i<x.n_body; i++) {
             visit_stmt(*x.m_body[i]);
-            body.push_back(al, STMT(tmp));
+            if (tmp != nullptr) {
+                body.push_back(al, STMT(tmp));
+            }
         }
         ASR::do_loop_head_t head;
         head.m_v = var;
@@ -2014,7 +2053,9 @@ public:
         body.reserve(al, x.n_body);
         for (size_t i=0; i<x.n_body; i++) {
             visit_stmt(*x.m_body[i]);
-            body.push_back(al, STMT(tmp));
+            if (tmp != nullptr) {
+                body.push_back(al, STMT(tmp));
+            }
         }
         ASR::do_loop_head_t head;
         head.m_v = var;
@@ -2033,6 +2074,12 @@ public:
     void visit_Cycle(const AST::Cycle_t &x) {
         // TODO: add a check here that we are inside a While loop
         tmp = ASR::make_Cycle_t(al, x.base.base.loc);
+    }
+
+    void visit_Continue(const AST::Continue_t &/*x*/) {
+        // TODO: add a check here that we are inside a While loop
+        // Nothing to generate, we return a null pointer
+        tmp = nullptr;
     }
 
     void visit_Stop(const AST::Stop_t &x) {

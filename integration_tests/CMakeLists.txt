@@ -107,6 +107,7 @@ RUN(NAME while_02 LABELS gfortran llvm cpp)
 RUN(NAME doloop_01 LABELS gfortran llvm cpp x86)
 RUN(NAME doloop_02 LABELS gfortran llvm cpp x86)
 RUN(NAME doloop_03 LABELS gfortran llvm cpp)
+RUN(NAME doloop_05 LABELS gfortran llvm cpp)
 
 RUN(NAME subroutines_01 LABELS gfortran llvm cpp x86)
 RUN(NAME subroutines_02 LABELS gfortran llvm cpp x86)
@@ -139,6 +140,8 @@ RUN(NAME reserved_01 LABELS gfortran)
 RUN(NAME reserved_02 LABELS gfortran llvm)
 RUN(NAME reserved_03 LABELS gfortran)
 
+RUN(NAME namelist_01 LABELS gfortran)
+
 RUN(NAME intrinsics_01 LABELS gfortran) # sqrt, abs, log
 RUN(NAME intrinsics_02 LABELS gfortran llvm) # sin
 RUN(NAME intrinsics_03 LABELS gfortran llvm) # cos
@@ -161,6 +164,7 @@ RUN(NAME modules_08 LABELS gfortran llvm EXTRAFILES
 RUN(NAME modules_09 LABELS gfortran llvm EXTRAFILES
         modules_09_a.f90 modules_09_b.f90)
 RUN(NAME modules_10 LABELS gfortran llvm)
+RUN(NAME modules_11 LABELS gfortran llvm)
 
 RUN(NAME if_04 LABELS gfortran x86)
 RUN(NAME case_01 LABELS gfortran llvm)
@@ -228,11 +232,13 @@ RUN(NAME const_real_dp LABELS gfortran llvm)
 RUN(NAME real_dp_param LABELS gfortran llvm)
 RUN(NAME int_dp LABELS gfortran llvm)
 RUN(NAME int_dp_param LABELS gfortran llvm)
+RUN(NAME complex_dp LABELS gfortran llvm)
+RUN(NAME bin_op_complex_dp LABELS gfortran llvm)
+RUN(NAME complex_dp_param LABELS gfortran llvm)
 
 RUN(NAME string1 LABELS gfortran llvm)
 RUN(NAME string2 LABELS gfortran llvm)
 RUN(NAME string3 LABELS gfortran llvm)
-
 
 RUN(NAME nested_01 LABELS gfortran llvm)
 RUN(NAME nested_02 LABELS gfortran llvm)
