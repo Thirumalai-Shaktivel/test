@@ -15,7 +15,7 @@ set(SRC
     pass/do_loops.cpp
     pass/global_stmts.cpp
     pass/select_case.cpp
-    pass/init_var_values.cpp
+    pass/param_to_const.cpp
 
     asr_verify.cpp
     asr_utils.cpp

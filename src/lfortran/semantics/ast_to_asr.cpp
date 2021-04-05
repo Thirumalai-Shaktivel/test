@@ -1625,7 +1625,7 @@ public:
             LFORTRAN_ASSERT(false);
         }
         tmp = ASR::make_BinOp_t(al, x.base.base.loc,
-                left, op, right, dest_type);
+                left, op, right, dest_type, nullptr);
     }
 
     void visit_StrOp(const AST::StrOp_t &x) { 

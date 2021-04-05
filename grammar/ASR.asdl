@@ -154,7 +154,7 @@ stmt
 
 expr
     = BoolOp(expr left, boolop op, expr right, ttype type)
-    | BinOp(expr left, binop op, expr right, ttype type)
+    | BinOp(expr left, binop op, expr right, ttype type, expr? value)
     | StrOp(expr left, strop op, expr right, ttype type)
     | UnaryOp(unaryop op, expr operand, ttype type)
     | Compare(expr left, cmpop op, expr right, ttype type)

@@ -3,7 +3,7 @@
 #include <lfortran/exception.h>
 #include <lfortran/asr_utils.h>
 #include <lfortran/asr_verify.h>
-#include <lfortran/pass/init_var_values.h>
+#include <lfortran/pass/param_to_const.h>
 
 
 namespace LFortran {
@@ -14,7 +14,7 @@ using ASR::is_a;
 /*
 
 This ASR pass replaces initializer expressions with evaluated values. The function
-`pass_replace_init_var_values` transforms the ASR tree in-place.
+`pass_replace_param_to_const` transforms the ASR tree in-place.
 
 Converts:
 
@@ -28,29 +28,20 @@ to:
 
 */
 
-Vec<ASR::stmt_t*> replace_initvarvalues(Allocator &al, const ASR::Variable_t &var) {
-    Vec<ASR::stmt_t*> body;
-    /*
-    std::cout << "Input:" << std::endl;
-    std::cout << pickle((ASR::asr_t&)loop);
-    std::cout << "Output:" << std::endl;
-    std::cout << pickle((ASR::asr_t&)*stmt1);
-    std::cout << pickle((ASR::asr_t&)*stmt2);
-    std::cout << "--------------" << std::endl;
-    */
-    return body;
+Vec<ASR::stmt_t*> replace_paramtoconst(Allocator &al, const ASR::Var_t &var) {
+
+    
 }
 
-class VariableVisitor : public ASR::BaseWalkVisitor<VariableVisitor>
+class VarVisitor : public ASR::BaseWalkVisitor<VarVisitor>
 {
 private:
     Allocator &al;
     Vec<ASR::stmt_t*> init_var_result;
 public:
 
-    VariableVisitor(Allocator &al) : al{al} {
+    VarVisitor(Allocator &al) : al{al} {
         init_var_result.n = 0;
-
     }
 
     void transform_stmts(ASR::stmt_t **&m_body, size_t &n_body) {
@@ -117,13 +108,57 @@ public:
         transform_stmts(xx.m_body, xx.n_body);
     }
 
-    void visit_Variable(const ASR::Variable_t &x) {
-        init_var_result = replace_initvarvalues(al, x);
+    void visit_BinOp(ASR::BinOp_t& x) {
+        this->visit_expr(*x.m_left);
+        ASR::expr_t* left = x.m_left;
+        this->visit_expr(*x.m_right);
+        ASR::expr_t* right = x.m_right;
+        ASR::exprType ltype = left->type, rtype = right->type;
+        bool is_left_const = ltype == ASR::exprType::ConstantInteger || 
+                             ltype == ASR::exprType::ConstantReal ||
+                             ltype == ASR::exprType::ConstantLogical ||
+                             ltype == ASR::exprType::ConstantComplex;
+        bool is_right_const = rtype == ASR::exprType::ConstantInteger || 
+                              rtype == ASR::exprType::ConstantReal ||
+                              rtype == ASR::exprType::ConstantLogical ||
+                              rtype == ASR::exprType::ConstantComplex;
+        if( is_left_const && is_right_const ) {
+            switch( ltype ) {
+                case ASR::exprType::ConstantInteger : {
+                    int left_val = ((ASR::ConstantInteger_t*)(&(left->base)))->m_n;
+                    int right_val = ((ASR::ConstantInteger_t*)(&(right->base)))->m_n;
+                    switch( x.m_op ) {
+                        case ASR::binopType::Add : {
+                            int res_val = left_val + right_val;
+                            ASR::ttype_t *type = TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                            4, nullptr, 0));
+                            ASR::expr_t* x_const = EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc, res_val, type));
+                            x.m_value = x_const;
+                        }
+                    }
+                }
+            }
+        }
+
     }
+
+    void visit_Var(const ASR::Var_t &x) {
+        Vec<ASR::stmt_t*> body;
+        ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(
+                    symbol_get_past_external(x.m_v));
+        if( v->m_storage == ASR::storage_typeType::Parameter ) {
+            ASR::expr_t* val = v->m_value;
+            if( val->type != ASR::exprType::ConstantInteger && 
+                val->type != ASR::exprType::ConstantReal && 
+                val->type != ASR::exprType::ConstantComplex &&
+                val->type != ASR::exprType::ConstantLogical) {
+                    this->visit_expr(*val);
+            }
+        }
 };
 
-void pass_replace_init_var_values(Allocator &al, ASR::TranslationUnit_t &unit) {
-    VariableVisitor v(al);
+void pass_replace_param_to_const(Allocator &al, ASR::TranslationUnit_t &unit) {
+    VarVisitor v(al);
     // Each call transforms only one layer of nested loops, so we call it twice
     // to transform doubly nested loops:
     v.visit_TranslationUnit(unit);
