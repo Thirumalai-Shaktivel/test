@@ -19,8 +19,6 @@ declare void @_lfortran_printf(i8*, ...)
 
 define void @__module_a_b() {
 .entry:
-  %x = alloca i32, align 4
-  store i32 6, i32* %x, align 4
   call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @3, i32 0, i32 0), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0))
   call void @__module_a_c()
   ret void

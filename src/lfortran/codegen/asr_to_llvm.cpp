@@ -896,6 +896,19 @@ public:
             x.m_abi != ASR::abiType::Interactive) {
                 return;
         }
+        // Check all variables in the symbol table, see if they match a hash
+        // for a needed global, if so set them as global.
+        for (auto &item : x.m_symtab->scope) {
+            if (is_a<ASR::Variable_t>(*item.second)) {
+                ASR::Variable_t *v = down_cast<ASR::Variable_t>(
+                        item.second);
+                uint32_t v_h = get_hash((ASR::asr_t*)v);
+                if (std::find(needed_globals.begin(), needed_globals.end(), 
+                        v_h) != needed_globals.end()) {
+                    visit_Variable(*v);
+                }
+            }
+        }
         visit_procedures(x);
         bool interactive = (x.m_abi == ASR::abiType::Interactive);
 

@@ -3,7 +3,7 @@
 #include <lfortran/exception.h>
 #include <lfortran/asr_utils.h>
 #include <lfortran/asr_verify.h>
-#include <lfortran/codegen/asr_to_llvm.h>
+#include <lfortran/pass/nested_vars.h>
 
 
 namespace LFortran {
@@ -32,8 +32,7 @@ private:
     size_t nesting_depth = 0;
     SymbolTable* parent_scope;
     SymbolTable* current_scope;
-    const ASR::Subroutine_t* parent_subroutine;
-    const ASR::Function_t* parent_function;
+
 public:
     std::vector<uint64_t> needed_globals;
 
@@ -51,7 +50,6 @@ public:
         nesting_depth++;
         if (nesting_depth == 1) {
             parent_scope = x.m_symtab;
-            parent_subroutine = &x;
             for (auto &item : parent_scope->scope) {
                 if (is_a<ASR::Subroutine_t>(*item.second)) {
                     ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(
@@ -79,7 +77,6 @@ public:
         nesting_depth++;
         if (nesting_depth == 1) {
             parent_scope = x.m_symtab;
-            parent_function = &x;
             for (auto &item : parent_scope->scope) {
                 if (is_a<ASR::Subroutine_t>(*item.second)) {
                     ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(
@@ -116,15 +113,6 @@ public:
                     current_scope->scope.end()) {
                 uint32_t h = get_hash((ASR::asr_t*)v);
                 needed_globals.push_back(h);
-                // Determine if this variable is an argument to the parent
-                // procedure
-                for (size_t i = 0; i < parent_subroutine->n_args; i++) {
-                    ASR::Variable_t *arg = ASR::down_cast<ASR::Variable_t>(
-                            ((ASR::Var_t &)*parent_subroutine->m_args[i]).m_v);
-                    if (arg->m_name == v->m_name) {
-                        bool is_arg = true;
-                    }
-                }
             }
         }
     }
