@@ -1057,11 +1057,33 @@ public:
         builder->CreateStore(value, target);
     }
 
+    bool extract_value_from_expr(const ASR::expr_t* x) {
+        bool is_value_present = false;
+        switch( x->type ) {
+            case ASR::exprType::BinOp: {
+                ASR::BinOp_t* x_binop = (ASR::BinOp_t*)(&(x->base));
+                std::cout<<x_binop->m_value<<std::endl;
+                if( x_binop->m_value != nullptr ) {
+                    is_value_present = true;
+                    std::cout<<"Inside Value Extractor"<<std::endl;
+                    this->visit_expr(*(x_binop->m_value));
+                }
+                break;
+            }
+            default:
+                break;
+        }
+        return is_value_present;
+    }
+
     inline void visit_expr_wrapper(const ASR::expr_t* x, bool load_array_ref=false) {
-        this->visit_expr(*x);
-        if( x->type == ASR::exprType::ArrayRef ) {
-            if( load_array_ref ) {
-                tmp = builder->CreateLoad(tmp);
+        bool status = extract_value_from_expr(x);
+        if( !status ) {
+            this->visit_expr(*x);
+            if( x->type == ASR::exprType::ArrayRef ) {
+                if( load_array_ref ) {
+                    tmp = builder->CreateLoad(tmp);
+                }
             }
         }
     }

@@ -103,32 +103,48 @@ public:
         transform_stmts(xx.m_body, xx.n_body);
     }
 
+    ASR::expr_t* get_value(ASR::expr_t* x) {
+        ASR::expr_t* value = nullptr;
+        switch( x->type ) {
+            case ASR::exprType::Var: {
+                ASR::Var_t* x_var = (ASR::Var_t*)(&(x->base));
+                ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(
+                    symbol_get_past_external(x_var->m_v));
+                if( v->m_storage == ASR::storage_typeType::Parameter ) {
+                    value = v->m_value;
+                }
+                break;
+            }
+            default:
+                break;
+        }
+        return value;
+    }
+
     void visit_BinOp(const ASR::BinOp_t& x) {
         this->visit_expr(*x.m_left);
         ASR::expr_t* left = x.m_left;
         this->visit_expr(*x.m_right);
         ASR::expr_t* right = x.m_right;
-        ASR::exprType ltype = left->type, rtype = right->type;
-        bool is_left_const = ltype == ASR::exprType::ConstantInteger || 
-                             ltype == ASR::exprType::ConstantReal ||
-                             ltype == ASR::exprType::ConstantLogical ||
-                             ltype == ASR::exprType::ConstantComplex;
-        bool is_right_const = rtype == ASR::exprType::ConstantInteger || 
-                              rtype == ASR::exprType::ConstantReal ||
-                              rtype == ASR::exprType::ConstantLogical ||
-                              rtype == ASR::exprType::ConstantComplex;
-        if( is_left_const && is_right_const ) {
-            switch( ltype ) {
+        ASR::expr_t *left_val, *right_val;
+        left_val = get_value(left);
+        right_val = get_value(right);
+        std::cout<<left_val<<" "<<right_val<<std::endl;
+        if( left_val && right_val ) {
+            std::cout<<left_val->type<<std::endl;
+            switch( left_val->type ) {
                 case ASR::exprType::ConstantInteger : {
-                    int left_val = ((ASR::ConstantInteger_t*)(&(left->base)))->m_n;
-                    int right_val = ((ASR::ConstantInteger_t*)(&(right->base)))->m_n;
+                    int left_val_i = ((ASR::ConstantInteger_t*)(&(left_val->base)))->m_n;
+                    int right_val_i = ((ASR::ConstantInteger_t*)(&(right_val->base)))->m_n;
+                    std::cout<<left_val_i<<" "<<right_val_i<<std::endl;
                     switch( x.m_op ) {
                         case ASR::binopType::Add : {
-                            int res_val = left_val + right_val;
+                            int res_val = left_val_i + right_val_i;
+                            std::cout<<res_val<<std::endl;
                             ASR::ttype_t *type = TYPE(ASR::make_Integer_t(al, x.base.base.loc,
                             4, nullptr, 0));
                             ASR::expr_t* x_const = EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc, res_val, type));
-                            ASR::expr_t* x_expr_ptr = x.m_value;
+                            ASR::expr_t** x_expr_ptr = &(x.m_value);
                             ASR::expr_t** addr_of_x_expr_ptr = &x_expr_ptr;
                             *addr_of_x_expr_ptr = x_const;
                             break;
@@ -143,31 +159,6 @@ public:
             }
         }
 
-    }
-
-    void visit_Var(const ASR::Var_t &x) {
-        ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(
-                    symbol_get_past_external(x.m_v));
-        if( v->m_storage == ASR::storage_typeType::Parameter ) {
-            ASR::expr_t* val = v->m_value;
-            if( val->type != ASR::exprType::ConstantInteger && 
-                val->type != ASR::exprType::ConstantReal && 
-                val->type != ASR::exprType::ConstantComplex &&
-                val->type != ASR::exprType::ConstantLogical) {
-                    this->visit_expr(*val);
-                    switch( val->type ) {
-                        case ASR::exprType::BinOp: {
-                            ASR::BinOp_t* val_bin_op = ASR::down_cast<ASR::BinOp_t>(&(val->base));
-                            if( val_bin_op->m_value != nullptr ) {
-                                v->m_value = val_bin_op->m_value;
-                            }
-                            break;
-                        };
-                        default:
-                            break;
-                    }
-            }
-        }
     }
 };
 
