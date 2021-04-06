@@ -155,8 +155,20 @@ public:
                 val->type != ASR::exprType::ConstantComplex &&
                 val->type != ASR::exprType::ConstantLogical) {
                     this->visit_expr(*val);
+                    switch( val->type ) {
+                        case ASR::exprType::BinOp: {
+                            ASR::BinOp_t* val_bin_op = ASR::down_cast<ASR::BinOp_t>(&(val->base));
+                            if( val_bin_op->m_value != nullptr ) {
+                                v->m_value = val_bin_op->m_value;
+                            }
+                            break;
+                        };
+                        default:
+                            break;
+                    }
             }
         }
+    }
 };
 
 void pass_replace_param_to_const(Allocator &al, ASR::TranslationUnit_t &unit) {
@@ -167,7 +179,5 @@ void pass_replace_param_to_const(Allocator &al, ASR::TranslationUnit_t &unit) {
     v.visit_TranslationUnit(unit);
     LFORTRAN_ASSERT(asr_verify(unit));
 }
-
-};
 
 } // namespace LFortran
