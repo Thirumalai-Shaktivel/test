@@ -144,8 +144,7 @@ public:
                             ASR::ttype_t *type = TYPE(ASR::make_Integer_t(al, x.base.base.loc,
                             4, nullptr, 0));
                             ASR::expr_t* x_const = EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc, res_val, type));
-                            ASR::expr_t** x_expr_ptr = &(x.m_value);
-                            ASR::expr_t** addr_of_x_expr_ptr = &x_expr_ptr;
+                            ASR::expr_t** addr_of_x_expr_ptr = &(x.m_value);
                             *addr_of_x_expr_ptr = x_const;
                             break;
                         }
