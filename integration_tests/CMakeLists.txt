@@ -126,7 +126,7 @@ RUN(NAME types_06 LABELS gfortran llvm cpp)
 # GFortran + LFortran C++
 RUN(NAME doconcurrentloop_01 LABELS gfortran cpp)
 
-RUN(NAME arrays_01 LABELS gfortran cpp)
+RUN(NAME arrays_01 LABELS gfortran cpp llvm)
 RUN(NAME arrays_03 LABELS gfortran cpp)
 RUN(NAME arrays_04 LABELS gfortran cpp)
 RUN(NAME arrays_05 LABELS gfortran cpp)
@@ -208,6 +208,9 @@ RUN(NAME logical3 LABELS gfortran llvm)
 RUN(NAME logical4 LABELS gfortran llvm)
 
 RUN(NAME doloop_04 LABELS gfortran)
+
+# `reduce` is not supported by GFortran yet:
+# RUN(NAME doconcurrentloop_02 LABELS gfortran)
 
 RUN(NAME derived_types_01 LABELS gfortran)
 RUN(NAME derived_types_02 LABELS gfortran)
