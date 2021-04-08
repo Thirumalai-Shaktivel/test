@@ -69,7 +69,7 @@ Vec<ASR::stmt_t*> replace_doloop(Allocator &al, const ASR::DoLoop_t &loop) {
 
     ASR::expr_t *cond = EXPR(ASR::make_Compare_t(al, loc,
         EXPR(ASR::make_BinOp_t(al, loc, target, ASR::binopType::Add, c, type, nullptr)),
-        cmp_op, b, type));
+        cmp_op, b, type, nullptr));
     Vec<ASR::stmt_t*> body;
     body.reserve(al, loop.n_body+1);
     body.push_back(al, STMT(ASR::make_Assignment_t(al, loc, target,

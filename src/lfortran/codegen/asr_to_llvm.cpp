@@ -1058,20 +1058,21 @@ public:
     }
 
     bool extract_value_from_expr(const ASR::expr_t* x) {
-        bool is_value_present = false;
+        ASR::expr_t* x_value = nullptr;
         switch( x->type ) {
             case ASR::exprType::BinOp: {
                 ASR::BinOp_t* x_binop = (ASR::BinOp_t*)(&(x->base));
-                std::cout<<x_binop->m_value<<std::endl;
-                if( x_binop->m_value != nullptr ) {
-                    is_value_present = true;
-                    std::cout<<"Inside Value Extractor"<<std::endl;
-                    this->visit_expr(*(x_binop->m_value));
-                }
+                x_value = x_binop->m_value;
                 break;
             }
             default:
+                x_value = nullptr;
                 break;
+        }
+        bool is_value_present = false;
+        if( x_value != nullptr ) {
+            is_value_present = true;
+            this->visit_expr(*(x_value));
         }
         return is_value_present;
     }
