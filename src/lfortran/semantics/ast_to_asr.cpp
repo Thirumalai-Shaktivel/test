@@ -625,6 +625,54 @@ public:
         }
     }
 
+    void visit_BinOp(const AST::BinOp_t &x) {
+        this->visit_expr(*x.m_left);
+        ASR::expr_t *left = EXPR(asr);
+        this->visit_expr(*x.m_right);
+        ASR::expr_t *right = EXPR(asr);
+        ASR::binopType op;
+        switch (x.m_op) {
+            case (AST::Add) :
+                op = ASR::Add;
+                break;
+            case (AST::Sub) :
+                op = ASR::Sub;
+                break;
+            case (AST::Mul) :
+                op = ASR::Mul;
+                break;
+            case (AST::Div) :
+                op = ASR::Div;
+                break;
+            case (AST::Pow) :
+                op = ASR::Pow;
+                break;
+            // Fix compiler warning:
+            default : { LFORTRAN_ASSERT(false); op = ASR::binopType::Pow; }
+        }
+
+        // Cast LHS or RHS if necessary
+        ASR::ttype_t *left_type = expr_type(left);
+        ASR::ttype_t *right_type = expr_type(right);
+        ASR::expr_t **conversion_cand = &left;
+        ASR::ttype_t *source_type = left_type;
+        ASR::ttype_t *dest_type = right_type;
+
+        ImplicitCastRules::find_conversion_candidate(
+            &left, &right, left_type, right_type, 
+            conversion_cand, &source_type, &dest_type);
+        ImplicitCastRules::set_converted_value(
+            al, x.base.base.loc, conversion_cand,
+            source_type, dest_type);
+
+        bool res = HelperMethods::check_equal_type(expr_type(left), expr_type(right));
+        if( !res ) {
+            LFORTRAN_ASSERT(false);
+        }
+        asr = ASR::make_BinOp_t(al, x.base.base.loc,
+                left, op, right, dest_type);
+    }
+
     void visit_Declaration(const AST::Declaration_t &x) {
         if (x.m_vartype == nullptr &&
                 x.n_attributes == 1 &&
