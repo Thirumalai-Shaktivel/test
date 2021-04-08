@@ -814,6 +814,18 @@ public:
                     llvm::AllocaInst *ptr = builder->CreateAlloca(type, nullptr, v->m_name);
                     llvm_symtab[h] = ptr;
                     fill_array_details(ptr, m_dims, n_dims);
+                }
+            }
+        }
+
+        for (auto &item : x.m_symtab->scope) {
+            if (is_a<ASR::Variable_t>(*item.second)) {
+                ASR::Variable_t *v = down_cast<ASR::Variable_t>(item.second);
+                uint32_t h = get_hash((ASR::asr_t*)v);
+                if (v->m_intent == intent_local || 
+                    v->m_intent == intent_return_var || 
+                    !v->m_intent) { 
+                    llvm::Value* ptr = llvm_symtab[h];
                     if( v->m_value != nullptr ) {
                         llvm::Value *target_var = ptr;
                         this->visit_expr_wrapper(v->m_value, true);
