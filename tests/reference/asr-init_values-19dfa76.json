@@ -2,11 +2,11 @@
     "basename": "asr-init_values-19dfa76",
     "cmd": "lfortran --show-asr --no-color {infile} -o {outfile}",
     "infile": "tests/../integration_tests/init_values.f90",
-    "infile_hash": "db9094b525977cfbda11b67b8d05ba8953b83ad061e85fc0d3900ccc",
+    "infile_hash": "64d41fa6a568c14d7b0aebe24cb42d322473d40b36ad6efce27bc1df",
     "outfile": null,
     "outfile_hash": null,
     "stdout": "asr-init_values-19dfa76.stdout",
-    "stdout_hash": "95145f4691e6dafea171631fd0ec0d83fb6fb29a0545f4e6aa11cfc9",
+    "stdout_hash": "d0ee790f0899ec5d8f53e3876a9c047a9628ad05563a9a7c3bea77f1",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0
