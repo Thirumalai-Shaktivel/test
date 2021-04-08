@@ -637,8 +637,8 @@ public:
         // (global variable declared/initialized in this translation unit), or
         // external (global variable not declared/initialized in this
         // translation unit, just referenced).
-        LFORTRAN_ASSERT(x.m_intent == intent_local
-            || x.m_abi == ASR::abiType::Interactive);
+        LFORTRAN_ASSERT(x.m_intent == intent_local || x.m_intent ==
+                intent_inout || x.m_abi == ASR::abiType::Interactive);
         bool external = (x.m_abi != ASR::abiType::Source);
         llvm::Constant* init_value = nullptr;
         if (x.m_value != nullptr){
