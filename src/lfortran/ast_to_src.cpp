@@ -1245,8 +1245,10 @@ public:
         s = r;
     }
 
-    void visit_Continue(const Continue_t &/*x*/) {
+    void visit_Continue(const Continue_t &x) {
         std::string r = indent;
+        r += std::to_string(x.m_label);
+        r += " ";
         r += syn(gr::Keyword);
         r.append("continue");
         r += syn();
@@ -1972,7 +1974,7 @@ public:
         if (x.m_end) {
             this->visit_expr(*x.m_end);
             r += s;
-        } 
+        }
         r += ")\n";
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {

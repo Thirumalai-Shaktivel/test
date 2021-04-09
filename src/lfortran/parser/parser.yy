@@ -5,7 +5,7 @@
 %locations
 %glr-parser
 %expect    467 // shift/reduce conflicts
-%expect-rr 81  // reduce/reduce conflicts
+%expect-rr 78  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
 //%define parse.error verbose
@@ -1355,7 +1355,7 @@ cycle_statement
     ;
 
 continue_statement
-    : KW_CONTINUE { $$ = CONTINUE(@$); }
+    : TK_INTEGER KW_CONTINUE { $$ = CONTINUE($1, @$); }
     ;
 
 stop_statement
