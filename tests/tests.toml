@@ -911,3 +911,9 @@ filename = "../integration_tests/modules_11.f90"
 ast = true
 asr = true
 llvm = true
+
+[[test]]
+filename = "../integration_tests/intent_01.f90"
+ast = true
+asr = true
+llvm = true
