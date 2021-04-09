@@ -38,7 +38,7 @@ bool lex_dec(const unsigned char *s, const unsigned char *e, unsigned long &u)
 }
 
 #define KW(x) token(yylval.string); RET(KW_##x);
-#define RET(x) token_loc(loc); return yytokentype::x;
+#define RET(x) token_loc(loc); last_token=yytokentype::x; return yytokentype::x;
 
 int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
 {
@@ -238,6 +238,7 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             // Tokens
             newline {
                     token_loc(loc); line_num++; cur_line=cur;
+                    last_token = yytokentype::TK_NEWLINE;
                     return yytokentype::TK_NEWLINE;
             }
 
