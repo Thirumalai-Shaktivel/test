@@ -70,6 +70,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token <string> TK_NAME
 %token <string> TK_DEF_OP
 %token <n> TK_INTEGER
+%token <n> TK_LABEL
 %token <string> TK_REAL
 %token <string> TK_BOZ_CONSTANT
 

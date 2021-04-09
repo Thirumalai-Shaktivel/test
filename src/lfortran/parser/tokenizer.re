@@ -315,7 +315,11 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             integer {
                 if (lex_dec(tok, cur, u)) {
                     yylval.n = u;
-                    RET(TK_INTEGER)
+                    if (last_token == yytokentype::TK_NEWLINE) {
+                        RET(TK_LABEL)
+                    } else {
+                        RET(TK_INTEGER)
+                    }
                 } else {
                     token_loc(loc);
                     std::string t = token();
