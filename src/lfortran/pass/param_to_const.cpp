@@ -24,7 +24,7 @@ Converts:
 to:
 
     integer, parameter :: i = 20
-    integer :: a = 420
+    integer :: a = 20**2 + 20
 
 */
 
@@ -67,6 +67,12 @@ public:
         // FIXME: this is a hack, we need to pass in a non-const `x`,
         // which requires to generate a TransformVisitor.
         ASR::Program_t &xx = const_cast<ASR::Program_t&>(x);
+        for (auto &item : x.m_symtab->scope) {
+            if (is_a<ASR::Variable_t>(*item.second)) {
+                ASR::Variable_t *v = down_cast<ASR::Variable_t>(item.second);
+                visit_Variable(*v);
+            }
+        }
         transform_stmts(xx.m_body, xx.n_body);
 
         // Transform nested functions and subroutines
@@ -103,80 +109,31 @@ public:
         transform_stmts(xx.m_body, xx.n_body);
     }
 
-    ASR::expr_t* get_value(ASR::expr_t* x) {
-        ASR::expr_t* value = nullptr;
-        switch( x->type ) {
+    void visit_Variable(const ASR::Variable_t& x) {
+        ASR::expr_t*& init_expr = const_cast<ASR::expr_t*&>(x.m_value); 
+        switch( init_expr->type ) {
             case ASR::exprType::Var: {
-                ASR::Var_t* x_var = (ASR::Var_t*)(&(x->base));
-                ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(
-                    symbol_get_past_external(x_var->m_v));
-                if( v->m_storage == ASR::storage_typeType::Parameter ) {
-                    value = v->m_value;
-                }
-                break;
-            }
-            case ASR::exprType::ImplicitCast: {
-                ASR::ImplicitCast_t* x_implicitcast = (ASR::ImplicitCast_t*)(&(x->base));
-                if( x_implicitcast->m_value != nullptr ) {
-                    value = x_implicitcast->m_value;
+                ASR::Var_t* _init_var = (ASR::Var_t*)(&(init_expr->base));
+                ASR::Variable_t *init_var = ASR::down_cast<ASR::Variable_t>(symbol_get_past_external(_init_var->m_v));
+                if( init_var->m_storage == ASR::storage_typeType::Parameter ) {
+                    switch( init_var->m_value->type ) {
+                        case ASR::exprType::ConstantInteger: 
+                        case ASR::exprType::ConstantReal:
+                        case ASR::exprType::ConstantComplex:
+                        case ASR::exprType::ConstantLogical: {
+                            init_expr = init_var->m_value;
+                            break;
+                        }
+                        default: {
+                            this->visit_expr(*(init_var->m_value));
+                            init_expr = init_var->m_value;
+                        }
+                    }
                 }
                 break;
             }
             default:
                 break;
-        }
-        return value;
-    }
-
-    void visit_ImplicitCast(const ASR::ImplicitCast_t& x) {
-        this->visit_expr(*x.m_arg);
-        ASR::expr_t* arg = x.m_arg;
-        ASR::expr_t* value = get_value(arg);
-        double val;
-        if( value ) {
-            switch( value->type ) {
-                case ASR::exprType::ConstantInteger: {
-                    val = ((ASR::ConstantInteger_t*)(&(value->base)))->m_n;
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-        }
-    }
-
-    void visit_BinOp(const ASR::BinOp_t& x) {
-        this->visit_expr(*x.m_left);
-        ASR::expr_t* left = x.m_left;
-        this->visit_expr(*x.m_right);
-        ASR::expr_t* right = x.m_right;
-        ASR::expr_t *left_val, *right_val;
-        left_val = get_value(left);
-        right_val = get_value(right);
-        if( left_val && right_val ) {
-            switch( left_val->type ) {
-                case ASR::exprType::ConstantInteger : {
-                    int left_val_i = ((ASR::ConstantInteger_t*)(&(left_val->base)))->m_n;
-                    int right_val_i = ((ASR::ConstantInteger_t*)(&(right_val->base)))->m_n;
-                    switch( x.m_op ) {
-                        case ASR::binopType::Add : {
-                            int res_val = left_val_i + right_val_i;
-                            ASR::ttype_t *type = TYPE(ASR::make_Integer_t(al, x.base.base.loc,
-                            4, nullptr, 0));
-                            ASR::expr_t* x_const = EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc, res_val, type));
-                            ASR::expr_t** addr_of_x_expr_ptr = &(const_cast<ASR::BinOp_t&>(x).m_value);
-                            *addr_of_x_expr_ptr = x_const;
-                            break;
-                        }
-                        default:
-                            break;
-                    }
-                    break;
-                }
-                default:
-                    break;
-            }
         }
     }
 };
