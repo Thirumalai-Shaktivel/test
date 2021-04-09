@@ -2,11 +2,11 @@
     "basename": "ast-goto1-351a671",
     "cmd": "lfortran --show-ast --no-color {infile} -o {outfile}",
     "infile": "tests/goto1.f90",
-    "infile_hash": "e1221ab4663b32e74e14e05b39ca76fa0ae7bed0f77a15ee1d311291",
+    "infile_hash": "457baf72a0f940796d4cf41659b65ae32af5435cd9e72a136ebcbd74",
     "outfile": null,
     "outfile_hash": null,
     "stdout": "ast-goto1-351a671.stdout",
-    "stdout_hash": "50234fefd12d7ffe4a66dfd751c1034722fe9405b6bc38d623ba18db",
+    "stdout_hash": "1743e171a22b9b697d3fe573c1b9c923e5c904d8ffa11dccbbfbbe3f",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0

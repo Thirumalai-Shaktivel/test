@@ -1,5 +1,5 @@
 program goto1
-!1 print *, "OK"
-print *, "OK"
+integer a
+1 a = 5
 go to 1
 end program

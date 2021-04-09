@@ -1,1 +1,1 @@
-(TranslationUnit [(Program goto1 [] [] [(Print 0 () [(Str "OK")]) (GoTo 0 1)] [])])
+(TranslationUnit [(Program goto1 [] [(Declaration (AttrType TypeInteger [] ()) [] [(a [] ())])] [(= 1 a 5) (GoTo 0 1)] [])])
