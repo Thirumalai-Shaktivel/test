@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    467 // shift/reduce conflicts
+%expect    474 // shift/reduce conflicts
 %expect-rr 81  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -1000,6 +1000,7 @@ multi_line_statement0
 
 assignment_statement
     : expr "=" expr { $$ = ASSIGNMENT($1, $3, @$); }
+    | TK_INTEGER expr "=" expr { $$ = ASSIGNMENT2($1, $2, $4, @$); }
     ;
 
 goto_statement
