@@ -966,17 +966,17 @@ char *str_or_null(Allocator &al, const LFortran::Str &s) {
         /*n_body*/ body.size())
 
 #define DO1(body, l) make_DoLoop_t(p.m_a, l, \
-        nullptr, nullptr, nullptr, nullptr, \
+        nullptr,nullptr, nullptr, nullptr, nullptr, \
         /*body*/ STMTS(body), \
         /*n_body*/ body.size())
 
-#define DO2(i, a, b, body, l) make_DoLoop_t(p.m_a, l, \
-        name2char(i), EXPR(a), EXPR(b), nullptr, \
+#define DO2(lable, i, a, b, body, l) make_DoLoop_t(p.m_a, l, \
+        name2char(lable), name2char(i), EXPR(a), EXPR(b), nullptr, \
         /*body*/ STMTS(body), \
         /*n_body*/ body.size())
 
 #define DO3(i, a, b, c, body, l) make_DoLoop_t(p.m_a, l, \
-        name2char(i), EXPR(a), EXPR(b), EXPR(c), \
+        nullptr, name2char(i), EXPR(a), EXPR(b), EXPR(c), \
         /*body*/ STMTS(body), \
         /*n_body*/ body.size())
 

@@ -1056,6 +1056,10 @@ public:
 
     void visit_DoLoop(const DoLoop_t &x) {
         std::string r = indent;
+        if (x.m_lable) {
+            r.append(x.m_lable);
+            r.append(": ");
+        }
         r += syn(gr::Repeat);
         r += "do";
         r += syn();

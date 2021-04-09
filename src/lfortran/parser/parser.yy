@@ -4,8 +4,8 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    467 // shift/reduce conflicts
-%expect-rr 78  // reduce/reduce conflicts
+%expect    517 // shift/reduce conflicts
+%expect-rr 100  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
 //%define parse.error verbose
@@ -264,6 +264,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <vec_ast> expr_list
 %type <vec_ast> expr_list_opt
 %type <ast> id
+%type <ast> id_opt
 %type <vec_ast> id_list
 %type <vec_ast> id_list_opt
 %type <ast> script_unit
@@ -1211,8 +1212,8 @@ while_statement
 do_statement
     : KW_DO sep statements enddo {
             $$ = DO1($3, @$); }
-    | KW_DO id "=" expr "," expr sep statements enddo {
-            $$ = DO2($2, $4, $6, $8, @$); }
+    | id_opt KW_DO id "=" expr "," expr sep statements enddo{
+            $$ = DO2($1, $3, $5, $7, $9, @$); }
     | KW_DO id "=" expr "," expr "," expr sep statements enddo {
             $$ = DO3($2, $4, $6, $8, $10, @$); }
     | KW_DO KW_CONCURRENT "(" concurrent_control_list ")"
@@ -1486,8 +1487,8 @@ id_list
 
 // id?
 id_opt
-    : id
-    | %empty
+    : id { $$ = $1; }
+    | %empty { $$ = nullptr; }
     ;
 
 
