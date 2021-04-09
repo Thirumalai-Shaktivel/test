@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    475 // shift/reduce conflicts
+%expect    473 // shift/reduce conflicts
 %expect-rr 81  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -1386,9 +1386,9 @@ inout
 
 enddo
     : KW_END_DO
-    | TK_INTEGER KW_END_DO
+    | TK_LABEL KW_END_DO
     | KW_ENDDO
-    | TK_INTEGER KW_ENDDO
+    | TK_LABEL KW_ENDDO
     ;
 
 endforall

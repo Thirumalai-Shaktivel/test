@@ -312,7 +312,7 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
 
 
             real { token(yylval.string); RET(TK_REAL) }
-            integer {
+            integer / whitespace {
                 if (lex_dec(tok, cur, u)) {
                     yylval.n = u;
                     if (last_token == yytokentype::TK_NEWLINE) {
@@ -320,6 +320,17 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
                     } else {
                         RET(TK_INTEGER)
                     }
+                } else {
+                    token_loc(loc);
+                    std::string t = token();
+                    throw LFortran::TokenizerError("Integer too large",
+                        loc, t);
+                }
+            }
+            integer {
+                if (lex_dec(tok, cur, u)) {
+                    yylval.n = u;
+                    RET(TK_INTEGER)
                 } else {
                     token_loc(loc);
                     std::string t = token();
