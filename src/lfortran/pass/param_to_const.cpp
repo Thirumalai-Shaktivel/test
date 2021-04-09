@@ -32,10 +32,11 @@ class VarVisitor : public ASR::BaseWalkVisitor<VarVisitor>
 {
 private:
     Allocator &al;
+    ASR::expr_t* asr;
 
 public:
 
-    VarVisitor(Allocator &al) : al{al} {
+    VarVisitor(Allocator &al) : al{al}, asr{nullptr} {
     }
 
     // TODO: Only Program and While is processed, we need to process all calls
@@ -52,31 +53,55 @@ public:
         }
     }
 
-    void visit_Variable(const ASR::Variable_t& x) {
-        ASR::expr_t*& init_expr = const_cast<ASR::expr_t*&>(x.m_value); 
-        switch( init_expr->type ) {
-            case ASR::exprType::Var: {
-                ASR::Var_t* _init_var = (ASR::Var_t*)(&(init_expr->base));
-                ASR::Variable_t *init_var = ASR::down_cast<ASR::Variable_t>(symbol_get_past_external(_init_var->m_v));
-                if( init_var->m_storage == ASR::storage_typeType::Parameter ) {
-                    switch( init_var->m_value->type ) {
-                        case ASR::exprType::ConstantInteger: 
-                        case ASR::exprType::ConstantReal:
-                        case ASR::exprType::ConstantComplex:
-                        case ASR::exprType::ConstantLogical: {
-                            init_expr = init_var->m_value;
-                            break;
-                        }
-                        default: {
-                            this->visit_expr(*(init_var->m_value));
-                            init_expr = init_var->m_value;
-                        }
-                    }
+    void visit_BinOp(const ASR::BinOp_t& x) {
+        ASR::BinOp_t& x_unconst = const_cast<ASR::BinOp_t&>(x);
+        asr = nullptr;
+        this->visit_expr(*x.m_left);
+        if( asr != nullptr ) {
+            x_unconst.m_left = asr;
+        }
+        asr = nullptr;
+        this->visit_expr(*x.m_right);
+        if( asr != nullptr ) {
+            x_unconst.m_right = asr;
+        }
+        asr = const_cast<ASR::expr_t*>(&(x.base));
+    }
+
+    void visit_ImplicitCast(const ASR::ImplicitCast_t& x) {
+        asr = nullptr;
+        this->visit_expr(*x.m_arg);
+        ASR::ImplicitCast_t& x_unconst = const_cast<ASR::ImplicitCast_t&>(x);
+        if( asr != nullptr ) {
+            x_unconst.m_arg = asr;
+        }
+        asr = const_cast<ASR::expr_t*>(&(x.base));
+    }
+
+    void visit_Var(const ASR::Var_t& x) {
+        ASR::Variable_t *init_var = ASR::down_cast<ASR::Variable_t>(symbol_get_past_external(x.m_v));
+        if( init_var->m_storage == ASR::storage_typeType::Parameter ) {
+            switch( init_var->m_value->type ) {
+                case ASR::exprType::ConstantInteger: 
+                case ASR::exprType::ConstantReal:
+                case ASR::exprType::ConstantComplex:
+                case ASR::exprType::ConstantLogical: {
+                    asr = init_var->m_value;
+                    break;
                 }
-                break;
+                default: {
+                    this->visit_expr(*(init_var->m_value));
+                }
             }
-            default:
-                break;
+        }
+    }
+
+    void visit_Variable(const ASR::Variable_t& x) {
+        ASR::Variable_t& x_unconst = const_cast<ASR::Variable_t&>(x);
+        visit_expr(*(x.m_value));
+        if( asr != nullptr ) {
+            x_unconst.m_value = asr;
+            asr = nullptr;
         }
     }
 };
