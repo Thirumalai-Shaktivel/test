@@ -153,11 +153,11 @@ stmt
     | Print(string? fmt, expr* values)
 
 expr
-    = BoolOp(expr left, boolop op, expr right, ttype type, expr? value)
-    | BinOp(expr left, binop op, expr right, ttype type, expr? value)
-    | StrOp(expr left, strop op, expr right, ttype type, expr? value)
-    | UnaryOp(unaryop op, expr operand, ttype type, expr? value)
-    | Compare(expr left, cmpop op, expr right, ttype type, expr? value)
+    = BoolOp(expr left, boolop op, expr right, ttype type)
+    | BinOp(expr left, binop op, expr right, ttype type)
+    | StrOp(expr left, strop op, expr right, ttype type)
+    | UnaryOp(unaryop op, expr operand, ttype type)
+    | Compare(expr left, cmpop op, expr right, ttype type)
     | FunctionCall(symbol name, symbol? original_name, expr* args,
             keyword* keywords, ttype type)
     | ArrayInitializer(expr* args, ttype type)
@@ -168,8 +168,8 @@ expr
     | Str(string s, ttype type)
     | Var(symbol v)
     | ArrayRef(symbol v, array_index* args, ttype type)
-    | ImplicitCast(expr arg, cast_kind kind, ttype type, expr? value)
-    | ExplicitCast(expr arg, cast_kind kind, ttype type, expr? value)
+    | ImplicitCast(expr arg, cast_kind kind, ttype type)
+    | ExplicitCast(expr arg, cast_kind kind, ttype type)
 
 ttype
     = Integer(int kind, dimension* dims)

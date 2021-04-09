@@ -245,7 +245,7 @@ namespace LFortran {
                 {
                     *convert_can = (ASR::expr_t*) ASR::make_ImplicitCast_t(
                         al, a_loc, *convert_can, (ASR::cast_kindType) cast_kind, 
-                        dest_type, nullptr
+                        dest_type
                     );
                 }
             }
@@ -1530,7 +1530,7 @@ public:
             }
         }
         tmp = ASR::make_Compare_t(al, x.base.base.loc,
-            left, asr_op, right, type, nullptr);
+            left, asr_op, right, type);
     }
 
     void visit_BoolOp(const AST::BoolOp_t &x) {
@@ -1577,7 +1577,7 @@ public:
             LFORTRAN_ASSERT(false);
         }
         tmp = ASR::make_BoolOp_t(al, x.base.base.loc,
-                left, op, right, dest_type, nullptr);
+                left, op, right, dest_type);
     }
 
     void visit_BinOp(const AST::BinOp_t &x) {
@@ -1625,7 +1625,7 @@ public:
             LFORTRAN_ASSERT(false);
         }
         tmp = ASR::make_BinOp_t(al, x.base.base.loc,
-                left, op, right, dest_type, nullptr);
+                left, op, right, dest_type);
     }
 
     void visit_StrOp(const AST::StrOp_t &x) { 
@@ -1642,7 +1642,7 @@ public:
         ASR::ttype_t *dest_type = right_type;
         // TODO: Type check here?
         tmp = ASR::make_StrOp_t(al, x.base.base.loc,
-                left, op, right, dest_type, nullptr);
+                left, op, right, dest_type);
     }
 
     void visit_UnaryOp(const AST::UnaryOp_t &x) {
@@ -1667,7 +1667,7 @@ public:
         }
         ASR::ttype_t *operand_type = expr_type(operand);
         tmp = ASR::make_UnaryOp_t(al, x.base.base.loc,
-                op, operand, operand_type, nullptr);
+                op, operand, operand_type);
     }
 
     ASR::asr_t* resolve_variable(const Location &loc, const char* id) {

@@ -1057,34 +1057,11 @@ public:
         builder->CreateStore(value, target);
     }
 
-    bool extract_value_from_expr(const ASR::expr_t* x) {
-        ASR::expr_t* x_value = nullptr;
-        switch( x->type ) {
-            case ASR::exprType::BinOp: {
-                ASR::BinOp_t* x_binop = (ASR::BinOp_t*)(&(x->base));
-                x_value = x_binop->m_value;
-                break;
-            }
-            default:
-                x_value = nullptr;
-                break;
-        }
-        bool is_value_present = false;
-        if( x_value != nullptr ) {
-            is_value_present = true;
-            this->visit_expr(*(x_value));
-        }
-        return is_value_present;
-    }
-
     inline void visit_expr_wrapper(const ASR::expr_t* x, bool load_array_ref=false) {
-        bool status = extract_value_from_expr(x);
-        if( !status ) {
-            this->visit_expr(*x);
-            if( x->type == ASR::exprType::ArrayRef ) {
-                if( load_array_ref ) {
-                    tmp = builder->CreateLoad(tmp);
-                }
+        this->visit_expr(*x);
+        if( x->type == ASR::exprType::ArrayRef ) {
+            if( load_array_ref ) {
+                tmp = builder->CreateLoad(tmp);
             }
         }
     }
