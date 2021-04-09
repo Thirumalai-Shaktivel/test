@@ -92,7 +92,7 @@ stmt
     | Where(expr test, stmt* body, stmt* orelse)
     | Stop(expr? code)
     | ErrorStop(expr? code)
-    | DoLoop(identifier? lable, identifier? var, expr? start, expr? end, expr? increment,
+    | DoLoop(int label, identifier? var, expr? start, expr? end, expr? increment,
             stmt* body)
     | DoConcurrentLoop(concurrent_control *control, expr? mask,
         concurrent_locality* locality, stmt* body)

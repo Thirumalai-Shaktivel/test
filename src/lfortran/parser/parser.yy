@@ -4,8 +4,8 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    517 // shift/reduce conflicts
-%expect-rr 100  // reduce/reduce conflicts
+%expect    601 // shift/reduce conflicts
+%expect-rr 78  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
 //%define parse.error verbose
@@ -1212,8 +1212,8 @@ while_statement
 do_statement
     : KW_DO sep statements enddo {
             $$ = DO1($3, @$); }
-    | id_opt KW_DO id "=" expr "," expr sep statements enddo{
-            $$ = DO2($1, $3, $5, $7, $9, @$); }
+    | TK_INTEGER id_opt ":" KW_DO id "=" expr "," expr sep statements enddo id_opt {
+            $$ = DO2($1, $5, $7, $9, $11, @$); }
     | KW_DO id "=" expr "," expr "," expr sep statements enddo {
             $$ = DO3($2, $4, $6, $8, $10, @$); }
     | KW_DO KW_CONCURRENT "(" concurrent_control_list ")"

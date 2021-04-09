@@ -813,7 +813,7 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
 #define EXIT(l) make_Exit_t(p.m_a, l)
 #define RETURN(l) make_Return_t(p.m_a, l)
 #define CYCLE(l) make_Cycle_t(p.m_a, l)
-#define CONTINUE(lable, l) make_Continue_t(p.m_a, l, lable)
+#define CONTINUE(label, l) make_Continue_t(p.m_a, l, label)
 #define SUBROUTINE(name, args, bind, use, import, decl, stmts, contains, l) \
     make_Subroutine_t(p.m_a, l, \
         /*name*/ name2char(name), \
@@ -966,17 +966,17 @@ char *str_or_null(Allocator &al, const LFortran::Str &s) {
         /*n_body*/ body.size())
 
 #define DO1(body, l) make_DoLoop_t(p.m_a, l, \
-        nullptr,nullptr, nullptr, nullptr, nullptr, \
+        0,nullptr, nullptr, nullptr, nullptr, \
         /*body*/ STMTS(body), \
         /*n_body*/ body.size())
 
-#define DO2(lable, i, a, b, body, l) make_DoLoop_t(p.m_a, l, \
-        name2char(lable), name2char(i), EXPR(a), EXPR(b), nullptr, \
+#define DO2(label, i, a, b, body, l) make_DoLoop_t(p.m_a, l, \
+        label, name2char(i), EXPR(a), EXPR(b), nullptr, \
         /*body*/ STMTS(body), \
         /*n_body*/ body.size())
 
 #define DO3(i, a, b, c, body, l) make_DoLoop_t(p.m_a, l, \
-        nullptr, name2char(i), EXPR(a), EXPR(b), EXPR(c), \
+        0, name2char(i), EXPR(a), EXPR(b), EXPR(c), \
         /*body*/ STMTS(body), \
         /*n_body*/ body.size())
 
