@@ -13,8 +13,8 @@ define i32 @main() {
   %p1 = alloca i32*, align 8
   %p2 = alloca double*, align 8
   %t1 = alloca i32, align 4
-  store i32 2, i32* %t1, align 4
   %t2 = alloca double, align 8
+  store i32 2, i32* %t1, align 4
   store double 2.000000e+00, double* %t2, align 8
   store i32* %t1, i32** %p1, align 8
   store double* %t2, double** %p2, align 8

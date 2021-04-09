@@ -3,39 +3,59 @@ source_filename = "LFortran"
 
 %complex_4 = type { float, float }
 
-@0 = private unnamed_addr constant [15 x i8] c"%d %f (%f,%f)\0A\00", align 1
+@0 = private unnamed_addr constant [21 x i8] c"%d %d %f (%f,%f) %d\0A\00", align 1
 
 define i32 @main() {
 .entry:
+  %a = alloca i32, align 4
   %c = alloca %complex_4, align 8
-  %0 = alloca %complex_4, align 8
-  %1 = getelementptr %complex_4, %complex_4* %0, i32 0, i32 0
-  %2 = getelementptr %complex_4, %complex_4* %0, i32 0, i32 1
-  store float 3.000000e+00, float* %1, align 4
-  store float 4.000000e+00, float* %2, align 4
-  %3 = load %complex_4, %complex_4* %0, align 4
-  store %complex_4 %3, %complex_4* %c, align 4
   %i = alloca i32, align 4
-  store i32 1, i32* %i, align 4
+  %j = alloca i32, align 4
   %r = alloca float, align 4
+  store i32 1, i32* %i, align 4
+  %0 = load i32, i32* %i, align 4
+  %1 = sitofp i32 %0 to float
+  %2 = call float @llvm.pow.f32(float %1, float 2.000000e+00)
+  %3 = fptosi float %2 to i32
+  store i32 2, i32* %j, align 4
+  %4 = load i32, i32* %j, align 4
+  %5 = sitofp i32 %4 to float
+  %6 = call float @llvm.pow.f32(float %5, float 2.000000e+00)
+  %7 = fptosi float %6 to i32
+  %8 = add i32 %3, %7
+  store i32 %8, i32* %a, align 4
+  %9 = alloca %complex_4, align 8
+  %10 = getelementptr %complex_4, %complex_4* %9, i32 0, i32 0
+  %11 = getelementptr %complex_4, %complex_4* %9, i32 0, i32 1
+  store float 3.000000e+00, float* %10, align 4
+  store float 4.000000e+00, float* %11, align 4
+  %12 = load %complex_4, %complex_4* %9, align 4
+  store %complex_4 %12, %complex_4* %c, align 4
   store float 4.000000e+00, float* %r, align 4
-  %4 = load i32, i32* %i, align 4
-  %5 = load float, float* %r, align 4
-  %6 = fpext float %5 to double
-  %7 = load %complex_4, %complex_4* %c, align 4
-  %8 = alloca %complex_4, align 8
-  store %complex_4 %7, %complex_4* %8, align 4
-  %9 = getelementptr %complex_4, %complex_4* %8, i32 0, i32 0
-  %10 = load float, float* %9, align 4
-  %11 = fpext float %10 to double
-  %12 = alloca %complex_4, align 8
-  store %complex_4 %7, %complex_4* %12, align 4
-  %13 = getelementptr %complex_4, %complex_4* %12, i32 0, i32 1
-  %14 = load float, float* %13, align 4
-  %15 = fpext float %14 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([15 x i8], [15 x i8]* @0, i32 0, i32 0), i32 %4, double %6, double %11, double %15)
+  %13 = load i32, i32* %i, align 4
+  %14 = load i32, i32* %j, align 4
+  %15 = load float, float* %r, align 4
+  %16 = fpext float %15 to double
+  %17 = load %complex_4, %complex_4* %c, align 4
+  %18 = alloca %complex_4, align 8
+  store %complex_4 %17, %complex_4* %18, align 4
+  %19 = getelementptr %complex_4, %complex_4* %18, i32 0, i32 0
+  %20 = load float, float* %19, align 4
+  %21 = fpext float %20 to double
+  %22 = alloca %complex_4, align 8
+  store %complex_4 %17, %complex_4* %22, align 4
+  %23 = getelementptr %complex_4, %complex_4* %22, i32 0, i32 1
+  %24 = load float, float* %23, align 4
+  %25 = fpext float %24 to double
+  %26 = load i32, i32* %a, align 4
+  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i32 0, i32 0), i32 %13, i32 %14, double %16, double %21, double %25, i32 %26)
   ret i32 0
 }
 
+; Function Attrs: nounwind readnone speculatable willreturn
+declare float @llvm.pow.f32(float, float) #0
+
 declare void @_lfortran_printf(i8*, ...)
+
+attributes #0 = { nounwind readnone speculatable willreturn }
 
