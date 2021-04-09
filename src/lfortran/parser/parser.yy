@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    473 // shift/reduce conflicts
+%expect    469 // shift/reduce conflicts
 %expect-rr 81  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -1055,7 +1055,7 @@ multi_line_statement0
 
 assignment_statement
     : expr "=" expr { $$ = ASSIGNMENT($1, $3, @$); }
-    | TK_INTEGER expr "=" expr { $$ = ASSIGNMENT2($1, $2, $4, @$); }
+    | TK_LABEL expr "=" expr { $$ = ASSIGNMENT2($1, $2, $4, @$); }
     ;
 
 goto_statement
@@ -1099,7 +1099,7 @@ print_statement
     : KW_PRINT    "*"                  { $$ = PRINT0(        @$); }
     | KW_PRINT    "*"    ","           { $$ = PRINT0(        @$); }
     | KW_PRINT    "*"    "," expr_list { $$ = PRINT(     $4, @$); }
-    | TK_INTEGER KW_PRINT    "*"    "," expr_list {
+    | TK_LABEL KW_PRINT    "*"    "," expr_list {
             $$ = PRINT(     $5, @$); LABEL($$, $1); }
     | KW_PRINT TK_STRING               { $$ = PRINTF0($2,    @$); }
     | KW_PRINT TK_STRING ","           { $$ = PRINTF0($2,    @$); }
@@ -1330,14 +1330,14 @@ forall_statement_single
     ;
 
 format_statement
-    : TK_INTEGER KW_FORMAT "(" format_items ")" { $$ = FORMAT($1, @$); }
-    | TK_INTEGER KW_FORMAT "(" format_items "," "*" "(" format_items ")" ")" {
+    : TK_LABEL KW_FORMAT "(" format_items ")" { $$ = FORMAT($1, @$); }
+    | TK_LABEL KW_FORMAT "(" format_items "," "*" "(" format_items ")" ")" {
             $$ = FORMAT($1, @$); }
-    | TK_INTEGER KW_FORMAT "(" "*" "(" format_items ")" ")" {
+    | TK_LABEL KW_FORMAT "(" "*" "(" format_items ")" ")" {
             $$ = FORMAT($1, @$); }
-    | TK_INTEGER KW_FORMAT "(" "/)" { $$ = FORMAT($1, @$); }
-    | TK_INTEGER KW_FORMAT "(" TK_INTEGER "/)" { $$ = FORMAT($1, @$); }
-    | TK_INTEGER KW_FORMAT "(" format_items "," "/)" { $$ = FORMAT($1, @$); }
+    | TK_LABEL KW_FORMAT "(" "/)" { $$ = FORMAT($1, @$); }
+    | TK_LABEL KW_FORMAT "(" TK_INTEGER "/)" { $$ = FORMAT($1, @$); }
+    | TK_LABEL KW_FORMAT "(" format_items "," "/)" { $$ = FORMAT($1, @$); }
     ;
 
 format_items
