@@ -1,11 +1,8 @@
 program doconcurrentloop_01
 implicit none
-real, dimension(10000) :: a
-real, dimension(10000) :: b
-real, dimension(10000) :: c
+real, dimension(10000) :: a, b, c
 real :: scalar
-integer :: i
-integer :: nsize
+integer :: i, nsize
 scalar = 10
 nsize = size(a)
 do concurrent (i = 1:nsize)
@@ -17,17 +14,14 @@ print *, "End Stream Triad"
 
 contains
 
-    subroutine triad(a, b, scalar, c)
-    real, intent(in) :: a(:)
-    real, intent(in) :: b(:)
-    real, intent(in) :: scalar
-    real, intent(out) :: c(:)
-    integer :: N
-    integer :: i
-    N = size(a)
-    do concurrent (i = 1:N)
-        c(i) = (a(i)) + ((scalar)*(b(i)))
-    end do
-    end subroutine triad
+subroutine triad(a, b, scalar, c)
+real, intent(in) :: a(:), b(:), scalar
+real, intent(out) :: c(:)
+integer :: N, i
+N = size(a)
+do concurrent (i = 1:N)
+    c(i) = (a(i)) + ((scalar)*(b(i)))
+end do
+end subroutine triad
 
 end program doconcurrentloop_01

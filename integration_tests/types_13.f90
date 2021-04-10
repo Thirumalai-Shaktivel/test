@@ -54,12 +54,21 @@ interface
     end function
 
     function f4(a, b, c, d) bind(c) result(r)
-    import :: c_int, c_double
+    import c_int, c_double
     integer(c_int) :: r
     integer*4, value, intent(in) :: a
     real*8, value, intent(in) :: b
     logical*4 :: c
     end function
+
+    subroutine f5(a, b, c) bind(C, name="_cf5")
+    import :: c_int
+    import :: c_double
+    integer(c_int) :: r
+    integer(c_int), value, intent(in) :: a
+    real(c_double), value, intent(in) :: b
+    logical :: c
+    end subroutine
 end interface
 
 end program

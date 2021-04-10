@@ -355,7 +355,7 @@ end function)";
     Allocator al(4*1024);
     LFortran::AST::TranslationUnit_t* tu = LFortran::parse2(al, source);
     LFortran::AST::ast_t* ast = tu->m_items[0];
-    CHECK(LFortran::pickle(*ast) == "(Function f [] () () () [] [(Declaration [(f \"integer\" () [] [] [] () [])])] [(= f 5)] [])");
+    CHECK(LFortran::pickle(*ast) == "(Function f [] [] () () [] [] [] [(Declaration (AttrType TypeInteger [] ()) [] [(f [] ())])] [(= 0 f 5)] [])");
 
     // AST -> ASR
     LFortran::ASR::TranslationUnit_t* asr = LFortran::ast_to_asr(al, *tu);
@@ -383,7 +383,7 @@ end function)";
     Allocator al(4*1024);
     LFortran::AST::TranslationUnit_t* tu = LFortran::parse2(al, source);
     LFortran::AST::ast_t* ast = tu->m_items[0];
-    CHECK(LFortran::pickle(*ast) == "(Function f [] () () () [] [(Declaration [(f \"integer\" () [] [] [] () [])])] [(= f 4)] [])");
+    CHECK(LFortran::pickle(*ast) == "(Function f [] [] () () [] [] [] [(Declaration (AttrType TypeInteger [] ()) [] [(f [] ())])] [(= 0 f 4)] [])");
 
     // AST -> ASR
     LFortran::ASR::TranslationUnit_t* asr = LFortran::ast_to_asr(al, *tu);
@@ -823,4 +823,60 @@ TEST_CASE("FortranEvaluator integer kind 2") {
     CHECK(r.ok);
     CHECK(r.result.type == FortranEvaluator::EvalResult::integer);
     CHECK(r.result.i == 5);
+}
+
+TEST_CASE("FortranEvaluator re-declaration 1") {
+    FortranEvaluator e;
+    FortranEvaluator::Result<FortranEvaluator::EvalResult>
+    r = e.evaluate("integer :: i");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::none);
+    r = e.evaluate("i = 5");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::statement);
+    r = e.evaluate("i");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::integer);
+    CHECK(r.result.i == 5);
+
+    r = e.evaluate("integer :: i");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::none);
+    r = e.evaluate("i = 6");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::statement);
+    r = e.evaluate("i");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::integer);
+    CHECK(r.result.i == 6);
+}
+
+TEST_CASE("FortranEvaluator re-declaration 2") {
+    FortranEvaluator e;
+    FortranEvaluator::Result<FortranEvaluator::EvalResult>
+    r = e.evaluate(R"(
+integer function fn(i)
+integer, intent(in) :: i
+fn = i+1
+end function
+)");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::none);
+    r = e.evaluate("fn(3)");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::integer);
+    CHECK(r.result.i == 4);
+
+    r = e.evaluate(R"(
+integer function fn(i)
+integer, intent(in) :: i
+fn = i-1
+end function
+)");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::none);
+    r = e.evaluate("fn(3)");
+    CHECK(r.ok);
+    CHECK(r.result.type == FortranEvaluator::EvalResult::integer);
+    CHECK(r.result.i == 2);
 }

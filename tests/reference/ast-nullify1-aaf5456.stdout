@@ -1,1 +1,1 @@
-(TranslationUnit [(Program nullify1 [] [] [(Print () []) (Print () [])] [])])
+(TranslationUnit [(Program nullify1 [] [] [] [(Nullify 0 [a] []) (Nullify 0 [a b c d] [])] [])])
