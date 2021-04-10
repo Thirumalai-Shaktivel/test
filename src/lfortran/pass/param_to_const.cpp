@@ -53,6 +53,46 @@ public:
         }
     }
 
+    void visit_UnaryOp(const ASR::UnaryOp_t& x) {
+        ASR::UnaryOp_t& x_unconst = const_cast<ASR::UnaryOp_t&>(x);
+        asr = nullptr;
+        this->visit_expr(*x.m_operand);
+        if( asr != nullptr ) {
+            x_unconst.m_operand = asr;
+        }
+        asr = const_cast<ASR::expr_t*>(&(x.base));
+    }
+
+    void visit_StrOp(const ASR::StrOp_t& x) {
+        ASR::StrOp_t& x_unconst = const_cast<ASR::StrOp_t&>(x);
+        asr = nullptr;
+        this->visit_expr(*x.m_left);
+        if( asr != nullptr ) {
+            x_unconst.m_left = asr;
+        }
+        asr = nullptr;
+        this->visit_expr(*x.m_right);
+        if( asr != nullptr ) {
+            x_unconst.m_right = asr;
+        }
+        asr = const_cast<ASR::expr_t*>(&(x.base));
+    }
+
+    void visit_Compare(const ASR::Compare_t& x) {
+        ASR::Compare_t& x_unconst = const_cast<ASR::Compare_t&>(x);
+        asr = nullptr;
+        this->visit_expr(*x.m_left);
+        if( asr != nullptr ) {
+            x_unconst.m_left = asr;
+        }
+        asr = nullptr;
+        this->visit_expr(*x.m_right);
+        if( asr != nullptr ) {
+            x_unconst.m_right = asr;
+        }
+        asr = const_cast<ASR::expr_t*>(&(x.base));
+    }
+
     void visit_BinOp(const ASR::BinOp_t& x) {
         ASR::BinOp_t& x_unconst = const_cast<ASR::BinOp_t&>(x);
         asr = nullptr;
@@ -85,7 +125,8 @@ public:
                 case ASR::exprType::ConstantInteger: 
                 case ASR::exprType::ConstantReal:
                 case ASR::exprType::ConstantComplex:
-                case ASR::exprType::ConstantLogical: {
+                case ASR::exprType::ConstantLogical: 
+                case ASR::exprType::Str: {
                     asr = init_var->m_value;
                     break;
                 }
