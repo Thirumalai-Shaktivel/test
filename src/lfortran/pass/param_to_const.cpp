@@ -137,6 +137,10 @@ public:
         }
     }
 
+    void visit_ConstantInteger(const ASR::ConstantInteger_t& x) {
+        
+    }
+
     void visit_Variable(const ASR::Variable_t& x) {
         ASR::Variable_t& x_unconst = const_cast<ASR::Variable_t&>(x);
         if( x.m_value != nullptr ) {
