@@ -373,6 +373,12 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> bind_opt
 %type <vec_ast> import_statement_star
 %type <ast> import_statement
+%type <ast> implicit_statement
+%type <vec_ast> implicit_statement_star
+%type <ast> implicit_none_spec
+%type <vec_ast> implicit_none_spec_list
+%type <ast> letter_spec
+%type <vec_ast> letter_spec_list
 
 // Precedence
 
@@ -426,13 +432,13 @@ script_unit
 module
     : KW_MODULE id sep use_statement_star implicit_statement_star
         decl_star contains_block_opt KW_END end_module_opt sep {
-            $$ = MODULE($2, $4, $6, $7, @$); }
+            $$ = MODULE($2, $4, $5, $6, $7, @$); }
     ;
 
 submodule
     : KW_SUBMODULE "(" id ")" id sep use_statement_star implicit_statement_star
         decl_star contains_block_opt KW_END end_submodule_opt sep {
-            $$ = SUBMODULE($3, $5, $7, $9, $10, @$); }
+            $$ = SUBMODULE($3, $5, $7, $8, $9, $10, @$); }
     ;
 
 interface_decl
@@ -559,7 +565,7 @@ proc_modifier
 program
     : KW_PROGRAM id sep use_statement_star implicit_statement_star decl_star statements
         contains_block_opt KW_END end_program_opt sep {
-            LLOC(@$, @10); $$ = PROGRAM($2, $4, $6, $7, $8, @$); }
+            LLOC(@$, @10); $$ = PROGRAM($2, $4, $5, $6, $7, $8, @$); }
     ;
 
 end_program_opt
@@ -597,12 +603,12 @@ subroutine
     import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_subroutine_opt sep {
-            LLOC(@$, @13); $$ = SUBROUTINE($2, $3, $4, $6, $7, $9, $10, $11, @$); }
+            LLOC(@$, @13); $$ = SUBROUTINE($2, $3, $4, $6, $7, $8, $9, $10, $11, @$); }
     | fn_mod_plus KW_SUBROUTINE id sub_args bind_opt sep use_statement_star
     import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_subroutine_opt sep {
-            LLOC(@$, @14); $$ = SUBROUTINE($3, $4, $5, $7, $8, $10, $11, $12, @$); }
+            LLOC(@$, @14); $$ = SUBROUTINE($3, $4, $5, $7, $8, $9, $10, $11, $12, @$); }
     ;
 
 procedure
@@ -618,40 +624,40 @@ function
         sep use_statement_star import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_function_opt sep {
-            LLOC(@$, @14); $$ = FUNCTION0($2, $4, nullptr, nullptr, $7, $8, $10, $11, $12, @$); }
+            LLOC(@$, @14); $$ = FUNCTION0($2, $4, nullptr, nullptr, $7, $8, $9, $10, $11, $12, @$); }
     | KW_FUNCTION id "(" id_list_opt ")"
         bind
         result_opt
         sep use_statement_star import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_function_opt sep {
-            LLOC(@$, @16); $$ = FUNCTION0($2, $4, $7, $6, $9, $10, $12, $13, $14, @$); }
+            LLOC(@$, @16); $$ = FUNCTION0($2, $4, $7, $6, $9, $10, $11, $12, $13, $14, @$); }
     | KW_FUNCTION id "(" id_list_opt ")"
         result
         bind_opt
         sep use_statement_star import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_function_opt sep {
-            LLOC(@$, @16); $$ = FUNCTION0($2, $4, $6, $7, $9, $10, $12, $13, $14, @$); }
+            LLOC(@$, @16); $$ = FUNCTION0($2, $4, $6, $7, $9, $10, $11, $12, $13, $14, @$); }
     | fn_mod_plus KW_FUNCTION id "(" id_list_opt ")"
         sep use_statement_star import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_function_opt sep {
-            LLOC(@$, @15); $$ = FUNCTION($1, $3, $5, nullptr, nullptr, $8, $9, $11, $12, $13, @$); }
+            LLOC(@$, @15); $$ = FUNCTION($1, $3, $5, nullptr, nullptr, $8, $9, $10, $11, $12, $13, @$); }
     | fn_mod_plus KW_FUNCTION id "(" id_list_opt ")"
         bind
         result_opt
         sep use_statement_star import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_function_opt sep {
-            LLOC(@$, @17); $$ = FUNCTION($1, $3, $5, $8, $7, $10, $11, $13, $14, $15, @$); }
+            LLOC(@$, @17); $$ = FUNCTION($1, $3, $5, $8, $7, $10, $11, $12, $13, $14, $15, @$); }
     | fn_mod_plus KW_FUNCTION id "(" id_list_opt ")"
         result
         bind_opt
         sep use_statement_star import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_function_opt sep {
-            LLOC(@$, @17); $$ = FUNCTION($1, $3, $5, $7, $8, $10, $11, $13, $14, $15, @$); }
+            LLOC(@$, @17); $$ = FUNCTION($1, $3, $5, $7, $8, $10, $11, $12, $13, $14, $15, @$); }
     ;
 
 fn_mod_plus
@@ -720,14 +726,62 @@ result
     ;
 
 implicit_statement_star
-    : implicit_statement_star implicit_statement
-    | %empty
+    : implicit_statement_star implicit_statement { $$ = $1; LIST_ADD($$, $2); }
+    | %empty { LIST_NEW($$); }
     ;
 
 implicit_statement
-    : KW_IMPLICIT KW_NONE sep
-    | KW_IMPLICIT KW_DOUBLE KW_PRECISION "(" id "-" id "," id "-" id ")" sep
-    | KW_IMPLICIT KW_INTEGER "(" id "-" id ")" sep
+    : KW_IMPLICIT KW_NONE sep { $$ = IMPLICIT_NONE(@$); }
+    | KW_IMPLICIT KW_NONE "(" implicit_none_spec_list ")" sep {
+            $$ = IMPLICIT_NONE2($4, @$); }
+    | KW_IMPLICIT KW_INTEGER "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE(Integer, @$), $4, @$); }
+    | KW_IMPLICIT KW_INTEGER "*" TK_INTEGER "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE_INT(Integer, $4, @$), $6, @$); }
+    | KW_IMPLICIT KW_CHARACTER "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE(Character, @$), $4, @$); }
+    | KW_IMPLICIT KW_CHARACTER "*" TK_INTEGER "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE_INT(Character, $4, @$), $6, @$); }
+    | KW_IMPLICIT KW_REAL "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE(Real, @$), $4, @$); }
+    | KW_IMPLICIT KW_REAL "*" TK_INTEGER "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE_INT(Real, $4, @$), $6, @$); }
+    | KW_IMPLICIT KW_COMPLEX "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE(Complex, @$), $4, @$); }
+    | KW_IMPLICIT KW_COMPLEX "*" TK_INTEGER "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE_INT(Complex, $4, @$), $6, @$); }
+    | KW_IMPLICIT KW_LOGICAL "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE(Logical, @$), $4, @$); }
+    | KW_IMPLICIT KW_LOGICAL "*" TK_INTEGER "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE_INT(Logical, $4, @$), $6, @$); }
+    | KW_IMPLICIT KW_DOUBLE KW_PRECISION "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE(DoublePrecision, @$), $5, @$); }
+    | KW_IMPLICIT KW_TYPE "(" id ")" "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE_NAME(Type, $4, @$), $7, @$); }
+    | KW_IMPLICIT KW_PROCEDURE "(" id ")" "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE_NAME(Procedure, $4, @$), $7, @$); }
+    | KW_IMPLICIT KW_CLASS "(" id ")" "(" letter_spec_list ")" sep {
+            $$ = IMPLICIT(ATTR_TYPE_NAME(Class, $4, @$), $7, @$); }
+    ;
+
+implicit_none_spec_list
+    : implicit_none_spec_list "," implicit_none_spec { $$ = $1; LIST_ADD($$, $3); }
+    | implicit_none_spec { LIST_NEW($$); LIST_ADD($$, $1); }
+    ;
+
+implicit_none_spec
+    : KW_EXTERNAL { $$ = IMPLICIT_NONE_EXTERNAL(@$); }
+    | KW_TYPE { $$ = IMPLICIT_NONE_TYPE(@$); }
+    ;
+
+letter_spec_list
+    : letter_spec_list "," letter_spec { $$ = $1; LIST_ADD($$, $3); }
+    | letter_spec { LIST_NEW($$); LIST_ADD($$, $1); }
+    ;
+
+letter_spec
+    : id           { $$ = LETTER_SPEC1($1, @$); }
+    | id "-" id    { $$ = LETTER_SPEC2($1, $3, @$); }
     ;
 
 use_statement_star
@@ -983,8 +1037,8 @@ single_line_statement0
     ;
 
 multi_line_statement
-    : multi_line_statement0 sep
-    | id ":" multi_line_statement0 id sep { $$ = $3; }
+    : multi_line_statement0 sep { $$ = $1; }
+    | id ":" multi_line_statement0 id sep { $$ = STMT_NAME($1, $4, $3); }
     ;
 
 multi_line_statement0
@@ -1013,12 +1067,12 @@ associate_statement
 
 associate_block
     : KW_ASSOCIATE "(" var_sym_decl_list ")" sep statements KW_END KW_ASSOCIATE {
-        $$ = PRINT0(@$); }
+        $$ = ASSOCIATE_BLOCK($3, $6, @$); }
     ;
 
 block_statement
     : KW_BLOCK sep var_decl_star statements KW_END KW_BLOCK {
-        $$ = PRINT0(@$); }
+        $$ = BLOCK($3, $4, @$); }
     ;
 
 allocate_statement
@@ -1044,6 +1098,8 @@ print_statement
     : KW_PRINT    "*"                  { $$ = PRINT0(        @$); }
     | KW_PRINT    "*"    ","           { $$ = PRINT0(        @$); }
     | KW_PRINT    "*"    "," expr_list { $$ = PRINT(     $4, @$); }
+    | TK_INTEGER KW_PRINT    "*"    "," expr_list {
+            $$ = PRINT(     $5, @$); LABEL($$, $1); }
     | KW_PRINT TK_STRING               { $$ = PRINTF0($2,    @$); }
     | KW_PRINT TK_STRING ","           { $$ = PRINTF0($2,    @$); }
     | KW_PRINT TK_STRING "," expr_list { $$ = PRINTF($2, $4, @$); }
@@ -1216,6 +1272,10 @@ do_statement
             $$ = DO2($1, $4, $6, $8, $10, @$); }
     | KW_DO id "=" expr "," expr "," expr sep statements enddo {
             $$ = DO3($2, $4, $6, $8, $10, @$); }
+    | KW_DO TK_INTEGER id "=" expr "," expr sep statements enddo {
+            $$ = DO2($3, $5, $7, $9, @$); }
+    | KW_DO TK_INTEGER id "=" expr "," expr "," expr sep statements enddo {
+            $$ = DO3($3, $5, $7, $9, $11, @$); }
     | KW_DO KW_CONCURRENT "(" concurrent_control_list ")"
         concurrent_locality_star sep statements enddo {
             $$ = DO_CONCURRENT1($4, $6, $8, @$); }
@@ -1324,8 +1384,10 @@ inout
     ;
 
 enddo
-    : KW_END_DO 
+    : KW_END_DO
+    | TK_INTEGER KW_END_DO
     | KW_ENDDO
+    | TK_INTEGER KW_ENDDO
     ;
 
 endforall
