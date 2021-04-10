@@ -2,7 +2,7 @@
     "basename": "llvm-init_values-e37737a",
     "cmd": "lfortran --show-llvm {infile} -o {outfile}",
     "infile": "tests/../integration_tests/init_values.f90",
-    "infile_hash": "db9094b525977cfbda11b67b8d05ba8953b83ad061e85fc0d3900ccc",
+    "infile_hash": "f95c1056763a884b3d1a2d9a7d20d0554927afad7f529f69d8e31f57",
     "outfile": null,
     "outfile_hash": null,
     "stdout": "llvm-init_values-e37737a.stdout",
