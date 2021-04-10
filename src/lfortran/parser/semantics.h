@@ -536,9 +536,9 @@ ast_t* implied_do3(Allocator &al, Location &loc,
 #define REAL(x, l) make_Real_t(p.m_a, l, x.c_str(p.m_a))
 #define COMPLEX(x, y, l) make_Complex_t(p.m_a, l, EXPR(x), EXPR(y))
 #define STRING(x, l) make_Str_t(p.m_a, l, x.c_str(p.m_a))
-#define ASSIGNMENT(x, y, l) make_Assignment_t(p.m_a, l, 0, EXPR(x), EXPR(y))
-#define ASSOCIATE(x, y, l) make_Associate_t(p.m_a, l, 0, EXPR(x), EXPR(y))
-#define GOTO(x, l) make_GoTo_t(p.m_a, l, 0, x)
+#define ASSIGNMENT(label, x, y, l) make_Assignment_t(p.m_a, l, label, EXPR(x), EXPR(y))
+#define ASSOCIATE(label, x, y, l) make_Associate_t(p.m_a, l, label, EXPR(x), EXPR(y))
+#define GOTO(label, x, l) make_GoTo_t(p.m_a, l, label, x)
 
 
 ast_t* SUBROUTINE_CALL0(Allocator &al, const ast_t *id,
@@ -581,7 +581,7 @@ Vec<fnarg_t> FNARGS(Allocator &al,
     }
     return v;
 }
-ast_t* ALLOCATE_STMT0(Allocator &al,
+ast_t* ALLOCATE_STMT0(Allocator &al, int label,
         const Vec<FnArg> &args, Location &l) {
     Vec<fnarg_t> v;
     v.reserve(al, args.size());
@@ -594,12 +594,12 @@ ast_t* ALLOCATE_STMT0(Allocator &al,
             v.push_back(al, item.arg);
         }
     }
-    return make_Allocate_t(al, l, 0,
+    return make_Allocate_t(al, l, label,
         /*expr_t** a_args*/ v.p, /*size_t n_args*/ v.size(),
         /*keyword_t* a_keywords*/ v2.p, /*size_t n_keywords*/ v2.size());
 }
-#define ALLOCATE_STMT(args, l) ALLOCATE_STMT0(p.m_a, args, l)
-#define DEALLOCATE_STMT(args, l) make_Deallocate_t(p.m_a, l, 0, \
+#define ALLOCATE_STMT(label, args, l) ALLOCATE_STMT0(p.m_a, label, args, l)
+#define DEALLOCATE_STMT(label, args, l) make_Deallocate_t(p.m_a, l, label, \
         FNARGS(p.m_a, args).p, args.size())
 
 char* print_format_to_str(Allocator &al, const std::string &fmt) {
@@ -611,11 +611,11 @@ char* print_format_to_str(Allocator &al, const std::string &fmt) {
     return s.c_str(al);
 }
 
-#define PRINT0(l) make_Print_t(p.m_a, l, 0, nullptr, nullptr, 0)
-#define PRINT(args, l) make_Print_t(p.m_a, l, 0, nullptr, EXPRS(args), args.size())
-#define PRINTF0(fmt, l) make_Print_t(p.m_a, l, 0, \
+#define PRINT0(label, l) make_Print_t(p.m_a, l, label, nullptr, nullptr, 0)
+#define PRINT(label, args, l) make_Print_t(p.m_a, l, label, nullptr, EXPRS(args), args.size())
+#define PRINTF0(label, fmt, l) make_Print_t(p.m_a, l, label, \
         print_format_to_str(p.m_a, fmt.str()), nullptr, 0)
-#define PRINTF(fmt, args, l) make_Print_t(p.m_a, l, 0, \
+#define PRINTF(label, fmt, args, l) make_Print_t(p.m_a, l, label, \
         print_format_to_str(p.m_a, fmt.str()), EXPRS(args), args.size())
 
 ast_t* WRITE1(Allocator &al,
@@ -639,7 +639,7 @@ ast_t* WRITE1(Allocator &al,
         EXPRS(args), args.size());
 }
 
-ast_t* READ1(Allocator &al,
+ast_t* READ1(Allocator &al, int label,
         const Vec<ArgStarKw> &args0,
         const Vec<ast_t*> &args,
         Location &l) {
@@ -654,7 +654,7 @@ ast_t* READ1(Allocator &al,
             v.push_back(al, item.arg);
         }
     }
-    return make_Read_t(al, l, 0,
+    return make_Read_t(al, l, label,
         v.p, v.size(),
         v2.p, v2.size(),
         EXPRS(args), args.size());
@@ -682,26 +682,26 @@ void extract_args1(Allocator &al,
 }
 
 template <typename ASTConstructor>
-ast_t* builtin1(Allocator &al,
+ast_t* builtin1(Allocator &al, int label,
         const Vec<ArgStarKw> &args0,
         Location &l, ASTConstructor cons) {
     Vec<expr_t*> v;
     Vec<keyword_t> v2;
     extract_args1(al, v, v2, args0);
-    return cons(al, l, 0,
+    return cons(al, l, label,
         v.p, v.size(),
         v2.p, v2.size());
 }
 
 template <typename ASTConstructor>
-ast_t* builtin2(Allocator &al,
+ast_t* builtin2(Allocator &al, int label,
         const Vec<ArgStarKw> &args0,
         const Vec<ast_t*> &ex_list,
         Location &l, ASTConstructor cons) {
     Vec<expr_t*> v;
     Vec<keyword_t> v2;
     extract_args1(al, v, v2, args0);
-    return cons(al, l, 0,
+    return cons(al, l, label,
         v.p, v.size(),
         v2.p, v2.size(), EXPRS(ex_list), ex_list.size());
 }
@@ -742,21 +742,21 @@ ast_t* builtin3(Allocator &al,
 #define WRITE0(args0, l) WRITE1(p.m_a, args0, empty_vecast(), l)
 #define WRITE(args0, args, l) WRITE1(p.m_a, args0, args, l)
 
-#define READ0(args0, l) READ1(p.m_a, args0, empty_vecast(), l)
-#define READ(args0, args, l) READ1(p.m_a, args0, args, l)
+#define READ0(label, args0, l) READ1(p.m_a, label, args0, empty_vecast(), l)
+#define READ(label, args0, args, l) READ1(p.m_a, label, args0, args, l)
 
-#define OPEN(args0, l) builtin1(p.m_a, args0, l, make_Open_t)
-#define CLOSE(args0, l) builtin1(p.m_a, args0, l, make_Close_t)
-#define REWIND(args0, l) builtin1(p.m_a, args0, l, make_Rewind_t)
-#define NULLIFY(args0, l) builtin1(p.m_a, args0, l, make_Nullify_t)
-#define BACKSPACE(args0, l) builtin1(p.m_a, args0, l, make_Backspace_t)
+#define OPEN(label, args0, l) builtin1(p.m_a, label, args0, l, make_Open_t)
+#define CLOSE(label, args0, l) builtin1(p.m_a, label, args0, l, make_Close_t)
+#define REWIND(label, args0, l) builtin1(p.m_a, label, args0, l, make_Rewind_t)
+#define NULLIFY(label, args0, l) builtin1(p.m_a, label, args0, l, make_Nullify_t)
+#define BACKSPACE(label, args0, l) builtin1(p.m_a, label, args0, l, make_Backspace_t)
 
-#define INQUIRE0(args0, l) builtin2(p.m_a, args0, empty_vecast(), l, \
+#define INQUIRE0(label, args0, l) builtin2(p.m_a, label, args0, empty_vecast(), l, \
             make_Inquire_t)
-#define INQUIRE(args0, args, l) builtin2(p.m_a, args0, args, l, make_Inquire_t)
-#define REWIND2(arg, l) make_Rewind_t(p.m_a, l, 0, \
+#define INQUIRE(label, args0, args, l) builtin2(p.m_a, label, args0, args, l, make_Inquire_t)
+#define REWIND2(label, arg, l) make_Rewind_t(p.m_a, l, label, \
             EXPRS(A2LIST(p.m_a, arg)), 1, nullptr, 0)
-#define REWIND3(arg, l) make_Rewind_t(p.m_a, l, 0, \
+#define REWIND3(label, arg, l) make_Rewind_t(p.m_a, l, label, \
             EXPRS(A2LIST(p.m_a, INTEGER(arg, l))), 1, nullptr, 0)
 
 #define BIND2(args0, l) builtin3(p.m_a, args0, l, make_Bind_t)
@@ -833,15 +833,15 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
 #define FORMAT(n, l) make_Format_t(p.m_a, l, n, \
         format_to_str(p.m_a, l, p.inp))
 
-#define STOP(l) make_Stop_t(p.m_a, l, 0, nullptr)
-#define STOP1(e, l) make_Stop_t(p.m_a, l, 0, EXPR(e))
-#define ERROR_STOP(l) make_ErrorStop_t(p.m_a, l, 0, nullptr)
-#define ERROR_STOP1(e, l) make_ErrorStop_t(p.m_a, l, 0, EXPR(e))
+#define STOP(label, l) make_Stop_t(p.m_a, l, label, nullptr)
+#define STOP1(label, e, l) make_Stop_t(p.m_a, l, label, EXPR(e))
+#define ERROR_STOP(label, l) make_ErrorStop_t(p.m_a, l, label, nullptr)
+#define ERROR_STOP1(label, e, l) make_ErrorStop_t(p.m_a, l, label, EXPR(e))
 
-#define EXIT(l) make_Exit_t(p.m_a, l, 0)
-#define RETURN(l) make_Return_t(p.m_a, l, 0)
-#define CYCLE(l) make_Cycle_t(p.m_a, l, 0)
-#define CONTINUE(l) make_Continue_t(p.m_a, l, 0)
+#define EXIT(label, l) make_Exit_t(p.m_a, l, label)
+#define RETURN(label, l) make_Return_t(p.m_a, l, label)
+#define CYCLE(label, l) make_Cycle_t(p.m_a, l, label)
+#define CONTINUE(label, l) make_Continue_t(p.m_a, l, label)
 #define SUBROUTINE(name, args, bind, use, import, implicit, decl, stmts, contains, l) \
     make_Subroutine_t(p.m_a, l, \
         /*name*/ name2char(name), \

@@ -972,6 +972,7 @@ public:
 
     void visit_Allocate(const Allocate_t &x) {
         std::string r = indent;
+        r += print_label(x);
         r.append("allocate");
         r.append("(");
         for (size_t i=0; i<x.n_args; i++) {
@@ -1113,6 +1114,11 @@ public:
         r += syn(gr::Keyword);
         r.append("error stop");
         r += syn();
+        r += " ";
+        if (x.m_code) {
+            this->visit_expr(*x.m_code);
+            r.append(s);
+        }
         r += "\n";
         s = r;
     }
