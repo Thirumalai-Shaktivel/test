@@ -98,10 +98,12 @@ public:
 
     void visit_Variable(const ASR::Variable_t& x) {
         ASR::Variable_t& x_unconst = const_cast<ASR::Variable_t&>(x);
-        visit_expr(*(x.m_value));
-        if( asr != nullptr ) {
-            x_unconst.m_value = asr;
-            asr = nullptr;
+        if( x.m_value != nullptr ) {
+            visit_expr(*(x.m_value));
+            if( asr != nullptr ) {
+                x_unconst.m_value = asr;
+                asr = nullptr;
+            }
         }
     }
 };

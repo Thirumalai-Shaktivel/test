@@ -299,6 +299,56 @@ namespace LFortran {
 
     };
 
+class CommonMethods {
+
+    public:
+
+    inline static void visit_BinOp(Allocator& al, const AST::BinOp_t &x, 
+                            ASR::expr_t*& left, ASR::expr_t*& right, ASR::asr_t*& asr) {
+        ASR::binopType op;
+        switch (x.m_op) {
+            case (AST::Add) :
+                op = ASR::Add;
+                break;
+            case (AST::Sub) :
+                op = ASR::Sub;
+                break;
+            case (AST::Mul) :
+                op = ASR::Mul;
+                break;
+            case (AST::Div) :
+                op = ASR::Div;
+                break;
+            case (AST::Pow) :
+                op = ASR::Pow;
+                break;
+            // Fix compiler warning:
+            default : { LFORTRAN_ASSERT(false); op = ASR::binopType::Pow; }
+        }
+
+        // Cast LHS or RHS if necessary
+        ASR::ttype_t *left_type = expr_type(left);
+        ASR::ttype_t *right_type = expr_type(right);
+        ASR::expr_t **conversion_cand = &left;
+        ASR::ttype_t *source_type = left_type;
+        ASR::ttype_t *dest_type = right_type;
+
+        ImplicitCastRules::find_conversion_candidate(
+            &left, &right, left_type, right_type, 
+            conversion_cand, &source_type, &dest_type);
+        ImplicitCastRules::set_converted_value(
+            al, x.base.base.loc, conversion_cand,
+            source_type, dest_type);
+
+        bool res = HelperMethods::check_equal_type(expr_type(left), expr_type(right));
+        if( !res ) {
+            LFORTRAN_ASSERT(false);
+        }
+        asr = ASR::make_BinOp_t(al, x.base.base.loc, left, op, right, dest_type);
+    }        
+
+};
+
 class SymbolTableVisitor : public AST::BaseVisitor<SymbolTableVisitor>
 {
 public:
@@ -564,47 +614,7 @@ public:
         ASR::expr_t *left = EXPR(asr);
         this->visit_expr(*x.m_right);
         ASR::expr_t *right = EXPR(asr);
-        ASR::binopType op;
-        switch (x.m_op) {
-            case (AST::Add) :
-                op = ASR::Add;
-                break;
-            case (AST::Sub) :
-                op = ASR::Sub;
-                break;
-            case (AST::Mul) :
-                op = ASR::Mul;
-                break;
-            case (AST::Div) :
-                op = ASR::Div;
-                break;
-            case (AST::Pow) :
-                op = ASR::Pow;
-                break;
-            // Fix compiler warning:
-            default : { LFORTRAN_ASSERT(false); op = ASR::binopType::Pow; }
-        }
-
-        // Cast LHS or RHS if necessary
-        ASR::ttype_t *left_type = expr_type(left);
-        ASR::ttype_t *right_type = expr_type(right);
-        ASR::expr_t **conversion_cand = &left;
-        ASR::ttype_t *source_type = left_type;
-        ASR::ttype_t *dest_type = right_type;
-
-        ImplicitCastRules::find_conversion_candidate(
-            &left, &right, left_type, right_type, 
-            conversion_cand, &source_type, &dest_type);
-        ImplicitCastRules::set_converted_value(
-            al, x.base.base.loc, conversion_cand,
-            source_type, dest_type);
-
-        bool res = HelperMethods::check_equal_type(expr_type(left), expr_type(right));
-        if( !res ) {
-            LFORTRAN_ASSERT(false);
-        }
-        asr = ASR::make_BinOp_t(al, x.base.base.loc,
-                left, op, right, dest_type);
+        CommonMethods::visit_BinOp(al, x, left, right, asr);
     }
 
     void visit_Str(const AST::Str_t &x) {
@@ -1633,47 +1643,7 @@ public:
         ASR::expr_t *left = EXPR(tmp);
         this->visit_expr(*x.m_right);
         ASR::expr_t *right = EXPR(tmp);
-        ASR::binopType op;
-        switch (x.m_op) {
-            case (AST::Add) :
-                op = ASR::Add;
-                break;
-            case (AST::Sub) :
-                op = ASR::Sub;
-                break;
-            case (AST::Mul) :
-                op = ASR::Mul;
-                break;
-            case (AST::Div) :
-                op = ASR::Div;
-                break;
-            case (AST::Pow) :
-                op = ASR::Pow;
-                break;
-            // Fix compiler warning:
-            default : { LFORTRAN_ASSERT(false); op = ASR::binopType::Pow; }
-        }
-
-        // Cast LHS or RHS if necessary
-        ASR::ttype_t *left_type = expr_type(left);
-        ASR::ttype_t *right_type = expr_type(right);
-        ASR::expr_t **conversion_cand = &left;
-        ASR::ttype_t *source_type = left_type;
-        ASR::ttype_t *dest_type = right_type;
-
-        ImplicitCastRules::find_conversion_candidate(
-            &left, &right, left_type, right_type, 
-            conversion_cand, &source_type, &dest_type);
-        ImplicitCastRules::set_converted_value(
-            al, x.base.base.loc, conversion_cand,
-            source_type, dest_type);
-
-        bool res = HelperMethods::check_equal_type(expr_type(left), expr_type(right));
-        if( !res ) {
-            LFORTRAN_ASSERT(false);
-        }
-        tmp = ASR::make_BinOp_t(al, x.base.base.loc,
-                left, op, right, dest_type);
+        CommonMethods::visit_BinOp(al, x, left, right, tmp);
     }
 
     void visit_StrOp(const AST::StrOp_t &x) { 
