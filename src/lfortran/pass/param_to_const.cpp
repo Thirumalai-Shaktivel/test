@@ -39,13 +39,7 @@ public:
     VarVisitor(Allocator &al) : al{al}, asr{nullptr} {
     }
 
-    // TODO: Only Program and While is processed, we need to process all calls
-    // to visit_stmt().
-
     void visit_Program(const ASR::Program_t &x) {
-        // std::cout<<"Inside Program"<<std::endl;
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
         for (auto &item : x.m_symtab->scope) {
             if (is_a<ASR::Variable_t>(*item.second)) {
                 ASR::Variable_t *v = down_cast<ASR::Variable_t>(item.second);
@@ -55,7 +49,6 @@ public:
     }
 
     void visit_UnaryOp(const ASR::UnaryOp_t& x) {
-        // std::cout<<"Inside UnaryOp"<<std::endl;
         ASR::UnaryOp_t& x_unconst = const_cast<ASR::UnaryOp_t&>(x);
         asr = nullptr;
         this->visit_expr(*x.m_operand);
@@ -66,7 +59,6 @@ public:
     }
 
     void visit_StrOp(const ASR::StrOp_t& x) {
-        // std::cout<<"Inside StrOp"<<std::endl;
         ASR::StrOp_t& x_unconst = const_cast<ASR::StrOp_t&>(x);
         asr = nullptr;
         this->visit_expr(*x.m_left);
@@ -82,7 +74,6 @@ public:
     }
 
     void visit_Compare(const ASR::Compare_t& x) {
-        // std::cout<<"Inside Compare"<<std::endl;
         ASR::Compare_t& x_unconst = const_cast<ASR::Compare_t&>(x);
         asr = nullptr;
         this->visit_expr(*x.m_left);
@@ -98,7 +89,6 @@ public:
     }
 
     void visit_BinOp(const ASR::BinOp_t& x) {
-        // std::cout<<"Inside BinOp"<<std::endl;
         ASR::BinOp_t& x_unconst = const_cast<ASR::BinOp_t&>(x);
         asr = nullptr;
         this->visit_expr(*x.m_left);
@@ -114,7 +104,6 @@ public:
     }
 
     void visit_ImplicitCast(const ASR::ImplicitCast_t& x) {
-        // std::cout<<"Inside ImplicitCast"<<std::endl;
         asr = nullptr;
         this->visit_expr(*x.m_arg);
         ASR::ImplicitCast_t& x_unconst = const_cast<ASR::ImplicitCast_t&>(x);
@@ -125,11 +114,7 @@ public:
     }
 
     void visit_Var(const ASR::Var_t& x) {
-        // std::cout<<"Inside Var"<<std::endl;
         ASR::Variable_t *init_var = ASR::down_cast<ASR::Variable_t>(symbol_get_past_external(x.m_v));
-        // std::cout<<init_var->m_name<<std::endl;
-        // std::cout<<init_var->m_value->type<<std::endl;
-        // std::cout<<init_var->m_storage<<std::endl;
         if( init_var->m_storage == ASR::storage_typeType::Parameter ) {
             if( init_var->m_value == nullptr ) {
                 asr = init_var->m_value;
@@ -152,7 +137,6 @@ public:
     }
 
     void visit_Variable(const ASR::Variable_t& x) {
-        // std::cout<<"Inside Variable"<<std::endl;
         ASR::Variable_t& x_unconst = const_cast<ASR::Variable_t&>(x);
         if( x.m_value != nullptr ) {
             asr = nullptr;
@@ -167,9 +151,6 @@ public:
 
 void pass_replace_param_to_const(Allocator &al, ASR::TranslationUnit_t &unit) {
     VarVisitor v(al);
-    // Each call transforms only one layer of nested loops, so we call it twice
-    // to transform doubly nested loops:
-    v.visit_TranslationUnit(unit);
     v.visit_TranslationUnit(unit);
     LFORTRAN_ASSERT(asr_verify(unit));
 }
