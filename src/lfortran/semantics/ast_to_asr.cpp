@@ -340,10 +340,7 @@ class CommonVisitorMethods {
             al, x.base.base.loc, conversion_cand,
             source_type, dest_type);
 
-        bool res = HelperMethods::check_equal_type(expr_type(left), expr_type(right));
-        if( !res ) {
-            LFORTRAN_ASSERT(false);
-        }
+        LFORTRAN_ASSERT(HelperMethods::check_equal_type(expr_type(left), expr_type(right)));
         asr = ASR::make_BinOp_t(al, x.base.base.loc, left, op, right, dest_type);
     }
 
@@ -374,10 +371,7 @@ class CommonVisitorMethods {
              source_type, dest_type);
         }
 
-        bool res = HelperMethods::check_equal_type(expr_type(left), expr_type(right));
-        if( !res ) {
-            LFORTRAN_ASSERT(false);
-        }
+        LFORTRAN_ASSERT(HelperMethods::check_equal_type(expr_type(left), expr_type(right)));
         ASR::ttype_t *type = TYPE(ASR::make_Logical_t(al, x.base.base.loc,
                 4, nullptr, 0));
         ASR::cmpopType asr_op;
@@ -433,10 +427,7 @@ class CommonVisitorMethods {
             al, x.base.base.loc, conversion_cand,
             source_type, dest_type);
 
-        bool res = HelperMethods::check_equal_type(expr_type(left), expr_type(right));
-        if( !res ) {
-            LFORTRAN_ASSERT(false);
-        }
+        LFORTRAN_ASSERT(HelperMethods::check_equal_type(expr_type(left), expr_type(right)));
         asr = ASR::make_BoolOp_t(al, x.base.base.loc,
                 left, op, right, dest_type);
     }
