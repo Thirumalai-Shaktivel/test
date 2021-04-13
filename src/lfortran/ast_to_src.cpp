@@ -47,12 +47,12 @@ namespace {
     std::string cmpop2str(const AST::cmpopType type)
     {
         switch (type) {
-            case (AST::cmpopType::Eq) : return "==";
-            case (AST::cmpopType::Gt) : return ">";
-            case (AST::cmpopType::GtE) : return ">=";
-            case (AST::cmpopType::Lt) : return "<";
-            case (AST::cmpopType::LtE) : return "<=";
-            case (AST::cmpopType::NotEq) : return "/=";
+            case (AST::cmpopType::Eq) : return " == ";
+            case (AST::cmpopType::Gt) : return " > ";
+            case (AST::cmpopType::GtE) : return " >= ";
+            case (AST::cmpopType::Lt) : return " < ";
+            case (AST::cmpopType::LtE) : return " <= ";
+            case (AST::cmpopType::NotEq) : return " /= ";
         }
         throw LFortranException("Unknown type");
     }
@@ -77,6 +77,8 @@ public:
     std::string indent;
     int indent_spaces;
     bool indent_unit;
+    bool last_binary_plus;
+    bool last_unary_plus;
 
     // Syntax highlighting groups
     enum gr {
@@ -1737,7 +1739,7 @@ public:
         std::string left = std::move(s);
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        s = "(" + left + ")" + boolop2str(x.m_op) + "(" + right + ")";
+        s = left + boolop2str(x.m_op) + right;
     }
 
     void visit_BinOp(const BinOp_t &x) {
@@ -1745,7 +1747,11 @@ public:
         std::string left = std::move(s);
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        s = "(" + left + ")" + op2str(x.m_op) + "(" + right + ")";
+        if(last_unary_plus || last_binary_plus)
+            right = "(" + right + ")";
+        s = left + op2str(x.m_op) + right ;
+        if(x.m_op == operatorType::Add || x.m_op == operatorType::Sub)
+            last_binary_plus = true;
     }
 
     void visit_StrOp(const StrOp_t &x) {
@@ -1759,10 +1765,14 @@ public:
     void visit_UnaryOp(const UnaryOp_t &x) {
         this->visit_expr(*x.m_operand);
         if (x.m_op == AST::unaryopType::USub) {
-            s = "-(" + s + ")";
+            s = "-" + s;
+            last_unary_plus = true;
+            last_binary_plus = false;
         } else if (x.m_op == AST::unaryopType::UAdd) {
             // pass
             // s = s;
+            last_unary_plus = false;
+            last_binary_plus = false;
         } else if (x.m_op == AST::unaryopType::Not) {
             s = ".not.(" + s + ")";
         } else {
@@ -1775,7 +1785,7 @@ public:
         std::string left = std::move(s);
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        s = "(" + left + ")" + cmpop2str(x.m_op) + "(" + right + ")";
+        s = left + cmpop2str(x.m_op) + right;
     }
 
     void visit_FuncCallOrArray(const FuncCallOrArray_t &x) {
@@ -1838,12 +1848,16 @@ public:
         s = syn(gr::Integer);
         s += std::to_string(x.m_n);
         s += syn();
+        last_unary_plus = false;
+        last_binary_plus = false;
     }
 
     void visit_Real(const Real_t &x) {
         s = syn(gr::Real);
         s += x.m_n;
         s += syn();
+        last_unary_plus = false;
+        last_binary_plus = false;
     }
 
     void visit_Str(const Str_t &x) {
@@ -1866,6 +1880,7 @@ public:
         r += ")";
         r += syn();
         s = r;
+        last_unary_plus = false;
     }
 
     void visit_Name(const Name_t &x) {
@@ -1898,6 +1913,8 @@ public:
         }
         r.append(std::string(x.m_id));
         s = r;
+        last_unary_plus = false;
+        last_binary_plus = false;
     }
 
     void visit_Logical(const Logical_t &x) {
@@ -1908,6 +1925,8 @@ public:
             s += ".false.";
         }
         s += syn();
+        last_unary_plus = false;
+        last_binary_plus = false;
     }
 
     std::string kind_value(const AST::kind_item_typeType &type,
