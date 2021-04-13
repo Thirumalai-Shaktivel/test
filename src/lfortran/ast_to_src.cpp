@@ -1745,13 +1745,22 @@ public:
     void visit_BinOp(const BinOp_t &x) {
         this->visit_expr(*x.m_left);
         std::string left = std::move(s);
+        if(last_binary_plus
+            && !(x.m_op == operatorType::Add || x.m_op == operatorType::Sub)) {
+            left = "(" + left + ")";
+        }
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        if(last_unary_plus || last_binary_plus)
+        if(last_unary_plus || last_binary_plus) {
             right = "(" + right + ")";
+        }
         s = left + op2str(x.m_op) + right ;
-        if(x.m_op == operatorType::Add || x.m_op == operatorType::Sub)
+        if(x.m_op == operatorType::Add || x.m_op == operatorType::Sub) {
             last_binary_plus = true;
+        }
+        else{
+            last_binary_plus = false;
+        }
     }
 
     void visit_StrOp(const StrOp_t &x) {
