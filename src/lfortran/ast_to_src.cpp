@@ -79,6 +79,7 @@ public:
     bool indent_unit;
     bool last_binary_plus;
     bool last_unary_plus;
+    bool unary_minus;
 
     // Syntax highlighting groups
     enum gr {
@@ -1745,17 +1746,31 @@ public:
     void visit_BinOp(const BinOp_t &x) {
         this->visit_expr(*x.m_left);
         std::string left = std::move(s);
-        if(last_binary_plus
-            && !(x.m_op == operatorType::Add || x.m_op == operatorType::Sub)) {
+        if(last_binary_plus &&
+            !(x.m_op == operatorType::Add
+                || x.m_op == operatorType::Sub)) {
             left = "(" + left + ")";
+        }
+        if(last_unary_plus &&
+            !(x.m_op == operatorType::Add
+                || x.m_op == operatorType::Sub)){
+            unary_minus = true;
         }
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
         if(last_unary_plus || last_binary_plus) {
+            unary_minus = false;
+            right = "(" + right + ")";
+        }
+        if(unary_minus &&
+            (x.m_op == operatorType::Add
+                || x.m_op == operatorType::Sub)){
+            unary_minus = false;
             right = "(" + right + ")";
         }
         s = left + op2str(x.m_op) + right ;
-        if(x.m_op == operatorType::Add || x.m_op == operatorType::Sub) {
+        if(x.m_op == operatorType::Add
+            || x.m_op == operatorType::Sub) {
             last_binary_plus = true;
         }
         else{
