@@ -942,11 +942,6 @@ asr = true
 llvm = true
 
 [[test]]
-filename = "../integration_tests/nested_03.f90"
-asr = true
-llvm = true
-
-[[test]]
 filename = "../integration_tests/goto_01.f90"
 ast = true
 ast_f90 = true
@@ -966,3 +961,14 @@ filename = "../integration_tests/intent_01.f90"
 ast = true
 asr = true
 llvm = true
+
+[[test]]
+filename = "../integration_tests/nested_03.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/nested_04.f90"
+asr = true
+llvm = true
+
