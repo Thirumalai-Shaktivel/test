@@ -1,1 +1,0 @@
-(TranslationUnit [(Module nested_03_a [] [] [(Subroutine b [] [] [(Declaration (AttrType TypeInteger [] ()) [] [(x [] 6)])] [(Print () [(Str "b()")]) (SubroutineCall c [] [])] [(Subroutine c [] [] [] [(Print () [5]) (Print () [x])] [])])]) (Program nested_03 [(Use nested_03_a [(UseSymbol b ())])] [] [(SubroutineCall b [] [])] [])])
