@@ -935,17 +935,16 @@ public:
                             break;
                         default :
                             LFORTRAN_ASSERT(false);
-                        }
-                        llvm::AllocaInst *ptr = builder->CreateAlloca(type, nullptr, v->m_name);
-                        llvm_symtab[h] = ptr;
-                        fill_array_details(ptr, m_dims, n_dims);
-                        if( v->m_value != nullptr ) {
-                            target_var = ptr;
-                            this->visit_expr_wrapper(v->m_value, true);
-                            llvm::Value *init_value = tmp;
-                            needed_glob_vals.push_back(tmp);
-                            builder->CreateStore(init_value, target_var);
-                        }
+                    }
+                    llvm::AllocaInst *ptr = builder->CreateAlloca(type, nullptr, v->m_name);
+                    llvm_symtab[h] = ptr;
+                    fill_array_details(ptr, m_dims, n_dims);
+                    if( v->m_value != nullptr ) {
+                        target_var = ptr;
+                        this->visit_expr_wrapper(v->m_value, true);
+                        llvm::Value *init_value = tmp;
+                        needed_glob_vals.push_back(tmp);
+                        builder->CreateStore(init_value, target_var);
                         if (std::find(needed_globals.begin(), needed_globals.end(), 
                                 h) != needed_globals.end()) {
                             llvm::Value* ptr = module->getOrInsertGlobal(desc_name, 
@@ -959,6 +958,7 @@ public:
                             builder->CreateStore(builder->CreateLoad(target_var), 
                                     create_gep(ptr, idx));
                         }
+                    }
                 }
             }
         }
@@ -1215,12 +1215,13 @@ public:
 
     void visit_Assignment(const ASR::Assignment_t &x) {
         llvm::Value *target, *value;
+        uint32_t h;
         if( x.m_target->type == ASR::exprType::ArrayRef ) {
             this->visit_expr(*x.m_target);
             target = tmp;   
         } else {
             ASR::Variable_t *asr_target = EXPR2VAR(x.m_target);
-            uint32_t h = get_hash((ASR::asr_t*)asr_target);
+            h = get_hash((ASR::asr_t*)asr_target);
             switch( asr_target->m_type->type ) {
                 case ASR::ttypeType::IntegerPointer:
                 case ASR::ttypeType::RealPointer:
@@ -1240,6 +1241,19 @@ public:
         this->visit_expr_wrapper(x.m_value, true);
         value = tmp;
         builder->CreateStore(value, target);
+        if (std::find(needed_globals.begin(), needed_globals.end(), 
+                h) != needed_globals.end()) {
+            llvm::Value* ptr = module->getOrInsertGlobal(desc_name, 
+                    needed_global_struct);
+            int idx;
+            for (size_t i = 0; i < needed_globals.size(); i++) {
+                if (needed_globals[i] == h) {
+                    idx = i;
+                }
+            }
+            builder->CreateStore(builder->CreateLoad(target), 
+                    create_gep(ptr, idx));
+        }
     }
 
     inline void visit_expr_wrapper(const ASR::expr_t* x, bool load_array_ref=false) {

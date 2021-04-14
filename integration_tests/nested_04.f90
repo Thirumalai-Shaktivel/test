@@ -6,6 +6,7 @@ contains
 integer function b(x)
 integer, intent(in) :: x
 integer y
+real :: yy = 6.6
 y = x
 print *, "b()"
 b = c(6)
@@ -14,6 +15,7 @@ contains
     integer, intent(in) :: z
     print *, z
     print *, y
+    print *, yy
     c = z
     end function c
 end function b
