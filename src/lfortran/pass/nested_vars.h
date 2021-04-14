@@ -2,7 +2,6 @@
 #define LFORTRAN_PASS_NESTED_VARS_H
 
 #include <lfortran/asr.h>
-#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
 
 namespace LFortran {

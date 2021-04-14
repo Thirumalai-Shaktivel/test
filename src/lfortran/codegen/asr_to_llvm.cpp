@@ -861,7 +861,6 @@ public:
     template<typename T>
     void declare_vars(const T &x) {
         std::vector<llvm::Value*> needed_glob_vals;
-        bool needed_globs = false;
         llvm::Value *target_var;
         for (auto &item : x.m_symtab->scope) {
             if (is_a<ASR::Variable_t>(*item.second)) {
@@ -1040,8 +1039,7 @@ public:
             desc_name = x.m_name;
             std::string desc_string = "_rtd";
             desc_name += desc_string;
-            llvm::Constant *ptr = module->getOrInsertGlobal(desc_name, 
-                needed_global_struct);
+            module->getOrInsertGlobal(desc_name, needed_global_struct);
             llvm::ConstantAggregateZero* initializer = 
                 llvm::ConstantAggregateZero::get(needed_global_struct);
             module->getNamedGlobal(desc_name)->setInitializer(initializer);
@@ -1138,8 +1136,7 @@ public:
             desc_name = x.m_name;
             std::string desc_string = "_rtd";
             desc_name += desc_string;
-            llvm::Constant *ptr = module->getOrInsertGlobal(desc_name, 
-                needed_global_struct);
+            module->getOrInsertGlobal(desc_name, needed_global_struct);
             llvm::ConstantAggregateZero* initializer = 
                 llvm::ConstantAggregateZero::get(needed_global_struct);
             module->getNamedGlobal(desc_name)->setInitializer(initializer);

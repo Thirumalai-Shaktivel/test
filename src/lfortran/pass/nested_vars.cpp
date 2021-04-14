@@ -161,30 +161,23 @@ public:
                 needed_globals.push_back(h);
                 //llvm::Type* rel_type;
                 switch(v->m_type->type){
+                    // TODO: Store as pointers ->getPointerTo()
                     case ASR::ttypeType::Integer: {
                         int a_kind = down_cast<ASR::Integer_t>(v->m_type)->
                             m_kind;
-                        llvm::Type *type;
-                        int init_value_bits = 8*a_kind;
                         rel_type = getIntType(a_kind);
-                        //rel_type = llvm::Type::getInt32Ty(context);
-                            // TODO: Store as pointer ->getPointerTo();
                         break;
-                                                  }
+                    }
                     case ASR::ttypeType::Real: {
                         int a_kind = down_cast<ASR::Real_t>(v->m_type)->m_kind;
-                        llvm::Type *type;
-                        int init_value_bits = 8*a_kind;
-                        type = getFPType(a_kind);
                         rel_type = getFPType(a_kind);
                         break;
-                                               }
+                    }
                     default: {
                             throw CodeGenError("Variable type not supported \
                                     in nested function");
                         break;
-                                                  }
-
+                    }
                 }
                 proc_types.push_back(rel_type);
                 runtime_descriptor[par_func_hash].push_back(rel_type);
