@@ -950,8 +950,14 @@ public:
                                 h) != needed_globals.end()) {
                             llvm::Value* ptr = module->getOrInsertGlobal(desc_name, 
                                     needed_global_struct);
+                            int idx;
+                            for (size_t i = 0; i < needed_globals.size(); i++) {
+                                if (needed_globals[i] == h) {
+                                    idx = i;
+                                }
+                            }
                             builder->CreateStore(builder->CreateLoad(target_var), 
-                                    create_gep(ptr, 0));
+                                    create_gep(ptr, idx));
                         }
                 }
             }
@@ -1708,7 +1714,12 @@ public:
             llvm::Constant *ptr = module->getOrInsertGlobal(desc_name,
                 needed_global_struct);
             // TODO: Correctly index
-            int idx = 0;
+            int idx;
+            for (size_t i = 0; i < needed_globals.size(); i++) {
+                if (needed_globals[i] == x_h) {
+                    idx = i;
+                }
+            }
             std::vector<llvm::Value*> idx_vec = {
             llvm::ConstantInt::get(context, llvm::APInt(32, 0)),
             llvm::ConstantInt::get(context, llvm::APInt(32, idx))};
