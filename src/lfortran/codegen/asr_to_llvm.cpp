@@ -1029,15 +1029,15 @@ public:
             x.m_abi != ASR::abiType::Interactive) {
                 return;
         }
-        uint32_t h = get_hash((ASR::asr_t*)&x);
         // Check if the procedure has a nested function that needs access to
         // some variables in it's local scope
+        uint32_t h = get_hash((ASR::asr_t*)&x);
         std::vector<llvm::Type*> nested_type;
         if (runtime_descriptor[h].size() > 0) {
             nested_type = runtime_descriptor[h];
             needed_global_struct = llvm::StructType::create(
                 context, nested_type, x.m_name);
-            std::string desc_name = x.m_name;
+            desc_name = x.m_name;
             std::string desc_string = "_rtd";
             desc_name += desc_string;
             llvm::Constant *ptr = module->getOrInsertGlobal(desc_name, 
