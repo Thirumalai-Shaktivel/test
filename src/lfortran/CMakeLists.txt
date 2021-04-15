@@ -16,7 +16,6 @@ set(SRC
     pass/do_loops.cpp
     pass/global_stmts.cpp
     pass/select_case.cpp
-    pass/nested_vars.cpp
 
     asr_verify.cpp
     asr_utils.cpp
@@ -51,6 +50,7 @@ if (WITH_LLVM)
     set(SRC ${SRC}
         codegen/evaluator.cpp
         codegen/asr_to_llvm.cpp
+        pass/nested_vars.cpp
     )
     # We use deprecated API in LLVM, so we disable the warning until we upgrade
     if (NOT MSVC)
