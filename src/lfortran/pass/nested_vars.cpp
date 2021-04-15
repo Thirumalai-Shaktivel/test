@@ -198,4 +198,4 @@ std::map<uint64_t, std::vector<llvm::Type*>> pass_find_nested_vars(
 }
 
 
-}; // namespace LFortran
+} // namespace LFortran

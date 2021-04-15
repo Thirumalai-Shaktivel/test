@@ -493,20 +493,7 @@ public:
     llvm::Value *nested_struct_rd(std::vector<llvm::Value*> vals,
             llvm::StructType* rd) {
         llvm::AllocaInst *pres = builder->CreateAlloca(rd, nullptr);
-        /*
-        std::vector<llvm::Value *> idx1 = {
-            llvm::ConstantInt::get(context, llvm::APInt(32, 0)),
-            llvm::ConstantInt::get(context, llvm::APInt(32, 0))};
-        std::vector<llvm::Value *> idx2 = {
-            llvm::ConstantInt::get(context, llvm::APInt(32, 0)),
-            llvm::ConstantInt::get(context, llvm::APInt(32, 1))};
-        llvm::Value *pre = builder->CreateGEP(pres, idx1);
-        llvm::Value *pim = builder->CreateGEP(pres, idx2);
-        builder->CreateStore(re, pre);
-        builder->CreateStore(im, pim);
-        */
         llvm::Value *pim = builder->CreateGEP(pres, vals);
-        //builder->CreateStore(rd, pim);
         return builder->CreateLoad(pim);
     }
 
@@ -681,8 +668,8 @@ public:
         // (global variable declared/initialized in this translation unit), or
         // external (global variable not declared/initialized in this
         // translation unit, just referenced).
-        LFORTRAN_ASSERT(x.m_intent == intent_local || x.m_intent ==
-                intent_inout || x.m_abi == ASR::abiType::Interactive);
+        LFORTRAN_ASSERT(x.m_intent == intent_local
+            || x.m_abi == ASR::abiType::Interactive);
         bool external = (x.m_abi != ASR::abiType::Source);
         llvm::Constant* init_value = nullptr;
         if (x.m_value != nullptr){
@@ -748,81 +735,6 @@ public:
             throw CodeGenError("Variable type not supported");
         }
     }
-
-    void visit_needed_global(const ASR::Variable_t &x) {
-        uint32_t h = get_hash((ASR::asr_t*)&x);
-        // This happens at global scope, so the intent can only be either local
-        // (global variable declared/initialized in this translation unit), or
-        // external (global variable not declared/initialized in this
-        // translation unit, just referenced).
-        LFORTRAN_ASSERT(x.m_intent == intent_local || x.m_intent ==
-                intent_inout || x.m_abi == ASR::abiType::Interactive);
-        bool external = (x.m_abi != ASR::abiType::Source);
-        llvm::Constant* init_value = nullptr;
-        if (x.m_value != nullptr){
-            this->visit_expr_wrapper(x.m_value, true);
-            init_value = llvm::dyn_cast<llvm::Constant>(tmp);
-        }
-        if (x.m_type->type == ASR::ttypeType::Integer) {
-            int a_kind = down_cast<ASR::Integer_t>(x.m_type)->m_kind;
-            llvm::Type *type;
-            int init_value_bits = 8*a_kind;
-            type = getIntType(a_kind);
-            llvm::Constant *ptr = module->getOrInsertGlobal(x.m_name,
-                type);
-            if (!external) {
-                if (init_value) {
-                    module->getNamedGlobal(x.m_name)->setInitializer(
-                            init_value);
-                } else {
-                    module->getNamedGlobal(x.m_name)->setInitializer(
-                            llvm::ConstantInt::get(context, 
-                                llvm::APInt(init_value_bits, 0)));
-                }
-            }
-            llvm_symtab[h] = ptr;
-        } else if (x.m_type->type == ASR::ttypeType::Real) {
-            int a_kind = down_cast<ASR::Real_t>(x.m_type)->m_kind;
-            llvm::Type *type;
-            int init_value_bits = 8*a_kind;
-            type = getFPType(a_kind);
-            llvm::Constant *ptr = module->getOrInsertGlobal(x.m_name, type);
-            if (!external) {
-                if (init_value) {
-                    module->getNamedGlobal(x.m_name)->setInitializer(
-                            init_value);
-                } else {
-                    if( init_value_bits == 32 ) {
-                        module->getNamedGlobal(x.m_name)->setInitializer(
-                                llvm::ConstantFP::get(context, 
-                                    llvm::APFloat((float)0)));
-                    } else if( init_value_bits == 64 ) {
-                        module->getNamedGlobal(x.m_name)->setInitializer(
-                                llvm::ConstantFP::get(context, 
-                                    llvm::APFloat((double)0)));
-                    }
-                }
-            }
-            llvm_symtab[h] = ptr;
-        } else if (x.m_type->type == ASR::ttypeType::Logical) {
-            llvm::Constant *ptr = module->getOrInsertGlobal(x.m_name,
-                llvm::Type::getInt1Ty(context));
-            if (!external) {
-                if (init_value) {
-                    module->getNamedGlobal(x.m_name)->setInitializer(
-                            init_value);
-                } else {
-                    module->getNamedGlobal(x.m_name)->setInitializer(
-                            llvm::ConstantInt::get(context, 
-                                llvm::APInt(1, 0)));
-                }
-            }
-            llvm_symtab[h] = ptr;
-        } else {
-            throw CodeGenError("Variable type not supported");
-        }
-    }
-
 
     void visit_Module(const ASR::Module_t &x) {
         mangle_prefix = "__module_" + std::string(x.m_name) + "_";
@@ -933,7 +845,7 @@ public:
                             type = llvm::Type::getInt1Ty(context);
                             break;
                         default :
-                            LFORTRAN_ASSERT(false);
+                            throw CodeGenError("Type not implemented");
                     }
                     llvm::AllocaInst *ptr = builder->CreateAlloca(type, nullptr, v->m_name);
                     llvm_symtab[h] = ptr;
@@ -1164,16 +1076,6 @@ public:
             llvm::BasicBlock *BB = llvm::BasicBlock::Create(context,
                     ".entry", F);
             builder->SetInsertPoint(BB);
-
-
-        /*
-        if (runtime_descriptor[h].size() > 0) {
-                nested_struct_rd(test2, needed_global_struct);
-                module->getNamedGlobal("test")->setInitializer(
-                        init_value);
-
-        }
-        */
 
             declare_args(x, *F);
 
