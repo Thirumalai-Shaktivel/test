@@ -856,16 +856,14 @@ public:
                         llvm::Value *init_value = tmp;
                         needed_glob_vals.push_back(tmp);
                         builder->CreateStore(init_value, target_var);
-                        if (std::find(needed_globals.begin(), needed_globals.end(), 
-                                h) != needed_globals.end()) {
+
+                        auto finder = std::find(needed_globals.begin(), 
+                                needed_globals.end(), h);
+                        if (finder  != needed_globals.end()) {
                             llvm::Value* ptr = module->getOrInsertGlobal(desc_name, 
                                     needed_global_struct);
-                            int idx;
-                            for (size_t i = 0; i < needed_globals.size(); i++) {
-                                if (needed_globals[i] == h) {
-                                    idx = i;
-                                }
-                            }
+                            int idx = std::distance(needed_globals.begin(),
+                                    finder);
                             builder->CreateStore(builder->CreateLoad(target_var), 
                                     create_gep(ptr, idx));
                         }
@@ -1140,16 +1138,14 @@ public:
         this->visit_expr_wrapper(x.m_value, true);
         value = tmp;
         builder->CreateStore(value, target);
-        if (std::find(needed_globals.begin(), needed_globals.end(), 
-                h) != needed_globals.end()) {
+
+        auto finder = std::find(needed_globals.begin(), 
+                needed_globals.end(), h);
+        if (finder != needed_globals.end()) {
             llvm::Value* ptr = module->getOrInsertGlobal(desc_name, 
                     needed_global_struct);
-            int idx;
-            for (size_t i = 0; i < needed_globals.size(); i++) {
-                if (needed_globals[i] == h) {
-                    idx = i;
-                }
-            }
+            int idx = std::distance(needed_globals.begin(),
+                    finder);
             builder->CreateStore(builder->CreateLoad(target), 
                     create_gep(ptr, idx));
         }
@@ -1623,16 +1619,11 @@ public:
         if (llvm_symtab.find(x_h) == llvm_symtab.end()) {
             LFORTRAN_ASSERT(std::find(needed_globals.begin(), 
                     needed_globals.end(), x_h) != needed_globals.end());
-            //llvm::Value* x_v = runtime_descriptor[x_h];
+            auto finder = std::find(needed_globals.begin(), 
+                    needed_globals.end(), x_h);
             llvm::Constant *ptr = module->getOrInsertGlobal(desc_name,
                 needed_global_struct);
-            // TODO: Correctly index
-            int idx;
-            for (size_t i = 0; i < needed_globals.size(); i++) {
-                if (needed_globals[i] == x_h) {
-                    idx = i;
-                }
-            }
+            int idx = std::distance(needed_globals.begin(), finder);
             std::vector<llvm::Value*> idx_vec = {
             llvm::ConstantInt::get(context, llvm::APInt(32, 0)),
             llvm::ConstantInt::get(context, llvm::APInt(32, idx))};
