@@ -136,10 +136,16 @@ public:
     std::map<uint64_t, llvm::Value*> llvm_symtab; // llvm_symtab_value
     std::map<uint64_t, llvm::Function*> llvm_symtab_fn;
 
-    std::vector<uint64_t> needed_globals;
-    std::map<uint64_t, std::vector<llvm::Type*>> runtime_descriptor;
-    llvm::StructType* needed_global_struct;
-    std::string desc_name; // For tracking the name of the global struct
+    // Data members for handling nested functions
+    std::vector<uint64_t> needed_globals; /* For saving the hash of variables 
+        from a parent scope needed in a nested function */
+    std::map<uint64_t, std::vector<llvm::Type*>> runtime_descriptor; /* For 
+        saving the hash of a parent function needing to give access to 
+        variables in a nested function, as well as the variable types */
+    llvm::StructType* needed_global_struct; /*The struct type that will hold 
+        variables needed in a nested function; will contain types as given in 
+        the runtime descriptor member */
+    std::string desc_name; // For setting the name of the global struct
 
 
     ASRToLLVMVisitor(llvm::LLVMContext &context) : context(context),
@@ -787,16 +793,16 @@ public:
                     !v->m_intent) { 
                     switch (v->m_type->type) {
                         case (ASR::ttypeType::Integer) : {
-                        ASR::Integer_t* v_type = down_cast<ASR::Integer_t>(v->m_type);
-                        type_ = v_type->class_type;
-                        m_dims = v_type->m_dims;
-                        n_dims = v_type->n_dims;
-                        a_kind = v_type->m_kind;
-                        if( n_dims > 0 ) {
-                            type = get_array_type(type_, a_kind, n_dims, m_dims);
-                        } else {
-                            int a_kind = down_cast<ASR::Integer_t>(v->m_type)->m_kind;
-                            type = getIntType(a_kind);
+                            ASR::Integer_t* v_type = down_cast<ASR::Integer_t>(v->m_type);
+                            type_ = v_type->class_type;
+                            m_dims = v_type->m_dims;
+                            n_dims = v_type->n_dims;
+                            a_kind = v_type->m_kind;
+                            if( n_dims > 0 ) {
+                                type = get_array_type(type_, a_kind, n_dims, m_dims);
+                            } else {
+                                int a_kind = down_cast<ASR::Integer_t>(v->m_type)->m_kind;
+                                type = getIntType(a_kind);
                             }
                             break;
                         }
@@ -859,7 +865,7 @@ public:
 
                         auto finder = std::find(needed_globals.begin(), 
                                 needed_globals.end(), h);
-                        if (finder  != needed_globals.end()) {
+                        if (finder != needed_globals.end()) {
                             llvm::Value* ptr = module->getOrInsertGlobal(desc_name, 
                                     needed_global_struct);
                             int idx = std::distance(needed_globals.begin(),
@@ -939,7 +945,7 @@ public:
                 return;
         }
         // Check if the procedure has a nested function that needs access to
-        // some variables in it's local scope
+        // some variables in its local scope
         uint32_t h = get_hash((ASR::asr_t*)&x);
         std::vector<llvm::Type*> nested_type;
         if (runtime_descriptor[h].size() > 0) {
@@ -1036,7 +1042,7 @@ public:
         }
         bool interactive = (x.m_abi == ASR::abiType::Interactive);
         // Check if the procedure has a nested function that needs access to
-        // some variables in it's local scope
+        // some variables in its local scope
         uint32_t h = get_hash((ASR::asr_t*)&x);
         std::vector<llvm::Type*> nested_type;
         if (runtime_descriptor[h].size() > 0) {
