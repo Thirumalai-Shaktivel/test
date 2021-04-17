@@ -150,6 +150,18 @@ expr
     | Name(identifier id, struct_member* member)
     | Logical(bool value)
 
+trivia_node
+-- one comment, without the initial "!". "n" represents whitespace before "!"
+-- relative to the current indentation level
+    = Comment(int n, string comment)
+-- represents "n" consecutive empty lines relative to the default, which is
+-- no empty lines between statements and one empty line between subroutines (it
+-- could be -1)
+    | EmptyLines(int n)
+
+trivia
+    = TriviaNode(trivia_node* before, trivia_node? after)
+
 boolop = And | Or | Eqv | NEqv
 
 operator = Add | Sub | Mul | Div | Pow
