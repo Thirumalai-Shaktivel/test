@@ -778,7 +778,6 @@ public:
 
     template<typename T>
     void declare_vars(const T &x) {
-        std::vector<llvm::Value*> needed_glob_vals;
         llvm::Value *target_var;
         for (auto &item : x.m_symtab->scope) {
             if (is_a<ASR::Variable_t>(*item.second)) {
@@ -860,9 +859,7 @@ public:
                         target_var = ptr;
                         this->visit_expr_wrapper(v->m_value, true);
                         llvm::Value *init_value = tmp;
-                        needed_glob_vals.push_back(tmp);
                         builder->CreateStore(init_value, target_var);
-
                         auto finder = std::find(needed_globals.begin(), 
                                 needed_globals.end(), h);
                         if (finder != needed_globals.end()) {
@@ -870,8 +867,8 @@ public:
                                     needed_global_struct);
                             int idx = std::distance(needed_globals.begin(),
                                     finder);
-                            builder->CreateStore(builder->CreateLoad(target_var), 
-                                    create_gep(ptr, idx));
+                            builder->CreateStore(target_var, create_gep(ptr,
+                                        idx));
                         }
                     }
                 }
@@ -1633,7 +1630,7 @@ public:
             std::vector<llvm::Value*> idx_vec = {
             llvm::ConstantInt::get(context, llvm::APInt(32, 0)),
             llvm::ConstantInt::get(context, llvm::APInt(32, idx))};
-            x_v = builder->CreateGEP(ptr, idx_vec);
+            x_v = builder->CreateLoad(builder->CreateGEP(ptr, idx_vec));
         } else {
             x_v = llvm_symtab[x_h];
         }

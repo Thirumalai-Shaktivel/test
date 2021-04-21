@@ -165,7 +165,7 @@ public:
                     case ASR::ttypeType::Integer: {
                         int a_kind = down_cast<ASR::Integer_t>(v->m_type)->
                             m_kind;
-                        rel_type = getIntType(a_kind);
+                        rel_type = getIntType(a_kind)->getPointerTo();
                         break;
                     }
                     case ASR::ttypeType::Real: {
