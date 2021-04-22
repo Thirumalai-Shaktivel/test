@@ -6,11 +6,13 @@ contains
 subroutine b()
 integer :: x = 6
 print *, "b()"
+print *, x
 call c()
 contains
     subroutine c()
     print *, 5
     print *, x
+    x = 4
     end subroutine c
 end subroutine b
 

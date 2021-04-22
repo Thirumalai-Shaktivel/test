@@ -41,11 +41,11 @@ public:
         needed_globals{needed_globals} { };
     // Basically want to store a hash for each procedure and a hash for the
     // needed global types
-    //std::map<uint64_t, std::vector<llvm::Type*>> runtime_descriptor;
+    //std::map<uint64_t, std::vector<llvm::Type*>> nested_func_types;
     uint32_t cur_func_hash;
     uint32_t par_func_hash;
     std::vector<llvm::Type*> proc_types;
-    std::map<uint64_t, std::vector<llvm::Type*>> runtime_descriptor;
+    std::map<uint64_t, std::vector<llvm::Type*>> nested_func_types;
 
     inline llvm::Type* getIntType(int a_kind, bool get_pointer=false) {
         llvm::Type* type_ptr = nullptr;
@@ -127,7 +127,7 @@ public:
             }
         } else {
             std::vector<llvm::Type*> proc_types_i;
-            runtime_descriptor.insert({cur_func_hash, proc_types_i});
+            nested_func_types.insert({cur_func_hash, proc_types_i});
             current_scope = x.m_symtab;
             for (size_t i = 0; i < x.n_body; i++) {
                 visit_stmt(*x.m_body[i]);
@@ -170,7 +170,7 @@ public:
                     }
                     case ASR::ttypeType::Real: {
                         int a_kind = down_cast<ASR::Real_t>(v->m_type)->m_kind;
-                        rel_type = getFPType(a_kind);
+                        rel_type = getFPType(a_kind)->getPointerTo();
                         break;
                     }
                     default: {
@@ -180,7 +180,7 @@ public:
                     }
                 }
                 proc_types.push_back(rel_type);
-                runtime_descriptor[par_func_hash].push_back(rel_type);
+                nested_func_types[par_func_hash].push_back(rel_type);
             }
         }
     }
@@ -194,7 +194,7 @@ std::map<uint64_t, std::vector<llvm::Type*>> pass_find_nested_vars(
     NestedVarVisitor v(context, needed_globals);
     v.visit_TranslationUnit(unit);
     LFORTRAN_ASSERT(asr_verify(unit));
-    return v.runtime_descriptor;
+    return v.nested_func_types;
 }
 
 

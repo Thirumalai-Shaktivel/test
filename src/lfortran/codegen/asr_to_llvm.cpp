@@ -139,7 +139,7 @@ public:
     // Data members for handling nested functions
     std::vector<uint64_t> needed_globals; /* For saving the hash of variables 
         from a parent scope needed in a nested function */
-    std::map<uint64_t, std::vector<llvm::Type*>> runtime_descriptor; /* For 
+    std::map<uint64_t, std::vector<llvm::Type*>> nested_func_types; /* For 
         saving the hash of a parent function needing to give access to 
         variables in a nested function, as well as the variable types */
     llvm::StructType* needed_global_struct; /*The struct type that will hold 
@@ -945,12 +945,12 @@ public:
         // some variables in its local scope
         uint32_t h = get_hash((ASR::asr_t*)&x);
         std::vector<llvm::Type*> nested_type;
-        if (runtime_descriptor[h].size() > 0) {
-            nested_type = runtime_descriptor[h];
+        if (nested_func_types[h].size() > 0) {
+            nested_type = nested_func_types[h];
             needed_global_struct = llvm::StructType::create(
                 context, nested_type, x.m_name);
             desc_name = x.m_name;
-            std::string desc_string = "_rtd";
+            std::string desc_string = "_nstd_strct";
             desc_name += desc_string;
             module->getOrInsertGlobal(desc_name, needed_global_struct);
             llvm::ConstantAggregateZero* initializer = 
@@ -1042,12 +1042,12 @@ public:
         // some variables in its local scope
         uint32_t h = get_hash((ASR::asr_t*)&x);
         std::vector<llvm::Type*> nested_type;
-        if (runtime_descriptor[h].size() > 0) {
-            nested_type = runtime_descriptor[h];
+        if (nested_func_types[h].size() > 0) {
+            nested_type = nested_func_types[h];
             needed_global_struct = llvm::StructType::create(
                 context, nested_type, x.m_name);
             desc_name = x.m_name;
-            std::string desc_string = "_rtd";
+            std::string desc_string = "_nstd_strct";
             desc_name += desc_string;
             module->getOrInsertGlobal(desc_name, needed_global_struct);
             llvm::ConstantAggregateZero* initializer = 
@@ -1141,7 +1141,6 @@ public:
         this->visit_expr_wrapper(x.m_value, true);
         value = tmp;
         builder->CreateStore(value, target);
-
         auto finder = std::find(needed_globals.begin(), 
                 needed_globals.end(), h);
         if (finder != needed_globals.end()) {
@@ -1149,8 +1148,7 @@ public:
                     needed_global_struct);
             int idx = std::distance(needed_globals.begin(),
                     finder);
-            builder->CreateStore(builder->CreateLoad(target), 
-                    create_gep(ptr, idx));
+            builder->CreateStore(target, create_gep(ptr, idx));
         }
     }
 
@@ -2157,7 +2155,7 @@ std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
 
     pass_replace_do_loops(al, asr);
     pass_replace_select_case(al, asr);
-    v.runtime_descriptor = pass_find_nested_vars(asr, context, 
+    v.nested_func_types = pass_find_nested_vars(asr, context, 
             v.needed_globals);
     v.visit_asr((ASR::asr_t&)asr);
     std::string msg;
