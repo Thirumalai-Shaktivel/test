@@ -1,4 +1,4 @@
-module nested_03_a
+module nested_05_a
 implicit none
 
 contains
@@ -16,8 +16,8 @@ end subroutine b
 
 end module
 
-program nested_03
-use nested_03_a, only: b
+program nested_05
+use nested_05_a, only: b
 implicit none
 
 call b()
