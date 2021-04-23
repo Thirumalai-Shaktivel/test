@@ -1,7 +1,7 @@
 ; ModuleID = 'LFortran'
 source_filename = "LFortran"
 
-%b = type { i32*, float*, i32*, float* }
+%b = type { i32*, float* }
 
 @b_nstd_strct = global %b zeroinitializer
 @0 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1

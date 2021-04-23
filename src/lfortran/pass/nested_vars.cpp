@@ -17,7 +17,6 @@ need access to variables from an outer scope. Such variables get hashed
 and later compared to variable declarations while emitting IR. If we get a 
 hash match, that variable is placed in a global struct where it can be accessed
 from the inner scope
-TODO: Always use pointer to objects instead of storing the whole objects.
 
 */
 
@@ -158,29 +157,33 @@ public:
                         current_scope->scope.end()) {
                 uint32_t h = get_hash((ASR::asr_t*)v);
                 llvm::Type* rel_type;
-                needed_globals.push_back(h);
-                //llvm::Type* rel_type;
-                switch(v->m_type->type){
-                    // TODO: Store as pointers ->getPointerTo()
-                    case ASR::ttypeType::Integer: {
-                        int a_kind = down_cast<ASR::Integer_t>(v->m_type)->
-                            m_kind;
-                        rel_type = getIntType(a_kind)->getPointerTo();
-                        break;
+                auto finder = std::find(needed_globals.begin(), 
+                        needed_globals.end(), h);
+
+                if (finder == needed_globals.end()) {
+                    needed_globals.push_back(h);
+                    switch(v->m_type->type){
+                        case ASR::ttypeType::Integer: {
+                            int a_kind = down_cast<ASR::Integer_t>(v->m_type)->
+                                m_kind;
+                            rel_type = getIntType(a_kind)->getPointerTo();
+                            break;
+                        }
+                        case ASR::ttypeType::Real: {
+                            int a_kind = down_cast<ASR::Real_t>(v->m_type)->
+                                m_kind;
+                            rel_type = getFPType(a_kind)->getPointerTo();
+                            break;
+                        }
+                        default: {
+                                throw CodeGenError("Variable type not \
+                                        supported in nested functions");
+                            break;
+                        }
                     }
-                    case ASR::ttypeType::Real: {
-                        int a_kind = down_cast<ASR::Real_t>(v->m_type)->m_kind;
-                        rel_type = getFPType(a_kind)->getPointerTo();
-                        break;
-                    }
-                    default: {
-                            throw CodeGenError("Variable type not supported \
-                                    in nested function");
-                        break;
-                    }
+                    proc_types.push_back(rel_type);
+                    nested_func_types[par_func_hash].push_back(rel_type);
                 }
-                proc_types.push_back(rel_type);
-                nested_func_types[par_func_hash].push_back(rel_type);
             }
         }
     }
