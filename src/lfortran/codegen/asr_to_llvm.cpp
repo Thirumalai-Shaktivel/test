@@ -1138,20 +1138,19 @@ public:
                         break;
                     }
                 }
+                
+            } else {
+                /* Target for assignment not in the symbol table - must be
+                assigning to an outer scope from a nested function - see 
+                nested_05.f90 */
+                auto finder = std::find(needed_globals.begin(), 
+                        needed_globals.end(), h);
+                LFORTRAN_ASSERT(finder != needed_globals.end());
+                llvm::Value* ptr = module->getOrInsertGlobal(desc_name,
+                    needed_global_struct);
+                int idx = std::distance(needed_globals.begin(), finder);
+                target = builder->CreateLoad(create_gep(ptr, idx));
             }
-        }
-        if (llvm_symtab.find(h) == llvm_symtab.end()) {
-            LFORTRAN_ASSERT(std::find(needed_globals.begin(), 
-                    needed_globals.end(), h) != needed_globals.end());
-            auto finder = std::find(needed_globals.begin(), 
-                    needed_globals.end(), h);
-            llvm::Constant *ptr = module->getOrInsertGlobal(desc_name,
-                needed_global_struct);
-            int idx = std::distance(needed_globals.begin(), finder);
-            std::vector<llvm::Value*> idx_vec = {
-            llvm::ConstantInt::get(context, llvm::APInt(32, 0)),
-            llvm::ConstantInt::get(context, llvm::APInt(32, idx))};
-            target = builder->CreateLoad(builder->CreateGEP(ptr, idx_vec));
         }
         this->visit_expr_wrapper(x.m_value, true);
         value = tmp;
@@ -1159,10 +1158,12 @@ public:
         auto finder = std::find(needed_globals.begin(), 
                 needed_globals.end(), h);
         if (finder != needed_globals.end()) {
+            /* Target for assignment could be in the symbol table - and we are
+            assigning to a variable needed in a nested function - see 
+            nested_04.f90 */
             llvm::Value* ptr = module->getOrInsertGlobal(desc_name, 
                     needed_global_struct);
-            int idx = std::distance(needed_globals.begin(),
-                    finder);
+            int idx = std::distance(needed_globals.begin(), finder);
             builder->CreateStore(target, create_gep(ptr, idx));
         }
     }

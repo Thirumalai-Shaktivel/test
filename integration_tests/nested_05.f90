@@ -5,13 +5,18 @@ contains
 
 subroutine b()
 integer :: x = 6
+real :: y = 5.5
 print *, x
+print *, y
 call c()
 print *, x
+print *, y
 contains
     subroutine c()
     print *, x
+    print *, y
     x = 4
+    y = 3.5
     end subroutine c
 end subroutine b
 
