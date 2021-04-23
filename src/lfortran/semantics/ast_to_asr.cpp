@@ -2383,12 +2383,17 @@ public:
         if (!v) {
             throw SemanticError("Variable '" + dt_name + "' not declared", loc);
         }
-        if (ASR::is_a<ASR::DerivedType_t>(*v)) {
-            throw SemanticError("DerivedType variable '" + dt_name + "%"
-                + var_name + "' access is not implemented yet", loc);
-            //return ASR::make_Var_t(al, loc, v);
+        const ASR::symbol_t *s = symbol_get_past_external(v);
+        if (ASR::is_a<ASR::Variable_t>(*s)) {
+            ASR::Variable_t *v2 = ASR::down_cast<ASR::Variable_t>(s);
+            if (ASR::is_a<ASR::Derived_t>(*v2->m_type)) {
+                // TODO: Specify the derived type here (must extend ASR for that)
+                return ASR::make_Var_t(al, loc, v);
+            } else {
+                throw SemanticError("Variable '" + dt_name + "' is not a derived type", loc);
+            }
         } else {
-            throw SemanticError("Variable '" + dt_name + "' is not a derived type", loc);
+            throw SemanticError("Symbol '" + dt_name + "' is not a variable", loc);
         }
     }
 
