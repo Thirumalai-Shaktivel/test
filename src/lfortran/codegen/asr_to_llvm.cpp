@@ -1122,21 +1122,36 @@ public:
         } else {
             ASR::Variable_t *asr_target = EXPR2VAR(x.m_target);
             h = get_hash((ASR::asr_t*)asr_target);
-            switch( asr_target->m_type->type ) {
-                case ASR::ttypeType::IntegerPointer:
-                case ASR::ttypeType::RealPointer:
-                case ASR::ttypeType::ComplexPointer:
-                case ASR::ttypeType::CharacterPointer:
-                case ASR::ttypeType::LogicalPointer:
-                case ASR::ttypeType::DerivedPointer: {
-                    target = builder->CreateLoad(llvm_symtab[h]);
-                    break;
-                }
-                default: {
-                    target = llvm_symtab[h];
-                    break;
+            if (llvm_symtab.find(h) != llvm_symtab.end()) {
+                switch( asr_target->m_type->type ) {
+                    case ASR::ttypeType::IntegerPointer:
+                    case ASR::ttypeType::RealPointer:
+                    case ASR::ttypeType::ComplexPointer:
+                    case ASR::ttypeType::CharacterPointer:
+                    case ASR::ttypeType::LogicalPointer:
+                    case ASR::ttypeType::DerivedPointer: {
+                        target = builder->CreateLoad(llvm_symtab[h]);
+                        break;
+                    }
+                    default: {
+                        target = llvm_symtab[h];
+                        break;
+                    }
                 }
             }
+        }
+        if (llvm_symtab.find(h) == llvm_symtab.end()) {
+            LFORTRAN_ASSERT(std::find(needed_globals.begin(), 
+                    needed_globals.end(), h) != needed_globals.end());
+            auto finder = std::find(needed_globals.begin(), 
+                    needed_globals.end(), h);
+            llvm::Constant *ptr = module->getOrInsertGlobal(desc_name,
+                needed_global_struct);
+            int idx = std::distance(needed_globals.begin(), finder);
+            std::vector<llvm::Value*> idx_vec = {
+            llvm::ConstantInt::get(context, llvm::APInt(32, 0)),
+            llvm::ConstantInt::get(context, llvm::APInt(32, idx))};
+            target = builder->CreateLoad(builder->CreateGEP(ptr, idx_vec));
         }
         this->visit_expr_wrapper(x.m_value, true);
         value = tmp;
