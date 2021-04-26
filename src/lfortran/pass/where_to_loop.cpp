@@ -26,19 +26,18 @@ Converts:
 
 to:
 
-    i0 = 0
-    do while (i0 <= size(a))
+    do i0 = 1, size(a)
         if (a(i0) >= 0) then
             b(i0) = 1
         else
             b(i0) = 0
-        i0 = i0 + 1
     end do
 
 */
 
 Vec<ASR::stmt_t*> replace_where(Allocator &al, const ASR::Where_t &where) {
-   
+    Vec<ASR::stmt_t*> loop;
+    
     /*
     std::cout << "Input:" << std::endl;
     std::cout << pickle((ASR::asr_t&)loop);
