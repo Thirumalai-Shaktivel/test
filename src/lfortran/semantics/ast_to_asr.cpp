@@ -2182,6 +2182,25 @@ public:
         tmp = nullptr;
     }
 
+    void visit_Where(const AST::Where_t& x) {
+        this->visit_expr(*x.m_test);
+        ASR::expr_t* a_test = EXPR(tmp);
+        Vec<ASR::stmt_t*> a_body_vec;
+        a_body_vec.reserve(al, x.n_body);
+        for( std::uint64_t i = 0; i < x.n_body; i++ ) {
+            this->visit_stmt(*x.m_body[i]);
+            a_body_vec.push_back(al, STMT(tmp));
+        }
+        Vec<ASR::stmt_t*> a_orelse_vec;
+        a_orelse_vec.reserve(al, x.n_orelse);
+        for( std::uint64_t i = 0; i < x.n_orelse; i++ ) {
+            this->visit_stmt(*x.m_orelse[i]);
+            a_orelse_vec.push_back(al, STMT(tmp));
+        }
+        tmp = ASR::make_Where_t(al, x.base.base.loc, a_test, a_body_vec.p, 
+                                a_body_vec.size(), a_orelse_vec.p, a_orelse_vec.size());
+    }
+
     void visit_Assignment(const AST::Assignment_t &x) {
         this->visit_expr(*x.m_target);
         ASR::expr_t *target = EXPR(tmp);
