@@ -45,6 +45,7 @@
 #include <lfortran/pass/select_case.h>
 #include <lfortran/pass/global_stmts.h>
 #include <lfortran/pass/param_to_const.h>
+#include <lfortran/pass/where_to_loop.h>
 #include <lfortran/pass/nested_vars.h>
 #include <lfortran/exception.h>
 #include <lfortran/asr_utils.h>
@@ -2171,6 +2172,7 @@ std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
 
     pass_replace_do_loops(al, asr);
     pass_replace_select_case(al, asr);
+    pass_replace_where_to_loop(al, asr);
     v.nested_func_types = pass_find_nested_vars(asr, context, 
             v.needed_globals);
     v.visit_asr((ASR::asr_t&)asr);
