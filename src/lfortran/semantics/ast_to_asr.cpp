@@ -613,7 +613,15 @@ std::map<std::string, std::string> intrinsic_procedures = {
         {"selected_real_kind", "lfortran_intrinsic_kind"},
         {"size", "lfortran_intrinsic_array"},
         {"lbound", "lfortran_intrinsic_array"},
-        {"ubound", "lfortran_intrinsic_array"}
+        {"ubound", "lfortran_intrinsic_array"},
+        {"allocated", "lfortran_intrinsic_array"},
+        {"real", "lfortran_intrinsic_array"},
+        {"sum", "lfortran_intrinsic_array"},
+        {"max", "lfortran_intrinsic_array"},
+        {"min", "lfortran_intrinsic_array"},
+        {"abs", "lfortran_intrinsic_array"},
+        {"maxval", "lfortran_intrinsic_array"},
+        {"minval", "lfortran_intrinsic_array"}
     };
 
 class SymbolTableVisitor : public AST::BaseVisitor<SymbolTableVisitor>
@@ -2162,6 +2170,7 @@ public:
         Vec<ASR::expr_t*> asr_list;
         asr_list.reserve(al, n);
         for (size_t i=0; i<n; i++) {
+            LFORTRAN_ASSERT(ast_list[i].m_end != nullptr);
             visit_expr(*ast_list[i].m_end);
             ASR::expr_t *expr = EXPR(tmp);
             asr_list.push_back(al, expr);
