@@ -2226,24 +2226,32 @@ public:
                         symbol_get_past_external(ASR::down_cast<ASR::Var_t>(
                         x.m_args[i])->m_v));
                     uint32_t h = get_hash((ASR::asr_t*)fn);
+                    /*
                     if (interface_procs.find(fn->m_name) == 
                             interface_procs.end()) {
+                            */
                         tmp = llvm_symtab_fn[h];
+                        /*
                     } else {
                         tmp = llvm_symtab_fn[interface_procs[fn->m_name]];
                     }
+                    */
                 } else if (is_a<ASR::Subroutine_t>(*symbol_get_past_external(
                     ASR::down_cast<ASR::Var_t>(x.m_args[i])->m_v))) {
                     ASR::Subroutine_t* fn = ASR::down_cast<ASR::Subroutine_t>(
                         symbol_get_past_external(ASR::down_cast<ASR::Var_t>(
                         x.m_args[i])->m_v));
                     uint32_t h = get_hash((ASR::asr_t*)fn);
+                    /*
                     if (interface_procs.find(fn->m_name) == 
                             interface_procs.end()) {
+                            */
                         tmp = llvm_symtab_fn[h];
+                        /*
                     } else {
                         tmp = llvm_symtab_fn[interface_procs[fn->m_name]];
                     }
+                    */
                 }
             } else {
                 this->visit_expr_wrapper(x.m_args[i]);
