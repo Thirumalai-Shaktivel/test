@@ -192,7 +192,7 @@ real, dimension(10000) :: a, b, c
 real :: scalar
 integer :: i, nsize
 scalar = 10
-nsize = size(a)
+!nsize = size(a)
 do concurrent (i = 1:nsize)
     a(i) = 5
     b(i) = 5
@@ -206,7 +206,7 @@ contains
     real, intent(in) :: a(:), b(:), scalar
     real, intent(out) :: c(:)
     integer :: N, i
-    N = size(a)
+    !N = size(a)
     do concurrent (i = 1:N)
         c(i) = a(i) + scalar * b(i)
     end do
