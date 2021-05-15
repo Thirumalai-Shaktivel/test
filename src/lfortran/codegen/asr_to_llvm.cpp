@@ -154,11 +154,6 @@ public:
         the runtime descriptor member */
     std::string desc_name; // For setting the name of the global struct
 
-    // Data members for callback functions/procedures as arguments
-    std::map<std::string, uint64_t> interface_procs; /* Links a procedure
-         implementation to it's string name for adding to the BB */
-
-
     ASRToLLVMVisitor(llvm::LLVMContext &context) : context(context),
         prototype_only(false), dim_des(llvm::StructType::create(
             context, 
@@ -1110,11 +1105,6 @@ public:
                 llvm::ConstantAggregateZero::get(needed_global_struct);
             module->getNamedGlobal(desc_name)->setInitializer(initializer);
         }
-        // Check if the procedure is an interface - if so we will need to add 
-        // onto the basic block when we get to the implementation later
-        if (x.m_deftype == ASR::Interface) {
-            interface_procs[x.m_name] = h;
-        }
         visit_procedures(x);
         bool interactive = (x.m_abi == ASR::abiType::Interactive);
         llvm::Function *F = nullptr;
@@ -1167,35 +1157,27 @@ public:
 
         if (x.m_deftype == ASR::deftypeType::Implementation) {
 
-        if (interactive) return;
+            if (interactive) return;
 
-        if (!prototype_only) {
-            llvm::BasicBlock *BB = llvm::BasicBlock::Create(context,
-                    ".entry", F);
-            builder->SetInsertPoint(BB);
+            if (!prototype_only) {
+                llvm::BasicBlock *BB = llvm::BasicBlock::Create(context,
+                        ".entry", F);
+                builder->SetInsertPoint(BB);
 
-            declare_args(x, *F);
+                declare_args(x, *F);
 
-            if (x.m_deftype == ASR::Implementation) {
-                // If we declare local vars in a function interface, we will
-                // allocate the return variable twice (assume we don't need to
-                // do anything with local vars for interfaces for now)
                 declare_local_vars(x);
-            }
 
-            for (size_t i=0; i<x.n_body; i++) {
-                this->visit_stmt(*x.m_body[i]);
-            }
-            ASR::Variable_t *asr_retval = EXPR2VAR(x.m_return_var);
-            uint32_t h = get_hash((ASR::asr_t*)asr_retval);
+                for (size_t i=0; i<x.n_body; i++) {
+                    this->visit_stmt(*x.m_body[i]);
+                }
+                ASR::Variable_t *asr_retval = EXPR2VAR(x.m_return_var);
+                uint32_t h = get_hash((ASR::asr_t*)asr_retval);
 
-            // Only create return value if this is an implementation
-            if (x.m_deftype == ASR::Implementation) {
                 llvm::Value *ret_val = llvm_symtab[h];
                 llvm::Value *ret_val2 = builder->CreateLoad(ret_val);
                 builder->CreateRet(ret_val2);
             }
-        }
         }
     }
 
@@ -1222,11 +1204,6 @@ public:
                 llvm::ConstantAggregateZero::get(needed_global_struct);
             module->getNamedGlobal(desc_name)->setInitializer(initializer);
         }
-        // Check if the procedure is an interface - if so we will need to add 
-        // onto the basic block when we get to the implementation later
-        if (x.m_deftype == ASR::Interface) {
-            interface_procs[x.m_name] = h;
-        }
         visit_procedures(x);
         llvm::Function *F = nullptr;
         if (llvm_symtab_fn.find(h) != llvm_symtab_fn.end()) {
@@ -1246,31 +1223,23 @@ public:
 
         if (x.m_deftype == ASR::deftypeType::Implementation) {
 
-        if (interactive) return;
+            if (interactive) return;
 
-        if (!prototype_only) {
-            llvm::BasicBlock *BB = llvm::BasicBlock::Create(context,
-                    ".entry", F);
-            builder->SetInsertPoint(BB);
+            if (!prototype_only) {
+                llvm::BasicBlock *BB = llvm::BasicBlock::Create(context,
+                        ".entry", F);
+                builder->SetInsertPoint(BB);
 
-            declare_args(x, *F);
+                declare_args(x, *F);
 
-            if (x.m_deftype == ASR::Implementation) {
-                // Declaring local variables in a subroutine is not quite the
-                // same as a function as we are not definitely allocating the
-                // return value twice, but assume we don't need this for
-                // interfaces for now (same as function)
                 declare_local_vars(x);
-            }
 
-            for (size_t i=0; i<x.n_body; i++) {
-                this->visit_stmt(*x.m_body[i]);
-            }
-            // Only create return value if this is an implementation
-            if (x.m_deftype == ASR::Implementation) {
+                for (size_t i=0; i<x.n_body; i++) {
+                    this->visit_stmt(*x.m_body[i]);
+                }
+
                 builder->CreateRetVoid();
             }
-        }
         }
     }
 
@@ -2226,32 +2195,14 @@ public:
                         symbol_get_past_external(ASR::down_cast<ASR::Var_t>(
                         x.m_args[i])->m_v));
                     uint32_t h = get_hash((ASR::asr_t*)fn);
-                    /*
-                    if (interface_procs.find(fn->m_name) == 
-                            interface_procs.end()) {
-                            */
-                        tmp = llvm_symtab_fn[h];
-                        /*
-                    } else {
-                        tmp = llvm_symtab_fn[interface_procs[fn->m_name]];
-                    }
-                    */
+                    tmp = llvm_symtab_fn[h];
                 } else if (is_a<ASR::Subroutine_t>(*symbol_get_past_external(
                     ASR::down_cast<ASR::Var_t>(x.m_args[i])->m_v))) {
                     ASR::Subroutine_t* fn = ASR::down_cast<ASR::Subroutine_t>(
                         symbol_get_past_external(ASR::down_cast<ASR::Var_t>(
                         x.m_args[i])->m_v));
                     uint32_t h = get_hash((ASR::asr_t*)fn);
-                    /*
-                    if (interface_procs.find(fn->m_name) == 
-                            interface_procs.end()) {
-                            */
-                        tmp = llvm_symtab_fn[h];
-                        /*
-                    } else {
-                        tmp = llvm_symtab_fn[interface_procs[fn->m_name]];
-                    }
-                    */
+                    tmp = llvm_symtab_fn[h];
                 }
             } else {
                 this->visit_expr_wrapper(x.m_args[i]);
