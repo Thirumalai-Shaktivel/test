@@ -16,23 +16,6 @@ interface
     integer, intent(in) :: dim
     end function
 
-    logical function allocated(x) result(r)
-    real(8), intent(in) :: x(:)
-    end function
-
-    real(8) function real(x, knd) result(r)
-    integer, intent(in) :: x
-    integer, intent(in) :: knd
-    end function
-
-    real(8) function sum(x) result(r)
-    real(8), intent(in) :: x(:)
-    end function
-
-    real(8) function abs(x) result(r)
-    real(8), intent(in) :: x(:)
-    end function
-
     integer function maxval(x) result(r)
     real(8), intent(in) :: x(:)
     end function
