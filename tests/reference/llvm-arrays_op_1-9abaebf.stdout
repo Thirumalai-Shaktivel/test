@@ -16,21 +16,9 @@ source_filename = "LFortran"
 @5 = private unnamed_addr constant [13 x i8] c"%f %f %f %f\0A\00", align 1
 @6 = private unnamed_addr constant [13 x i8] c"%f %f %f %f\0A\00", align 1
 
-define double @__module_lfortran_intrinsic_array_abs(%array* %x) {
-.entry:
-  %r = alloca double, align 8
-  store double 0.000000e+00, double* %r, align 8
-  %0 = load double, double* %r, align 8
-  ret double %0
-}
+declare double @__module_lfortran_intrinsic_array_abs(%array*)
 
-define i1 @__module_lfortran_intrinsic_array_allocated(%array %x) {
-.entry:
-  %r = alloca i1, align 1
-  store i1 true, i1* %r, align 1
-  %0 = load i1, i1* %r, align 1
-  ret i1 %0
-}
+declare i1 @__module_lfortran_intrinsic_array_allocated(%array)
 
 define i32 @__module_lfortran_intrinsic_array_lbound(%dimension_descriptor** %x, i32* %dim) {
 .entry:
@@ -46,45 +34,15 @@ define i32 @__module_lfortran_intrinsic_array_lbound(%dimension_descriptor** %x,
   ret i32 %6
 }
 
-define i32 @__module_lfortran_intrinsic_array_max(i32* %a, i32* %b) {
-.entry:
-  %r = alloca i32, align 4
-  store i32 0, i32* %r, align 4
-  %0 = load i32, i32* %r, align 4
-  ret i32 %0
-}
+declare i32 @__module_lfortran_intrinsic_array_max(i32*, i32*)
 
-define i32 @__module_lfortran_intrinsic_array_maxval(%array %x) {
-.entry:
-  %r = alloca i32, align 4
-  store i32 0, i32* %r, align 4
-  %0 = load i32, i32* %r, align 4
-  ret i32 %0
-}
+declare i32 @__module_lfortran_intrinsic_array_maxval(%array)
 
-define i32 @__module_lfortran_intrinsic_array_min(i32* %a, i32* %b) {
-.entry:
-  %r = alloca i32, align 4
-  store i32 0, i32* %r, align 4
-  %0 = load i32, i32* %r, align 4
-  ret i32 %0
-}
+declare i32 @__module_lfortran_intrinsic_array_min(i32*, i32*)
 
-define i32 @__module_lfortran_intrinsic_array_minval(%array %x) {
-.entry:
-  %r = alloca i32, align 4
-  store i32 0, i32* %r, align 4
-  %0 = load i32, i32* %r, align 4
-  ret i32 %0
-}
+declare i32 @__module_lfortran_intrinsic_array_minval(%array)
 
-define double @__module_lfortran_intrinsic_array_real(i32* %x, i32* %knd) {
-.entry:
-  %r = alloca double, align 8
-  store double 0.000000e+00, double* %r, align 8
-  %0 = load double, double* %r, align 8
-  ret double %0
-}
+declare double @__module_lfortran_intrinsic_array_real(i32*, i32*)
 
 define i32 @__module_lfortran_intrinsic_array_size(%size_arg* %x) {
 .entry:
@@ -120,13 +78,7 @@ loop.end:                                         ; preds = %loop.head
   ret i32 %14
 }
 
-define double @__module_lfortran_intrinsic_array_sum(%array %x) {
-.entry:
-  %r = alloca double, align 8
-  store double 0.000000e+00, double* %r, align 8
-  %0 = load double, double* %r, align 8
-  ret double %0
-}
+declare double @__module_lfortran_intrinsic_array_sum(%array)
 
 define i32 @__module_lfortran_intrinsic_array_ubound(%dimension_descriptor** %x, i32* %dim) {
 .entry:
