@@ -25,15 +25,15 @@ interface
     end function
 
     logical function allocated(x) result(r)
-    real(8), intent(in) :: x(:)
+    integer, intent(in) :: x(:)
     end function
 
-    real(8) function sum(x) result(r)
-    real(8), intent(in) :: x(:)
+    integer function sum(x) result(r)
+    integer, intent(in) :: x(:)
     end function
 
-    real(8) function abs(x) result(r)
-    real(8), intent(in) :: x(:)
+    integer function abs(x) result(r)
+    integer, intent(in) :: x(:)
     end function
 end interface
 
