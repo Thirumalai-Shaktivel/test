@@ -12,18 +12,6 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
     return r;
 }
 
-float abs(const Kokkos::View<const float*> &x)
-{
-    float r;
-    return r;
-}
-
-bool allocated(const Kokkos::View<const float*> &x)
-{
-    bool r;
-    return r;
-}
-
 int lbound(const Kokkos::View<const int*> &x, int dim)
 {
     int r;
@@ -51,18 +39,6 @@ int min(int a, int b)
 int minval(const Kokkos::View<const float*> &x)
 {
     int r;
-    return r;
-}
-
-float real(int x, int knd)
-{
-    float r;
-    return r;
-}
-
-float sum(const Kokkos::View<const float*> &x)
-{
-    float r;
     return r;
 }
 

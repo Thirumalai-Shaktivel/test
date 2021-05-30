@@ -1,8 +1,8 @@
 ; ModuleID = 'LFortran'
 source_filename = "LFortran"
 
-%array = type { [0 x double], i32, [1 x %dimension_descriptor] }
 %dimension_descriptor = type { i32, i32, i32, i32 }
+%array.0 = type { [0 x double], i32, [1 x %dimension_descriptor] }
 %size_arg = type { %dimension_descriptor*, i32 }
 %array.1 = type { [3 x i32], i32, [1 x %dimension_descriptor] }
 %array.2 = type { [4 x i32], i32, [1 x %dimension_descriptor] }
@@ -20,10 +20,6 @@ source_filename = "LFortran"
 @10 = private unnamed_addr constant [12 x i8] c"ERROR STOP\0A\00", align 1
 @11 = private unnamed_addr constant [12 x i8] c"ERROR STOP\0A\00", align 1
 
-declare double @__module_lfortran_intrinsic_array_abs(%array*)
-
-declare i1 @__module_lfortran_intrinsic_array_allocated(%array)
-
 define i32 @__module_lfortran_intrinsic_array_lbound(%dimension_descriptor** %x, i32* %dim) {
 .entry:
   %r = alloca i32, align 4
@@ -40,13 +36,11 @@ define i32 @__module_lfortran_intrinsic_array_lbound(%dimension_descriptor** %x,
 
 declare i32 @__module_lfortran_intrinsic_array_max(i32*, i32*)
 
-declare i32 @__module_lfortran_intrinsic_array_maxval(%array)
+declare i32 @__module_lfortran_intrinsic_array_maxval(%array.0*)
 
 declare i32 @__module_lfortran_intrinsic_array_min(i32*, i32*)
 
-declare i32 @__module_lfortran_intrinsic_array_minval(%array)
-
-declare double @__module_lfortran_intrinsic_array_real(i32*, i32*)
+declare i32 @__module_lfortran_intrinsic_array_minval(%array.0)
 
 define i32 @__module_lfortran_intrinsic_array_size(%size_arg* %x) {
 .entry:
@@ -81,8 +75,6 @@ loop.end:                                         ; preds = %loop.head
   %14 = load i32, i32* %r, align 4
   ret i32 %14
 }
-
-declare double @__module_lfortran_intrinsic_array_sum(%array)
 
 define i32 @__module_lfortran_intrinsic_array_ubound(%dimension_descriptor** %x, i32* %dim) {
 .entry:
