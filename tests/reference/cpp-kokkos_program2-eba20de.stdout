@@ -12,12 +12,6 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
     return r;
 }
 
-int abs(const Kokkos::View<const int*> &x)
-{
-    int r;
-    return r;
-}
-
 bool allocated(const Kokkos::View<const int*> &x)
 {
     bool r;
@@ -37,12 +31,6 @@ int max(int a, int b)
 }
 
 int min(int a, int b)
-{
-    int r;
-    return r;
-}
-
-int sum(const Kokkos::View<const int*> &x)
 {
     int r;
     return r;

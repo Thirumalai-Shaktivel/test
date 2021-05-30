@@ -18,9 +18,7 @@ source_filename = "LFortran"
 @6 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1
 @7 = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1
 
-declare i32 @__module_lfortran_intrinsic_array_abs(%array*)
-
-declare i1 @__module_lfortran_intrinsic_array_allocated(%array)
+declare i1 @__module_lfortran_intrinsic_array_allocated(%array*)
 
 define i32 @__module_lfortran_intrinsic_array_lbound(%dimension_descriptor** %x, i32* %dim) {
 .entry:
@@ -73,8 +71,6 @@ loop.end:                                         ; preds = %loop.head
   %14 = load i32, i32* %r, align 4
   ret i32 %14
 }
-
-declare i32 @__module_lfortran_intrinsic_array_sum(%array)
 
 define i32 @__module_lfortran_intrinsic_array_ubound(%dimension_descriptor** %x, i32* %dim) {
 .entry:
