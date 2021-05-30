@@ -27,14 +27,6 @@ interface
     logical function allocated(x) result(r)
     integer, intent(in) :: x(:)
     end function
-
-    integer function sum(x) result(r)
-    integer, intent(in) :: x(:)
-    end function
-
-    integer function abs(x) result(r)
-    integer, intent(in) :: x(:)
-    end function
 end interface
 
 end module
