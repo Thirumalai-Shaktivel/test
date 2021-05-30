@@ -16,14 +16,6 @@ interface
     integer, intent(in) :: dim
     end function
 
-    integer function maxval(x) result(r)
-    real(8), intent(in) :: x(:)
-    end function
-
-    integer function minval(x) result(r)
-    real(8), intent(in) :: x(:)
-    end function
-
     integer function max(a, b) result(r)
     integer, intent(in) :: a, b
     end function
