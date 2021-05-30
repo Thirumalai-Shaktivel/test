@@ -24,19 +24,7 @@ int max(int a, int b)
     return r;
 }
 
-int maxval(const Kokkos::View<const float*> &x)
-{
-    int r;
-    return r;
-}
-
 int min(int a, int b)
-{
-    int r;
-    return r;
-}
-
-int minval(const Kokkos::View<const float*> &x)
 {
     int r;
     return r;
