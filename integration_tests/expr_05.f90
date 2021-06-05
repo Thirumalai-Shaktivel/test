@@ -46,4 +46,7 @@ x = a+(2+3+4)
 x = 2*a+a*b-(a*b+2*a)
 x = 2*a+a*b-(a*b-2*a)
 x = a-(b-(c-1))
+
+x = -(3+5)
+x = -(a+5)
 end program
