@@ -42,6 +42,18 @@ static inline ASR::Variable_t* EXPR2VAR(const ASR::expr_t *f)
                 ASR::down_cast<ASR::Var_t>(f)->m_v));
 }
 
+static inline ASR::Function_t* EXPR2FUN(const ASR::expr_t *f)
+{
+    return ASR::down_cast<ASR::Function_t>(symbol_get_past_external(
+                ASR::down_cast<ASR::Var_t>(f)->m_v));
+}
+
+static inline ASR::Subroutine_t* EXPR2SUB(const ASR::expr_t *f)
+{
+    return ASR::down_cast<ASR::Subroutine_t>(symbol_get_past_external(
+                ASR::down_cast<ASR::Var_t>(f)->m_v));
+}
+
 
 static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
 {
@@ -52,6 +64,7 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
         case ASR::exprType::Compare: { return ((ASR::Compare_t*)f)->m_type; }
         case ASR::exprType::FunctionCall: { return ((ASR::FunctionCall_t*)f)->m_type; }
         case ASR::exprType::ArrayRef: { return ((ASR::ArrayRef_t*)f)->m_type; }
+        case ASR::exprType::DerivedRef: { return ((ASR::DerivedRef_t*)f)->m_type; }
         case ASR::exprType::ArrayInitializer: { return ((ASR::ArrayInitializer_t*)f)->m_type; }
         case ASR::exprType::ConstantInteger: { return ((ASR::ConstantInteger_t*)f)->m_type; }
         case ASR::exprType::ConstantReal: { return ((ASR::ConstantReal_t*)f)->m_type; }
@@ -62,6 +75,7 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
         case ASR::exprType::Var: { return EXPR2VAR(f)->m_type; }
         case ASR::exprType::ConstantLogical: { return ((ASR::ConstantLogical_t*)f)->m_type; }
         case ASR::exprType::StrOp: { return ((ASR::StrOp_t*)f)->m_type; }
+        case ASR::exprType::ImpliedDoLoop: { return ((ASR::ImpliedDoLoop_t*)f)->m_type; }
         default : throw LFortranException("Not implemented");
     }
 }
@@ -157,6 +171,19 @@ std::vector<std::string> order_deps(std::map<std::string,
 
 std::vector<std::string> determine_module_dependencies(
         const ASR::TranslationUnit_t &unit);
+
+ASR::Module_t* extract_module(const ASR::TranslationUnit_t &m);
+
+ASR::Module_t* load_module(Allocator &al, SymbolTable *symtab,
+                            const std::string &module_name,
+                            const Location &loc, bool intrinsic);
+
+ASR::TranslationUnit_t* find_and_load_module(Allocator &al, const std::string &msym,
+                                                SymbolTable &symtab, bool intrinsic);
+
+void set_intrinsic(ASR::TranslationUnit_t* trans_unit);
+
+void set_intrinsic(ASR::symbol_t* sym);
 
 } // namespace LFortran
 

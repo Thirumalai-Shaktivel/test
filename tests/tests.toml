@@ -143,6 +143,10 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "procedure1.f90"
+ast = true
+
+[[test]]
 filename = "program1.f90"
 ast = true
 asr = true
@@ -306,7 +310,13 @@ cpp = true
 filename = "array2.f90"
 ast = true
 asr = true
+llvm = true
 cpp = true
+
+[[test]]
+filename = "array2_derived.f90"
+asr = true
+llvm = true
 
 [[test]]
 filename = "array3.f90"
@@ -340,27 +350,72 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/arrays_01_size.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/arrays_01_real.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/arrays_01_complex.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/arrays_01_logical.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/array_bound_1.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/arrays_op_1.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/arrays_op_2.f90"
+asr = true
+llvm = true
+
+[[test]]
 filename = "../integration_tests/arrays_02.f90"
 ast = true
 ast_f90 = true
 
 [[test]]
-filename = "../integration_tests/arrays_03.f90"
+filename = "../integration_tests/arrays_03_func.f90"
+asr = true
+llvm = true
 cpp = true
 
 [[test]]
-filename = "../integration_tests/arrays_04.f90"
+filename = "../integration_tests/arrays_04_func.f90"
 asr = true
+llvm = true
 cpp = true
 
 [[test]]
 filename = "../integration_tests/arrays_06.f90"
 ast = true
 ast_f90 = true
+asr = true
+llvm = true
 
 [[test]]
 filename = "../integration_tests/arrays_07.f90"
 ast = true
+
+[[test]]
+filename = "../integration_tests/arrays_08_func.f90"
+asr = true
+llvm = true
 
 [[test]]
 filename = "../integration_tests/types_01.f90"
@@ -440,6 +495,8 @@ ast_f90 = true
 filename = "../integration_tests/derived_types_01.f90"
 ast = true
 ast_f90 = true
+asr = true
+llvm = true
 
 [[test]]
 filename = "../integration_tests/derived_types_02.f90"
@@ -460,6 +517,11 @@ cpp = true
 [[test]]
 filename = "fn3.f90"
 ast = true
+
+[[test]]
+filename = "forall1.f90"
+ast = true
+ast_f90 = true
 
 [[test]]
 filename = "subroutine8.f90"
@@ -490,6 +552,14 @@ ast = true
 
 [[test]]
 filename = "interface2.f90"
+ast = true
+
+[[test]]
+filename = "interface3.f90"
+ast = true
+
+[[test]]
+filename = "interface4.f90"
 ast = true
 
 [[test]]
@@ -680,6 +750,11 @@ ast_f90 = true
 [[test]]
 filename = "select_type1.f90"
 ast = true
+ast_f90 = true
+
+[[test]]
+filename = "../integration_tests/select_type_01.f90"
+ast = true
 
 [[test]]
 filename = "../integration_tests/format_01.f90"
@@ -697,6 +772,11 @@ ast_f90 = true
 
 [[test]]
 filename = "fn_call1.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
+filename = "Subroutine_Call1.f90"
 ast = true
 ast_f90 = true
 
@@ -849,6 +929,10 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/intrinsics_open_close_read_write.f90"
+asr = true
+
+[[test]]
 filename = "../src/runtime/lfortran_intrinsic_math.f90"
 ast = true
 
@@ -942,6 +1026,10 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/modules_12.f90"
+asr = true
+
+[[test]]
 filename = "../integration_tests/goto_01.f90"
 ast = true
 ast_f90 = true
@@ -972,3 +1060,77 @@ filename = "../integration_tests/nested_04.f90"
 asr = true
 llvm = true
 
+[[test]]
+filename = "../integration_tests/nested_05.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/nested_06.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/callback_01.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/callback_02.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/callback_03.f90"
+llvm = true
+
+[[test]]
+filename = "../integration_tests/callback_04.f90"
+llvm = true
+
+[[test]]
+filename = "../integration_tests/callback_05.f90"
+llvm = true
+
+[[test]]
+filename = "../integration_tests/recursion_01.f90"
+llvm = true
+
+[[test]]
+filename = "../integration_tests/recursion_02.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/recursion_03.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/return_01.f90"
+llvm = true
+
+[[test]]
+filename = "../integration_tests/return_02.f90"
+llvm = true
+
+[[test]]
+filename = "../integration_tests/return_03.f90"
+llvm = true
+
+[[test]]
+filename = "../integration_tests/modules_13.f90"
+llvm = true
+
+[[test]]
+filename = "coarrays_01.f90"
+ast = true
+
+[[test]]
+filename = "../integration_tests/program_03.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "use_statement.f90"
+ast = true

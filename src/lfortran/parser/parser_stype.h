@@ -45,6 +45,9 @@ union YYSTYPE {
     AST::dimension_t *dim;
     Vec<AST::dimension_t> vec_dim;
 
+    AST::codimension_t *codim;
+    Vec<AST::codimension_t> vec_codim;
+
     AST::reduce_opType reduce_op_type;
 
     VarType *var_type;
@@ -60,6 +63,8 @@ union YYSTYPE {
 
     AST::struct_member_t *struct_member;
     Vec<AST::struct_member_t> vec_struct_member;
+
+    AST::interfaceopType interface_op_type;
 };
 
 static_assert(std::is_standard_layout<YYSTYPE>::value);

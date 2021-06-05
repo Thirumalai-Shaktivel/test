@@ -40,36 +40,40 @@ mod
         unit_decl2* decl, stmt* body, program_unit* contains)
 
 program_unit
-    = Subroutine(identifier name, arg* args, bind? bind, unit_decl1* use,
-        import_statement* import, implicit_statement* implicit,
-        unit_decl2* decl, stmt* body, program_unit* contains)
-    | Procedure(identifier name, arg* args, unit_decl1* use, unit_decl2* decl,
+    = Subroutine(identifier name, arg* args, decl_attribute* attributes,
+        bind? bind, unit_decl1* use, import_statement* import,
+        implicit_statement* implicit, unit_decl2* decl,
         stmt* body, program_unit* contains)
+    | Procedure(identifier name, arg* args, decl_attribute* attributes,
+        unit_decl1* use, import_statement* import, implicit_statement* implicit,
+        unit_decl2* decl, stmt* body, program_unit* contains)
     | Function(identifier name, arg* args, decl_attribute* attributes,
         expr? return_var, bind? bind, unit_decl1* use, import_statement* import,
         implicit_statement* implicit, unit_decl2* decl, stmt* body,
         program_unit* contains)
 
 unit_decl1
-    = Use(identifier module, use_symbol* symbols)
+    = Use(decl_attribute* nature, identifier module, use_symbol* symbols)
 
 unit_decl2
     = Declaration(decl_attribute? vartype, decl_attribute* attributes,
         var_sym* syms)
     | Interface(interface_header header, interface_item* items)
-    | DerivedType(identifier name, unit_decl2* items)
-    | Enum()
+    | DerivedType(identifier name, decl_attribute* attrtype,
+        unit_decl2* items, procedure_decl* contains)
+    | Enum(decl_attribute* attr, unit_decl2* items)
 
 interface_header
-    = InterfaceHeader1()
-    | InterfaceHeader2(identifier name)
-    | InterfaceHeader3()
-    | InterfaceHeader4()
-    | InterfaceHeader5()
+    = InterfaceHeader()
+    | InterfaceHeaderName(identifier name)
+    | InterfaceHeaderAssignment()
+    | InterfaceHeaderOperator(interfaceop op)
+    | InterfaceHeaderCustomOperator(identifier operator_name)
+    | AbstractInterfaceHeader()
 
 interface_item
     = InterfaceProc(program_unit proc)
-    | InterfaceModuleProcedure(identifier* names)
+    | InterfaceModuleProcedure(identifier* names, decl_attribute* attributes)
 
 import_statement
     = Import(identifier* symbols, import_modifier mod)
@@ -99,10 +103,14 @@ stmt
     | Backspace(int label, expr* args, keyword* kwargs)
     | Close(int label, expr* args, keyword* kwargs)
     | Continue(int label)
-    | Cycle(int label)
+    | Cycle(int label, identifier? stmt_name)
     | Deallocate(int label, fnarg* args)
     | ErrorStop(int label, expr? code)
-    | Exit(int label)
+    | EventPost(int label, expr variable)
+    | EventWait(int label, expr variable)
+    | Exit(int label, identifier? stmt_name)
+    | ForAllSingle(int label, identifier? stmt_name,
+            concurrent_control *control, expr? mask, stmt assign)
     | Format(int label, string fmt)
     | GoTo(int label, int goto_label)
     | Inquire(int label, expr* args, keyword* kwargs, expr* values)
@@ -113,7 +121,9 @@ stmt
     | Read(int label, argstar* args, kw_argstar* kwargs, expr* values)
     | Rewind(int label, expr* args, keyword* kwargs)
     | Stop(int label, expr? code)
-    | SubroutineCall(int label, identifier name, fnarg* args, keyword* keywords)
+    | SubroutineCall(int label, identifier name, struct_member* member,
+            fnarg* args, keyword* keywords)
+    | SyncAll(int label)
     | Write(int label, argstar* args, kw_argstar* kwargs, expr* values)
 
 -- Multi-line statements (each has a `label` and `stmt_name`):
@@ -125,9 +135,14 @@ stmt
             concurrent_locality* locality, stmt* body)
     | DoLoop(int label, identifier? stmt_name, identifier? var, expr? start,
             expr? end, expr? increment, stmt* body)
+    | ForAll(int label, identifier? stmt_name,
+            concurrent_control *control, expr? mask,
+            concurrent_locality* locality, stmt* body)
     | If(int label, identifier? stmt_name, expr test, stmt* body, stmt* orelse)
     | Select(int label, identifier? stmt_name, expr test, case_stmt* body,
             stmt* default)
+    | SelectType(int label, identifier? stmt_name, identifier? assoc_name,
+            expr selector, type_stmt* body)
     | Where(int label, identifier? stmt_name, expr test, stmt* body,
             stmt* orelse)
     | WhileLoop(int label, identifier? stmt_name, expr test, stmt* body)
@@ -140,13 +155,16 @@ expr
     | Compare(expr left, cmpop op, expr right)
     | FuncCallOrArray(identifier func, struct_member* member,
         fnarg* args, keyword* keywords)
-    | ArrayInitializer(expr* args)
+    | CoarrayRef(identifier name, fnarg* args, keyword* fnkw
+        fnarg* coargs, keyword* cokw)
+    | ArrayInitializer(decl_attribute? vartype, expr* args)
     | ImpliedDoLoop(expr* values, identifier var, expr start, expr end,
         expr? increment)
     | Num(int n)
     | Real(string n)
     | Complex(expr re, expr im)
     | Str(string s)
+    | BOZ(string s)
     | Name(identifier id, struct_member* member)
     | Logical(bool value)
 
@@ -160,14 +178,31 @@ unaryop = Invert | Not | UAdd | USub
 
 cmpop = Eq | NotEq | Lt | LtE | Gt | GtE
 
+interfaceop
+    = AND | OR | EQV | NEQV
+    | PLUS | MINUS | STAR | DIV | POW
+    | NOT
+    | EQ | NOTEQ | LT | LTE | GT | GTE
+
+procedure_decl
+    = DerivedTypeProc(identifier? name, decl_attribute* attr,
+        use_symbol* symbols)
+    | GenericOperator(interfaceop op, identifier* names)
+    | GenericCustomOperator(identifier optype, identifier* names)
+    | GenericAssignment(identifier* names)
+    | GenericName(identifier name, identifier* names)
+    | FinalName(identifier name)
+
 decl_attribute
     = AttrBind(identifier name)
     | AttrDimension(dimension* dim)
+    | AttrCodimension(codimension* codim)
     | AttrExtends(identifier name)
     | AttrIntent(attr_intent intent)
     | AttrNamelist(identifier name)
     | SimpleAttribute(simple_attribute attr)
     | AttrType(decl_type type, kind_item* kind, identifier? name)
+    | AttrPass(identifier name)
 
 simple_attribute
     = AttrAbstract
@@ -189,6 +224,10 @@ simple_attribute
     | AttrSave
     | AttrTarget
     | AttrValue
+    | AttrIntrinsic
+    | AttrNon_Intrinsic
+    | AttrDeferred
+    | AttrNonDeferred
 
 attr_intent = In | Out | InOut
 
@@ -203,7 +242,8 @@ decl_type
     | TypeReal
     | TypeType
 
-var_sym = (identifier name, dimension* dim, expr? initializer)
+var_sym = (identifier name, dimension* dim, codimension* codim,
+ expr? initializer)
 
 kind_item = (identifier? id, expr? value, kind_item_type type)
 
@@ -211,6 +251,9 @@ kind_item_type = Star | Colon | Value
 
 dimension = (expr? start, expr? end, dimension_type end_star)
 dimension_type = DimensionExpr | DimensionStar
+
+codimension = (expr? start, expr? end, codimension_type end_star)
+codimension_type = CodimensionExpr | CodimensionStar
 
 -- Encoding of an array dimension declaration:
 --           start      end     end_star
@@ -259,7 +302,16 @@ array_index = ArrayIndex(expr? left, expr? right, expr? step)
 
 case_stmt = CaseStmt(expr* test, stmt* body) | CaseStmt_Range(expr? start, expr? end, stmt* body)
 
+type_stmt
+    = TypeStmtName(identifier? name, stmt* body)
+    | TypeStmtType(decl_attribute? vartype, stmt* body)
+    | ClassStmt(identifier? id, stmt* body)
+    | ClassDefault(stmt* body)
+
 use_symbol = UseSymbol(identifier sym, identifier? rename)
+    | UseAssignment()
+    | IntrinsicOperator(interfaceop op)
+    | CustomOperator(identifier opName)
 
 concurrent_control = ConcurrentControl(identifier? var, expr? start, expr? end, expr? increment)
 

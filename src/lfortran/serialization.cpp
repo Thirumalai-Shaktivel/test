@@ -195,7 +195,7 @@ public:
 
     uint8_t read_int8() {
         if (pos+1 > s.size()) {
-            throw LFortranException("String is too short for deserialization.");
+            throw LFortranException("read_int8(): String is too short for deserialization.");
         }
         uint8_t n = s[pos];
         pos += 1;
@@ -204,7 +204,7 @@ public:
 
     uint64_t read_int64() {
         if (pos+4 > s.size()) {
-            throw LFortranException("String is too short for deserialization.");
+            throw LFortranException("read_int64(): String is too short for deserialization.");
         }
         uint64_t n = string_to_uint64(&s[pos]);
         pos += 4;
@@ -219,7 +219,7 @@ public:
     std::string read_string() {
         size_t n = read_int64();
         if (pos+n > s.size()) {
-            throw LFortranException("String is too short for deserialization.");
+            throw LFortranException("read_string(): String is too short for deserialization.");
         }
         std::string r = std::string(&s[pos], n);
         pos += n;
@@ -385,6 +385,10 @@ public:
     }
 
     void visit_ExternalSymbol(const ExternalSymbol_t &x) {
+        if (x.m_external != nullptr) {
+            // Nothing to do, the external symbol is already resolved
+            return;
+        }
         LFORTRAN_ASSERT(x.m_external == nullptr);
         std::string module_name = x.m_module_name;
         std::string original_name = x.m_original_name;
