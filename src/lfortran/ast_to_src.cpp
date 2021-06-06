@@ -100,9 +100,9 @@ public:
     std::string indent;
     int indent_spaces;
     bool indent_unit;
-    bool last_binary_plus; // `s` contains, e.g.: a+b
-    bool last_unary_minus; // `s` contains, e.g.: -a
-    bool unary_minus;      // `s` contains, e.g.: -a*b
+    bool last_binary_plus;          // `s` contains, e.g.: a+b
+    bool last_unary_minus;          // `s` contains, e.g.: -a
+    bool last_unary_minus_in_mul;   // `s` contains, e.g.: -a*b
 
     // Syntax highlighting groups
     enum gr {
@@ -2169,18 +2169,18 @@ public:
         if(last_unary_minus &&
             !(x.m_op == operatorType::Add
                 || x.m_op == operatorType::Sub)){
-            unary_minus = true;
+            last_unary_minus_in_mul = true;
         }
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
         if(last_unary_minus || last_binary_plus) {
-            unary_minus = false;
+            last_unary_minus_in_mul = false;
             right = "(" + right + ")";
         }
-        if(unary_minus &&
+        if(last_unary_minus_in_mul &&
             (x.m_op == operatorType::Add
                 || x.m_op == operatorType::Sub)){
-            unary_minus = false;
+            last_unary_minus_in_mul = false;
             right = "(" + right + ")";
         }
         s = left + op2str(x.m_op) + right ;
@@ -2215,7 +2215,7 @@ public:
             // pass
             // s = s;
             last_unary_minus = false;
-            unary_minus = false;
+            last_unary_minus_in_mul = false;
             last_binary_plus = false;
         } else if (x.m_op == AST::unaryopType::Not) {
             s = ".not.(" + s + ")";
@@ -2327,7 +2327,7 @@ public:
         s += std::to_string(x.m_n);
         s += syn();
         last_unary_minus = false;
-        unary_minus = false;
+        last_unary_minus_in_mul = false;
         last_binary_plus = false;
     }
 
