@@ -36,10 +36,10 @@ namespace {
     std::string boolop2str(const AST::boolopType type)
     {
         switch (type) {
-            case (AST::boolopType::And) : return ".and.";
-            case (AST::boolopType::Or) : return ".or.";
-            case (AST::boolopType::Eqv) : return ".eqv.";
-            case (AST::boolopType::NEqv) : return ".neqv.";
+            case (AST::boolopType::And) : return " .and. ";
+            case (AST::boolopType::Or) : return " .or. ";
+            case (AST::boolopType::Eqv) : return " .eqv. ";
+            case (AST::boolopType::NEqv) : return " .neqv. ";
         }
         throw LFortranException("Unknown type");
     }
