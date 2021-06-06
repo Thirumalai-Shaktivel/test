@@ -58,7 +58,7 @@ void main2() {
         x = 2*a + a*b - a*b + 2*a;
         x = 2*a + a*b - a*b - 2*a;
         x = a - b - c - 1;
-        x = a - (-b) + (-b) - (-b) + (-b);
+        x = -a - (-b) + (-b) - (-b)*b;
         x = -3 + 5;
         x = -a + 5;
 }
