@@ -102,7 +102,7 @@ public:
     bool indent_unit;
     bool last_binary_plus; // `s` contains, e.g.: a+b
     bool last_unary_minus; // `s` contains, e.g.: -a
-    bool unary_minus;      // `s` contains, e.g.: a- -a*b
+    bool unary_minus;      // `s` contains, e.g.: -a*b
 
     // Syntax highlighting groups
     enum gr {
@@ -2204,8 +2204,11 @@ public:
     void visit_UnaryOp(const UnaryOp_t &x) {
         this->visit_expr(*x.m_operand);
         if (x.m_op == AST::unaryopType::USub) {
-            if(!last_binary_plus) s = "-" + s;
-            else s = "-(" + s + ")";
+            if(!last_binary_plus) {
+                s = "-" + s;
+            } else {
+                s = "-(" + s + ")";
+            }
             last_unary_minus = true;
             last_binary_plus = false;
         } else if (x.m_op == AST::unaryopType::UAdd) {
