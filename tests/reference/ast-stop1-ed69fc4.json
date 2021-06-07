@@ -1,0 +1,13 @@
+{
+    "basename": "ast-stop1-ed69fc4",
+    "cmd": "lfortran --show-ast --no-color {infile} -o {outfile}",
+    "infile": "tests/stop1.f90",
+    "infile_hash": "6a97f0efbcd33de589374a63ab1e0994f4cb44863c36ebd17deba8c9",
+    "outfile": null,
+    "outfile_hash": null,
+    "stdout": "ast-stop1-ed69fc4.stdout",
+    "stdout_hash": "a4059b2c529e9e237ad39a751ab5aaac1d68fd664da44dbf8f78a148",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}
