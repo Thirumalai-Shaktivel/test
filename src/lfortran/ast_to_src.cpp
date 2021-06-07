@@ -1361,9 +1361,9 @@ public:
         r += syn(gr::Keyword);
         r.append("stop");
         r += syn();
-        if (x.m_code) {
-            this->visit_expr(*x.m_code);
-            r += " " + s;
+        for (size_t i=0; i<x.n_code1; i++) {
+            this->visit_decl_attribute(*x.m_code1[i]);
+            r.append(s);
         }
         r += "\n";
         s = r;
@@ -1375,13 +1375,26 @@ public:
         r += syn(gr::Keyword);
         r.append("error stop");
         r += syn();
-        if (x.m_code)
-        {
-            r += " ";
-            this->visit_expr(*x.m_code);
+        for (size_t i=0; i<x.n_code1; i++) {
+            this->visit_decl_attribute(*x.m_code1[i]);
             r.append(s);
         }
         r += "\n";
+        s = r;
+    }
+
+    void visit_AttrStopCode(const AttrStopCode_t &x) {
+        std::string r = " ";
+        this->visit_expr(*x.m_code);
+        r.append(s);
+        s = r;
+    }
+
+    void visit_AttrQuiet(const AttrQuiet_t &x) {
+        std::string r;
+        r = ", quiet = ";
+        this->visit_expr(*x.m_logicalexpr);
+        r.append(s);
         s = r;
     }
 
