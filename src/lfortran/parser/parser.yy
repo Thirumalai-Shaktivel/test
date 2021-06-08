@@ -362,6 +362,8 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> continue_statement
 %type <ast> stop_statement
 %type <ast> error_stop_statement
+%type <vec_ast> stop_code_list
+%type <ast> stop_code
 %type <ast> event_post_statement
 %type <ast> event_wait_statement
 %type <ast> sync_all_statement
@@ -1492,13 +1494,21 @@ continue_statement
     ;
 
 stop_statement
-    : KW_STOP { $$ = STOP(@$); }
-    | KW_STOP expr { $$ = STOP1($2, @$); }
+    : KW_STOP stop_code_list { $$ = STOP($2, @$); }
     ;
 
 error_stop_statement
-    : KW_ERROR KW_STOP { $$ = ERROR_STOP(@$); }
-    | KW_ERROR KW_STOP expr { $$ = ERROR_STOP1($3, @$); }
+    : KW_ERROR KW_STOP stop_code_list { $$ = ERROR_STOP($3, @$); }
+    ;
+
+stop_code_list
+    : stop_code { LIST_NEW($$); LIST_ADD($$, $1); }
+    | %empty { LIST_NEW($$); }
+    ;
+
+stop_code
+    : expr { $$ = STOPCODE($1, @$); }
+    | "," KW_QUIET "=" expr { $$ = QUIET($4, @$); }
     ;
 
 event_post_statement

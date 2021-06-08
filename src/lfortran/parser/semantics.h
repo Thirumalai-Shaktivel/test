@@ -937,10 +937,12 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
 #define FORMAT(l) make_Format_t(p.m_a, l, 0, \
         format_to_str(p.m_a, l, p.inp))
 
-#define STOP(l) make_Stop_t(p.m_a, l, 0, nullptr)
-#define STOP1(e, l) make_Stop_t(p.m_a, l, 0, EXPR(e))
-#define ERROR_STOP(l) make_ErrorStop_t(p.m_a, l, 0, nullptr)
-#define ERROR_STOP1(e, l) make_ErrorStop_t(p.m_a, l, 0, EXPR(e))
+#define STOP(x, l) make_Stop_t(p.m_a, l, 0, \
+        VEC_CAST(x, stop_attribute), x.size())
+#define ERROR_STOP(x, l) make_ErrorStop_t(p.m_a, l, 0, \
+        VEC_CAST(x, stop_attribute), x.size())
+#define STOPCODE(e, l) make_AttrStopCode_t(p.m_a, l, EXPR(e))
+#define QUIET(e, l) make_AttrQuietKwArg_t(p.m_a, l, EXPR(e))
 
 #define EXIT(l) make_Exit_t(p.m_a, l, 0, nullptr)
 #define EXIT2(id, l) make_Exit_t(p.m_a, l, 0, name2char(id))

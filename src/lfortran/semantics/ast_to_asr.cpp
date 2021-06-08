@@ -63,7 +63,7 @@ namespace LFortran {
                         break;
                 }
                 return n_dims > 0;
-            } 
+            }
 
             inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
                 bool is_source_pointer = is_pointer(source), is_dest_pointer = is_pointer(dest);
@@ -916,7 +916,7 @@ public:
         if (assgnd_access.count(sym_name)) {
             s_access = assgnd_access[sym_name];
         }
-        
+
         if (is_interface) {
             deftype = ASR::deftypeType::Interface;
         }
@@ -2147,11 +2147,11 @@ public:
         this->visit_expr(*x.m_value);
         ASR::expr_t *value = EXPR(tmp);
         ASR::ttype_t *value_type = expr_type(value);
-        if( target->type == ASR::exprType::Var && !HelperMethods::is_array(target_type) && 
+        if( target->type == ASR::exprType::Var && !HelperMethods::is_array(target_type) &&
             value->type == ASR::exprType::ArrayInitializer ) {
             throw SemanticError("ArrayInitalizer expressions can only be assigned array references", x.base.base.loc);
         }
-        if (target->type == ASR::exprType::Var || 
+        if (target->type == ASR::exprType::Var ||
             target->type == ASR::exprType::ArrayRef) {
 
             ImplicitCastRules::set_converted_value(al, x.base.base.loc, &value,
@@ -2346,8 +2346,8 @@ public:
                         module_name = m_ext->m_module_name;
                     }
                     Str mangled_name;
-                    mangled_name.from_str(al, "1_" + 
-                                              std::string(module_name) + "_" + 
+                    mangled_name.from_str(al, "1_" +
+                                              std::string(module_name) + "_" +
                                               std::string(der_type->m_name));
                     char* mangled_name_char = mangled_name.c_str(al);
                     if( current_scope->scope.find(mangled_name.str()) == current_scope->scope.end() ) {
@@ -2360,7 +2360,7 @@ public:
                                 if( der_ext_tmp->m_external == m_external ) {
                                     make_new_ext_sym = false;
                                 }
-                            } 
+                            }
                         }
                         if( make_new_ext_sym ) {
                             der_ext = (ASR::symbol_t*)ASR::make_ExternalSymbol_t(al, loc, current_scope, mangled_name_char, m_external,
@@ -2813,7 +2813,7 @@ public:
         // iloop_counter += 1;
         // Str a_var_name_f;
         // a_var_name_f.from_str(al, a_var_name);
-        // ASR::asr_t* a_variable = ASR::make_Variable_t(al, x.base.base.loc, current_scope, a_var_name_f.c_str(al), 
+        // ASR::asr_t* a_variable = ASR::make_Variable_t(al, x.base.base.loc, current_scope, a_var_name_f.c_str(al),
         //                                                 ASR::intentType::Local, nullptr,
         //                                                 ASR::storage_typeType::Default, expr_type(a_start),
         //                                                 ASR::abiType::Source, ASR::Public);
@@ -2821,8 +2821,8 @@ public:
         ASR::symbol_t* a_sym = current_scope->scope[std::string(x.m_var)];
         // current_scope->scope[a_var_name] = a_sym;
         ASR::expr_t* a_var = EXPR(ASR::make_Var_t(al, x.base.base.loc, a_sym));
-        tmp = ASR::make_ImpliedDoLoop_t(al, x.base.base.loc, a_values, n_values, 
-                                            a_var, a_start, a_end, a_increment, 
+        tmp = ASR::make_ImpliedDoLoop_t(al, x.base.base.loc, a_values, n_values,
+                                            a_var, a_start, a_end, a_increment,
                                             expr_type(a_start));
     }
 
@@ -2936,25 +2936,41 @@ public:
     }
 
     void visit_Stop(const AST::Stop_t &x) {
-        ASR::expr_t *code;
-        if (x.m_code) {
-            visit_expr(*x.m_code);
-            code = EXPR(tmp);
-        } else {
-            code = nullptr;
+        Vec<ASR::stop_attribute_t*> stop_code;
+        stop_code.reserve(al, x.n_stop_code);
+        for (size_t i=0; i<x.n_stop_code; i++) {
+            visit_stop_attribute(*x.m_stop_code[i]);
+            if (tmp != nullptr) {
+                stop_code.push_back(al, ASR::down_cast<ASR::stop_attribute_t>(tmp));
+            }
         }
-        tmp = ASR::make_Stop_t(al, x.base.base.loc, code);
+        tmp = ASR::make_Stop_t(al, x.base.base.loc, stop_code.p, stop_code.size());
     }
 
     void visit_ErrorStop(const AST::ErrorStop_t &x) {
-        ASR::expr_t *code;
-        if (x.m_code) {
-            visit_expr(*x.m_code);
-            code = EXPR(tmp);
-        } else {
-            code = nullptr;
+        Vec<ASR::stop_attribute_t*> stop_code;
+        stop_code.reserve(al, x.n_stop_code);
+        for (size_t i=0; i<x.n_stop_code; i++) {
+            visit_stop_attribute(*x.m_stop_code[i]);
+            if (tmp != nullptr) {
+                stop_code.push_back(al, ASR::down_cast<ASR::stop_attribute_t>(tmp));
+            }
         }
-        tmp = ASR::make_ErrorStop_t(al, x.base.base.loc, code);
+        tmp = ASR::make_ErrorStop_t(al, x.base.base.loc, stop_code.p, stop_code.size());
+    }
+
+    void visit_AttrStopCode(const AST::AttrStopCode_t &x) {
+        ASR::expr_t *code;
+        visit_expr(*x.m_code);
+        code = EXPR(tmp);
+        tmp = ASR::make_AttrStopCode_t(al, x.base.base.loc, code);
+    }
+
+    void visit_AttrQuietKwArg(const AST::AttrQuietKwArg_t &x) {
+        ASR::expr_t *logicalexpr;
+        visit_expr(*x.m_logicalexpr);
+        logicalexpr = EXPR(tmp);
+        tmp = ASR::make_AttrQuietKwArg_t(al, x.base.base.loc, logicalexpr);
     }
 };
 
