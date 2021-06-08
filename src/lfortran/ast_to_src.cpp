@@ -1396,7 +1396,7 @@ public:
         r.append("stop");
         r += syn();
         for (size_t i=0; i<x.n_stop_code; i++) {
-            this->visit_decl_attribute(*x.m_stop_code[i]);
+            this->visit_stop_attribute(*x.m_stop_code[i]);
             r.append(s);
         }
         r += "\n";
@@ -1410,7 +1410,7 @@ public:
         r.append("error stop");
         r += syn();
         for (size_t i=0; i<x.n_stop_code; i++) {
-            this->visit_decl_attribute(*x.m_stop_code[i]);
+            this->visit_stop_attribute(*x.m_stop_code[i]);
             r.append(s);
         }
         r += "\n";
@@ -1424,7 +1424,7 @@ public:
         s = r;
     }
 
-    void visit_AttrQuiet(const AttrQuiet_t &x) {
+    void visit_AttrQuietKwArg(const AttrQuietKwArg_t &x) {
         std::string r;
         r = ", quiet = ";
         this->visit_expr(*x.m_logicalexpr);
