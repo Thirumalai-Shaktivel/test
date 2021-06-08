@@ -271,7 +271,7 @@ decl_attribute_t** VAR_DECL_PARAMETERb(Allocator &al,
 #define LETTER_SPEC2(a, b, l) make_LetterSpec_t(p.m_a, l, \
         name2char(a), name2char(b))
 
-#define VAR_SYM(xout, xname, xdimp, xdimn, xinit, xloc) \
+#define VAR_SYM(xout, xname, xdimp, xdimn, xinit, sym, xloc) \
             xout = p.m_a.allocate<var_sym_t>(1); \
             xout->loc = xloc; \
             xout->m_name = name2char(xname); \
@@ -279,9 +279,10 @@ decl_attribute_t** VAR_DECL_PARAMETERb(Allocator &al,
             xout->n_dim = xdimn; \
             xout->m_codim = nullptr; \
             xout->n_codim = 0; \
-            xout->m_initializer=down_cast<expr_t>(xinit);
+            xout->m_initializer=down_cast<expr_t>(xinit); \
+            xout->m_sym=symbolType::sym;
 
-#define VAR_SYM2(xout, xname, xdimp, xdimn, xloc) \
+#define VAR_SYM2(xout, xname, xdimp, xdimn, sym, xloc) \
             xout = p.m_a.allocate<var_sym_t>(1); \
             xout->loc = xloc; \
             xout->m_name = name2char(xname); \
@@ -289,9 +290,10 @@ decl_attribute_t** VAR_DECL_PARAMETERb(Allocator &al,
             xout->n_dim = xdimn; \
             xout->m_codim = nullptr; \
             xout->n_codim = 0; \
-            xout->m_initializer=nullptr;
+            xout->m_initializer=nullptr; \
+            xout->m_sym=symbolType::sym;
 
-#define VAR_SYM3(xout, xname, xcodimp, xcodimn, xloc) \
+#define VAR_SYM3(xout, xname, xcodimp, xcodimn, sym, xloc) \
             xout = p.m_a.allocate<var_sym_t>(1); \
             xout->loc = xloc; \
             xout->m_name = name2char(xname); \
@@ -299,9 +301,10 @@ decl_attribute_t** VAR_DECL_PARAMETERb(Allocator &al,
             xout->n_dim = 0; \
             xout->m_codim = xcodimp; \
             xout->n_codim = xcodimn; \
-            xout->m_initializer=nullptr;
+            xout->m_initializer=nullptr; \
+            xout->m_sym=symbolType::sym;
 
-#define VAR_SYM4(xout, xname, xdimp, xdimn, xcodimp, xcodimn, xloc) \
+#define VAR_SYM4(xout, xname, xdimp, xdimn, xcodimp, xcodimn, sym, xloc) \
             xout = p.m_a.allocate<var_sym_t>(1); \
             xout->loc = xloc; \
             xout->m_name = name2char(xname); \
@@ -309,7 +312,8 @@ decl_attribute_t** VAR_DECL_PARAMETERb(Allocator &al,
             xout->n_dim = xdimn; \
             xout->m_codim = xcodimp; \
             xout->n_codim = xcodimn; \
-            xout->m_initializer=nullptr;
+            xout->m_initializer=nullptr; \
+            xout->m_sym=symbolType::sym;
 
 static inline expr_t** DIMS2EXPRS(Allocator &al, const Vec<FnArg> &d)
 {
@@ -948,9 +952,21 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
 #define CYCLE2(id, l) make_Cycle_t(p.m_a, l, 0, name2char(id))
 #define CONTINUE(l) make_Continue_t(p.m_a, l, 0)
 
-#define EVENT_POST(eventVar, l) make_EventPost_t(p.m_a, l, 0, EXPR(eventVar))
-#define EVENT_WAIT(eventVar, l) make_EventWait_t(p.m_a, l, 0, EXPR(eventVar))
-#define SYNC_ALL(l) make_SyncAll_t(p.m_a, l, 0)
+#define EVENT_POST(eventVar, l) make_EventPost_t(p.m_a, l, 0, \
+        EXPR(eventVar), nullptr, 0)
+#define EVENT_POST1(eventVar, x, l) make_EventPost_t(p.m_a, l, 0, \
+        EXPR(eventVar), VEC_CAST(x, event_attribute), x.size())
+#define EVENT_WAIT(eventVar, l) make_EventWait_t(p.m_a, l, 0, \
+        EXPR(eventVar), nullptr, 0)
+#define EVENT_WAIT1(eventVar, x, l) make_EventWait_t(p.m_a, l, 0, \
+        EXPR(eventVar), VEC_CAST(x, event_attribute), x.size())
+#define SYNC_ALL(l) make_SyncAll_t(p.m_a, l, 0, nullptr, 0)
+#define SYNC_ALL1(x, l) make_SyncAll_t(p.m_a, l, 0, \
+        VEC_CAST(x, event_attribute), x.size())
+#define STAT(var, l) make_AttrStat_t(p.m_a, l, name2char(var))
+#define ERRMSG(var, l) make_AttrErrmsg_t(p.m_a, l, name2char(var))
+#define EVENT_WAIT_KW_ARG(id, e, l) make_AttrEventWaitKwArg_t(p.m_a, l, \
+        name2char(id), EXPR(e))
 
 #define SUBROUTINE(name, args, bind, use, import, implicit, decl, stmts, contains, l) \
     make_Subroutine_t(p.m_a, l, \

@@ -87,6 +87,17 @@ namespace {
         }
         throw LFortranException("Unknown type");
     }
+
+    std::string symbol2str(const AST::symbolType type)
+    {
+        switch (type) {
+            case (AST::symbolType::None) : return "";
+            case (AST::symbolType::Assign) : return " => ";
+            case (AST::symbolType::Equal) : return " = ";
+            case (AST::symbolType::Asterisk) : return " *";
+        }
+        throw LFortranException("Unknown type");
+    }
 }
 
 namespace AST {
@@ -926,7 +937,7 @@ public:
         }
         if (x.m_initializer) {
             visit_expr(*x.m_initializer);
-            r += "=" + s;
+            r += symbol2str(x.m_sym) + s;
         }
         s = r;
     }
@@ -1147,6 +1158,29 @@ public:
         s = r;
     }
 
+    void visit_AttrStat(const AttrStat_t &x) {
+        std::string r;
+        r = "stat = ";
+        r.append(x.m_variable);
+        s = r;
+    }
+
+    void visit_AttrErrmsg(const AttrErrmsg_t &x) {
+        std::string r;
+        r = "errmsg = ";
+        r.append(x.m_variable);
+        s = r;
+    }
+
+    void visit_AttrEventWaitKwArg(const AttrEventWaitKwArg_t &x) {
+        std::string r = "";
+        r.append(x.m_id);
+        r += " = ";
+        this->visit_expr(*x.m_value);
+        r.append(s);
+        s = r;
+    }
+
     void visit_Assignment(const Assignment_t &x) {
         std::string r = indent;
         r += print_label(x);
@@ -1361,8 +1395,8 @@ public:
         r += syn(gr::Keyword);
         r.append("stop");
         r += syn();
-        for (size_t i=0; i<x.n_code1; i++) {
-            this->visit_decl_attribute(*x.m_code1[i]);
+        for (size_t i=0; i<x.n_stop_code; i++) {
+            this->visit_decl_attribute(*x.m_stop_code[i]);
             r.append(s);
         }
         r += "\n";
@@ -1375,8 +1409,8 @@ public:
         r += syn(gr::Keyword);
         r.append("error stop");
         r += syn();
-        for (size_t i=0; i<x.n_code1; i++) {
-            this->visit_decl_attribute(*x.m_code1[i]);
+        for (size_t i=0; i<x.n_stop_code; i++) {
+            this->visit_decl_attribute(*x.m_stop_code[i]);
             r.append(s);
         }
         r += "\n";
@@ -1407,6 +1441,13 @@ public:
         r += " (";
         this->visit_expr(*x.m_variable);
         r.append(s);
+        if (x.m_stat) {
+            r += ", ";
+            for (size_t i=0; i<x.n_stat; i++) {
+                this->visit_event_attribute(*x.m_stat[i]);
+                r.append(s);
+            }
+        }
         r += ")";
         r += "\n";
         s = r;
@@ -1421,6 +1462,14 @@ public:
         r += " (";
         this->visit_expr(*x.m_variable);
         r.append(s);
+        if (x.m_spec) {
+            r += ", ";
+            for (size_t i=0; i<x.n_spec; i++) {
+                this->visit_event_attribute(*x.m_spec[i]);
+                r.append(s);
+                if (i < x.n_spec-1) r.append(", ");
+            }
+        }
         r += ")";
         r += "\n";
         s = r;
@@ -1432,6 +1481,14 @@ public:
         r += syn(gr::Keyword);
         r.append("sync all");
         r += syn();
+        if (x.m_stat) {
+            r += " (";
+            for (size_t i=0; i<x.n_stat; i++) {
+                this->visit_event_attribute(*x.m_stat[i]);
+                r.append(s);
+            }
+            r += ")";
+        }
         r += "\n";
         s = r;
     }
