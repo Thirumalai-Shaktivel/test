@@ -202,8 +202,8 @@ a
 (TranslationUnit [])
 (TranslationUnit [])
 (TranslationUnit [])
-(Stop 0 () [(AttrStopCode (Str "OK"))])
-(Stop 0 () [(AttrStopCode 1)])
+(Stop 0 [(AttrStopCode (Str "OK"))])
+(Stop 0 [(AttrStopCode 1)])
 stop
 (Print 0 "i4" [45 x])
 (Print 0 "i4" [45])
