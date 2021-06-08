@@ -144,7 +144,7 @@ stmt
     | Deallocate()
     | DoConcurrentLoop(do_loop_head head, stmt* body)
     | DoLoop(do_loop_head head, stmt* body)
-    | ErrorStop(expr? code)
+    | ErrorStop(stop_attribute* stop_code)
     | Exit()
     | If(expr test, stmt* body, stmt* orelse)
     | Print(string? fmt, expr* values)
@@ -154,7 +154,7 @@ stmt
     | Write(int label, expr? unit, expr? fmt, expr? iomsg, expr? iostat, expr? id, expr* values)
     | Return()
     | Select(expr test, case_stmt* body, stmt* default)
-    | Stop(expr? code)
+    | Stop(stop_attribute* stop_code)
     | SubroutineCall(symbol name, symbol? original_name, expr* args)
     | Where(expr test, stmt* body, stmt* orelse)
     | WhileLoop(expr test, stmt* body)
@@ -215,6 +215,10 @@ cast_kind
     | IntegerToComplex
     | IntegerToLogical
     | ComplexToComplex
+
+stop_attribute
+    = AttrStopCode(expr code)
+    | AttrQuietKwArg(expr logicalexpr)
 
 dimension = (expr? start, expr? end)
 

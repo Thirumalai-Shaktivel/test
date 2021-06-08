@@ -105,7 +105,7 @@ stmt
     | Continue(int label)
     | Cycle(int label, identifier? stmt_name)
     | Deallocate(int label, fnarg* args)
-    | ErrorStop(int label, expr? code, stop_attribute* stop_code)
+    | ErrorStop(int label, stop_attribute* stop_code)
     | EventPost(int label, expr variable, event_attribute* stat)
     | EventWait(int label, expr variable, event_attribute* spec)
     | Exit(int label, identifier? stmt_name)
@@ -120,7 +120,7 @@ stmt
     | Print(int label, string? fmt, expr* values)
     | Read(int label, argstar* args, kw_argstar* kwargs, expr* values)
     | Rewind(int label, expr* args, keyword* kwargs)
-    | Stop(int label, expr? code, stop_attribute* stop_code)
+    | Stop(int label, stop_attribute* stop_code)
     | SubroutineCall(int label, identifier name, struct_member* member,
             fnarg* args, keyword* keywords)
     | SyncAll(int label, event_attribute* stat)
