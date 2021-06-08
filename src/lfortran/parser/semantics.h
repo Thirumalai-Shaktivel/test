@@ -937,9 +937,9 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
 #define FORMAT(l) make_Format_t(p.m_a, l, 0, \
         format_to_str(p.m_a, l, p.inp))
 
-#define STOP1(x, l) make_Stop_t(p.m_a, l, 0, \
+#define STOP(x, l) make_Stop_t(p.m_a, l, 0, \
         VEC_CAST(x, stop_attribute), x.size())
-#define ERROR_STOP1(x, l) make_ErrorStop_t(p.m_a, l, 0, \
+#define ERROR_STOP(x, l) make_ErrorStop_t(p.m_a, l, 0, \
         VEC_CAST(x, stop_attribute), x.size())
 #define STOPCODE(e, l) make_AttrStopCode_t(p.m_a, l, EXPR(e))
 #define QUIET(e, l) make_AttrQuietKwArg_t(p.m_a, l, EXPR(e))

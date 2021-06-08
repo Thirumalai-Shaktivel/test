@@ -23,15 +23,9 @@ implicit none
     end if
 
     if(stop /=15) then
-        stop, quiet = .false.
+        stop, quiet = .true.
     else if(errstop /=25) then
-        error stop, quiet = .false.
-    end if
-
-    if(stop /=15) then
-        stop 10, quiet = .true.
-    else if(errstop /=25) then
-        error stop 10, quiet = .true.
+        error stop, quiet = .true.
     end if
 
 end program
