@@ -87,6 +87,17 @@ namespace {
         }
         throw LFortranException("Unknown type");
     }
+
+    std::string symbol2str(const AST::symbolType type)
+    {
+        switch (type) {
+            case (AST::symbolType::None) : return "";
+            case (AST::symbolType::Assign) : return " => ";
+            case (AST::symbolType::Equal) : return " = ";
+            case (AST::symbolType::Asterisk) : return " *";
+        }
+        throw LFortranException("Unknown type");
+    }
 }
 
 namespace AST {
@@ -449,13 +460,13 @@ public:
         }
         s = r;
     }
-    void visit_GenericCustomOperator(const GenericCustomOperator_t &x) {
+    void visit_GenericDefinedOperator(const GenericDefinedOperator_t &x) {
         std::string r;
         r += syn(gr::String);
         r.append("generic :: operator");
         r += syn();
         r += "(";
-        r.append(x.m_optype);
+        r += "." + std::string(x.m_optype) + ".";
         r += ")";
         r += " => ";
         for (size_t i=0; i<x.n_names; i++) {
@@ -558,21 +569,23 @@ public:
         s += x.m_name;
     }
 
-    void visit_InterfaceHeaderAssignment(const InterfaceHeaderAssignment_t &/* x */) {
+    void visit_InterfaceHeaderAssignment
+            (const InterfaceHeaderAssignment_t &/* x */) {
         s = " assignment (=)";
     }
 
-    void visit_InterfaceHeaderOperator(const InterfaceHeaderOperator_t &x) {
+    void visit_InterfaceHeaderOperator
+            (const InterfaceHeaderOperator_t &x) {
         s = " operator (" + interfaceop2str(x.m_op) + ")";
     }
 
-    void visit_InterfaceHeaderCustomOperator(const InterfaceHeaderCustomOperator_t &x) {
-        s = " operator (";
-        s += x.m_operator_name;
-        s += ")";
+    void visit_InterfaceHeaderDefinedOperator
+            (const InterfaceHeaderDefinedOperator_t &x) {
+        s = " operator (." + std::string(x.m_operator_name) + ".)";
     }
 
-    void visit_AbstractInterfaceHeader(const AbstractInterfaceHeader_t &/* x */) {
+    void visit_AbstractInterfaceHeader
+            (const AbstractInterfaceHeader_t &/* x */) {
         s = "";
     }
 
@@ -929,7 +942,7 @@ public:
         }
         if (x.m_initializer) {
             visit_expr(*x.m_initializer);
-            r += "=" + s;
+            r += symbol2str(x.m_sym) + s;
         }
         s = r;
     }
@@ -1147,6 +1160,29 @@ public:
         r += "(";
         r.append(x.m_name);
         r += ")";
+        s = r;
+    }
+
+    void visit_AttrStat(const AttrStat_t &x) {
+        std::string r;
+        r = "stat = ";
+        r.append(x.m_variable);
+        s = r;
+    }
+
+    void visit_AttrErrmsg(const AttrErrmsg_t &x) {
+        std::string r;
+        r = "errmsg = ";
+        r.append(x.m_variable);
+        s = r;
+    }
+
+    void visit_AttrEventWaitKwArg(const AttrEventWaitKwArg_t &x) {
+        std::string r = "";
+        r.append(x.m_id);
+        r += " = ";
+        this->visit_expr(*x.m_value);
+        r.append(s);
         s = r;
     }
 
@@ -1368,6 +1404,10 @@ public:
             this->visit_expr(*x.m_code);
             r += " " + s;
         }
+        if (x.m_quiet) {
+            this->visit_expr(*x.m_quiet);
+            r += ", quiet = " + s;
+        }
         r += "\n";
         s = r;
     }
@@ -1378,11 +1418,13 @@ public:
         r += syn(gr::Keyword);
         r.append("error stop");
         r += syn();
-        if (x.m_code)
-        {
-            r += " ";
+        if (x.m_code) {
             this->visit_expr(*x.m_code);
-            r.append(s);
+            r += " " + s;
+        }
+        if (x.m_quiet) {
+            this->visit_expr(*x.m_quiet);
+            r += ", quiet = " + s;
         }
         r += "\n";
         s = r;
@@ -1397,6 +1439,13 @@ public:
         r += " (";
         this->visit_expr(*x.m_variable);
         r.append(s);
+        if (x.m_stat) {
+            r += ", ";
+            for (size_t i=0; i<x.n_stat; i++) {
+                this->visit_event_attribute(*x.m_stat[i]);
+                r.append(s);
+            }
+        }
         r += ")";
         r += "\n";
         s = r;
@@ -1411,6 +1460,14 @@ public:
         r += " (";
         this->visit_expr(*x.m_variable);
         r.append(s);
+        if (x.m_spec) {
+            r += ", ";
+            for (size_t i=0; i<x.n_spec; i++) {
+                this->visit_event_attribute(*x.m_spec[i]);
+                r.append(s);
+                if (i < x.n_spec-1) r.append(", ");
+            }
+        }
         r += ")";
         r += "\n";
         s = r;
@@ -1422,6 +1479,14 @@ public:
         r += syn(gr::Keyword);
         r.append("sync all");
         r += syn();
+        if (x.m_stat) {
+            r += " (";
+            for (size_t i=0; i<x.n_stat; i++) {
+                this->visit_event_attribute(*x.m_stat[i]);
+                r.append(s);
+            }
+            r += ")";
+        }
         r += "\n";
         s = r;
     }
@@ -1833,6 +1898,10 @@ public:
         r += syn(gr::Keyword);
         r.append("return");
         r += syn();
+        if (x.m_value) {
+            this->visit_expr(*x.m_value);
+            r += " " + s;
+        }
         r += "\n";
         s = r;
     }
@@ -2193,6 +2262,16 @@ public:
         }
     }
 
+    void visit_DefBinOp(const DefBinOp_t &x) {
+        this->visit_expr(*x.m_left);
+        std::string left = std::move(s);
+        this->visit_expr(*x.m_right);
+        std::string right = std::move(s);
+        s = "(" + left + ")";
+        s += "." + std::string(x.m_op) + ".";
+        s += "(" + right + ")";
+    }
+
     void visit_StrOp(const StrOp_t &x) {
         this->visit_expr(*x.m_left);
         std::string left = std::move(s);
@@ -2297,7 +2376,7 @@ public:
         }
         r.append("[");
         for (size_t i=0; i<x.n_coargs; i++) {
-            this->visit_fnarg(x.m_coargs[i]);
+            this->visit_coarrayarg(x.m_coargs[i]);
             r.append(s);
             if (i < x.n_coargs-1) r.append(", ");
         }
@@ -2313,6 +2392,11 @@ public:
 
     void visit_ArrayInitializer(const ArrayInitializer_t &x) {
         std::string r = "[";
+        if (x.m_vartype) {
+            this->visit_decl_attribute(*x.m_vartype);
+            r.append(s);
+            r += " :: ";
+        }
         for (size_t i=0; i<x.n_args; i++) {
             this->visit_expr(*x.m_args[i]);
             r.append(s);
@@ -2537,6 +2621,40 @@ public:
         s = r;
     }
 
+    void visit_coarrayarg(const coarrayarg_t &x) {
+        std::string r;
+        if (x.m_step) {
+            // Array section
+            if (x.m_start) {
+                this->visit_expr(*x.m_start);
+                r += s;
+            }
+            if(x.m_star == codimension_typeType::CodimensionStar) {
+                r += "*";
+            } else {
+                r += ":";
+            }
+            if (x.m_end) {
+                this->visit_expr(*x.m_end);
+                r += s;
+            }
+            if (is_a<Num_t>(*x.m_step) && down_cast<Num_t>(x.m_step)->m_n == 1) {
+                // Nothing, a:b:1 is printed as a:b
+            } else {
+                r += ":";
+                this->visit_expr(*x.m_step);
+                r += s;
+            }
+        } else {
+            // Array element
+            LFORTRAN_ASSERT(x.m_end);
+            LFORTRAN_ASSERT(!x.m_start);
+            this->visit_expr(*x.m_end);
+            r = s;
+        }
+        s = r;
+    }
+
     void visit_Bind(const Bind_t &x) {
         std::string r;
         r += syn(gr::UnitHeader);
@@ -2593,10 +2711,8 @@ public:
         s = "operator (" + interfaceop2str(x.m_op) + ")";
     }
 
-    void visit_CustomOperator(const CustomOperator_t &x) {
-        s = "operator (";
-        s.append(x.m_opName);
-        s += ")";
+    void visit_DefinedOperator(const DefinedOperator_t &x) {
+        s = "operator (." + std::string(x.m_opName) + ".)";
     }
 
     void visit_Select(const Select_t &x) {
@@ -2614,19 +2730,6 @@ public:
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_case_stmt(*x.m_body[i]);
             r += s;
-        }
-        if (x.n_default > 0) {
-            r += indent;
-            r += syn(gr::Conditional);
-            r += "case";
-            r += syn();
-            r += " default\n";
-            inc_indent();
-            for (size_t i=0; i<x.n_default; i++) {
-                this->visit_stmt(*x.m_default[i]);
-                r += s;
-            }
-            dec_indent();
         }
         dec_indent();
         r += indent;
@@ -2674,6 +2777,21 @@ public:
             r += s;
         }
         r += ")\n";
+        inc_indent();
+        for (size_t i=0; i<x.n_body; i++) {
+            this->visit_stmt(*x.m_body[i]);
+            r += s;
+        }
+        dec_indent();
+        s = r;
+    }
+
+    void visit_CaseStmt_Default(const CaseStmt_Default_t &x) {
+        std::string r = indent;
+        r += syn(gr::Conditional);
+        r += "case default";
+        r += syn();
+        r += "\n";
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);

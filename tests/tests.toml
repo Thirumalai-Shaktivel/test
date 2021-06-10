@@ -143,6 +143,11 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "stop1.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
 filename = "procedure1.f90"
 ast = true
 
@@ -1131,6 +1136,12 @@ llvm = true
 [[test]]
 filename = "coarrays_01.f90"
 ast = true
+ast_f90 = true
+
+[[test]]
+filename = "coarrays_02.f90"
+ast = true
+ast_f90 = true
 
 [[test]]
 filename = "../integration_tests/program_03.f90"
@@ -1140,3 +1151,12 @@ llvm = true
 [[test]]
 filename = "use_statement.f90"
 ast = true
+
+[[test]]
+filename = "return1.f90"
+ast = true
+
+[[test]]
+filename = "defop1.f90"
+ast = true
+ast_f90 = true
