@@ -2267,9 +2267,7 @@ public:
         std::string left = std::move(s);
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        s = "(" + left + ")";
-        s += "." + std::string(x.m_op) + ".";
-        s += "(" + right + ")";
+        s = "(" + left + " ." + std::string(x.m_op) + ". " + right + ")";
     }
 
     void visit_StrOp(const StrOp_t &x) {
