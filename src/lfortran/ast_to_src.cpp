@@ -98,6 +98,22 @@ namespace {
         }
         throw LFortranException("Unknown type");
     }
+
+// >>>>>>>  Operator Precedence >>>>>>>
+
+    int boolprcd(const AST::boolopType type)
+    {
+        switch (type) {
+            case (AST::boolopType::And) :
+                return 4;
+            case (AST::boolopType::Or) :
+                return 3;
+            case (AST::boolopType::Eqv) :
+            case (AST::boolopType::NEqv) :
+                return 2;
+        }
+        throw LFortranException("Unknown type");
+    }
 }
 
 namespace AST {
@@ -114,6 +130,7 @@ public:
     bool last_binary_plus;          // `s` contains, e.g.: a+b
     bool last_unary_minus;          // `s` contains, e.g.: -a
     bool last_unary_minus_in_mul;   // `s` contains, e.g.: -a*b
+    int tmp = 0;                    // stores precedence value of the last expr
 
     // Syntax highlighting groups
     enum gr {
@@ -2222,37 +2239,49 @@ public:
     void visit_BoolOp(const BoolOp_t &x) {
         this->visit_expr(*x.m_left);
         std::string left = std::move(s);
+        if(tmp > boolprcd(x.m_op)){
+            left = "(" + left + ")";
+        }
+
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
+        if(tmp > boolprcd(x.m_op)){
+            right = "(" + right + ")";
+        }
         s = left + boolop2str(x.m_op) + right;
+        tmp = boolprcd(x.m_op);
     }
 
     void visit_BinOp(const BinOp_t &x) {
         this->visit_expr(*x.m_left);
         std::string left = std::move(s);
+
         if(last_binary_plus &&
             !(x.m_op == operatorType::Add
                 || x.m_op == operatorType::Sub)) {
             left = "(" + left + ")";
         }
+
         if(last_unary_minus &&
             !(x.m_op == operatorType::Add
                 || x.m_op == operatorType::Sub)){
             last_unary_minus_in_mul = true;
         }
+
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
         if(last_unary_minus || last_binary_plus) {
             last_unary_minus_in_mul = false;
             right = "(" + right + ")";
         }
+
         if(last_unary_minus_in_mul &&
             (x.m_op == operatorType::Add
                 || x.m_op == operatorType::Sub)){
             last_unary_minus_in_mul = false;
             right = "(" + right + ")";
         }
-        s = left + op2str(x.m_op) + right ;
+        s = left + op2str(x.m_op) + right;
         if(x.m_op == operatorType::Add
             || x.m_op == operatorType::Sub) {
             last_binary_plus = true;
