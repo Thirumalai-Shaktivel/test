@@ -2398,11 +2398,19 @@ public:
             }
             if(dq > sq) {
                 s += "'";
-                s.append(r);
+                if (!(r.find("''") < r.length())) {
+                    s += replace(r, "'", "''");
+                } else {
+                    s.append(r);
+                }
                 s += "'";
             } else if(sq > dq || sq == dq) {
                 s += "\"";
-                s.append(r);
+                if (!(r.find("\"\"") < r.length())) {
+                    s += replace(r, "\"", "\"\"");
+                } else {
+                    s.append(r);
+                }
                 s += "\"";
             }
         }
