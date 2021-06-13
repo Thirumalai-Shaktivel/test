@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    486 // shift/reduce conflicts
+%expect    490 // shift/reduce conflicts
 %expect-rr 81  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -1139,8 +1139,8 @@ associate_block
     ;
 
 block_statement
-    : KW_BLOCK sep var_decl_star statements KW_END KW_BLOCK {
-        $$ = BLOCK($3, $4, @$); }
+    : KW_BLOCK sep use_statement_star import_statement_star decl_star
+        statements KW_END KW_BLOCK { $$ = BLOCK($3, $4, $5, $6, @$); }
     ;
 
 allocate_statement
