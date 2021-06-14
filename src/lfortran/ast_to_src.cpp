@@ -2400,7 +2400,7 @@ public:
                 s += "'";
                 s += replace(r, "'", "''");
                 s += "'";
-            } else if(sq > dq || sq == dq) {
+            } else {
                 s += "\"";
                 s += replace(r, "\"", "\"\"");
                 s += "\"";
