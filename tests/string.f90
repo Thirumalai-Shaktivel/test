@@ -6,6 +6,8 @@ character(50) :: str
     str = "'random'' ab''cd""fg''h'ij""klmno'pqr's'''"
     str = 'random'' a"b''cd""fg""hij"kl"mno"p"qr"s'''
     str = """equal''"
+    str = '"Double" ''Quote'''
+    str = "'Single' ""Quote"""
 
     print *, "Hi, I'm using string"
     print *, 'This is a "sting"'
