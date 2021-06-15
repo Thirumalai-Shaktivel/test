@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    503 // shift/reduce conflicts
+%expect    519 // shift/reduce conflicts
 %expect-rr 84  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -381,6 +381,8 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> concurrent_control
 %type <vec_var_sym> named_constant_def_list
 %type <var_sym> named_constant_def
+%type <vec_var_sym> common_block_list
+%type <var_sym> common_block
 %type <vec_kind_arg> kind_arg_list
 %type <kind_arg> kind_arg2
 %type <vec_ast> interface_body
@@ -900,6 +902,8 @@ var_decl
             $$ = VAR_DECL_PARAMETER($3, @$); }
     | KW_NAMELIST "/" id "/" id_list sep {
             $$ = VAR_DECL_NAMELIST($3, $5, @$); }
+    | KW_COMMON common_block_list sep {
+            $$ = VAR_DECL_COMMON($2, @$); }
     ;
 
 named_constant_def_list
@@ -912,6 +916,15 @@ named_constant_def
     : id "=" expr { $$ = VAR_SYM_DIM_INIT($1, nullptr, 0, $3, Equal, @$); }
     ;
 
+common_block_list
+    : common_block_list "," common_block { $$ = $1; PLIST_ADD($$, $3); }
+    | common_block { LIST_NEW($$); PLIST_ADD($$, $1); }
+    ;
+
+common_block
+    : "/" id "/" expr {  $$ = VAR_SYM_DIM_INIT($2, nullptr, 0, $4, Equal, @$); }
+    | expr { $$ = VAR_SYM_DIM_EXPR($1, None, @$); }
+    ;
 
 kind_arg_list
     : kind_arg_list "," kind_arg2 { $$ = $1; LIST_ADD($$, *$3); }
