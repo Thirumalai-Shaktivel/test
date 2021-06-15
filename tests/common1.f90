@@ -1,7 +1,9 @@
 program common1
-implicit none
+implicit real(a-z)
 real A, B
 common /sample/ A, B
+common /c/ c, /b/ d, e, f, /c/ g, h, i(5)
+common x, y, z(10)
 A = 10
 B = 20
 call pass()
