@@ -1174,3 +1174,8 @@ ast_f90 = true
 filename = "block1.f90"
 ast = true
 ast_f90 = true
+
+[[test]]
+filename = "data1.f90"
+ast = true
+ast_f90 = true
