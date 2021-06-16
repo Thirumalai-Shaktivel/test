@@ -996,7 +996,7 @@ public:
     }
 
     void visit_Common(const Declaration_t &x) {
-        std::string r = indent;
+        std::string r;
         r += syn(gr::Type);
         r += "common ";
         r += syn();
@@ -1014,7 +1014,7 @@ public:
         }
         s = r;
     }
-    
+
     void visit_AttrData(const AttrData_t &x) {
         std::string r;
         for (size_t i=0; i<x.n_object; i++) {
