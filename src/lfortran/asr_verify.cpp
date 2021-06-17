@@ -7,6 +7,24 @@
 namespace LFortran {
 namespace ASR {
 
+bool valid_char(char c) {
+    if (c >= 'a' && c <= 'z') return true;
+    if (c >= 'A' && c <= 'Z') return true;
+    if (c >= '0' && c <= '9') return true;
+    if (c == '_') return true;
+    return false;
+}
+
+bool valid_name(const char *s) {
+    if (s == nullptr) return false;
+    std::string name = s;
+    if (name.size() == 0) return false;
+    for (size_t i=0; i<name.size(); i++) {
+        if (!valid_char(s[i])) return false;
+    }
+    return true;
+}
+
 class VerifyVisitor : public BaseWalkVisitor<VerifyVisitor>
 {
 private:
@@ -105,6 +123,17 @@ public:
         id_symtab_map[x.m_symtab->counter] = x.m_symtab;
         for (auto &a : x.m_symtab->scope) {
             this->visit_symbol(*a.second);
+        }
+        for (size_t i=0; i < x.n_dependencies; i++) {
+            require(x.m_dependencies[i] != nullptr,
+                "A module dependency must not be a nullptr",
+                x.base.base.loc);
+            require(std::string(x.m_dependencies[i]) != "",
+                "A module dependency must not be an empty string",
+                x.base.base.loc);
+            require(valid_name(x.m_dependencies[i]),
+                "A module dependency must be a valid string",
+                x.base.base.loc);
         }
         current_symtab = parent_symtab;
     }
@@ -207,8 +236,10 @@ public:
     void visit_Var(const Var_t &x) {
         require(x.m_v != nullptr,
             "Var_t::m_v cannot be nullptr");
-        require(is_a<Variable_t>(*x.m_v) || is_a<ExternalSymbol_t>(*x.m_v),
-            "Var_t::m_v does not point to a Variable_t or ExternalSymbol_t");
+        require(is_a<Variable_t>(*x.m_v) || is_a<ExternalSymbol_t>(*x.m_v)
+                || is_a<Function_t>(*x.m_v) || is_a<Subroutine_t>(*x.m_v),
+            "Var_t::m_v does not point to a Variable_t, ExternalSymbol_t," \
+            "Function_t, or Subroutine_t");
         require(symtab_in_scope(current_symtab,
              symbol_parent_symtab(x.m_v)->counter),
             "Var::m_v cannot point outside of its symbol table");
@@ -249,7 +280,7 @@ public:
 
     void visit_Derived(const Derived_t &x) {
         require(symtab_in_scope(current_symtab,
-             symbol_parent_symtab(x.m_derived_type)->counter),
+                symbol_parent_symtab(x.m_derived_type)->counter),
             "Derived::m_derived_type cannot point outside of its symbol table");
         for (size_t i=0; i<x.n_dims; i++) {
             visit_dimension(x.m_dims[i]);

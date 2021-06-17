@@ -1,26 +1,26 @@
 (TranslationUnit 
    [
    (Subroutine 
-      g [] () [] [] [] [
+      g [] [] () [] [] [] [
       (Declaration 
          (AttrType 
             TypeInteger [] ()) [] [
-         (
-            x [] ()) 
-         (
-            i [] ())])] [
+         (x [] [] () 
+            None ()) 
+         (i [] [] () 
+            None ())])] [
       (= 0 x 1) 
       (DoLoop 0 () i 1 10 () [
          (= 0 x (* x i))])] []) 
    (Subroutine 
-      h [] () [] [] [] [
+      h [] [] () [] [] [] [
       (Declaration 
          (AttrType 
             TypeInteger [] ()) [] [
-         (
-            x [] ()) 
-         (
-            i [] ())])] [
+         (x [] [] () 
+            None ()) 
+         (i [] [] () 
+            None ())])] [
       (= 0 x 1) 
       (DoLoop 0 () i 1 10 () [
          (= 0 x (* i x))])] [])])

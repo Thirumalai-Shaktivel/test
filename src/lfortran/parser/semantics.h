@@ -20,6 +20,7 @@ using namespace LFortran::AST;
 using LFortran::Location;
 using LFortran::Vec;
 using LFortran::FnArg;
+using LFortran::CoarrayArg;
 using LFortran::VarType;
 using LFortran::SemanticError;
 using LFortran::ArgStarKw;
@@ -70,6 +71,7 @@ static inline T** vec_cast(const Vec<ast_t*> &x) {
 #define ATTRS(x) VEC_CAST(x, attribute)
 #define EXPRS(x) VEC_CAST(x, expr)
 #define CASE_STMTS(x) VEC_CAST(x, case_stmt)
+#define TYPE_STMTS(x) VEC_CAST(x, type_stmt)
 #define USE_SYMBOLS(x) VEC_CAST(x, use_symbol)
 #define CONCURRENT_CONTROLS(x) VEC_CAST(x, concurrent_control)
 #define CONCURRENT_LOCALITIES(x) VEC_CAST(x, concurrent_locality)
@@ -145,6 +147,9 @@ static inline Vec<kind_item_t> a2kind_list(Allocator &al,
 #define DIMENSION0(l) make_AttrDimension_t( \
             p.m_a, l, \
             nullptr, 0)
+#define CODIMENSION(dim, l) make_AttrCodimension_t( \
+            p.m_a, l, \
+            dim.p, dim.size())
 
 #define ATTR_TYPE(x, l) make_AttrType_t( \
             p.m_a, l, \
@@ -222,6 +227,16 @@ decl_attribute_t** VAR_DECL_PARAMETERb(Allocator &al,
     return v.p;
 }
 
+decl_attribute_t** ATTRCOMMON(Allocator &al,
+        Location &loc) {
+    Vec<decl_attribute_t*> v;
+    v.reserve(al, 1);
+    ast_t* a = make_SimpleAttribute_t(al, loc,
+            simple_attributeType::AttrCommon);
+    v.push_back(al, down_cast<decl_attribute_t>(a));
+    return v.p;
+}
+
 #define VAR_DECL2(xattr0, l) \
         make_Declaration_t(p.m_a, l, \
         nullptr, \
@@ -246,7 +261,47 @@ decl_attribute_t** VAR_DECL_PARAMETERb(Allocator &al,
         VAR_DECL_PARAMETERb(p.m_a, l), 1, \
         varsym.p, varsym.n)
 
-#define ENUM(l) make_Enum_t(p.m_a, l)
+#define VAR_DECL_COMMON(varsym, l) \
+        make_Declaration_t(p.m_a, l, \
+        nullptr, \
+        ATTRCOMMON(p.m_a, l), 1, \
+        varsym.p, varsym.n)
+
+#define VAR_DECL_DATA(x, l) make_Declaration_t(p.m_a, l, \
+        nullptr, VEC_CAST(x, decl_attribute), x.size(), \
+        nullptr, 0)
+#define DATA(objects, values, l) make_AttrData_t(p.m_a, l, \
+        EXPRS(objects), objects.size(), \
+        EXPRS(values), values.size())
+
+ast_t* data_implied_do(Allocator &al, Location &loc,
+        ast_t* obj_list,
+        ast_t* type,
+        char* id,
+        expr_t* start, expr_t* end, expr_t* incr) {
+    Vec<ast_t*> v;
+    decl_attribute_t* t;
+    if(type == nullptr){
+        t = nullptr;
+    } else {
+        t = down_cast<decl_attribute_t>(type);
+    }
+    v.reserve(al, 1);
+    v.push_back(al, obj_list);
+    return make_DataImpliedDo_t(al, loc, EXPRS(v), v.size(),
+                                t, id, start, end, incr);
+}
+
+#define DATA_IMPLIED_DO1(obj_list, type, id, start, end, l) \
+        data_implied_do(p.m_a, l, obj_list, type, \
+        name2char(id), EXPR(start), EXPR(end), nullptr)
+#define DATA_IMPLIED_DO2(obj_list, type, id, start, end, incr, l) \
+        data_implied_do(p.m_a, l, obj_list, type, \
+        name2char(id), EXPR(start), EXPR(end), EXPR(incr))
+
+#define ENUM(attr, decl, l) make_Enum_t(p.m_a, l, \
+        VEC_CAST(attr, decl_attribute), attr.n, \
+        DECLS(decl), decl.size())
 
 #define IMPLICIT_NONE(l) make_ImplicitNone_t(p.m_a, l, \
         nullptr, 0)
@@ -264,22 +319,45 @@ decl_attribute_t** VAR_DECL_PARAMETERb(Allocator &al,
 #define LETTER_SPEC2(a, b, l) make_LetterSpec_t(p.m_a, l, \
         name2char(a), name2char(b))
 
-#define VAR_SYM(xout, xname, xdimp, xdimn, xinit, xloc) \
-            xout = p.m_a.allocate<var_sym_t>(1); \
-            xout->loc = xloc; \
-            xout->m_name = name2char(xname); \
-            xout->m_dim = xdimp; \
-            xout->n_dim = xdimn; \
-            xout->m_initializer=down_cast<expr_t>(xinit);
+static inline var_sym_t* VARSYM(Allocator &al, Location &l,
+        char* name, dimension_t* dim, size_t n_dim,
+        codimension_t* codim, size_t n_codim, expr_t* init,
+        LFortran::AST::symbolType sym, decl_attribute_t* x)
+{
+    var_sym_t *r = al.allocate<var_sym_t>(1);
+    r->loc = l;
+    r->m_name = name;
+    r->m_dim = dim;
+    r->n_dim = n_dim;
+    r->m_codim = codim;
+    r->n_codim = n_codim;
+    r->m_initializer = init;
+    r->m_sym = sym;
+    r->m_spec = x;
+    return r;
+}
 
-#define VAR_SYM2(xout, xname, xdimp, xdimn, xloc) \
-            xout = p.m_a.allocate<var_sym_t>(1); \
-            xout->loc = xloc; \
-            xout->m_name = name2char(xname); \
-            xout->m_dim = xdimp; \
-            xout->n_dim = xdimn; \
-            xout->m_initializer=nullptr;
-
+#define VAR_SYM_NAME(name, sym, loc) VARSYM(p.m_a, loc, \
+        name2char(name), nullptr, 0, nullptr, 0, nullptr, sym, nullptr)
+#define VAR_SYM_DIM_EXPR(exp, sym, loc) VARSYM(p.m_a, loc, nullptr, \
+        nullptr, 0, nullptr, 0, down_cast<expr_t>(exp), sym, nullptr)
+#define VAR_SYM_DIM_INIT(name, dim, n_dim, init, sym, loc) VARSYM(p.m_a, loc, \
+        name2char(name), dim, n_dim, nullptr, 0, \
+        down_cast<expr_t>(init), sym, nullptr)
+#define VAR_SYM_DIM(name, dim, n_dim, sym, loc) VARSYM(p.m_a, loc, \
+        name2char(name), dim, n_dim, nullptr, 0, nullptr, sym, nullptr)
+#define VAR_SYM_CODIM(name, codim, n_codim, sym, loc) VARSYM(p.m_a, loc, \
+        name2char(name), nullptr, 0, codim, n_codim, nullptr, sym, nullptr)
+#define VAR_SYM_DIM_CODIM(name, dim, n_dim, codim, n_codim, sym, loc) \
+        VARSYM(p.m_a, loc, name2char(name), \
+        dim, n_dim, codim, n_codim, nullptr, sym, nullptr)
+#define VAR_SYM_SPEC(x, sym, loc) VARSYM(p.m_a, loc, \
+        nullptr, nullptr, 0, nullptr, 0, nullptr, sym, \
+        down_cast<decl_attribute_t>(x))
+#define DECL_ASSIGNMENT(l) make_AttrAssignment_t(p.m_a, l)
+#define DECL_OP(op, l) make_AttrIntrinsicOperator_t(p.m_a, l, op)
+#define DECL_DEFOP(optype, l) make_AttrDefinedOperator_t(p.m_a, l, \
+        def_op_to_str(p.m_a, optype))
 
 static inline expr_t** DIMS2EXPRS(Allocator &al, const Vec<FnArg> &d)
 {
@@ -327,6 +405,12 @@ static inline Vec<ast_t*> empty_vecast()
 static inline Vec<struct_member_t> empty5()
 {
     Vec<struct_member_t> r;
+    r.from_pointer_n(nullptr, 0);
+    return r;
+}
+static inline Vec<FnArg> empty1()
+{
+    Vec<FnArg> r;
     r.from_pointer_n(nullptr, 0);
     return r;
 }
@@ -383,6 +467,42 @@ static inline FnArg* DIM1k(Allocator &al, Location &l,
     return s;
 }
 
+static inline CoarrayArg* CODIM1(Allocator &al, Location &l,
+    expr_t *a, expr_t *b, expr_t *c)
+{
+    CoarrayArg *s = al.allocate<CoarrayArg>();
+    s->keyword = false;
+    s->arg.loc = l;
+    s->arg.m_start = a;
+    s->arg.m_end = b;
+    s->arg.m_step = c;
+    s->arg.m_star = codimension_typeType::CodimensionExpr;
+    return s;
+}
+
+static inline CoarrayArg* CODIM1star(Allocator &al, Location &l, expr_t *c)
+{
+    CoarrayArg *s = al.allocate<CoarrayArg>();
+    s->keyword = false;
+    s->arg.loc = l;
+    s->arg.m_start = nullptr;
+    s->arg.m_end = nullptr;
+    s->arg.m_step = c;
+    s->arg.m_star = codimension_typeType::CodimensionStar;
+    return s;
+}
+
+static inline CoarrayArg* CODIM1k(Allocator &al, Location &l,
+        ast_t *id, expr_t */*a*/, expr_t *b)
+{
+    CoarrayArg *s = al.allocate<CoarrayArg>();
+    s->keyword = true;
+    s->kw.loc = l;
+    s->kw.m_arg = name2char(id);
+    s->kw.m_value = b;
+    return s;
+}
+
 static inline dimension_t* DIM1d(Allocator &al, Location &l, expr_t *a, expr_t *b)
 {
     dimension_t *s = al.allocate<dimension_t>();
@@ -400,6 +520,26 @@ static inline dimension_t* DIM1d_star(Allocator &al, Location &l, expr_t *a)
     s->m_start = a;
     s->m_end = nullptr;
     s->m_end_star = dimension_typeType::DimensionStar;
+    return s;
+}
+
+static inline codimension_t* CODIM1d(Allocator &al, Location &l, expr_t *a, expr_t *b)
+{
+    codimension_t *s = al.allocate<codimension_t>();
+    s->loc = l;
+    s->m_start = a;
+    s->m_end = b;
+    s->m_end_star = codimension_typeType::CodimensionExpr;
+    return s;
+}
+
+static inline codimension_t* CODIM1d_star(Allocator &al, Location &l, expr_t *a)
+{
+    codimension_t *s = al.allocate<codimension_t>();
+    s->loc = l;
+    s->m_start = a;
+    s->m_end = nullptr;
+    s->m_end_star = codimension_typeType::CodimensionStar;
     return s;
 }
 
@@ -466,8 +606,13 @@ static inline reduce_opType convert_id_to_reduce_type(
 #define OR(x, y, l)  make_BoolOp_t(p.m_a, l, EXPR(x), boolopType::Or,  EXPR(y))
 #define EQV(x, y, l) make_BoolOp_t(p.m_a, l, EXPR(x), boolopType::Eqv, EXPR(y))
 #define NEQV(x, y, l) make_BoolOp_t(p.m_a, l, EXPR(x), boolopType::NEqv, EXPR(y))
+#define DEFOP(x, op, y, l) make_DefBinOp_t(p.m_a, l, EXPR(x), \
+        def_op_to_str(p.m_a, op), EXPR(y))
 
 #define ARRAY_IN(a, l) make_ArrayInitializer_t(p.m_a, l, \
+        nullptr, EXPRS(a), a.size())
+#define ARRAY_IN1(vartype, a, l) make_ArrayInitializer_t(p.m_a, l, \
+        down_cast<decl_attribute_t>(vartype), \
         EXPRS(a), a.size())
 
 ast_t* implied_do_loop(Allocator &al, Location &loc,
@@ -536,13 +681,14 @@ ast_t* implied_do3(Allocator &al, Location &loc,
 #define REAL(x, l) make_Real_t(p.m_a, l, x.c_str(p.m_a))
 #define COMPLEX(x, y, l) make_Complex_t(p.m_a, l, EXPR(x), EXPR(y))
 #define STRING(x, l) make_Str_t(p.m_a, l, x.c_str(p.m_a))
+#define BOZ(x, l) make_BOZ_t(p.m_a, l, x.c_str(p.m_a))
 #define ASSIGNMENT(x, y, l) make_Assignment_t(p.m_a, l, 0, EXPR(x), EXPR(y))
 #define ASSOCIATE(x, y, l) make_Associate_t(p.m_a, l, 0, EXPR(x), EXPR(y))
 #define GOTO(x, l) make_GoTo_t(p.m_a, l, 0, x)
 
 
-ast_t* SUBROUTINE_CALL0(Allocator &al, const ast_t *id,
-        const Vec<FnArg> &args, Location &l) {
+ast_t* SUBROUTINE_CALL0(Allocator &al, struct_member_t* mem, size_t n,
+        const ast_t *id, const Vec<FnArg> &args, Location &l) {
     Vec<fnarg_t> v;
     v.reserve(al, args.size());
     Vec<keyword_t> v2;
@@ -556,14 +702,18 @@ ast_t* SUBROUTINE_CALL0(Allocator &al, const ast_t *id,
     }
     return make_SubroutineCall_t(al, l, 0,
         /*char* a_func*/ name2char(id),
+        /*struct_member_t* a_member*/ mem, /*size_t n_member*/ n,
         /*expr_t** a_args*/ v.p, /*size_t n_args*/ v.size(),
         /*keyword_t* a_keywords*/ v2.p, /*size_t n_keywords*/ v2.size());
 }
 #define SUBROUTINE_CALL(name, args, l) SUBROUTINE_CALL0(p.m_a, \
-        name, args, l)
+        nullptr, 0, name, args, l)
+#define SUBROUTINE_CALL1(mem, name, args, l) SUBROUTINE_CALL0(p.m_a, \
+        mem.p, mem.n, name, args, l)
 #define SUBROUTINE_CALL2(name, l) make_SubroutineCall_t(p.m_a, l, 0, \
-        name2char(name), \
-        nullptr, 0, nullptr, 0)
+        name2char(name), nullptr, 0, nullptr, 0, nullptr, 0)
+#define SUBROUTINE_CALL3(mem, name, l) make_SubroutineCall_t(p.m_a, l, 0, \
+        name2char(name), mem.p, mem.n, nullptr, 0, nullptr, 0)
 
 Vec<fnarg_t> FNARGS(Allocator &al,
         const Vec<FnArg> &args) {
@@ -609,6 +759,16 @@ char* print_format_to_str(Allocator &al, const std::string &fmt) {
     LFortran::Str s;
     s.from_str_view(fmt2);
     return s.c_str(al);
+}
+
+char* def_op_to_str(Allocator &al, const LFortran::Str &s) {
+    LFORTRAN_ASSERT(s.p[0] == '.');
+    LFORTRAN_ASSERT(s.p[s.size()-1] == '.');
+    std::string s0 = s.str();
+    s0 = s0.substr(1, s.size()-2);
+    LFortran::Str s2;
+    s2.from_str_view(s0);
+    return s2.c_str(al);
 }
 
 #define PRINT0(l) make_Print_t(p.m_a, l, 0, nullptr, nullptr, 0)
@@ -833,20 +993,52 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
 #define FORMAT(l) make_Format_t(p.m_a, l, 0, \
         format_to_str(p.m_a, l, p.inp))
 
-#define STOP(l) make_Stop_t(p.m_a, l, 0, nullptr)
-#define STOP1(e, l) make_Stop_t(p.m_a, l, 0, EXPR(e))
-#define ERROR_STOP(l) make_ErrorStop_t(p.m_a, l, 0, nullptr)
-#define ERROR_STOP1(e, l) make_ErrorStop_t(p.m_a, l, 0, EXPR(e))
+#define STOP(l) make_Stop_t(p.m_a, l, 0, nullptr, nullptr)
+#define STOP1(stop_code, l) make_Stop_t(p.m_a, l, 0, EXPR(stop_code), nullptr)
+#define STOP2(quiet, l) make_Stop_t(p.m_a, l, 0, nullptr, EXPR(quiet))
+#define STOP3(stop_code, quiet, l) make_Stop_t(p.m_a, l, 0, \
+        EXPR(stop_code), EXPR(quiet))
+#define ERROR_STOP(l) make_ErrorStop_t(p.m_a, l, 0, \
+        nullptr, nullptr)
+#define ERROR_STOP1(stop_code, l) make_ErrorStop_t(p.m_a, l, 0, \
+        EXPR(stop_code), nullptr)
+#define ERROR_STOP2(quiet, l) make_ErrorStop_t(p.m_a, l, 0, \
+        nullptr, EXPR(quiet))
+#define ERROR_STOP3(stop_code, quiet, l) make_ErrorStop_t(p.m_a, l, 0, \
+        EXPR(stop_code), EXPR(quiet))
 
-#define EXIT(l) make_Exit_t(p.m_a, l, 0)
-#define RETURN(l) make_Return_t(p.m_a, l, 0)
-#define CYCLE(l) make_Cycle_t(p.m_a, l, 0)
+#define EXIT(l) make_Exit_t(p.m_a, l, 0, nullptr)
+#define EXIT2(id, l) make_Exit_t(p.m_a, l, 0, name2char(id))
+#define RETURN(l) make_Return_t(p.m_a, l, 0, nullptr)
+#define RETURN1(e, l) make_Return_t(p.m_a, l, 0, EXPR(e))
+#define CYCLE(l) make_Cycle_t(p.m_a, l, 0, nullptr)
+#define CYCLE2(id, l) make_Cycle_t(p.m_a, l, 0, name2char(id))
 #define CONTINUE(l) make_Continue_t(p.m_a, l, 0)
+
+#define EVENT_POST(eventVar, l) make_EventPost_t(p.m_a, l, 0, \
+        EXPR(eventVar), nullptr, 0)
+#define EVENT_POST1(eventVar, x, l) make_EventPost_t(p.m_a, l, 0, \
+        EXPR(eventVar), VEC_CAST(x, event_attribute), x.size())
+#define EVENT_WAIT(eventVar, l) make_EventWait_t(p.m_a, l, 0, \
+        EXPR(eventVar), nullptr, 0)
+#define EVENT_WAIT1(eventVar, x, l) make_EventWait_t(p.m_a, l, 0, \
+        EXPR(eventVar), VEC_CAST(x, event_attribute), x.size())
+#define SYNC_ALL(l) make_SyncAll_t(p.m_a, l, 0, nullptr, 0)
+#define SYNC_ALL1(x, l) make_SyncAll_t(p.m_a, l, 0, \
+        VEC_CAST(x, event_attribute), x.size())
+
+#define STAT(var, l) make_AttrStat_t(p.m_a, l, name2char(var))
+#define ERRMSG(var, l) make_AttrErrmsg_t(p.m_a, l, name2char(var))
+#define EVENT_WAIT_KW_ARG(id, e, l) make_AttrEventWaitKwArg_t(p.m_a, l, \
+        name2char(id), EXPR(e))
+
 #define SUBROUTINE(name, args, bind, use, import, implicit, decl, stmts, contains, l) \
     make_Subroutine_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*args*/ ARGS(p.m_a, l, args), \
         /*n_args*/ args.size(), \
+        /*m_attributes*/ nullptr, \
+        /*n_attributes*/ 0, \
         /*bind*/ bind_opt(bind), \
         /*use*/ USES(use), \
         /*n_use*/ use.size(), \
@@ -860,13 +1052,39 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
         /*n_body*/ stmts.size(), \
         /*contains*/ CONTAINS(contains), \
         /*n_contains*/ contains.size())
-#define PROCEDURE(name, args, use, decl, stmts, contains, l) \
+#define SUBROUTINE1(fn_mod, name, args, bind, use, import, implicit, \
+        decl, stmts, contains, l) make_Subroutine_t(p.m_a, l, \
+        /*name*/ name2char(name), \
+        /*args*/ ARGS(p.m_a, l, args), \
+        /*n_args*/ args.size(), \
+        /*m_attributes*/ VEC_CAST(fn_mod, decl_attribute), \
+        /*n_attributes*/ fn_mod.size(), \
+        /*bind*/ bind_opt(bind), \
+        /*use*/ USES(use), \
+        /*n_use*/ use.size(), \
+        /*m_import*/ VEC_CAST(import, import_statement), \
+        /*n_import*/ import.size(), \
+        /*m_implicit*/ VEC_CAST(implicit, implicit_statement), \
+        /*n_implicit*/ implicit.size(), \
+        /*decl*/ DECLS(decl), \
+        /*n_decl*/ decl.size(), \
+        /*body*/ STMTS(stmts), \
+        /*n_body*/ stmts.size(), \
+        /*contains*/ CONTAINS(contains), \
+        /*n_contains*/ contains.size())
+#define PROCEDURE(fn_mod, name, args, use, import, implicit, decl, stmts, contains, l) \
     make_Procedure_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*args*/ ARGS(p.m_a, l, args), \
         /*n_args*/ args.size(), \
+        /*m_attributes*/ VEC_CAST(fn_mod, decl_attribute), \
+        /*n_attributes*/ fn_mod.size(), \
         /*use*/ USES(use), \
         /*n_use*/ use.size(), \
+        /*m_import*/ VEC_CAST(import, import_statement), \
+        /*n_import*/ import.size(), \
+        /*m_implicit*/ VEC_CAST(implicit, implicit_statement), \
+        /*n_implicit*/ implicit.size(), \
         /*decl*/ DECLS(decl), \
         /*n_decl*/ decl.size(), \
         /*body*/ STMTS(stmts), \
@@ -946,9 +1164,15 @@ char *str_or_null(Allocator &al, const LFortran::Str &s) {
 
 #define LABEL(stmt, label) ((Print_t*)stmt)->m_label = label
 
-#define BLOCK(decl, body, l) make_Block_t(p.m_a, l, 0, nullptr, \
-        DECLS(decl), decl.size(), \
-        STMTS(body), body.size())
+#define BLOCK(use, import, decl, body, l) make_Block_t(p.m_a, l, 0, nullptr, \
+        /*use*/ USES(use), \
+        /*n_use*/ use.size(), \
+        /*m_import*/ VEC_CAST(import, import_statement), \
+        /*n_import*/ import.size(), \
+        /*decl*/ DECLS(decl), \
+        /*n_decl*/ decl.size(), \
+        /*body*/ STMTS(body), \
+        /*n_body*/ body.size())
 
 #define ASSOCIATE_BLOCK(syms, body, l) make_AssociateBlock_t(p.m_a, l, 0, \
         nullptr, \
@@ -1054,6 +1278,25 @@ char *str_or_null(Allocator &al, const LFortran::Str &s) {
         /*body*/ STMTS(body), \
         /*n_body*/ body.size())
 
+#define FORALL1(conlist, loc, body, l) make_ForAll_t(p.m_a, l, 0, nullptr, \
+        CONCURRENT_CONTROLS(conlist), conlist.size(), \
+        nullptr, \
+        CONCURRENT_LOCALITIES(loc), loc.size(), \
+        STMTS(body), body.size())
+
+#define FORALL2(conlist, mask, loc, body, l) make_ForAll_t(p.m_a, l, 0, nullptr, \
+        CONCURRENT_CONTROLS(conlist), conlist.size(), \
+        EXPR(mask), \
+        CONCURRENT_LOCALITIES(loc), loc.size(), \
+        STMTS(body), body.size())
+
+#define FORALLSINGLE1(conlist, assign, l) make_ForAllSingle_t(p.m_a, l, \
+        0, nullptr, CONCURRENT_CONTROLS(conlist), conlist.size(), \
+        nullptr, down_cast<stmt_t>(assign))
+#define FORALLSINGLE2(conlist, mask, assign, l) make_ForAllSingle_t(p.m_a, l, \
+        0, nullptr, CONCURRENT_CONTROLS(conlist), conlist.size(), \
+        EXPR(mask), down_cast<stmt_t>(assign))
+
 #define CONCURRENT_CONTROL1(i, a, b, l) make_ConcurrentControl_t(p.m_a, l, \
         name2char(i), EXPR(a), EXPR(b), nullptr)
 
@@ -1109,6 +1352,32 @@ char *str_or_null(Allocator &al, const LFortran::Str &s) {
 #define ARRAY_COMP_DECL5d(l)          DIM1d(p.m_a, l, nullptr, nullptr)
 #define ARRAY_COMP_DECL6d(l)          DIM1d_star(p.m_a, l, nullptr)
 #define ARRAY_COMP_DECL7d(a, l)       DIM1d_star(p.m_a, l, EXPR(a))
+
+#define COARRAY_COMP_DECL1d(a, l)       CODIM1d(p.m_a, l, EXPR(INTEGER(1, l)), EXPR(a))
+#define COARRAY_COMP_DECL2d(a, b, l)    CODIM1d(p.m_a, l, EXPR(a), EXPR(b))
+#define COARRAY_COMP_DECL3d(a, l)       CODIM1d(p.m_a, l, EXPR(a), nullptr)
+#define COARRAY_COMP_DECL4d(b, l)       CODIM1d(p.m_a, l, nullptr, EXPR(b))
+#define COARRAY_COMP_DECL5d(l)          CODIM1d(p.m_a, l, nullptr, nullptr)
+#define COARRAY_COMP_DECL6d(l)          CODIM1d_star(p.m_a, l, nullptr)
+#define COARRAY_COMP_DECL7d(a, l)       CODIM1d_star(p.m_a, l, EXPR(a))
+
+#define COARRAY_COMP_DECL_0i0(a,l)     CODIM1(p.m_a, l, nullptr, EXPR(a), nullptr)
+#define COARRAY_COMP_DECL_001(l)       CODIM1(p.m_a, l, \
+        nullptr, nullptr, EXPR(INTEGER(1,l)))
+#define COARRAY_COMP_DECL_a01(a,l)     CODIM1(p.m_a, l, \
+        EXPR(a), nullptr, EXPR(INTEGER(1,l)))
+#define COARRAY_COMP_DECL_0b1(b,l)     CODIM1(p.m_a, l, \
+        nullptr, EXPR(b), EXPR(INTEGER(1,l)))
+#define COARRAY_COMP_DECL_ab1(a,b,l)   CODIM1(p.m_a, l, \
+        EXPR(a), EXPR(b), EXPR(INTEGER(1,l)))
+#define COARRAY_COMP_DECL_00c(c,l)     CODIM1(p.m_a, l, nullptr, nullptr, EXPR(c))
+#define COARRAY_COMP_DECL_a0c(a,c,l)   CODIM1(p.m_a, l, EXPR(a), nullptr, EXPR(c))
+#define COARRAY_COMP_DECL_0bc(b,c,l)   CODIM1(p.m_a, l, nullptr, EXPR(b), EXPR(c))
+#define COARRAY_COMP_DECL_abc(a,b,c,l) CODIM1(p.m_a, l, EXPR(a), EXPR(b), EXPR(c))
+
+#define COARRAY_COMP_DECL1k(id, a, l)   CODIM1k(p.m_a, l, \
+        id, EXPR(INTEGER(1, l)), EXPR(a))
+#define COARRAY_COMP_DECL_star(l)       CODIM1star(p.m_a, l, EXPR(INTEGER(1, l)))
 
 #define VARMOD(a, l) make_Attribute_t(p.m_a, l, \
         a.c_str(p.m_a), \
@@ -1199,8 +1468,8 @@ ast_t* FUNCCALLORARRAY0(Allocator &al, const ast_t *id,
     }
     return make_FuncCallOrArray_t(al, l,
         /*char* a_func*/ name2char(id),
-        member.p, member.size(),
-        /*expr_t** a_args*/ v.p, /*size_t n_args*/ v.size(),
+        /* struct_member_t* */member.p, /* size_t */member.size(),
+        /*fnarg_t* a_args*/ v.p, /*size_t n_args*/ v.size(),
         /*keyword_t* a_keywords*/ v2.p, /*size_t n_keywords*/ v2.size());
 }
 
@@ -1209,10 +1478,44 @@ ast_t* FUNCCALLORARRAY0(Allocator &al, const ast_t *id,
 #define FUNCCALLORARRAY2(members, id, args, l) FUNCCALLORARRAY0(p.m_a, id, \
         args, members, l)
 
-#define SELECT(cond, body, def, l) make_Select_t(p.m_a, l, 0, nullptr, \
+ast_t* COARRAY(Allocator &al, const ast_t *id,
+        const Vec<FnArg> &args, const Vec<CoarrayArg> &coargs,
+        Location &l) {
+    Vec<fnarg_t> fn;
+    fn.reserve(al, args.size());
+    Vec<keyword_t> fnkw;
+    fnkw.reserve(al, args.size());
+    for (auto &item : args) {
+        if (item.keyword) {
+            fnkw.push_back(al, item.kw);
+        } else {
+            fn.push_back(al, item.arg);
+        }
+    }
+    Vec<coarrayarg_t> coarr;
+    coarr.reserve(al, coargs.size());
+    Vec<keyword_t> coarrkw;
+    coarrkw.reserve(al, coargs.size());
+    for (auto &item : coargs) {
+        if (item.keyword) {
+            coarrkw.push_back(al, item.kw);
+        } else {
+            coarr.push_back(al, item.arg);
+        }
+    }
+    return make_CoarrayRef_t(al, l,
+        /*char* a_func*/ name2char(id),
+        /*fnarg_t* */ fn.p, /*size_t */ fn.size(),
+        /*keyword_t* */ fnkw.p, /*size_t */ fnkw.size(),
+        /*coarrayarg_t* */ coarr.p, /*size_t s*/ coarr.size(),
+        /*keyword_t* */ coarrkw.p, /*size_t */ coarrkw.size());
+}
+#define COARRAY1(id, coargs, l) COARRAY(p.m_a, id, empty1(), coargs, l)
+#define COARRAY2(id, args, coargs, l) COARRAY(p.m_a, id, args, coargs, l)
+
+#define SELECT(cond, body, l) make_Select_t(p.m_a, l, 0, nullptr, \
         EXPR(cond), \
-        CASE_STMTS(body), body.size(), \
-        STMTS(def), def.size())
+        CASE_STMTS(body), body.size())
 
 #define CASE_STMT(cond, body, l) make_CaseStmt_t(p.m_a, l, \
         EXPRS(cond), cond.size(), STMTS(body), body.size())
@@ -1222,20 +1525,41 @@ ast_t* FUNCCALLORARRAY0(Allocator &al, const ast_t *id,
         nullptr, EXPR(cond), STMTS(body), body.size())
 #define CASE_STMT4(cond1, cond2, body, l) make_CaseStmt_Range_t(p.m_a, l, \
         EXPR(cond1), EXPR(cond2), STMTS(body), body.size())
+#define CASE_STMT_DEFAULT(body, l) make_CaseStmt_Default_t(p.m_a, l, \
+        STMTS(body), body.size())
 
-#define USE1(mod, l) make_Use_t(p.m_a, l, \
-        name2char(mod), \
+#define SELECT_TYPE1(sel, body, l) make_SelectType_t(p.m_a, l, 0, nullptr, \
+        nullptr, EXPR(sel), TYPE_STMTS(body), body.size())
+#define SELECT_TYPE2(id, sel, body, l) make_SelectType_t(p.m_a, l, 0, nullptr, \
+        name2char(id), EXPR(sel), \
+        TYPE_STMTS(body), body.size())
+
+#define TYPE_STMTNAME(x, body, l) make_TypeStmtName_t(p.m_a, l, \
+        x.c_str(p.m_a), STMTS(body), body.size())
+#define TYPE_STMTVAR(vartype, body, l) make_TypeStmtType_t(p.m_a, l, \
+        down_cast<decl_attribute_t>(vartype), STMTS(body), body.size())
+#define CLASS_STMT(id, body, l) make_ClassStmt_t(p.m_a, l, \
+        name2char(id), STMTS(body), body.size())
+#define CLASS_DEFAULT(body, l) make_ClassDefault_t(p.m_a, l, \
+        STMTS(body), body.size())
+
+#define USE1(nature, mod, l) make_Use_t(p.m_a, l, \
+        VEC_CAST(nature, decl_attribute), nature.size(), name2char(mod), \
         nullptr, 0)
-#define USE2(mod, syms, l) make_Use_t(p.m_a, l, \
-        name2char(mod), \
+#define USE2(nature, mod, syms, l) make_Use_t(p.m_a, l, \
+        VEC_CAST(nature, decl_attribute), nature.size(), name2char(mod), \
         USE_SYMBOLS(syms), syms.size())
 
 #define USE_SYMBOL1(x, l) make_UseSymbol_t(p.m_a, l, \
         name2char(x), nullptr)
 #define USE_SYMBOL2(x, y, l) make_UseSymbol_t(p.m_a, l, \
         name2char(y), name2char(x))
-#define USE_SYMBOL3(l) make_UseSymbol_t(p.m_a, l, \
-        nullptr, nullptr)
+#define USE_ASSIGNMENT(l) make_UseAssignment_t(p.m_a, l)
+#define INTRINSIC_OPERATOR(op, l) make_IntrinsicOperator_t(p.m_a, l, \
+        op)
+#define DEFINED_OPERATOR(optype, l) make_DefinedOperator_t(p.m_a, l, \
+        def_op_to_str(p.m_a, optype))
+
 
 #define MODULE(name, use, implicit, decl, contains, l) make_Module_t(p.m_a, l, \
         name2char(name), \
@@ -1252,6 +1576,16 @@ ast_t* FUNCCALLORARRAY0(Allocator &al, const ast_t *id,
         /*n_implicit*/ implicit.size(), \
         /*unit_decl2_t** a_decl*/ DECLS(decl), /*size_t n_decl*/ decl.size(), \
         /*program_unit_t** a_contains*/ CONTAINS(contains), /*size_t n_contains*/ contains.size())
+
+#define BLOCKDATA(use, implicit, decl, l) make_BlockData_t(p.m_a, l, \
+        nullptr, USES(use), use.size(), \
+        VEC_CAST(implicit, implicit_statement), implicit.size(), \
+        DECLS(decl), decl.size())
+#define BLOCKDATA1(name, use, implicit, decl, l) make_BlockData_t( \
+        p.m_a, l, name2char(name), USES(use), use.size(), \
+        VEC_CAST(implicit, implicit_statement), implicit.size(), \
+        DECLS(decl), decl.size())
+
 #define PRIVATE0(l) make_Private_t(p.m_a, l, \
         nullptr, 0)
 #define PRIVATE(syms, l) make_Private_t(p.m_a, l, \
@@ -1259,24 +1593,57 @@ ast_t* FUNCCALLORARRAY0(Allocator &al, const ast_t *id,
 #define PUBLIC(syms, l) make_Public_t(p.m_a, l, \
         nullptr, 0)
 
-#define INTERFACE_HEADER1(l) make_InterfaceHeader1_t(p.m_a, l)
-#define INTERFACE_HEADER2(id, l) make_InterfaceHeader2_t(p.m_a, l, \
+#define INTERFACE_HEADER(l) make_InterfaceHeader_t(p.m_a, l)
+#define INTERFACE_HEADER_NAME(id, l) make_InterfaceHeaderName_t(p.m_a, l, \
         name2char(id))
-#define INTERFACE_HEADER3(l) make_InterfaceHeader3_t(p.m_a, l)
-#define INTERFACE_HEADER4(l) make_InterfaceHeader4_t(p.m_a, l)
-#define INTERFACE_HEADER5(l) make_InterfaceHeader5_t(p.m_a, l)
+#define INTERFACE_HEADER_ASSIGNMENT(l) make_InterfaceHeaderAssignment_t(p.m_a, l)
+#define INTERFACE_HEADER_OPERATOR(op, l) make_InterfaceHeaderOperator_t(p.m_a, l, op)
+#define INTERFACE_HEADER_DEFOP(op, l) make_InterfaceHeaderDefinedOperator_t( \
+        p.m_a, l, def_op_to_str(p.m_a, op))
+#define ABSTRACT_INTERFACE_HEADER(l) make_AbstractInterfaceHeader_t(p.m_a, l)
+
+#define OPERATOR(op, l) intrinsicopType::op
 
 #define INTERFACE(header, contains, l) make_Interface_t(p.m_a, l, \
         down_cast<interface_header_t>(header), INTERFACE_ITEMS(contains), contains.size())
+#define INTERFACE_MODULE_PROC1(fn_mod, names, l) \
+        make_InterfaceModuleProcedure_t(p.m_a, l, \
+        REDUCE_ARGS(p.m_a, names), names.size(), \
+        VEC_CAST(fn_mod, decl_attribute), fn_mod.size())
 #define INTERFACE_MODULE_PROC(names, l) \
         make_InterfaceModuleProcedure_t(p.m_a, l, \
-        REDUCE_ARGS(p.m_a, names), names.size())
+        REDUCE_ARGS(p.m_a, names), names.size(), nullptr, 0)
 #define INTERFACE_PROC(proc, l) \
         make_InterfaceProc_t(p.m_a, l, \
         down_cast<program_unit_t>(proc))
 
-// TODO: Add DerivedType AST node
-#define DERIVED_TYPE(name, decl, l) make_DerivedType_t(p.m_a, l, \
-        name2char(name), DECLS(decl), decl.size())
+#define DERIVED_TYPE(attr, name, decl, contains, l) make_DerivedType_t(p.m_a, l, \
+        name2char(name), VEC_CAST(attr, decl_attribute), attr.size(),  \
+        DECLS(decl), decl.size(), \
+        VEC_CAST(contains, procedure_decl), contains.size())
+
+#define DERIVED_TYPE_PROC(attr, syms, l) make_DerivedTypeProc_t(p.m_a, l, \
+        nullptr, VEC_CAST(attr, decl_attribute), attr.size(), \
+        USE_SYMBOLS(syms), syms.size())
+#define DERIVED_TYPE_PROC1(name, attr, syms, l) make_DerivedTypeProc_t(p.m_a, l, \
+        name2char(name), VEC_CAST(attr, decl_attribute), attr.size(), \
+        USE_SYMBOLS(syms), syms.size())
+#define GENERIC_OPERATOR(optype, namelist, l) make_GenericOperator_t(p.m_a, l, \
+        optype, REDUCE_ARGS(p.m_a, namelist), namelist.size())
+#define GENERIC_DEFOP(optype, namelist, l) make_GenericDefinedOperator_t( \
+        p.m_a, l, def_op_to_str(p.m_a, optype), \
+        REDUCE_ARGS(p.m_a, namelist), namelist.size())
+#define GENERIC_ASSIGNMENT(namelist, l) make_GenericAssignment_t(p.m_a, l, \
+        REDUCE_ARGS(p.m_a, namelist), namelist.size())
+#define GENERIC_NAME(name, namelist, l) make_GenericName_t(p.m_a, l, \
+        name2char(name), REDUCE_ARGS(p.m_a, namelist), namelist.size())
+#define FINAL_NAME(name, l) make_FinalName_t(p.m_a, l, name2char(name))
+
+#define PASS(name, l) make_AttrPass_t(p.m_a, l, name2char(name))
+
+#define CRITICAL(stmts, l) make_Critical_t(p.m_a, l, 0, nullptr, \
+        nullptr, 0, STMTS(stmts), stmts.size())
+#define CRITICAL1(x, stmts, l) make_Critical_t(p.m_a, l, 0, nullptr, \
+        VEC_CAST(x, event_attribute), x.size(), STMTS(stmts), stmts.size())
 
 #endif

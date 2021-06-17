@@ -24,6 +24,14 @@ struct FnArg {
     };
 };
 
+struct CoarrayArg {
+    bool keyword;
+    union {
+        AST::coarrayarg_t arg;
+        AST::keyword_t kw;
+    };
+};
+
 struct ArgStarKw {
     bool keyword;
     union {
@@ -45,6 +53,9 @@ union YYSTYPE {
     AST::dimension_t *dim;
     Vec<AST::dimension_t> vec_dim;
 
+    AST::codimension_t *codim;
+    Vec<AST::codimension_t> vec_codim;
+
     AST::reduce_opType reduce_op_type;
 
     VarType *var_type;
@@ -55,11 +66,16 @@ union YYSTYPE {
     FnArg *fnarg;
     Vec<FnArg> vec_fnarg;
 
+    CoarrayArg *coarrayarg;
+    Vec<CoarrayArg> vec_coarrayarg;
+
     ArgStarKw *argstarkw;
     Vec<ArgStarKw> vec_argstarkw;
 
     AST::struct_member_t *struct_member;
     Vec<AST::struct_member_t> vec_struct_member;
+
+    AST::intrinsicopType interface_op_type;
 };
 
 static_assert(std::is_standard_layout<YYSTYPE>::value);

@@ -4,8 +4,8 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    468 // shift/reduce conflicts
-%expect-rr 81  // reduce/reduce conflicts
+%expect    536 // shift/reduce conflicts
+%expect-rr 84  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
 //%define parse.error verbose
@@ -170,6 +170,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token <string> KW_EQUIVALENCE
 %token <string> KW_ERRMSG
 %token <string> KW_ERROR
+%token <string> KW_EVENT
 %token <string> KW_EXIT
 %token <string> KW_EXTENDS
 %token <string> KW_EXTERNAL
@@ -219,6 +220,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token <string> KW_PARAMETER
 %token <string> KW_PASS
 %token <string> KW_POINTER
+%token <string> KW_POST
 %token <string> KW_PRECISION
 %token <string> KW_PRINT
 %token <string> KW_PRIVATE
@@ -245,6 +247,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token <string> KW_STOP
 %token <string> KW_SUBMODULE
 %token <string> KW_SUBROUTINE
+%token <string> KW_SYNC
 %token <string> KW_TARGET
 %token <string> KW_TEAM
 %token <string> KW_TEAM_NUMBER
@@ -255,6 +258,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token <string> KW_USE
 %token <string> KW_VALUE
 %token <string> KW_VOLATILE
+%token <string> KW_WAIT
 %token <string> KW_WHERE
 %token <string> KW_WHILE
 %token <string> KW_WRITE
@@ -270,6 +274,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> script_unit
 %type <ast> module
 %type <ast> submodule
+%type <ast> block_data
 %type <ast> decl
 %type <vec_ast> decl_star
 %type <ast> interface_decl
@@ -286,14 +291,22 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <vec_ast> use_statement_star
 %type <ast> use_symbol
 %type <vec_ast> use_symbol_list
+%type <ast> use_modifier
+%type <vec_ast> use_modifiers
+%type <vec_ast> use_modifier_list
 %type <vec_ast> var_decl_star
 %type <vec_var_sym> var_sym_decl_list
 %type <ast> var_decl
+%type <ast> decl_spec
 %type <var_sym> var_sym_decl
 %type <vec_dim> array_comp_decl_list
+%type <vec_codim> coarray_comp_decl_list
 %type <fnarg> fnarray_arg
 %type <vec_fnarg> fnarray_arg_list_opt
+%type <coarrayarg> coarray_arg
+%type <vec_coarrayarg> coarray_arg_list
 %type <dim> array_comp_decl
+%type <codim> coarray_comp_decl
 %type <ast> var_type
 %type <ast> fn_mod
 %type <vec_ast> fn_mod_plus
@@ -332,11 +345,12 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> where_block
 %type <ast> select_statement
 %type <ast> select_type_statement
+%type <vec_ast> select_type_body_statements
+%type <ast> select_type_body_statement
 %type <vec_ast> case_statements
 %type <ast> case_statement
-%type <vec_ast> select_default_statement_opt
-%type <vec_ast> select_default_statement
 %type <ast> while_statement
+%type <ast> critical_statement
 %type <ast> do_statement
 %type <ast> forall_statement
 %type <ast> forall_statement_single
@@ -349,6 +363,14 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> continue_statement
 %type <ast> stop_statement
 %type <ast> error_stop_statement
+%type <ast> event_post_statement
+%type <ast> event_wait_statement
+%type <ast> sync_all_statement
+%type <vec_ast> event_wait_spec_list
+%type <ast> event_wait_spec
+%type <vec_ast> sync_stat_list
+%type <vec_ast> event_post_stat_list
+%type <ast> sync_stat
 %type <ast> format_statement
 %type <vec_ast> statements
 %type <vec_ast> contains_block_opt
@@ -360,10 +382,22 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> concurrent_control
 %type <vec_var_sym> named_constant_def_list
 %type <var_sym> named_constant_def
+%type <vec_var_sym> common_block_list
+%type <var_sym> common_block
+%type <vec_ast> data_set_list
+%type <ast> data_set
+%type <vec_ast> data_object_list
+%type <vec_ast> data_stmt_value_list
+%type <ast> data_stmt_value
+%type <ast> data_stmt_repeat
+%type <ast> data_stmt_constant
+%type <ast> data_object
+%type <ast> integer_type
 %type <vec_kind_arg> kind_arg_list
 %type <kind_arg> kind_arg2
 %type <vec_ast> interface_body
 %type <ast> interface_item
+%type <interface_op_type> operator_type
 %type <ast> write_arg
 %type <argstarkw> write_arg2
 %type <vec_argstarkw> write_arg_list
@@ -379,9 +413,16 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <vec_ast> implicit_none_spec_list
 %type <ast> letter_spec
 %type <vec_ast> letter_spec_list
+%type <ast> procedure_decl
+%type <ast> proc_modifier
+%type <vec_ast> procedure_list
+%type <vec_ast> derived_type_contains_opt
+%type <vec_ast> proc_modifiers
+%type <vec_ast> proc_modifier_list
 
 // Precedence
 
+%left TK_DEF_OP
 %left ".not." ".and." ".or." ".eqv." ".neqv."
 %left "==" "/=" "<" "<=" ">" ">="
 %left "//"
@@ -412,6 +453,7 @@ units
 script_unit
     : module
     | submodule
+    | block_data
     | program
     | subroutine
     | procedure
@@ -441,18 +483,30 @@ submodule
             $$ = SUBMODULE($3, $5, $7, $8, $9, $10, @$); }
     ;
 
+block_data
+    : KW_BLOCK KW_DATA sep use_statement_star implicit_statement_star
+        decl_star KW_END end_blockdata_opt sep {
+            $$ = BLOCKDATA($4, $5, $6, @$); }
+    | KW_BLOCK KW_DATA id sep use_statement_star implicit_statement_star
+        decl_star KW_END end_blockdata_opt sep {
+            $$ = BLOCKDATA1($3, $5, $6, $7, @$); }
+    ;
+
 interface_decl
     : interface_stmt sep interface_body endinterface sep {
             $$ = INTERFACE($1, $3, @$); }
     ;
 
 interface_stmt
-    : KW_INTERFACE { $$ = INTERFACE_HEADER1(@$); }
-    | KW_INTERFACE id { $$ = INTERFACE_HEADER2($2, @$); }
-    | KW_INTERFACE KW_ASSIGNMENT "(" "=" ")" { $$ = INTERFACE_HEADER3(@$); }
+    : KW_INTERFACE { $$ = INTERFACE_HEADER(@$); }
+    | KW_INTERFACE id { $$ = INTERFACE_HEADER_NAME($2, @$); }
+    | KW_INTERFACE KW_ASSIGNMENT "(" "=" ")" {
+        $$ = INTERFACE_HEADER_ASSIGNMENT(@$); }
     | KW_INTERFACE KW_OPERATOR "(" operator_type ")" {
-        $$ = INTERFACE_HEADER4(@$); }
-    | KW_ABSTRACT KW_INTERFACE { $$ = INTERFACE_HEADER5(@$); }
+        $$ = INTERFACE_HEADER_OPERATOR($4, @$); }
+    | KW_INTERFACE KW_OPERATOR "(" TK_DEF_OP ")" {
+        $$ = INTERFACE_HEADER_DEFOP($4, @$); }
+    | KW_ABSTRACT KW_INTERFACE { $$ = ABSTRACT_INTERFACE_HEADER(@$); }
     ;
 
 endinterface
@@ -475,9 +529,9 @@ interface_body
 
 interface_item
     : fn_mod_plus KW_PROCEDURE id_list sep {
-        $$ = INTERFACE_MODULE_PROC($3, @$); }
+        $$ = INTERFACE_MODULE_PROC1($1, $3, @$); }
     | fn_mod_plus KW_PROCEDURE "::" id_list sep {
-        $$ = INTERFACE_MODULE_PROC($4, @$); }
+        $$ = INTERFACE_MODULE_PROC1($1, $4, @$); }
     | KW_PROCEDURE id_list sep {
         $$ = INTERFACE_MODULE_PROC($2, @$); }
     | KW_PROCEDURE "::" id_list sep {
@@ -490,7 +544,7 @@ interface_item
 
 enum_decl
     : KW_ENUM enum_var_modifiers sep var_decl_star KW_END KW_ENUM sep {
-        $$ = ENUM(@$); }
+        $$ = ENUM($2, $4, @$); }
     ;
 
 enum_var_modifiers
@@ -499,62 +553,73 @@ enum_var_modifiers
     ;
 
 derived_type_decl
-    : KW_TYPE var_modifiers id sep var_decl_star derived_type_contains_opt KW_END KW_TYPE id_opt sep {
-        $$ = DERIVED_TYPE($3, $5, @$); }
+    : KW_TYPE var_modifiers id sep var_decl_star
+        derived_type_contains_opt KW_END KW_TYPE id_opt sep {
+        $$ = DERIVED_TYPE($2, $3, $5, $6, @$); }
     ;
 
 derived_type_contains_opt
-    : KW_CONTAINS sep procedure_list
-    | %empty
+    : KW_CONTAINS sep procedure_list { $$ = $3; }
+    | %empty { LIST_NEW($$); }
     ;
 
 procedure_list
-    : procedure_list procedure_decl
-    | procedure_decl
+    : procedure_list procedure_decl { $$ = $1; LIST_ADD($$, $2); }
+    | procedure_decl { LIST_NEW($$); LIST_ADD($$, $1); }
     ;
 
 procedure_decl
-    : KW_PROCEDURE proc_paren proc_modifiers use_symbol_list sep
-    | KW_GENERIC "::" KW_OPERATOR "(" operator_type ")" "=>" id_list sep
-    | KW_GENERIC "::" KW_ASSIGNMENT "(" "=" ")" "=>" id_list sep
-    | KW_GENERIC "::" id "=>" id_list sep
-    | KW_FINAL "::" id sep
+    : KW_PROCEDURE proc_modifiers use_symbol_list sep {
+            $$ = DERIVED_TYPE_PROC($2, $3, @$); }
+    | KW_PROCEDURE "(" id ")" proc_modifiers use_symbol_list sep {
+            $$ = DERIVED_TYPE_PROC1($3, $5, $6, @$); }
+    | KW_GENERIC "::" KW_OPERATOR "(" operator_type ")" "=>" id_list sep {
+            $$ = GENERIC_OPERATOR($5, $8, @$); }
+    | KW_GENERIC "::" KW_OPERATOR "(" TK_DEF_OP ")" "=>" id_list sep {
+            $$ = GENERIC_DEFOP($5, $8, @$); }
+    | KW_GENERIC "::" KW_ASSIGNMENT "(" "=" ")" "=>" id_list sep {
+            $$ = GENERIC_ASSIGNMENT($8, @$); }
+    | KW_GENERIC "::" id "=>" id_list sep { $$ = GENERIC_NAME($3, $5, @$); }
+    | KW_FINAL "::" id sep { $$ = FINAL_NAME($3, @$); }
     ;
 
 operator_type
-    : "+"
-    | "-"
-    | "=="
-    | "/="
-    | ">"
-    | ">="
-    | "<"
-    | "<="
-    ;
-
-proc_paren
-    : %empty
-    | "(" id ")"
+    : "+"      { $$ = OPERATOR(PLUS, @$); }
+    | "-"      { $$ = OPERATOR(MINUS, @$); }
+    | "*"      { $$ = OPERATOR(STAR, @$); }
+    | "/"      { $$ = OPERATOR(DIV, @$); }
+    | "**"     { $$ = OPERATOR(POW, @$); }
+    | "=="     { $$ = OPERATOR(EQ, @$); }
+    | "/="     { $$ = OPERATOR(NOTEQ, @$); }
+    | ">"      { $$ = OPERATOR(GT, @$); }
+    | ">="     { $$ = OPERATOR(GTE, @$); }
+    | "<"      { $$ = OPERATOR(LT, @$); }
+    | "<="     { $$ = OPERATOR(GTE, @$); }
+    | ".not."  { $$ = OPERATOR(NOT, @$); }
+    | ".and."  { $$ = OPERATOR(AND, @$); }
+    | ".or."   { $$ = OPERATOR(OR, @$); }
+    | ".eqv."  { $$ = OPERATOR(EQV, @$); }
+    | ".neqv." { $$ = OPERATOR(NEQV, @$); }
     ;
 
 proc_modifiers
-    : %empty
-    | "::"
-    | proc_modifier_list "::"
+    : %empty { LIST_NEW($$); }
+    | "::" { LIST_NEW($$); }
+    | proc_modifier_list "::" { $$ = $1; }
     ;
 
 proc_modifier_list
-    : proc_modifier_list "," proc_modifier
-    | "," proc_modifier
+    : proc_modifier_list "," proc_modifier { $$ = $1; LIST_ADD($$, $3); }
+    | "," proc_modifier { LIST_NEW($$); LIST_ADD($$, $2); }
     ;
 
 proc_modifier
-    : KW_PRIVATE
-    | KW_PUBLIC
-    | KW_PASS "(" id ")"
-    | KW_NOPASS
-    | KW_DEFERRED
-    | KW_NON_OVERRIDABLE
+    : KW_PRIVATE  { $$ = SIMPLE_ATTR(Private, @$); }
+    | KW_PUBLIC { $$ = SIMPLE_ATTR(Public, @$); }
+    | KW_PASS "(" id ")" { $$ = PASS($3, @$); }
+    | KW_NOPASS { $$ = SIMPLE_ATTR(NoPass, @$); }
+    | KW_DEFERRED { $$ = SIMPLE_ATTR(Deferred, @$); }
+    | KW_NON_OVERRIDABLE { $$ = SIMPLE_ATTR(NonDeferred, @$); }
     ;
 
 
@@ -583,6 +648,11 @@ end_submodule_opt
     | %empty
     ;
 
+end_blockdata_opt
+    : KW_BLOCK KW_DATA id_opt
+    | %empty
+    ;
+
 end_subroutine_opt
     : KW_SUBROUTINE id_opt
     | %empty
@@ -608,7 +678,7 @@ subroutine
     import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_subroutine_opt sep {
-            LLOC(@$, @14); $$ = SUBROUTINE($3, $4, $5, $7, $8, $9, $10, $11, $12, @$); }
+            LLOC(@$, @14); $$ = SUBROUTINE1($1, $3, $4, $5, $7, $8, $9, $10, $11, $12, @$); }
     ;
 
 procedure
@@ -616,7 +686,7 @@ procedure
     import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_procedure_opt sep {
-            LLOC(@$, @14); $$ = PROCEDURE($3, $4, $6, $9, $10, $11, @$); }
+            LLOC(@$, @14); $$ = PROCEDURE($1, $3, $4, $6, $7, $8, $9, $10, $11, @$); }
     ;
 
 function
@@ -790,9 +860,9 @@ use_statement_star
     ;
 
 use_statement
-    : KW_USE use_modifiers id sep { $$ = USE1($3, @$); }
+    : KW_USE use_modifiers id sep { $$ = USE1($2, $3, @$); }
     | KW_USE use_modifiers id "," KW_ONLY ":" use_symbol_list sep {
-            $$ = USE2($3, $7, @$); }
+            $$ = USE2($2, $3, $7, @$); }
     ;
 
 import_statement_star
@@ -817,22 +887,25 @@ use_symbol_list
 use_symbol
     : id          { $$ = USE_SYMBOL1($1, @$); }
     | id "=>" id  { $$ = USE_SYMBOL2($1, $3, @$); }
-    | KW_ASSIGNMENT "(" "=" ")"  { $$ = USE_SYMBOL3(@$); }
+    | KW_ASSIGNMENT "(" "=" ")"  { $$ = USE_ASSIGNMENT(@$); }
+    | KW_OPERATOR "(" operator_type ")"  { $$ = INTRINSIC_OPERATOR($3, @$); }
+    | KW_OPERATOR "(" TK_DEF_OP ")"  { $$ = DEFINED_OPERATOR($3, @$); }
     ;
 
 use_modifiers
-    : %empty
-    | "::"
-    | use_modifier_list "::"
+    : %empty { LIST_NEW($$); }
+    | "::" { LIST_NEW($$); }
+    | use_modifier_list "::" { $$ = $1; }
     ;
 
 use_modifier_list
-    : use_modifier_list "," use_modifier
-    | "," use_modifier
+    : use_modifier_list "," use_modifier { $$=$1; LIST_ADD($$, $3); }
+    | "," use_modifier { LIST_NEW($$); LIST_ADD($$, $2); }
     ;
 
 use_modifier
-    : KW_INTRINSIC
+    : KW_INTRINSIC { $$ = SIMPLE_ATTR(Intrinsic, @$); }
+    | KW_NON_INTRINSIC { $$ = SIMPLE_ATTR(Non_Intrinsic, @$); }
     ;
 
 // var_decl*
@@ -854,6 +927,10 @@ var_decl
             $$ = VAR_DECL_PARAMETER($3, @$); }
     | KW_NAMELIST "/" id "/" id_list sep {
             $$ = VAR_DECL_NAMELIST($3, $5, @$); }
+    | KW_COMMON common_block_list sep {
+            $$ = VAR_DECL_COMMON($2, @$); }
+    | KW_DATA data_set_list sep {
+            $$ = VAR_DECL_DATA($2, @$); }
     ;
 
 named_constant_def_list
@@ -863,9 +940,71 @@ named_constant_def_list
     ;
 
 named_constant_def
-    : id "=" expr { VAR_SYM($$, $1, nullptr, 0, $3, @$); }
+    : id "=" expr { $$ = VAR_SYM_DIM_INIT($1, nullptr, 0, $3, Equal, @$); }
     ;
 
+common_block_list
+    : common_block_list "," common_block { $$ = $1; PLIST_ADD($$, $3); }
+    | common_block { LIST_NEW($$); PLIST_ADD($$, $1); }
+    ;
+
+common_block
+    : "/" id "/" expr {  $$ = VAR_SYM_DIM_INIT($2, nullptr, 0, $4, Equal, @$); }
+    | expr { $$ = VAR_SYM_DIM_EXPR($1, None, @$); }
+    ;
+
+data_set_list
+    : data_set_list "," data_set { $$ = $1; LIST_ADD($$, $3); }
+    | data_set { LIST_NEW($$); LIST_ADD($$, $1); }
+    ;
+
+data_set
+    : data_object_list "/" data_stmt_value_list "/" { $$ = DATA($1, $3, @$); }
+    ;
+
+data_object_list
+    : data_object_list "," data_object { $$ = $1; LIST_ADD($$, $3); }
+    | data_object { LIST_NEW($$); LIST_ADD($$, $1); }
+    ;
+
+data_object
+    : id { $$ = $1; }
+    | struct_member_star id { NAME1($$, $2, $1, @$); }
+    | id "(" fnarray_arg_list_opt ")" { $$ = FUNCCALLORARRAY($1, $3, @$); }
+    | "(" data_object "," integer_type id "=" expr "," expr ")" {
+            $$ = DATA_IMPLIED_DO1($2, $4, $5, $7, $9, @$); }
+    | "(" data_object "," integer_type id "=" expr "," expr "," expr ")" {
+            $$ = DATA_IMPLIED_DO2($2, $4, $5, $7, $9, $11, @$); }
+    ;
+
+data_stmt_value_list
+    : data_stmt_value_list "," data_stmt_value { $$ = $1; LIST_ADD($$, $3); }
+    | data_stmt_value { LIST_NEW($$); LIST_ADD($$, $1); }
+    ;
+
+data_stmt_value
+    : data_stmt_repeat "*" data_stmt_constant
+    | data_stmt_constant
+    ;
+
+data_stmt_repeat
+    : TK_INTEGER { $$ = INTEGER($1, @$); }
+    ;
+
+data_stmt_constant
+    : TK_INTEGER { $$ = INTEGER($1, @$); }
+    | TK_REAL { $$ = REAL($1, @$); }
+    | TK_STRING { $$ = STRING($1, @$); }
+    | TK_BOZ_CONSTANT { $$ = BOZ($1, @$); }
+    | ".true."  { $$ = TRUE(@$); }
+    | ".false." { $$ = FALSE(@$); }
+    ;
+
+integer_type
+    : KW_INTEGER "(" kind_arg_list ")" "::" {
+            $$ = ATTR_TYPE_KIND(Integer, $3, @$); }
+    | %empty { $$ = nullptr; }
+    ;
 
 kind_arg_list
     : kind_arg_list "," kind_arg2 { $$ = $1; LIST_ADD($$, *$3); }
@@ -896,7 +1035,9 @@ var_modifier
     : KW_PARAMETER { $$ = SIMPLE_ATTR(Parameter, @$); }
     | KW_DIMENSION "(" array_comp_decl_list ")" { $$ = DIMENSION($3, @$); }
     | KW_DIMENSION { $$ = DIMENSION0(@$); }
+    | KW_CODIMENSION "[" coarray_comp_decl_list "]" { $$ = CODIMENSION($3, @$); }
     | KW_ALLOCATABLE { $$ = SIMPLE_ATTR(Allocatable, @$); }
+    | KW_ASYNCHRONOUS { $$ = SIMPLE_ATTR(Asynchronous, @$); }
     | KW_POINTER { $$ = SIMPLE_ATTR(Pointer, @$); }
     | KW_TARGET { $$ = SIMPLE_ATTR(Target, @$); }
     | KW_OPTIONAL { $$ = SIMPLE_ATTR(Optional, @$); }
@@ -947,21 +1088,26 @@ var_sym_decl_list
     ;
 
 var_sym_decl
-    : id { VAR_SYM2($$, $1, nullptr, 0, @$); }
-    | id "=" expr { VAR_SYM($$, $1, nullptr, 0, $3, @$); }
-    | id "=>" expr { VAR_SYM($$, $1, nullptr, 0, $3, @$); }
-    | id "*" expr { VAR_SYM2($$, $1, nullptr, 0, @$); }
-    | id "(" array_comp_decl_list ")" { VAR_SYM2($$, $1, $3.p, $3.n, @$); }
+    : id { $$ = VAR_SYM_NAME($1, None, @$); }
+    | id "=" expr { $$ = VAR_SYM_DIM_INIT($1, nullptr, 0, $3, Equal, @$); }
+    | id "=>" expr { $$ = VAR_SYM_DIM_INIT($1, nullptr, 0, $3, Assign, @$); }
+    | id "*" expr { $$ = VAR_SYM_DIM_INIT($1, nullptr, 0, $3, Asterisk, @$); }
+    | id "(" array_comp_decl_list ")" { $$ = VAR_SYM_DIM($1, $3.p, $3.n, None, @$); }
     | id "(" array_comp_decl_list ")" "=" expr {
-            VAR_SYM($$, $1, $3.p, $3.n, $6, @$); }
+            $$ = VAR_SYM_DIM_INIT($1, $3.p, $3.n, $6, Equal, @$); }
     | id "(" array_comp_decl_list ")" "=>" expr {
-            VAR_SYM($$, $1, $3.p, $3.n, $6, @$); }
+            $$ = VAR_SYM_DIM_INIT($1, $3.p, $3.n, $6, Assign, @$); }
+    | id "[" coarray_comp_decl_list "]" {
+            $$ = VAR_SYM_CODIM($1, $3.p, $3.n, None, @$); }
+    | id "(" array_comp_decl_list ")" "[" coarray_comp_decl_list "]" {
+            $$ = VAR_SYM_DIM_CODIM($1, $3.p, $3.n, $6.p, $6.n, None, @$); }
+    | decl_spec { $$ = VAR_SYM_SPEC($1, None, @$); }
+    ;
 
-// TODO: is this needed? It seems it should go somewheer else
-/*
-    | KW_ASSIGNMENT "(" "=" ")"              {
-            $$ = FIXME(@$); }
-*/
+decl_spec
+    : KW_OPERATOR "(" operator_type ")" { $$ = DECL_OP($3, @$); }
+    | KW_OPERATOR "(" TK_DEF_OP ")" { $$ = DECL_DEFOP($3, @$); }
+    | KW_ASSIGNMENT "(" "=" ")" { $$ = DECL_ASSIGNMENT(@$); }
     ;
 
 array_comp_decl_list
@@ -977,6 +1123,21 @@ array_comp_decl
     | ":"            { $$ = ARRAY_COMP_DECL5d(@$); }
     | "*"            { $$ = ARRAY_COMP_DECL6d(@$); }
     | expr ":" "*"   { $$ = ARRAY_COMP_DECL7d($1, @$); }
+    ;
+
+coarray_comp_decl_list
+    : coarray_comp_decl_list "," coarray_comp_decl { $$ = $1; PLIST_ADD($$, $3); }
+    | coarray_comp_decl { LIST_NEW($$); PLIST_ADD($$, $1); }
+    ;
+
+coarray_comp_decl
+    : expr           { $$ = COARRAY_COMP_DECL1d($1, @$); }
+    | expr ":" expr  { $$ = COARRAY_COMP_DECL2d($1, $3, @$); }
+    | expr ":"       { $$ = COARRAY_COMP_DECL3d($1, @$); }
+    | ":" expr       { $$ = COARRAY_COMP_DECL4d($2, @$); }
+    | ":"            { $$ = COARRAY_COMP_DECL5d(@$); }
+    | "*"            { $$ = COARRAY_COMP_DECL6d(@$); }
+    | expr ":" "*"   { $$ = COARRAY_COMP_DECL7d($1, @$); }
     ;
 
 
@@ -1018,6 +1179,8 @@ single_line_statement
     | cycle_statement
     | deallocate_statement
     | error_stop_statement
+    | event_post_statement
+    | event_wait_statement
     | exit_statement
     | forall_statement_single
     | format_statement
@@ -1033,6 +1196,7 @@ single_line_statement
     | backspace_statement
     | stop_statement
     | subroutine_call
+    | sync_all_statement
     | where_statement_single
     | write_statement
     ;
@@ -1045,6 +1209,7 @@ multi_line_statement
 multi_line_statement0
     : associate_block
     | block_statement
+    | critical_statement
     | do_statement
     | forall_statement
     | if_statement
@@ -1072,8 +1237,8 @@ associate_block
     ;
 
 block_statement
-    : KW_BLOCK sep var_decl_star statements KW_END KW_BLOCK {
-        $$ = BLOCK($3, $4, @$); }
+    : KW_BLOCK sep use_statement_star import_statement_star decl_star
+        statements KW_END KW_BLOCK { $$ = BLOCK($3, $4, $5, $6, @$); }
     ;
 
 allocate_statement
@@ -1088,11 +1253,11 @@ subroutine_call
     : KW_CALL id "(" fnarray_arg_list_opt ")" {
             $$ = SUBROUTINE_CALL($2, $4, @$); }
     | KW_CALL struct_member_star id "(" fnarray_arg_list_opt ")" {
-            $$ = SUBROUTINE_CALL($3, $5, @$); }
+            $$ = SUBROUTINE_CALL1($2, $3, $5, @$); }
     | KW_CALL id {
             $$ = SUBROUTINE_CALL2($2, @$); }
     | KW_CALL struct_member_star id {
-            $$ = SUBROUTINE_CALL2($3, @$); }
+            $$ = SUBROUTINE_CALL3($2, $3, @$); }
     ;
 
 print_statement
@@ -1209,9 +1374,8 @@ where_block
     ;
 
 select_statement
-    : KW_SELECT KW_CASE "(" expr ")" sep case_statements
-        select_default_statement_opt KW_END KW_SELECT {
-                $$ = SELECT($4, $7, $8, @$); }
+    : KW_SELECT KW_CASE "(" expr ")" sep case_statements KW_END KW_SELECT {
+            $$ = SELECT($4, $7, @$); }
     ;
 
 case_statements
@@ -1224,37 +1388,30 @@ case_statement
     | KW_CASE "(" expr ":" ")" sep statements { $$ = CASE_STMT2($3, $7, @$); }
     | KW_CASE "(" ":" expr ")" sep statements { $$ = CASE_STMT3($4, $7, @$); }
     | KW_CASE "(" expr ":" expr ")" sep statements {
-        $$ = CASE_STMT4($3, $5, $8, @$); }
-    ;
-
-select_default_statement_opt
-    : select_default_statement { $$ = $1; }
-    | %empty { LIST_NEW($$); }
-    ;
-
-select_default_statement
-    : KW_CASE KW_DEFAULT sep statements { $$ = $4; }
+            $$ = CASE_STMT4($3, $5, $8, @$); }
+    | KW_CASE KW_DEFAULT sep statements { $$ = CASE_STMT_DEFAULT($4, @$); }
     ;
 
 select_type_statement
     : KW_SELECT KW_TYPE "(" expr ")" sep select_type_body_statements
         KW_END KW_SELECT {
-                $$ = PRINT0(@$); }
+                $$ = SELECT_TYPE1($4, $7, @$); }
     | KW_SELECT KW_TYPE "(" id "=>" expr ")" sep select_type_body_statements
         KW_END KW_SELECT {
-                $$ = PRINT0(@$); }
+                $$ = SELECT_TYPE2($4, $6, $9, @$); }
     ;
 
 select_type_body_statements
-    : select_type_body_statements select_type_body_statement
-    | %empty
+    : select_type_body_statements select_type_body_statement {
+                        $$ = $1; LIST_ADD($$, $2); }
+    | %empty { LIST_NEW($$); }
     ;
 
 select_type_body_statement
-    : KW_TYPE KW_IS "(" TK_NAME ")" sep statements
-    | KW_TYPE KW_IS "(" var_type ")" sep statements
-    | KW_CLASS KW_IS "(" id ")" sep statements
-    | KW_CLASS KW_DEFAULT sep statements
+    : KW_TYPE KW_IS "(" TK_NAME ")" sep statements { $$ = TYPE_STMTNAME($4, $7, @$); }
+    | KW_TYPE KW_IS "(" var_type ")" sep statements { $$ = TYPE_STMTVAR($4, $7, @$); }
+    | KW_CLASS KW_IS "(" id ")" sep statements { $$ = CLASS_STMT($4, $7, @$); }
+    | KW_CLASS KW_DEFAULT sep statements { $$ = CLASS_DEFAULT($4, @$); }
     ;
 
 
@@ -1314,17 +1471,17 @@ concurrent_locality
 forall_statement
     : KW_FORALL "(" concurrent_control_list ")"
         concurrent_locality_star sep statements endforall {
-            $$ = DO_CONCURRENT1($3, $5, $7, @$); }
+            $$ = FORALL1($3, $5, $7, @$); }
     | KW_FORALL "(" concurrent_control_list "," expr ")"
         concurrent_locality_star sep statements endforall {
-            $$ = DO_CONCURRENT2($3, $5, $7, $9, @$); }
+            $$ = FORALL2($3, $5, $7, $9, @$); }
     ;
 
 forall_statement_single
     : KW_FORALL "(" concurrent_control_list ")"
-        assignment_statement { $$ = PRINT0(@$); }
+        assignment_statement { $$ = FORALLSINGLE1($3, $5, @$); }
     | KW_FORALL "(" concurrent_control_list "," expr ")"
-        assignment_statement { $$ = PRINT0(@$); }
+        assignment_statement { $$ = FORALLSINGLE2($3, $5, $7, @$); }
     ;
 
 format_statement
@@ -1405,15 +1562,18 @@ endwhere
     ;
 
 exit_statement
-    : KW_EXIT id_opt { $$ = EXIT(@$); }
+    : KW_EXIT { $$ = EXIT(@$); }
+    | KW_EXIT id { $$ = EXIT2($2, @$); }
     ;
 
 return_statement
     : KW_RETURN { $$ = RETURN(@$); }
+    | KW_RETURN expr { $$ = RETURN1($2, @$); }
     ;
 
 cycle_statement
-    : KW_CYCLE id_opt { $$ = CYCLE(@$); }
+    : KW_CYCLE { $$ = CYCLE(@$); }
+    | KW_CYCLE id { $$ = CYCLE2($2, @$); }
     ;
 
 continue_statement
@@ -1423,13 +1583,65 @@ continue_statement
 stop_statement
     : KW_STOP { $$ = STOP(@$); }
     | KW_STOP expr { $$ = STOP1($2, @$); }
+    | KW_STOP "," KW_QUIET "=" expr { $$ = STOP2($5, @$); }
+    | KW_STOP expr "," KW_QUIET "=" expr { $$ = STOP3($2, $6, @$); }
     ;
 
 error_stop_statement
     : KW_ERROR KW_STOP { $$ = ERROR_STOP(@$); }
     | KW_ERROR KW_STOP expr { $$ = ERROR_STOP1($3, @$); }
+    | KW_ERROR KW_STOP "," KW_QUIET "=" expr { $$ = ERROR_STOP2($6, @$); }
+    | KW_ERROR KW_STOP expr "," KW_QUIET "=" expr {
+            $$ = ERROR_STOP3($3, $7, @$); }
     ;
 
+event_post_statement
+    : KW_EVENT KW_POST "(" expr ")" { $$ = EVENT_POST($4, @$); }
+    | KW_EVENT KW_POST "(" expr "," event_post_stat_list ")" {
+            $$ = EVENT_POST1($4, $6, @$); }
+    ;
+
+event_wait_statement
+    : KW_EVENT KW_WAIT "(" expr ")" {
+            $$ = EVENT_WAIT($4, @$); }
+    | KW_EVENT KW_WAIT "(" expr "," event_wait_spec_list ")" {
+            $$ = EVENT_WAIT1($4, $6, @$); }
+    ;
+
+sync_all_statement
+    : KW_SYNC KW_ALL { $$ = SYNC_ALL(@$); }
+    | KW_SYNC KW_ALL "(" sync_stat_list ")" { $$ = SYNC_ALL1($4, @$); }
+    ;
+
+event_wait_spec_list
+    : event_wait_spec_list "," sync_stat { $$ = $1; LIST_ADD($$, $3); }
+    | event_wait_spec { LIST_NEW($$); LIST_ADD($$, $1); }
+    | %empty { LIST_NEW($$); }
+    ;
+
+event_wait_spec
+    : id "=" expr { $$ = EVENT_WAIT_KW_ARG($1, $3, @$); }
+    ;
+
+event_post_stat_list
+    : sync_stat { LIST_NEW($$); LIST_ADD($$, $1); }
+    ;
+
+sync_stat_list
+    : sync_stat { LIST_NEW($$); LIST_ADD($$, $1); }
+    | %empty { LIST_NEW($$); }
+    ;
+
+sync_stat
+    : KW_STAT "=" id { $$ = STAT($3, @$); }
+    | KW_ERRMSG "=" id { $$ = ERRMSG($3, @$); }
+    ;
+
+critical_statement
+    : KW_CRITICAL sep statements KW_END KW_CRITICAL { $$ = CRITICAL($3, @$); }
+    | KW_CRITICAL "(" sync_stat_list ")" sep statements KW_END KW_CRITICAL {
+            $$ = CRITICAL1($3, $6, @$); }
+    ;
 // -----------------------------------------------------------------------------
 // Fortran expression
 
@@ -1453,14 +1665,18 @@ expr
     : id { $$ = $1; }
     | struct_member_star id { NAME1($$, $2, $1, @$); }
     | id "(" fnarray_arg_list_opt ")" { $$ = FUNCCALLORARRAY($1, $3, @$); }
+    | id "[" coarray_arg_list "]" {
+            $$ = COARRAY1($1, $3, @$); }
+    | id "(" fnarray_arg_list_opt ")" "[" coarray_arg_list "]" {
+            $$ = COARRAY2($1, $3, $6, @$); }
     | struct_member_star id "(" fnarray_arg_list_opt ")" {
             $$ = FUNCCALLORARRAY2($1, $2, $4, @$); }
     | "[" expr_list_opt rbracket { $$ = ARRAY_IN($2, @$); }
-    | "[" var_type "::" expr_list_opt rbracket { $$ = ARRAY_IN($4, @$); }
+    | "[" var_type "::" expr_list_opt rbracket { $$ = ARRAY_IN1($2, $4, @$); }
     | TK_INTEGER { $$ = INTEGER($1, @$); }
     | TK_REAL { $$ = REAL($1, @$); }
     | TK_STRING { $$ = STRING($1, @$); }
-    | TK_BOZ_CONSTANT { $$ = STRING($1, @$); } // TODO: add BOZ AST node
+    | TK_BOZ_CONSTANT { $$ = BOZ($1, @$); }
     | ".true."  { $$ = TRUE(@$); }
     | ".false." { $$ = FALSE(@$); }
     | "(" expr ")" { $$ = $2; }
@@ -1500,6 +1716,7 @@ expr
     | expr ".or." expr { $$ = OR($1, $3, @$); }
     | expr ".eqv." expr { $$ = EQV($1, $3, @$); }
     | expr ".neqv." expr { $$ = NEQV($1, $3, @$); }
+    | expr TK_DEF_OP expr { $$ = DEFOP($1, $2, $3, @$); }
     ;
 
 struct_member_star
@@ -1534,6 +1751,31 @@ fnarray_arg
     | expr ":" expr ":" expr { $$ = ARRAY_COMP_DECL_abc($1, $3, $5, @$); }
 // keyword function argument
     | id "=" expr            { $$ = ARRAY_COMP_DECL1k($1, $3, @$); }
+    ;
+
+coarray_arg_list
+    : coarray_arg_list "," coarray_arg { $$ = $1; PLIST_ADD($$, $3); }
+    | coarray_arg { LIST_NEW($$); PLIST_ADD($$, $1); }
+    ;
+
+coarray_arg
+// array element / function argument
+    : expr                   { $$ = COARRAY_COMP_DECL_0i0($1, @$); }
+// array section
+    | ":"                    { $$ = COARRAY_COMP_DECL_001(@$); }
+    | expr ":"               { $$ = COARRAY_COMP_DECL_a01($1, @$); }
+    | ":" expr               { $$ = COARRAY_COMP_DECL_0b1($2, @$); }
+    | expr ":" expr          { $$ = COARRAY_COMP_DECL_ab1($1, $3, @$); }
+    | "::" expr              { $$ = COARRAY_COMP_DECL_00c($2, @$); }
+    | ":" ":" expr           { $$ = COARRAY_COMP_DECL_00c($3, @$); }
+    | expr "::" expr         { $$ = COARRAY_COMP_DECL_a0c($1, $3, @$); }
+    | expr ":" ":" expr      { $$ = COARRAY_COMP_DECL_a0c($1, $4, @$); }
+    | ":" expr ":" expr      { $$ = COARRAY_COMP_DECL_0bc($2, $4, @$); }
+    | expr ":" expr ":" expr { $$ = COARRAY_COMP_DECL_abc($1, $3, $5, @$); }
+// keyword function argument
+    | id "=" expr            { $$ = COARRAY_COMP_DECL1k($1, $3, @$); }
+// star
+    | "*"                    { $$ = COARRAY_COMP_DECL_star(@$); }
     ;
 
 id_list_opt
@@ -1601,6 +1843,7 @@ id
     | KW_EQUIVALENCE { $$ = SYMBOL($1, @$); }
     | KW_ERRMSG { $$ = SYMBOL($1, @$); }
     | KW_ERROR { $$ = SYMBOL($1, @$); }
+    | KW_EVENT { $$ = SYMBOL($1, @$); }
     | KW_EXIT { $$ = SYMBOL($1, @$); }
     | KW_EXTENDS { $$ = SYMBOL($1, @$); }
     | KW_EXTERNAL { $$ = SYMBOL($1, @$); }
@@ -1649,6 +1892,7 @@ id
     | KW_PARAMETER { $$ = SYMBOL($1, @$); }
     | KW_PASS { $$ = SYMBOL($1, @$); }
     | KW_POINTER { $$ = SYMBOL($1, @$); }
+    | KW_POST { $$ = SYMBOL($1, @$); }
     | KW_PRECISION { $$ = SYMBOL($1, @$); }
     | KW_PRINT { $$ = SYMBOL($1, @$); }
     | KW_PRIVATE { $$ = SYMBOL($1, @$); }
@@ -1675,6 +1919,7 @@ id
     | KW_STOP { $$ = SYMBOL($1, @$); }
     | KW_SUBMODULE { $$ = SYMBOL($1, @$); }
     | KW_SUBROUTINE { $$ = SYMBOL($1, @$); }
+    | KW_SYNC { $$ = SYMBOL($1, @$); }
     | KW_TARGET { $$ = SYMBOL($1, @$); }
     | KW_TEAM { $$ = SYMBOL($1, @$); }
     | KW_TEAM_NUMBER { $$ = SYMBOL($1, @$); }
@@ -1685,6 +1930,7 @@ id
     | KW_USE { $$ = SYMBOL($1, @$); }
     | KW_VALUE { $$ = SYMBOL($1, @$); }
     | KW_VOLATILE { $$ = SYMBOL($1, @$); }
+    | KW_WAIT { $$ = SYMBOL($1, @$); }
     | KW_WHERE { $$ = SYMBOL($1, @$); }
     | KW_WHILE { $$ = SYMBOL($1, @$); }
     | KW_WRITE { $$ = SYMBOL($1, @$); }
