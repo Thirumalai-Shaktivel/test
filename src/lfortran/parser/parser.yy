@@ -419,6 +419,8 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <vec_ast> derived_type_contains_opt
 %type <vec_ast> proc_modifiers
 %type <vec_ast> proc_modifier_list
+%type <ast> sep_one
+%type <vec_ast> sep
 
 // Precedence
 
@@ -673,12 +675,14 @@ subroutine
     import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_subroutine_opt sep {
-            LLOC(@$, @13); $$ = SUBROUTINE($2, $3, $4, $6, $7, $8, $9, $10, $11, @$); }
+            LLOC(@$, @13);
+            $$ = SUBROUTINE($2, $3, $4, TRIVIA_BEFORE($5, @$), $6, $7, $8, $9, $10, $11, @$); }
     | fn_mod_plus KW_SUBROUTINE id sub_args bind_opt sep use_statement_star
     import_statement_star implicit_statement_star decl_star statements
         contains_block_opt
         KW_END end_subroutine_opt sep {
-            LLOC(@$, @14); $$ = SUBROUTINE1($1, $3, $4, $5, $7, $8, $9, $10, $11, $12, @$); }
+            LLOC(@$, @14);
+            $$ = SUBROUTINE1($1, $3, $4, $5, TRIVIA_BEFORE($6, @$), $7, $8, $9, $10, $11, $12, @$); }
     ;
 
 procedure
@@ -1150,14 +1154,14 @@ statements
     ;
 
 sep
-    : sep sep_one
-    | sep_one
+    : sep sep_one { $$ = $1; LIST_ADD($$, $2); }
+    | sep_one { LIST_NEW($$); LIST_ADD($$, $1); }
     ;
 
 sep_one
-    : TK_NEWLINE
-    | TK_COMMENT
-    | ";"
+    : TK_NEWLINE { $$ = NEWLINE(@$); }
+    | TK_COMMENT { $$ = COMMENT($1, @$); }
+    | ";" { $$ = NEWLINE(@$); }
     ;
 
 statement

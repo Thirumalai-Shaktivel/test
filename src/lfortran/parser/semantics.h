@@ -1032,7 +1032,7 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
 #define EVENT_WAIT_KW_ARG(id, e, l) make_AttrEventWaitKwArg_t(p.m_a, l, \
         name2char(id), EXPR(e))
 
-#define SUBROUTINE(name, args, bind, use, import, implicit, decl, stmts, contains, l) \
+#define SUBROUTINE(name, args, bind, t, use, import, implicit, decl, stmts, contains, l) \
     make_Subroutine_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*args*/ ARGS(p.m_a, l, args), \
@@ -1040,6 +1040,7 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
         /*m_attributes*/ nullptr, \
         /*n_attributes*/ 0, \
         /*bind*/ bind_opt(bind), \
+        down_cast<trivia_t>(t), \
         /*use*/ USES(use), \
         /*n_use*/ use.size(), \
         /*m_import*/ VEC_CAST(import, import_statement), \
@@ -1052,7 +1053,7 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
         /*n_body*/ stmts.size(), \
         /*contains*/ CONTAINS(contains), \
         /*n_contains*/ contains.size())
-#define SUBROUTINE1(fn_mod, name, args, bind, use, import, implicit, \
+#define SUBROUTINE1(fn_mod, name, args, bind, t, use, import, implicit, \
         decl, stmts, contains, l) make_Subroutine_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*args*/ ARGS(p.m_a, l, args), \
@@ -1060,6 +1061,7 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
         /*m_attributes*/ VEC_CAST(fn_mod, decl_attribute), \
         /*n_attributes*/ fn_mod.size(), \
         /*bind*/ bind_opt(bind), \
+        down_cast<trivia_t>(t), \
         /*use*/ USES(use), \
         /*n_use*/ use.size(), \
         /*m_import*/ VEC_CAST(import, import_statement), \
@@ -1645,5 +1647,9 @@ ast_t* COARRAY(Allocator &al, const ast_t *id,
         nullptr, 0, STMTS(stmts), stmts.size())
 #define CRITICAL1(x, stmts, l) make_Critical_t(p.m_a, l, 0, nullptr, \
         VEC_CAST(x, event_attribute), x.size(), STMTS(stmts), stmts.size())
+
+#define NEWLINE(l) make_EmptyLines_t(p.m_a, l, 0)
+#define COMMENT(cmt, l) make_Comment_t(p.m_a, l, 0, cmt.c_str(p.m_a))
+#define TRIVIA_BEFORE(x, l) make_TriviaBefore_t(p.m_a, l, VEC_CAST(x, trivia_node), x.size())
 
 #endif

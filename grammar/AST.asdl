@@ -43,7 +43,7 @@ mod
 
 program_unit
     = Subroutine(identifier name, arg* args, decl_attribute* attributes,
-        bind? bind, unit_decl1* use, import_statement* import,
+        bind? bind, trivia? trivia, unit_decl1* use, import_statement* import,
         implicit_statement* implicit, unit_decl2* decl,
         stmt* body, program_unit* contains)
     | Procedure(identifier name, arg* args, decl_attribute* attributes,
@@ -175,17 +175,13 @@ expr
     | DataImpliedDo(expr* object_list, decl_attribute? type,
         identifier var, expr start, expr end, expr? increment)
 
-trivia_node
--- one comment, without the initial "!". "n" represents whitespace before "!"
--- relative to the current indentation level
-    = Comment(int n, string comment)
--- represents "n" consecutive empty lines relative to the default, which is
--- no empty lines between statements and one empty line between subroutines (it
--- could be -1)
-    | EmptyLines(int n)
-
 trivia
-    = TriviaNode(trivia_node* before, trivia_node? after)
+    = TriviaBefore(trivia_node* before)
+    | TriviaAfter(trivia_node? after)
+
+trivia_node
+    = Comment(int n, string comment)
+    | EmptyLines(int n)
 
 boolop = And | Or | Eqv | NEqv
 
