@@ -4,8 +4,8 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    536 // shift/reduce conflicts
-%expect-rr 84  // reduce/reduce conflicts
+%expect    581 // shift/reduce conflicts
+%expect-rr 93  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
 //%define parse.error verbose
@@ -419,6 +419,8 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <vec_ast> derived_type_contains_opt
 %type <vec_ast> proc_modifiers
 %type <vec_ast> proc_modifier_list
+%type <equi> equivalence_set
+%type <vec_equi> equivalence_set_list
 %type <ast> sep_one
 %type <vec_ast> sep
 
@@ -971,6 +973,17 @@ var_decl
             $$ = VAR_DECL_COMMON($2, TRIVIA_AFTER($3, @$), @$); }
     | KW_DATA data_set_list sep {
             $$ = VAR_DECL_DATA($2, TRIVIA_AFTER($3, @$), @$); }
+    | KW_EQUIVALENCE equivalence_set_list sep {
+        $$ = VAR_DECL_EQUIVALENCE($2, TRIVIA_AFTER($3, @$), @$); }
+    ;
+
+equivalence_set_list
+    : equivalence_set_list "," equivalence_set { $$ = $1; PLIST_ADD($$, $3); }
+    | equivalence_set { LIST_NEW($$); PLIST_ADD($$, $1); }
+    ;
+
+equivalence_set
+    : "(" expr_list ")" { $$ = EQUIVALENCE_SET($2, @$); }
     ;
 
 named_constant_def_list
@@ -1083,6 +1096,7 @@ var_modifier
     | KW_OPTIONAL { $$ = SIMPLE_ATTR(Optional, @$); }
     | KW_PROTECTED { $$ = SIMPLE_ATTR(Protected, @$); }
     | KW_SAVE { $$ = SIMPLE_ATTR(Save, @$); }
+    | KW_SEQUENCE { $$ = SIMPLE_ATTR(Sequence, @$); }
     | KW_CONTIGUOUS { $$ = SIMPLE_ATTR(Contiguous, @$); }
     | KW_NOPASS { $$ = SIMPLE_ATTR(NoPass, @$); }
     | KW_PRIVATE { $$ = SIMPLE_ATTR(Private, @$); }
@@ -1092,7 +1106,9 @@ var_modifier
     | KW_INTENT "(" KW_IN ")" { $$ = INTENT(In, @$); }
     | KW_INTENT "(" KW_OUT ")" { $$ = INTENT(Out, @$); }
     | KW_INTENT "(" inout ")" { $$ = INTENT(InOut, @$); }
+    | KW_INTRINSIC { $$ = SIMPLE_ATTR(Intrinsic, @$); }
     | KW_VALUE { $$ = SIMPLE_ATTR(Value, @$); }
+    | KW_VOLATILE { $$ = SIMPLE_ATTR(Volatile, @$); }
     | KW_EXTENDS "(" id ")" { $$ = EXTENDS($3, @$); }
     | KW_BIND "(" id ")" { $$ = BIND($3, @$); }
     ;
@@ -1478,9 +1494,9 @@ do_statement
     | KW_DO id "=" expr "," expr "," expr sep statements enddo {
             $$ = DO3($2, $4, $6, $8, $10, TRIVIA_AFTER($9, @$), @$); }
     | KW_DO TK_INTEGER id "=" expr "," expr sep statements enddo {
-            $$ = DO2($3, $5, $7, $9, TRIVIA_AFTER($8, @$), @$); }
+            $$ = DO2_LABEL($2, $3, $5, $7, $9, TRIVIA_AFTER($8, @$), @$); }
     | KW_DO TK_INTEGER id "=" expr "," expr "," expr sep statements enddo {
-            $$ = DO3($3, $5, $7, $9, $11, TRIVIA_AFTER($10, @$), @$); }
+            $$ = DO3_LABEL($2, $3, $5, $7, $9, $11, TRIVIA_AFTER($10, @$), @$); }
     | KW_DO KW_CONCURRENT "(" concurrent_control_list ")"
         concurrent_locality_star sep statements enddo {
             $$ = DO_CONCURRENT1($4, $6, $8, TRIVIA_AFTER($7, @$), @$); }
