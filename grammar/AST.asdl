@@ -33,37 +33,39 @@ unit
 
 mod
     = Module(identifier name, unit_decl1* use, implicit_statement* implicit,
-        unit_decl2* decl, program_unit* contains)
+        unit_decl2* decl, program_unit* contains, trivia? trivia)
     | Submodule(identifier id,identifier name, unit_decl1* use,
-        implicit_statement* implicit, unit_decl2* decl, program_unit* contains)
+        implicit_statement* implicit, unit_decl2* decl,
+        program_unit* contains, trivia? trivia)
     | BlockData(identifier? name, unit_decl1* use,
-        implicit_statement* implicit, unit_decl2* decl)
+        implicit_statement* implicit, unit_decl2* decl, trivia? trivia)
     | Program(identifier name, unit_decl1* use, implicit_statement* implicit,
-        unit_decl2* decl, stmt* body, program_unit* contains)
+        unit_decl2* decl, stmt* body, program_unit* contains, trivia? trivia)
 
 program_unit
     = Subroutine(identifier name, arg* args, decl_attribute* attributes,
-        bind? bind, trivia? trivia, unit_decl1* use, import_statement* import,
+        bind? bind, unit_decl1* use, import_statement* import,
         implicit_statement* implicit, unit_decl2* decl,
-        stmt* body, program_unit* contains)
+        stmt* body, program_unit* contains, trivia? trivia)
     | Procedure(identifier name, arg* args, decl_attribute* attributes,
         unit_decl1* use, import_statement* import, implicit_statement* implicit,
-        unit_decl2* decl, stmt* body, program_unit* contains)
+        unit_decl2* decl, stmt* body, program_unit* contains, trivia? trivia)
     | Function(identifier name, arg* args, decl_attribute* attributes,
         expr? return_var, bind? bind, unit_decl1* use, import_statement* import,
         implicit_statement* implicit, unit_decl2* decl, stmt* body,
-        program_unit* contains)
+        program_unit* contains, trivia? trivia)
 
 unit_decl1
-    = Use(decl_attribute* nature, identifier module, use_symbol* symbols)
+    = Use(decl_attribute* nature, identifier module,
+        use_symbol* symbols, trivia? trivia)
 
 unit_decl2
     = Declaration(decl_attribute? vartype, decl_attribute* attributes,
-        var_sym* syms)
-    | Interface(interface_header header, interface_item* items)
+        var_sym* syms, trivia? trivia)
+    | Interface(interface_header header, interface_item* items, trivia? trivia)
     | DerivedType(identifier name, decl_attribute* attrtype,
-        unit_decl2* items, procedure_decl* contains)
-    | Enum(decl_attribute* attr, unit_decl2* items)
+        unit_decl2* items, procedure_decl* contains, trivia? trivia)
+    | Enum(decl_attribute* attr, unit_decl2* items, trivia? trivia)
 
 interface_header
     = InterfaceHeader()
@@ -75,10 +77,11 @@ interface_header
 
 interface_item
     = InterfaceProc(program_unit proc)
-    | InterfaceModuleProcedure(identifier* names, decl_attribute* attributes)
+    | InterfaceModuleProcedure(identifier* names,
+        decl_attribute* attributes, trivia? trivia)
 
 import_statement
-    = Import(identifier* symbols, import_modifier mod)
+    = Import(identifier* symbols, import_modifier mod, trivia? trivia)
 
 import_modifier
     = ImportDefault
@@ -87,8 +90,8 @@ import_modifier
     | ImportAll
 
 implicit_statement
-    = ImplicitNone(implicit_none_spec* specs)
-    | Implicit(decl_attribute type, letter_spec* specs)
+    = ImplicitNone(implicit_none_spec* specs, trivia? trivia)
+    | Implicit(decl_attribute type, letter_spec* specs, trivia? trivia)
 
 implicit_none_spec
     = ImplicitNoneExternal(int dummy)
@@ -176,8 +179,7 @@ expr
         identifier var, expr start, expr end, expr? increment)
 
 trivia
-    = TriviaBefore(trivia_node* before)
-    | TriviaAfter(trivia_node? after)
+    = TriviaNode(trivia_node* before, trivia_node? after)
 
 trivia_node
     = Comment(int n, string comment)
@@ -201,12 +203,12 @@ intrinsicop
 
 procedure_decl
     = DerivedTypeProc(identifier? name, decl_attribute* attr,
-        use_symbol* symbols)
-    | GenericOperator(intrinsicop op, identifier* names)
-    | GenericDefinedOperator(string optype, identifier* names)
-    | GenericAssignment(identifier* names)
-    | GenericName(identifier name, identifier* names)
-    | FinalName(identifier name)
+        use_symbol* symbols, trivia? trivia)
+    | GenericOperator(intrinsicop op, identifier* names, trivia? trivia)
+    | GenericDefinedOperator(string optype, identifier* names, trivia? trivia)
+    | GenericAssignment(identifier* names, trivia? trivia)
+    | GenericName(identifier name, identifier* names, trivia? trivia)
+    | FinalName(identifier name, trivia? trivia)
 
 decl_attribute
     = AttrBind(identifier name)

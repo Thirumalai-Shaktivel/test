@@ -175,21 +175,21 @@ static inline Vec<kind_item_t> a2kind_list(Allocator &al,
             nullptr, 0, \
             name2char(name))
 
-#define IMPORT0(x, l) make_Import_t( \
+#define IMPORT0(x, trivia, l) make_Import_t( \
             p.m_a, l, \
             nullptr, 0, \
-            import_modifierType::Import##x)
-#define IMPORT1(args, x, l) make_Import_t( \
+            import_modifierType::Import##x, down_cast<trivia_t>(trivia))
+#define IMPORT1(args, x, trivia, l) make_Import_t( \
             p.m_a, l, \
             REDUCE_ARGS(p.m_a, args), args.size(), \
-            import_modifierType::Import##x)
+            import_modifierType::Import##x, down_cast<trivia_t>(trivia))
 
 
-#define VAR_DECL1(vartype, xattr, varsym, l) \
+#define VAR_DECL1(vartype, xattr, varsym, trivia, l) \
         make_Declaration_t(p.m_a, l, \
         down_cast<decl_attribute_t>(vartype), \
         VEC_CAST(xattr, decl_attribute), xattr.n, \
-        varsym.p, varsym.n)
+        varsym.p, varsym.n, down_cast<trivia_t>(trivia))
 
 decl_attribute_t** VAR_DECL2b(Allocator &al,
             ast_t *xattr0) {
@@ -237,39 +237,40 @@ decl_attribute_t** ATTRCOMMON(Allocator &al,
     return v.p;
 }
 
-#define VAR_DECL2(xattr0, l) \
+#define VAR_DECL2(xattr0, trivia, l) \
         make_Declaration_t(p.m_a, l, \
         nullptr, \
         VAR_DECL2b(p.m_a, xattr0), 1, \
-        nullptr, 0)
+        nullptr, 0, down_cast<trivia_t>(trivia))
 
-#define VAR_DECL3(xattr0, varsym, l) \
+#define VAR_DECL3(xattr0, varsym, trivia, l) \
         make_Declaration_t(p.m_a, l, \
         nullptr, \
         VAR_DECL2b(p.m_a, xattr0), 1, \
-        varsym.p, varsym.n)
+        varsym.p, varsym.n, down_cast<trivia_t>(trivia))
 
-#define VAR_DECL_NAMELIST(id, id_list, l) \
+#define VAR_DECL_NAMELIST(id, id_list, trivia, l) \
         make_Declaration_t(p.m_a, l, \
         nullptr, \
         VAR_DECL_NAMELISTb(p.m_a, l, name2char(id)), 1, \
-        VAR_DECL_NAMELISTc(p.m_a, id_list), id_list.n)
+        VAR_DECL_NAMELISTc(p.m_a, id_list), id_list.n, \
+        down_cast<trivia_t>(trivia))
 
-#define VAR_DECL_PARAMETER(varsym, l) \
+#define VAR_DECL_PARAMETER(varsym, trivia, l) \
         make_Declaration_t(p.m_a, l, \
         nullptr, \
         VAR_DECL_PARAMETERb(p.m_a, l), 1, \
-        varsym.p, varsym.n)
+        varsym.p, varsym.n, down_cast<trivia_t>(trivia))
 
-#define VAR_DECL_COMMON(varsym, l) \
+#define VAR_DECL_COMMON(varsym, trivia, l) \
         make_Declaration_t(p.m_a, l, \
         nullptr, \
         ATTRCOMMON(p.m_a, l), 1, \
-        varsym.p, varsym.n)
+        varsym.p, varsym.n, down_cast<trivia_t>(trivia))
 
-#define VAR_DECL_DATA(x, l) make_Declaration_t(p.m_a, l, \
+#define VAR_DECL_DATA(x, trivia, l) make_Declaration_t(p.m_a, l, \
         nullptr, VEC_CAST(x, decl_attribute), x.size(), \
-        nullptr, 0)
+        nullptr, 0, down_cast<trivia_t>(trivia))
 #define DATA(objects, values, l) make_AttrData_t(p.m_a, l, \
         EXPRS(objects), objects.size(), \
         EXPRS(values), values.size())
@@ -299,20 +300,20 @@ ast_t* data_implied_do(Allocator &al, Location &loc,
         data_implied_do(p.m_a, l, obj_list, type, \
         name2char(id), EXPR(start), EXPR(end), EXPR(incr))
 
-#define ENUM(attr, decl, l) make_Enum_t(p.m_a, l, \
+#define ENUM(attr, decl, trivia, l) make_Enum_t(p.m_a, l, \
         VEC_CAST(attr, decl_attribute), attr.n, \
-        DECLS(decl), decl.size())
+        DECLS(decl), decl.size(), down_cast<trivia_t>(trivia))
 
-#define IMPLICIT_NONE(l) make_ImplicitNone_t(p.m_a, l, \
-        nullptr, 0)
-#define IMPLICIT_NONE2(x, l) make_ImplicitNone_t(p.m_a, l, \
-        VEC_CAST(x, implicit_none_spec), x.size())
+#define IMPLICIT_NONE(trivia, l) make_ImplicitNone_t(p.m_a, l, \
+        nullptr, 0, down_cast<trivia_t>(trivia))
+#define IMPLICIT_NONE2(x, trivia, l) make_ImplicitNone_t(p.m_a, l, \
+        VEC_CAST(x, implicit_none_spec), x.size(), down_cast<trivia_t>(trivia))
 #define IMPLICIT_NONE_EXTERNAL(l) make_ImplicitNoneExternal_t(p.m_a, l, 0)
 #define IMPLICIT_NONE_TYPE(l) make_ImplicitNoneType_t(p.m_a, l)
 
-#define IMPLICIT(t, spec, l) make_Implicit_t(p.m_a, l, \
+#define IMPLICIT(t, spec, trivia, l) make_Implicit_t(p.m_a, l, \
         down_cast<decl_attribute_t>(t), \
-        VEC_CAST(spec, letter_spec), spec.size())
+        VEC_CAST(spec, letter_spec), spec.size(), down_cast<trivia_t>(trivia))
 
 #define LETTER_SPEC1(a, l) make_LetterSpec_t(p.m_a, l, \
         nullptr, name2char(a))
@@ -1032,15 +1033,14 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
 #define EVENT_WAIT_KW_ARG(id, e, l) make_AttrEventWaitKwArg_t(p.m_a, l, \
         name2char(id), EXPR(e))
 
-#define SUBROUTINE(name, args, bind, t, use, import, implicit, decl, stmts, contains, l) \
-    make_Subroutine_t(p.m_a, l, \
+#define SUBROUTINE(name, args, bind, use, import, implicit, decl, \
+        stmts, contains, trivia, l) make_Subroutine_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*args*/ ARGS(p.m_a, l, args), \
         /*n_args*/ args.size(), \
         /*m_attributes*/ nullptr, \
         /*n_attributes*/ 0, \
         /*bind*/ bind_opt(bind), \
-        down_cast<trivia_t>(t), \
         /*use*/ USES(use), \
         /*n_use*/ use.size(), \
         /*m_import*/ VEC_CAST(import, import_statement), \
@@ -1052,16 +1052,16 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
         /*body*/ STMTS(stmts), \
         /*n_body*/ stmts.size(), \
         /*contains*/ CONTAINS(contains), \
-        /*n_contains*/ contains.size())
-#define SUBROUTINE1(fn_mod, name, args, bind, t, use, import, implicit, \
-        decl, stmts, contains, l) make_Subroutine_t(p.m_a, l, \
+        /*n_contains*/ contains.size(), \
+        down_cast<trivia_t>(trivia))
+#define SUBROUTINE1(fn_mod, name, args, bind, use, import, implicit, \
+        decl, stmts, contains, trivia, l) make_Subroutine_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*args*/ ARGS(p.m_a, l, args), \
         /*n_args*/ args.size(), \
         /*m_attributes*/ VEC_CAST(fn_mod, decl_attribute), \
         /*n_attributes*/ fn_mod.size(), \
         /*bind*/ bind_opt(bind), \
-        down_cast<trivia_t>(t), \
         /*use*/ USES(use), \
         /*n_use*/ use.size(), \
         /*m_import*/ VEC_CAST(import, import_statement), \
@@ -1073,9 +1073,10 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
         /*body*/ STMTS(stmts), \
         /*n_body*/ stmts.size(), \
         /*contains*/ CONTAINS(contains), \
-        /*n_contains*/ contains.size())
-#define PROCEDURE(fn_mod, name, args, use, import, implicit, decl, stmts, contains, l) \
-    make_Procedure_t(p.m_a, l, \
+        /*n_contains*/ contains.size(), \
+        down_cast<trivia_t>(trivia))
+#define PROCEDURE(fn_mod, name, args, use, import, implicit, decl, stmts, \
+        contains, trivia, l) make_Procedure_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*args*/ ARGS(p.m_a, l, args), \
         /*n_args*/ args.size(), \
@@ -1092,7 +1093,7 @@ char* format_to_str(Allocator &al, Location &loc, const std::string &inp) {
         /*body*/ STMTS(stmts), \
         /*n_body*/ stmts.size(), \
         /*contains*/ CONTAINS(contains), \
-        /*n_contains*/ contains.size())
+        /*n_contains*/ contains.size(), down_cast<trivia_t>(trivia))
 
 char *str_or_null(Allocator &al, const LFortran::Str &s) {
     if (s.size() == 0) {
@@ -1102,7 +1103,8 @@ char *str_or_null(Allocator &al, const LFortran::Str &s) {
     }
 }
 
-#define FUNCTION(fn_type, name, args, return_var, bind, use, import, implicit, decl, stmts, contains, l) make_Function_t(p.m_a, l, \
+#define FUNCTION(fn_type, name, args, return_var, bind, use, import, implicit, \
+        decl, stmts, contains, trivia, l) make_Function_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*args*/ ARGS(p.m_a, l, args), \
         /*n_args*/ args.size(), \
@@ -1121,8 +1123,9 @@ char *str_or_null(Allocator &al, const LFortran::Str &s) {
         /*body*/ STMTS(stmts), \
         /*n_body*/ stmts.size(), \
         /*contains*/ CONTAINS(contains), \
-        /*n_contains*/ contains.size())
-#define FUNCTION0(name, args, return_var, bind, use, import, implicit, decl, stmts, contains, l) make_Function_t(p.m_a, l, \
+        /*n_contains*/ contains.size(), down_cast<trivia_t>(trivia))
+#define FUNCTION0(name, args, return_var, bind, use, import, implicit, \
+        decl, stmts, contains, trivia, l) make_Function_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*args*/ ARGS(p.m_a, l, args), \
         /*n_args*/ args.size(), \
@@ -1141,8 +1144,9 @@ char *str_or_null(Allocator &al, const LFortran::Str &s) {
         /*body*/ STMTS(stmts), \
         /*n_body*/ stmts.size(), \
         /*contains*/ CONTAINS(contains), \
-        /*n_contains*/ contains.size())
-#define PROGRAM(name, use, implicit, decl, stmts, contains, l) make_Program_t(p.m_a, l, \
+        /*n_contains*/ contains.size(), down_cast<trivia_t>(trivia))
+#define PROGRAM(name, use, implicit, decl, stmts, contains, trivia, l) \
+        make_Program_t(p.m_a, l, \
         /*name*/ name2char(name), \
         /*use*/ USES(use), \
         /*n_use*/ use.size(), \
@@ -1153,7 +1157,7 @@ char *str_or_null(Allocator &al, const LFortran::Str &s) {
         /*body*/ STMTS(stmts), \
         /*n_body*/ stmts.size(), \
         /*contains*/ CONTAINS(contains), \
-        /*n_contains*/ contains.size())
+        /*n_contains*/ contains.size(), down_cast<trivia_t>(trivia))
 #define RESULT(x) p.result.push_back(p.m_a, x)
 
 #define STMT_NAME(id_first, id_last, stmt) \
@@ -1545,12 +1549,12 @@ ast_t* COARRAY(Allocator &al, const ast_t *id,
 #define CLASS_DEFAULT(body, l) make_ClassDefault_t(p.m_a, l, \
         STMTS(body), body.size())
 
-#define USE1(nature, mod, l) make_Use_t(p.m_a, l, \
+#define USE1(nature, mod, trivia, l) make_Use_t(p.m_a, l, \
         VEC_CAST(nature, decl_attribute), nature.size(), name2char(mod), \
-        nullptr, 0)
-#define USE2(nature, mod, syms, l) make_Use_t(p.m_a, l, \
+        nullptr, 0, down_cast<trivia_t>(trivia))
+#define USE2(nature, mod, syms, trivia, l) make_Use_t(p.m_a, l, \
         VEC_CAST(nature, decl_attribute), nature.size(), name2char(mod), \
-        USE_SYMBOLS(syms), syms.size())
+        USE_SYMBOLS(syms), syms.size(), down_cast<trivia_t>(trivia))
 
 #define USE_SYMBOL1(x, l) make_UseSymbol_t(p.m_a, l, \
         name2char(x), nullptr)
@@ -1563,30 +1567,30 @@ ast_t* COARRAY(Allocator &al, const ast_t *id,
         def_op_to_str(p.m_a, optype))
 
 
-#define MODULE(name, use, implicit, decl, contains, l) make_Module_t(p.m_a, l, \
+#define MODULE(name, use, implicit, decl, contains, trivia, l) make_Module_t( \
+        p.m_a, l, name2char(name), \
+        /*unit_decl1_t** a_use*/ USES(use), /*size_t n_use*/ use.size(), \
+        /*m_implicit*/ VEC_CAST(implicit, implicit_statement), \
+        /*n_implicit*/ implicit.size(), \
+        /*unit_decl2_t** a_decl*/ DECLS(decl), /*size_t n_decl*/ decl.size(), \
+        /*program_unit_t** a_contains*/ CONTAINS(contains), /*size_t n_contains*/ contains.size(), down_cast<trivia_t>(trivia))
+#define SUBMODULE(id ,name, use, implicit, decl, contains, trivia, l) \
+        make_Submodule_t(p.m_a, l, name2char(id), \
         name2char(name), \
         /*unit_decl1_t** a_use*/ USES(use), /*size_t n_use*/ use.size(), \
         /*m_implicit*/ VEC_CAST(implicit, implicit_statement), \
         /*n_implicit*/ implicit.size(), \
         /*unit_decl2_t** a_decl*/ DECLS(decl), /*size_t n_decl*/ decl.size(), \
-        /*program_unit_t** a_contains*/ CONTAINS(contains), /*size_t n_contains*/ contains.size())
-#define SUBMODULE(id ,name, use, implicit, decl, contains, l) make_Submodule_t(p.m_a, l, \
-        name2char(id), \
-        name2char(name), \
-        /*unit_decl1_t** a_use*/ USES(use), /*size_t n_use*/ use.size(), \
-        /*m_implicit*/ VEC_CAST(implicit, implicit_statement), \
-        /*n_implicit*/ implicit.size(), \
-        /*unit_decl2_t** a_decl*/ DECLS(decl), /*size_t n_decl*/ decl.size(), \
-        /*program_unit_t** a_contains*/ CONTAINS(contains), /*size_t n_contains*/ contains.size())
+        /*program_unit_t** a_contains*/ CONTAINS(contains), /*size_t n_contains*/ contains.size(), down_cast<trivia_t>(trivia))
 
-#define BLOCKDATA(use, implicit, decl, l) make_BlockData_t(p.m_a, l, \
+#define BLOCKDATA(use, implicit, decl, trivia, l) make_BlockData_t(p.m_a, l, \
         nullptr, USES(use), use.size(), \
         VEC_CAST(implicit, implicit_statement), implicit.size(), \
-        DECLS(decl), decl.size())
-#define BLOCKDATA1(name, use, implicit, decl, l) make_BlockData_t( \
+        DECLS(decl), decl.size(), down_cast<trivia_t>(trivia))
+#define BLOCKDATA1(name, use, implicit, decl, trivia, l) make_BlockData_t( \
         p.m_a, l, name2char(name), USES(use), use.size(), \
         VEC_CAST(implicit, implicit_statement), implicit.size(), \
-        DECLS(decl), decl.size())
+        DECLS(decl), decl.size(), down_cast<trivia_t>(trivia))
 
 #define PRIVATE0(l) make_Private_t(p.m_a, l, \
         nullptr, 0)
@@ -1606,40 +1610,49 @@ ast_t* COARRAY(Allocator &al, const ast_t *id,
 
 #define OPERATOR(op, l) intrinsicopType::op
 
-#define INTERFACE(header, contains, l) make_Interface_t(p.m_a, l, \
-        down_cast<interface_header_t>(header), INTERFACE_ITEMS(contains), contains.size())
-#define INTERFACE_MODULE_PROC1(fn_mod, names, l) \
+#define INTERFACE(header, contains, trivia, l) make_Interface_t(p.m_a, l, \
+        down_cast<interface_header_t>(header), INTERFACE_ITEMS(contains),\
+        contains.size(), down_cast<trivia_t>(trivia))
+#define INTERFACE_MODULE_PROC1(fn_mod, names, trivia, l) \
         make_InterfaceModuleProcedure_t(p.m_a, l, \
         REDUCE_ARGS(p.m_a, names), names.size(), \
-        VEC_CAST(fn_mod, decl_attribute), fn_mod.size())
-#define INTERFACE_MODULE_PROC(names, l) \
+        VEC_CAST(fn_mod, decl_attribute), fn_mod.size(), \
+        down_cast<trivia_t>(trivia))
+#define INTERFACE_MODULE_PROC(names, trivia, l) \
         make_InterfaceModuleProcedure_t(p.m_a, l, \
-        REDUCE_ARGS(p.m_a, names), names.size(), nullptr, 0)
+        REDUCE_ARGS(p.m_a, names), names.size(), nullptr, 0, \
+        down_cast<trivia_t>(trivia))
 #define INTERFACE_PROC(proc, l) \
         make_InterfaceProc_t(p.m_a, l, \
         down_cast<program_unit_t>(proc))
 
-#define DERIVED_TYPE(attr, name, decl, contains, l) make_DerivedType_t(p.m_a, l, \
+#define DERIVED_TYPE(attr, name, decl, contains, trivia, l) \
+        make_DerivedType_t(p.m_a, l, \
         name2char(name), VEC_CAST(attr, decl_attribute), attr.size(),  \
         DECLS(decl), decl.size(), \
-        VEC_CAST(contains, procedure_decl), contains.size())
+        VEC_CAST(contains, procedure_decl), contains.size(), \
+        down_cast<trivia_t>(trivia))
 
-#define DERIVED_TYPE_PROC(attr, syms, l) make_DerivedTypeProc_t(p.m_a, l, \
+#define DERIVED_TYPE_PROC(attr, syms, trivia, l) make_DerivedTypeProc_t(p.m_a, l, \
         nullptr, VEC_CAST(attr, decl_attribute), attr.size(), \
-        USE_SYMBOLS(syms), syms.size())
-#define DERIVED_TYPE_PROC1(name, attr, syms, l) make_DerivedTypeProc_t(p.m_a, l, \
-        name2char(name), VEC_CAST(attr, decl_attribute), attr.size(), \
-        USE_SYMBOLS(syms), syms.size())
-#define GENERIC_OPERATOR(optype, namelist, l) make_GenericOperator_t(p.m_a, l, \
-        optype, REDUCE_ARGS(p.m_a, namelist), namelist.size())
-#define GENERIC_DEFOP(optype, namelist, l) make_GenericDefinedOperator_t( \
+        USE_SYMBOLS(syms), syms.size(), down_cast<trivia_t>(trivia))
+#define DERIVED_TYPE_PROC1(name, attr, syms, trivia, l) make_DerivedTypeProc_t( \
+        p.m_a, l, name2char(name), VEC_CAST(attr, decl_attribute), attr.size(), \
+        USE_SYMBOLS(syms), syms.size(), down_cast<trivia_t>(trivia))
+#define GENERIC_OPERATOR(optype, namelist, trivia, l) make_GenericOperator_t( \
+        p.m_a, l, optype, REDUCE_ARGS(p.m_a, namelist), namelist.size(), \
+        down_cast<trivia_t>(trivia))
+#define GENERIC_DEFOP(optype, namelist, trivia, l) make_GenericDefinedOperator_t( \
         p.m_a, l, def_op_to_str(p.m_a, optype), \
-        REDUCE_ARGS(p.m_a, namelist), namelist.size())
-#define GENERIC_ASSIGNMENT(namelist, l) make_GenericAssignment_t(p.m_a, l, \
-        REDUCE_ARGS(p.m_a, namelist), namelist.size())
-#define GENERIC_NAME(name, namelist, l) make_GenericName_t(p.m_a, l, \
-        name2char(name), REDUCE_ARGS(p.m_a, namelist), namelist.size())
-#define FINAL_NAME(name, l) make_FinalName_t(p.m_a, l, name2char(name))
+        REDUCE_ARGS(p.m_a, namelist), namelist.size(), \
+        down_cast<trivia_t>(trivia))
+#define GENERIC_ASSIGNMENT(namelist, trivia, l) make_GenericAssignment_t(p.m_a, l, \
+        REDUCE_ARGS(p.m_a, namelist), namelist.size(), down_cast<trivia_t>(trivia))
+#define GENERIC_NAME(name, namelist, trivia, l) make_GenericName_t(p.m_a, l, \
+        name2char(name), REDUCE_ARGS(p.m_a, namelist), namelist.size(), \
+        down_cast<trivia_t>(trivia))
+#define FINAL_NAME(name, trivia, l) make_FinalName_t(p.m_a, l, name2char(name), \
+        down_cast<trivia_t>(trivia))
 
 #define PASS(name, l) make_AttrPass_t(p.m_a, l, name2char(name))
 
@@ -1648,8 +1661,26 @@ ast_t* COARRAY(Allocator &al, const ast_t *id,
 #define CRITICAL1(x, stmts, l) make_Critical_t(p.m_a, l, 0, nullptr, \
         VEC_CAST(x, event_attribute), x.size(), STMTS(stmts), stmts.size())
 
+ast_t* TRIVIA_NODE(Allocator &al, Location &loc,
+            trivia_node_t** before, size_t n_before,
+            Vec<ast_t*> a) {
+        trivia_node_t* after = nullptr;
+        after = down_cast<trivia_node_t>(a[0]);
+        if (after->type == EmptyLines) {
+            after = nullptr;
+        }
+        /*
+        if (after == nullptr) {
+            A = nullptr;
+        } else {
+            A = down_cast<trivia_node_t>(after);
+        }
+        */
+        return make_TriviaNode_t(al, loc, before, n_before, after);
+}
 #define NEWLINE(l) make_EmptyLines_t(p.m_a, l, 0)
 #define COMMENT(cmt, l) make_Comment_t(p.m_a, l, 0, cmt.c_str(p.m_a))
-#define TRIVIA_BEFORE(x, l) make_TriviaBefore_t(p.m_a, l, VEC_CAST(x, trivia_node), x.size())
+#define TRIVIA(x, y, l) TRIVIA_NODE(p.m_a, l, VEC_CAST(x, trivia_node), x.size(), y)
+#define TRIVIA_AFTER(x, l) TRIVIA_NODE(p.m_a, l, nullptr, 0, x)
 
 #endif
