@@ -133,26 +133,29 @@ stmt
 
 -- Multi-line statements (each has a `label` and `stmt_name`):
     | AssociateBlock(int label, identifier? stmt_name, var_sym* syms,
-            stmt* body)
+            stmt* body, trivia? trivia)
     | Block(int label, identifier? stmt_name, unit_decl1* use,
-            import_statement* import,unit_decl2* decl, stmt* body)
+            import_statement* import,unit_decl2* decl,
+            stmt* body, trivia? trivia)
     | Critical(int label, identifier? stmt_name, event_attribute* sync_stat,
-            stmt* body)
+            stmt* body, trivia? trivia)
     | DoConcurrentLoop(int label, identifier? stmt_name,
             concurrent_control *control, expr? mask,
-            concurrent_locality* locality, stmt* body)
+            concurrent_locality* locality, stmt* body, trivia? trivia)
     | DoLoop(int label, identifier? stmt_name, identifier? var, expr? start,
-            expr? end, expr? increment, stmt* body)
+            expr? end, expr? increment, stmt* body, trivia? trivia)
     | ForAll(int label, identifier? stmt_name,
             concurrent_control *control, expr? mask,
-            concurrent_locality* locality, stmt* body)
+            concurrent_locality* locality, stmt* body, trivia? trivia)
     | If(int label, identifier? stmt_name, expr test, stmt* body, stmt* orelse)
-    | Select(int label, identifier? stmt_name, expr test, case_stmt* body)
+    | Select(int label, identifier? stmt_name, expr test,
+            case_stmt* body, trivia? trivia)
     | SelectType(int label, identifier? stmt_name, identifier? assoc_name,
-            expr selector, type_stmt* body)
+            expr selector, type_stmt* body, trivia? trivia)
     | Where(int label, identifier? stmt_name, expr test, stmt* body,
             stmt* orelse)
-    | WhileLoop(int label, identifier? stmt_name, expr test, stmt* body)
+    | WhileLoop(int label, identifier? stmt_name, expr test,
+            stmt* body, trivia? trivia)
 
 expr
     = BoolOp(expr left, boolop op, expr right)
@@ -333,15 +336,15 @@ bind = Bind(expr* args, keyword* kwargs)
 array_index = ArrayIndex(expr? left, expr? right, expr? step)
 
 case_stmt
-    = CaseStmt(expr* test, stmt* body)
-    | CaseStmt_Range(expr? start, expr? end, stmt* body)
-    | CaseStmt_Default(stmt* body)
+    = CaseStmt(expr* test, stmt* body, trivia? trivia)
+    | CaseStmt_Range(expr? start, expr? end, stmt* body, trivia? trivia)
+    | CaseStmt_Default(stmt* body, trivia? trivia)
 
 type_stmt
-    = TypeStmtName(identifier? name, stmt* body)
-    | TypeStmtType(decl_attribute? vartype, stmt* body)
-    | ClassStmt(identifier? id, stmt* body)
-    | ClassDefault(stmt* body)
+    = TypeStmtName(identifier? name, stmt* body, trivia? trivia)
+    | TypeStmtType(decl_attribute? vartype, stmt* body, trivia? trivia)
+    | ClassStmt(identifier? id, stmt* body, trivia? trivia)
+    | ClassDefault(stmt* body, trivia? trivia)
 
 use_symbol
     = UseSymbol(identifier sym, identifier? rename)

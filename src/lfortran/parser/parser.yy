@@ -1273,12 +1273,13 @@ associate_statement
 
 associate_block
     : KW_ASSOCIATE "(" var_sym_decl_list ")" sep statements KW_END KW_ASSOCIATE {
-        $$ = ASSOCIATE_BLOCK($3, $6, @$); }
+            $$ = ASSOCIATE_BLOCK($3, $6, TRIVIA_AFTER($5, @$), @$); }
     ;
 
 block_statement
     : KW_BLOCK sep use_statement_star import_statement_star decl_star
-        statements KW_END KW_BLOCK { $$ = BLOCK($3, $4, $5, $6, @$); }
+        statements KW_END KW_BLOCK {
+            $$ = BLOCK($3, $4, $5, $6, TRIVIA_AFTER($2, @$), @$); }
     ;
 
 allocate_statement
@@ -1415,7 +1416,7 @@ where_block
 
 select_statement
     : KW_SELECT KW_CASE "(" expr ")" sep case_statements KW_END KW_SELECT {
-            $$ = SELECT($4, $7, @$); }
+            $$ = SELECT($4, $7, TRIVIA_AFTER($6, @$), @$); }
     ;
 
 case_statements
@@ -1424,21 +1425,25 @@ case_statements
     ;
 
 case_statement
-    : KW_CASE "(" expr_list ")" sep statements { $$ = CASE_STMT($3, $6, @$); }
-    | KW_CASE "(" expr ":" ")" sep statements { $$ = CASE_STMT2($3, $7, @$); }
-    | KW_CASE "(" ":" expr ")" sep statements { $$ = CASE_STMT3($4, $7, @$); }
+    : KW_CASE "(" expr_list ")" sep statements {
+            $$ = CASE_STMT($3, $6, TRIVIA_AFTER($5, @$), @$); }
+    | KW_CASE "(" expr ":" ")" sep statements {
+            $$ = CASE_STMT2($3, $7, TRIVIA_AFTER($6, @$), @$); }
+    | KW_CASE "(" ":" expr ")" sep statements {
+            $$ = CASE_STMT3($4, $7, TRIVIA_AFTER($6, @$), @$); }
     | KW_CASE "(" expr ":" expr ")" sep statements {
-            $$ = CASE_STMT4($3, $5, $8, @$); }
-    | KW_CASE KW_DEFAULT sep statements { $$ = CASE_STMT_DEFAULT($4, @$); }
+            $$ = CASE_STMT4($3, $5, $8, TRIVIA_AFTER($7, @$), @$); }
+    | KW_CASE KW_DEFAULT sep statements {
+            $$ = CASE_STMT_DEFAULT($4, TRIVIA_AFTER($3, @$), @$); }
     ;
 
 select_type_statement
     : KW_SELECT KW_TYPE "(" expr ")" sep select_type_body_statements
         KW_END KW_SELECT {
-                $$ = SELECT_TYPE1($4, $7, @$); }
+                $$ = SELECT_TYPE1($4, $7, TRIVIA_AFTER($6, @$), @$); }
     | KW_SELECT KW_TYPE "(" id "=>" expr ")" sep select_type_body_statements
         KW_END KW_SELECT {
-                $$ = SELECT_TYPE2($4, $6, $9, @$); }
+                $$ = SELECT_TYPE2($4, $6, $9, TRIVIA_AFTER($8, @$), @$); }
     ;
 
 select_type_body_statements
@@ -1448,36 +1453,40 @@ select_type_body_statements
     ;
 
 select_type_body_statement
-    : KW_TYPE KW_IS "(" TK_NAME ")" sep statements { $$ = TYPE_STMTNAME($4, $7, @$); }
-    | KW_TYPE KW_IS "(" var_type ")" sep statements { $$ = TYPE_STMTVAR($4, $7, @$); }
-    | KW_CLASS KW_IS "(" id ")" sep statements { $$ = CLASS_STMT($4, $7, @$); }
-    | KW_CLASS KW_DEFAULT sep statements { $$ = CLASS_DEFAULT($4, @$); }
+    : KW_TYPE KW_IS "(" TK_NAME ")" sep statements {
+            $$ = TYPE_STMTNAME($4, $7, TRIVIA_AFTER($6, @$), @$); }
+    | KW_TYPE KW_IS "(" var_type ")" sep statements {
+            $$ = TYPE_STMTVAR($4, $7, TRIVIA_AFTER($6, @$), @$); }
+    | KW_CLASS KW_IS "(" id ")" sep statements {
+            $$ = CLASS_STMT($4, $7, TRIVIA_AFTER($6, @$), @$); }
+    | KW_CLASS KW_DEFAULT sep statements {
+            $$ = CLASS_DEFAULT($4, TRIVIA_AFTER($3, @$), @$); }
     ;
 
 
 while_statement
     : KW_DO KW_WHILE "(" expr ")" sep statements enddo {
-            $$ = WHILE($4, $7, @$); }
+            $$ = WHILE($4, $7, TRIVIA_AFTER($6, @$), @$); }
     ;
 
 // sr-conflict (2x): "KW_DO sep" being either a do_statement or an expr
 do_statement
     : KW_DO sep statements enddo {
-            $$ = DO1($3, @$); }
+            $$ = DO1($3, TRIVIA_AFTER($2, @$), @$); }
     | KW_DO id "=" expr "," expr sep statements enddo {
-            $$ = DO2($2, $4, $6, $8, @$); }
+            $$ = DO2($2, $4, $6, $8, TRIVIA_AFTER($7, @$), @$); }
     | KW_DO id "=" expr "," expr "," expr sep statements enddo {
-            $$ = DO3($2, $4, $6, $8, $10, @$); }
+            $$ = DO3($2, $4, $6, $8, $10, TRIVIA_AFTER($9, @$), @$); }
     | KW_DO TK_INTEGER id "=" expr "," expr sep statements enddo {
-            $$ = DO2($3, $5, $7, $9, @$); }
+            $$ = DO2($3, $5, $7, $9, TRIVIA_AFTER($8, @$), @$); }
     | KW_DO TK_INTEGER id "=" expr "," expr "," expr sep statements enddo {
-            $$ = DO3($3, $5, $7, $9, $11, @$); }
+            $$ = DO3($3, $5, $7, $9, $11, TRIVIA_AFTER($10, @$), @$); }
     | KW_DO KW_CONCURRENT "(" concurrent_control_list ")"
         concurrent_locality_star sep statements enddo {
-            $$ = DO_CONCURRENT1($4, $6, $8, @$); }
+            $$ = DO_CONCURRENT1($4, $6, $8, TRIVIA_AFTER($7, @$), @$); }
     | KW_DO KW_CONCURRENT "(" concurrent_control_list "," expr ")"
         concurrent_locality_star sep statements enddo {
-            $$ = DO_CONCURRENT2($4, $6, $8, $10, @$); }
+            $$ = DO_CONCURRENT2($4, $6, $8, $10, TRIVIA_AFTER($9, @$), @$); }
     ;
 
 concurrent_control_list
@@ -1511,10 +1520,10 @@ concurrent_locality
 forall_statement
     : KW_FORALL "(" concurrent_control_list ")"
         concurrent_locality_star sep statements endforall {
-            $$ = FORALL1($3, $5, $7, @$); }
+            $$ = FORALL1($3, $5, $7, TRIVIA_AFTER($6, @$), @$); }
     | KW_FORALL "(" concurrent_control_list "," expr ")"
         concurrent_locality_star sep statements endforall {
-            $$ = FORALL2($3, $5, $7, $9, @$); }
+            $$ = FORALL2($3, $5, $7, $9, TRIVIA_AFTER($8, @$), @$); }
     ;
 
 forall_statement_single
@@ -1678,9 +1687,10 @@ sync_stat
     ;
 
 critical_statement
-    : KW_CRITICAL sep statements KW_END KW_CRITICAL { $$ = CRITICAL($3, @$); }
+    : KW_CRITICAL sep statements KW_END KW_CRITICAL {
+            $$ = CRITICAL($3, TRIVIA_AFTER($2, @$), @$); }
     | KW_CRITICAL "(" sync_stat_list ")" sep statements KW_END KW_CRITICAL {
-            $$ = CRITICAL1($3, $6, @$); }
+            $$ = CRITICAL1($3, $6, TRIVIA_AFTER($5, @$), @$); }
     ;
 // -----------------------------------------------------------------------------
 // Fortran expression
