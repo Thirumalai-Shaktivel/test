@@ -1188,8 +1188,9 @@ sep0_one
     ;
 
 statement
-    : statement1 sep0 { $$ = $1; }
-    | TK_LABEL statement1 sep0 { $$ = $2; LABEL($$, $1); }
+    : statement1 sep { $$ = $1; }
+    | TK_LABEL statement1 sep { $$ = $2; LABEL($$, $1); }
+    | comment_statement TK_NEWLINE { $$ = $1; }
     ;
 
 statement1
@@ -1202,7 +1203,6 @@ single_line_statement
     | assignment_statement
     | associate_statement
     | close_statement
-    | comment_statement
     | continue_statement
     | cycle_statement
     | deallocate_statement
