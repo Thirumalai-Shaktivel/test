@@ -104,6 +104,7 @@ stmt
     | Associate(int label, expr target, expr value)
     | Backspace(int label, expr* args, keyword* kwargs)
     | Close(int label, expr* args, keyword* kwargs)
+    | CommentStatement(string comment)
     | Continue(int label)
     | Cycle(int label, identifier? stmt_name)
     | Deallocate(int label, fnarg* args)
