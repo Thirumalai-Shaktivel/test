@@ -936,6 +936,9 @@ ast_t* builtin3(Allocator &al,
 #define NULLIFY(args0, l) builtin1(p.m_a, args0, l, make_Nullify_t)
 #define BACKSPACE(args0, l) builtin1(p.m_a, args0, l, make_Backspace_t)
 
+#define COMMENT_STATEMENT(comment, l) LFortran::AST::make_CommentStatement_t( \
+        p.m_a, l, comment.c_str(p.m_a))
+
 #define INQUIRE0(args0, l) builtin2(p.m_a, args0, empty_vecast(), l, \
             make_Inquire_t)
 #define INQUIRE(args0, args, l) builtin2(p.m_a, args0, args, l, make_Inquire_t)

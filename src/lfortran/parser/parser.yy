@@ -331,6 +331,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> print_statement
 %type <ast> open_statement
 %type <ast> close_statement
+%type <ast> comment_statement
 %type <ast> write_statement
 %type <ast> read_statement
 %type <ast> inquire_statement
@@ -1176,9 +1177,19 @@ sep_one
     | ";"
     ;
 
+sep0
+    : sep0 sep0_one
+    | sep0_one
+    ;
+
+sep0_one
+    : TK_NEWLINE
+    | ";"
+    ;
+
 statement
-    : statement1 sep { $$ = $1; }
-    | TK_LABEL statement1 sep { $$ = $2; LABEL($$, $1); }
+    : statement1 sep0 { $$ = $1; }
+    | TK_LABEL statement1 sep0 { $$ = $2; LABEL($$, $1); }
     ;
 
 statement1
@@ -1191,6 +1202,7 @@ single_line_statement
     | assignment_statement
     | associate_statement
     | close_statement
+    | comment_statement
     | continue_statement
     | cycle_statement
     | deallocate_statement
@@ -1290,6 +1302,9 @@ open_statement
 
 close_statement
     : KW_CLOSE "(" write_arg_list ")" { $$ = CLOSE($3, @$); }
+
+comment_statement
+    : TK_COMMENT { $$ = COMMENT_STATEMENT($1, @$); }
 
 write_arg_list
     : write_arg_list "," write_arg2 { $$ = $1; PLIST_ADD($$, $3); }
