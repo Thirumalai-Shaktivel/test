@@ -329,7 +329,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> print_statement
 %type <ast> open_statement
 %type <ast> close_statement
-%type <ast> comment_statement
+// %type <ast> comment_statement
 %type <ast> write_statement
 %type <ast> read_statement
 %type <ast> inquire_statement
@@ -420,6 +420,8 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <vec_ast> proc_modifier_list
 %type <equi> equivalence_set
 %type <vec_equi> equivalence_set_list
+%type <ast> sep_one
+%type <vec_ast> sep
 
 // Precedence
 
@@ -856,9 +858,7 @@ letter_spec
     ;
 
 use_statement_star
-    : use_statement_star TK_COMMENT TK_NEWLINE use_statement {
-            $$ = $1; LIST_ADD($$, $2); }
-    | use_statement_star use_statement { $$ = $1; LIST_ADD($$, $2); }
+    : use_statement_star use_statement { $$ = $1; LIST_ADD($$, $2); }
     | %empty { LIST_NEW($$); }
     ;
 
@@ -1167,19 +1167,20 @@ statements
     ;
 
 sep
-    : sep sep_one
-    | sep_one
+    : sep sep_one { $$ = $1; LIST_ADD($$, $2); }
+    | sep_one { LIST_NEW($$); LIST_ADD($$, $1); }
     ;
 
 sep_one
-    : TK_NEWLINE
-    | ";"
+    : TK_NEWLINE { $$ = NEWLINE(@$); }
+    | TK_COMMENT { $$ = COMMENT($1, @$); }
+    | ";" { $$ = NEWLINE(@$); }
     ;
 
 statement
-    : statement1 sep { $$ = $1; }
+    : statement1 sep { $$ = $1; TRIVIA_($$, TRIVIA_AFTER($2, @$)); }
     | TK_LABEL statement1 sep { $$ = $2; LABEL($$, $1); }
-    | comment_statement TK_NEWLINE { $$ = $1; }
+//    | comment_statement TK_NEWLINE { $$ = $1; }
     ;
 
 statement1
@@ -1291,9 +1292,10 @@ open_statement
 
 close_statement
     : KW_CLOSE "(" write_arg_list ")" { $$ = CLOSE($3, @$); }
-
+/*
 comment_statement
     : TK_COMMENT { $$ = COMMENT_STATEMENT($1, @$); }
+*/
 
 write_arg_list
     : write_arg_list "," write_arg2 { $$ = $1; PLIST_ADD($$, $3); }

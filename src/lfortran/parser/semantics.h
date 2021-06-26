@@ -796,12 +796,12 @@ char* def_op_to_str(Allocator &al, const LFortran::Str &s) {
     return s2.c_str(al);
 }
 
-#define PRINT0(l) make_Print_t(p.m_a, l, 0, nullptr, nullptr, 0)
-#define PRINT(args, l) make_Print_t(p.m_a, l, 0, nullptr, EXPRS(args), args.size())
+#define PRINT0(l) make_Print_t(p.m_a, l, 0, nullptr, nullptr, 0, nullptr)
+#define PRINT(args, l) make_Print_t(p.m_a, l, 0, nullptr, EXPRS(args), args.size(), nullptr)
 #define PRINTF0(fmt, l) make_Print_t(p.m_a, l, 0, \
-        print_format_to_str(p.m_a, fmt.str()), nullptr, 0)
+        print_format_to_str(p.m_a, fmt.str()), nullptr, 0, nullptr)
 #define PRINTF(fmt, args, l) make_Print_t(p.m_a, l, 0, \
-        print_format_to_str(p.m_a, fmt.str()), EXPRS(args), args.size())
+        print_format_to_str(p.m_a, fmt.str()), EXPRS(args), args.size(), nullptr)
 
 ast_t* WRITE1(Allocator &al,
         const Vec<ArgStarKw> &args0,
@@ -1686,4 +1686,9 @@ ast_t* COARRAY(Allocator &al, const ast_t *id,
 #define CRITICAL1(x, stmts, l) make_Critical_t(p.m_a, l, 0, nullptr, \
         VEC_CAST(x, event_attribute), x.size(), STMTS(stmts), stmts.size())
 
+#define TRIVIA_(stmt, x) ((Print_t*)stmt)->m_trivia = down_cast<trivia_t>(x)
+#define NEWLINE(l) make_EmptyLines_t(p.m_a, l)
+#define COMMENT(cmt, l) make_Comment_t(p.m_a, l, cmt.c_str(p.m_a))
+#define TRIVIA_AFTER(x, l) make_TriviaNode_t(p.m_a, l, nullptr, 0, \
+        VEC_CAST(x, trivia_node), x.size())
 #endif
