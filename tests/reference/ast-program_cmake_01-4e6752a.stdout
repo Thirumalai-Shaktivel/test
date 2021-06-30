@@ -1,1 +1,1 @@
-(TranslationUnit [(Program TESTFortran [] [] [] [(Print 0 () [(Str "Hello")] (TriviaNode [] [(EmptyLines)]))] [])])
+(TranslationUnit [(Program TESTFortran [] [] [] [(Print 0 () [(Str "Hello")] ())] [])])
