@@ -1705,15 +1705,30 @@ ast_t* COARRAY(Allocator &al, const ast_t *id,
 #define CRITICAL1(x, stmts, l) make_Critical_t(p.m_a, l, 0, nullptr, \
         VEC_CAST(x, event_attribute), x.size(), STMTS(stmts), stmts.size())
 
-void set_trivia(ast_t *ast, ast_t *trivia) {
+void set_trivia(Allocator &al, ast_t *ast, ast_t *trivia) {
     stmt_t *s = down_cast<stmt_t>(ast);
     if (is_a<Print_t>(*s)) {
         Print_t *p = down_cast<Print_t>(s);
-        p->m_trivia = down_cast<trivia_t>(trivia);
+        TriviaNode_t *t = down_cast2<TriviaNode_t>(trivia);
+        Vec<trivia_node_t*> v;
+        v.reserve(al, t->n_after);
+        for (size_t i=0; i<t->n_after; i++) {
+            if (i == 0) {
+                if (is_a<EmptyLines_t>(*t->m_after[i])) {
+                    continue;
+                }
+            }
+            v.push_back(al, t->m_after[i]);
+        }
+        if (v.size() > 0) {
+            t->n_after = v.size();
+            t->m_after = v.p;
+            p->m_trivia = down_cast<trivia_t>(trivia);
+        }
     }
 }
 
-#define TRIVIA_(stmt, x) set_trivia(stmt, x)
+#define TRIVIA_(stmt, x) set_trivia(p.m_a, stmt, x)
 #define NEWLINE(l) make_EmptyLines_t(p.m_a, l)
 #define SEMICOLON(l) make_Semicolon_t(p.m_a, l)
 #define COMMENT(cmt, l) make_Comment_t(p.m_a, l, cmt.c_str(p.m_a))
