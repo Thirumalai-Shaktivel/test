@@ -18,6 +18,9 @@ public:
     unsigned int line_num;
 
     int last_token=-1;
+    // ws -> whitespace, nl -> newline 
+    int ws_count = 0;
+    int nl_count = 0;
 
 public:
     // Set the string to tokenize. The caller must ensure `str` will stay valid
