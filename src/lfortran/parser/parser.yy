@@ -1186,7 +1186,7 @@ sep
 sep_one
     : TK_NEWLINE { $$ = NEWLINE(@$); }
     | TK_COMMENT { $$ = COMMENT($1, @$); }
-    | ";" { $$ = NEWLINE(@$); }
+    | ";" { $$ = SEMICOLON(@$); }
     ;
 
 statement

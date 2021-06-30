@@ -1715,6 +1715,7 @@ void set_trivia(ast_t *ast, ast_t *trivia) {
 
 #define TRIVIA_(stmt, x) set_trivia(stmt, x)
 #define NEWLINE(l) make_EmptyLines_t(p.m_a, l)
+#define SEMICOLON(l) make_Semicolon_t(p.m_a, l)
 #define COMMENT(cmt, l) make_Comment_t(p.m_a, l, cmt.c_str(p.m_a))
 #define TRIVIA_AFTER(x, l) make_TriviaNode_t(p.m_a, l, nullptr, 0, \
         VEC_CAST(x, trivia_node), x.size())

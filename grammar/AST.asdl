@@ -182,6 +182,7 @@ trivia
 trivia_node
     = Comment(string comment)
     | EmptyLines()
+    | Semicolon()
 
 boolop = And | Or | Eqv | NEqv
 
