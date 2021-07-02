@@ -3,7 +3,9 @@
 %define api.value.type {LFortran::YYSTYPE}
 %param {LFortran::Parser &p}
 %locations
-%expect    0
+%glr-parser
+%expect    593 // shift/reduce conflicts
+%expect-rr 96  // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
 //%define parse.error verbose
@@ -181,6 +183,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token <string> KW_FUNCTION
 %token <string> KW_GENERIC
 %token <string> KW_GO
+%token <string> KW_GOTO
 %token <string> KW_IF
 %token <string> KW_IMPLICIT
 %token <string> KW_IMPORT
@@ -328,6 +331,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> nullify_statement
 %type <ast> print_statement
 %type <ast> open_statement
+%type <ast> flush_statement
 %type <ast> close_statement
 // %type <ast> comment_statement
 %type <ast> write_statement
@@ -1002,16 +1006,24 @@ data_stmt_value
     ;
 
 data_stmt_repeat
-    : TK_INTEGER { $$ = INTEGER($1, @$); }
-    ;
-
-data_stmt_constant
-    : TK_INTEGER { $$ = INTEGER($1, @$); }
+    : id { $$ = $1; }
+    | TK_INTEGER { $$ = INTEGER($1, @$); }
     | TK_REAL { $$ = REAL($1, @$); }
     | TK_STRING { $$ = STRING($1, @$); }
     | TK_BOZ_CONSTANT { $$ = BOZ($1, @$); }
     | ".true."  { $$ = TRUE(@$); }
     | ".false." { $$ = FALSE(@$); }
+    ;
+
+data_stmt_constant
+    : id { $$ = $1; }
+    | TK_INTEGER { $$ = INTEGER($1, @$); }
+    | TK_REAL { $$ = REAL($1, @$); }
+    | TK_STRING { $$ = STRING($1, @$); }
+    | TK_BOZ_CONSTANT { $$ = BOZ($1, @$); }
+    | ".true."  { $$ = TRUE(@$); }
+    | ".false." { $$ = FALSE(@$); }
+    | "-" expr %prec UMINUS { $$ = UNARY_MINUS($2, @$); }
     ;
 
 integer_type
@@ -1064,6 +1076,7 @@ var_modifier
     | KW_PUBLIC { $$ = SIMPLE_ATTR(Public, @$); }
     | KW_ABSTRACT { $$ = SIMPLE_ATTR(Abstract, @$); }
     | KW_ENUMERATOR { $$ = SIMPLE_ATTR(Enumerator, @$); }
+    | KW_EXTERNAL { $$ = SIMPLE_ATTR(External, @$); }
     | KW_INTENT "(" KW_IN ")" { $$ = INTENT(In, @$); }
     | KW_INTENT "(" KW_OUT ")" { $$ = INTENT(Out, @$); }
     | KW_INTENT "(" inout ")" { $$ = INTENT(InOut, @$); }
@@ -1174,7 +1187,7 @@ sep
 sep_one
     : TK_NEWLINE { $$ = NEWLINE(@$); }
     | TK_COMMENT { $$ = COMMENT($1, @$); }
-    | ";" { $$ = NEWLINE(@$); }
+    | ";" { $$ = SEMICOLON(@$); }
     ;
 
 statement
@@ -1200,6 +1213,7 @@ single_line_statement
     | event_post_statement
     | event_wait_statement
     | exit_statement
+    | flush_statement
     | forall_statement_single
     | format_statement
     | goto_statement
@@ -1243,6 +1257,7 @@ assignment_statement
 
 goto_statement
     : KW_GO KW_TO TK_INTEGER { $$ = GOTO($3, @$); }
+    | KW_GOTO TK_INTEGER { $$ = GOTO($2, @$); }
     ;
 
 associate_statement
@@ -1343,6 +1358,10 @@ backspace_statement
     : KW_BACKSPACE "(" write_arg_list ")" { $$ = BACKSPACE($3, @$); }
     ;
 
+flush_statement
+    : KW_FLUSH "(" write_arg_list ")" { $$ = FLUSH($3, @$); }
+    | KW_FLUSH TK_INTEGER { $$ = FLUSH1($2, @$); }
+    ;
 // sr-conflict (2x): KW_ENDIF can be an "id" or end of "if_statement"
 if_statement
     : if_block endif {}
@@ -1353,25 +1372,27 @@ if_statement_single
     ;
 
 if_block
-    : KW_IF "(" expr ")" KW_THEN sep statements {
-            $$ = IF1($3, $7, @$); }
-    | KW_IF "(" expr ")" KW_THEN sep statements KW_ELSE sep statements {
-            $$ = IF2($3, $7, $10, @$); }
-    | KW_IF "(" expr ")" KW_THEN sep statements KW_ELSE if_block {
-            $$ = IF3($3, $7, $9, @$); }
-    | KW_IF "(" expr ")" KW_THEN sep statements elseif_block {
-            $$ = IF3($3, $7, $8, @$); }
+    : KW_IF "(" expr ")" KW_THEN id_opt sep statements {
+            $$ = IF1($3, $8, @$); }
+    | KW_IF "(" expr ")" KW_THEN id_opt sep statements
+        KW_ELSE id_opt sep statements {
+            $$ = IF2($3, $8, $12, @$); }
+    | KW_IF "(" expr ")" KW_THEN id_opt sep statements KW_ELSE if_block {
+            $$ = IF3($3, $8, $10, @$); }
+    | KW_IF "(" expr ")" KW_THEN id_opt sep statements elseif_block {
+            $$ = IF3($3, $8, $9, @$); }
     ;
 
 elseif_block
-    : KW_ELSEIF "(" expr ")" KW_THEN sep statements {
-            $$ = IF1($3, $7, @$); }
-    | KW_ELSEIF "(" expr ")" KW_THEN sep statements KW_ELSE sep statements {
-            $$ = IF2($3, $7, $10, @$); }
-    | KW_ELSEIF "(" expr ")" KW_THEN sep statements KW_ELSE if_block {
-            $$ = IF3($3, $7, $9, @$); }
-    | KW_ELSEIF "(" expr ")" KW_THEN sep statements elseif_block {
-            $$ = IF3($3, $7, $8, @$); }
+    : KW_ELSEIF "(" expr ")" KW_THEN id_opt sep statements {
+            $$ = IF1($3, $8, @$); }
+    | KW_ELSEIF "(" expr ")" KW_THEN id_opt sep statements
+        KW_ELSE id_opt sep statements {
+            $$ = IF2($3, $8, $12, @$); }
+    | KW_ELSEIF "(" expr ")" KW_THEN id_opt sep statements KW_ELSE if_block {
+            $$ = IF3($3, $8, $10, @$); }
+    | KW_ELSEIF "(" expr ")" KW_THEN id_opt sep statements elseif_block {
+            $$ = IF3($3, $8, $9, @$); }
     ;
 
 where_statement
@@ -1687,12 +1708,20 @@ expr
     : id { $$ = $1; }
     | struct_member_star id { NAME1($$, $2, $1, @$); }
     | id "(" fnarray_arg_list_opt ")" { $$ = FUNCCALLORARRAY($1, $3, @$); }
-    | id "[" coarray_arg_list "]" {
-            $$ = COARRAY1($1, $3, @$); }
-    | id "(" fnarray_arg_list_opt ")" "[" coarray_arg_list "]" {
-            $$ = COARRAY2($1, $3, $6, @$); }
     | struct_member_star id "(" fnarray_arg_list_opt ")" {
             $$ = FUNCCALLORARRAY2($1, $2, $4, @$); }
+    | id "(" fnarray_arg_list_opt ")" "(" fnarray_arg_list_opt ")" {
+            $$ = FUNCCALLORARRAY3($1, $3, $6, @$); }
+    | struct_member_star id "(" fnarray_arg_list_opt ")" "(" fnarray_arg_list_opt ")" {
+            $$ = FUNCCALLORARRAY4($1, $2, $4, $7, @$); }
+    | id "[" coarray_arg_list "]" {
+            $$ = COARRAY1($1, $3, @$); }
+    | struct_member_star id "[" coarray_arg_list "]" {
+            $$ = COARRAY3($1, $2, $4, @$); }
+    | id "(" fnarray_arg_list_opt ")" "[" coarray_arg_list "]" {
+            $$ = COARRAY2($1, $3, $6, @$); }
+    | struct_member_star id "(" fnarray_arg_list_opt ")" "[" coarray_arg_list "]" {
+            $$ = COARRAY4($1, $2, $4, $7, @$); }
     | "[" expr_list_opt rbracket { $$ = ARRAY_IN($2, @$); }
     | "[" var_type "::" expr_list_opt rbracket { $$ = ARRAY_IN1($2, $4, @$); }
     | TK_INTEGER { $$ = INTEGER($1, @$); }
@@ -1819,4 +1848,142 @@ id_opt
 
 id
     : TK_NAME { $$ = SYMBOL($1, @$); }
+    | KW_ABSTRACT { $$ = SYMBOL($1, @$); }
+    | KW_ALL { $$ = SYMBOL($1, @$); }
+    | KW_ALLOCATABLE { $$ = SYMBOL($1, @$); }
+    | KW_ALLOCATE { $$ = SYMBOL($1, @$); }
+    | KW_ASSIGNMENT { $$ = SYMBOL($1, @$); }
+    | KW_ASSOCIATE { $$ = SYMBOL($1, @$); }
+    | KW_ASYNCHRONOUS { $$ = SYMBOL($1, @$); }
+    | KW_BACKSPACE { $$ = SYMBOL($1, @$); }
+    | KW_BIND { $$ = SYMBOL($1, @$); }
+    | KW_BLOCK { $$ = SYMBOL($1, @$); }
+    | KW_CALL { $$ = SYMBOL($1, @$); }
+    | KW_CASE { $$ = SYMBOL($1, @$); }
+    | KW_CHARACTER { $$ = SYMBOL($1, @$); }
+    | KW_CLASS { $$ = SYMBOL($1, @$); }
+    | KW_CLOSE { $$ = SYMBOL($1, @$); }
+    | KW_CODIMENSION { $$ = SYMBOL($1, @$); }
+    | KW_COMMON { $$ = SYMBOL($1, @$); }
+    | KW_COMPLEX { $$ = SYMBOL($1, @$); }
+    | KW_CONCURRENT { $$ = SYMBOL($1, @$); }
+    | KW_CONTAINS { $$ = SYMBOL($1, @$); }
+    | KW_CONTIGUOUS { $$ = SYMBOL($1, @$); }
+    | KW_CONTINUE { $$ = SYMBOL($1, @$); }
+    | KW_CRITICAL { $$ = SYMBOL($1, @$); }
+    | KW_CYCLE { $$ = SYMBOL($1, @$); }
+    | KW_DATA { $$ = SYMBOL($1, @$); }
+    | KW_DEALLOCATE { $$ = SYMBOL($1, @$); }
+    | KW_DEFAULT { $$ = SYMBOL($1, @$); }
+    | KW_DEFERRED { $$ = SYMBOL($1, @$); }
+    | KW_DIMENSION { $$ = SYMBOL($1, @$); }
+    | KW_DO { $$ = SYMBOL($1, @$); }
+    | KW_DOWHILE { $$ = SYMBOL($1, @$); }
+    | KW_DOUBLE { $$ = SYMBOL($1, @$); }
+    | KW_ELEMENTAL { $$ = SYMBOL($1, @$); }
+    | KW_ELSE { $$ = SYMBOL($1, @$); }
+    | KW_ELSEIF { $$ = SYMBOL($1, @$); }
+    | KW_ELSEWHERE { $$ = SYMBOL($1, @$); }
+    | KW_END { $$ = SYMBOL($1, @$); }
+    | KW_ENDDO { $$ = SYMBOL($1, @$); }
+    | KW_ENDIF { $$ = SYMBOL($1, @$); }
+    | KW_ENDINTERFACE { $$ = SYMBOL($1, @$); }
+    | KW_ENTRY { $$ = SYMBOL($1, @$); }
+    | KW_ENUM { $$ = SYMBOL($1, @$); }
+    | KW_ENUMERATOR { $$ = SYMBOL($1, @$); }
+    | KW_EQUIVALENCE { $$ = SYMBOL($1, @$); }
+    | KW_ERRMSG { $$ = SYMBOL($1, @$); }
+    | KW_ERROR { $$ = SYMBOL($1, @$); }
+    | KW_EVENT { $$ = SYMBOL($1, @$); }
+    | KW_EXIT { $$ = SYMBOL($1, @$); }
+    | KW_EXTENDS { $$ = SYMBOL($1, @$); }
+    | KW_EXTERNAL { $$ = SYMBOL($1, @$); }
+    | KW_FILE { $$ = SYMBOL($1, @$); }
+    | KW_FINAL { $$ = SYMBOL($1, @$); }
+    | KW_FLUSH { $$ = SYMBOL($1, @$); }
+    | KW_FORALL { $$ = SYMBOL($1, @$); }
+    | KW_FORMAT { $$ = SYMBOL($1, @$); }
+    | KW_FORMATTED { $$ = SYMBOL($1, @$); }
+    | KW_FUNCTION { $$ = SYMBOL($1, @$); }
+    | KW_GENERIC { $$ = SYMBOL($1, @$); }
+    | KW_GO { $$ = SYMBOL($1, @$); }
+    | KW_GOTO { $$ = SYMBOL($1, @$); }
+    | KW_IF { $$ = SYMBOL($1, @$); }
+    | KW_IMPLICIT { $$ = SYMBOL($1, @$); }
+    | KW_IMPORT { $$ = SYMBOL($1, @$); }
+    | KW_IMPURE { $$ = SYMBOL($1, @$); }
+    | KW_IN { $$ = SYMBOL($1, @$); }
+    | KW_INCLUDE { $$ = SYMBOL($1, @$); }
+    | KW_INOUT { $$ = SYMBOL($1, @$); }
+    | KW_INQUIRE { $$ = SYMBOL($1, @$); }
+    | KW_INTEGER { $$ = SYMBOL($1, @$); }
+    | KW_INTENT { $$ = SYMBOL($1, @$); }
+    | KW_INTERFACE { $$ = SYMBOL($1, @$); }
+    | KW_INTRINSIC { $$ = SYMBOL($1, @$); }
+    | KW_IS { $$ = SYMBOL($1, @$); }
+    | KW_KIND { $$ = SYMBOL($1, @$); }
+    | KW_LEN { $$ = SYMBOL($1, @$); }
+    | KW_LOCAL { $$ = SYMBOL($1, @$); }
+    | KW_LOCAL_INIT { $$ = SYMBOL($1, @$); }
+    | KW_LOGICAL { $$ = SYMBOL($1, @$); }
+    | KW_MODULE { $$ = SYMBOL($1, @$); }
+    | KW_MOLD { $$ = SYMBOL($1, @$); }
+    | KW_NAME { $$ = SYMBOL($1, @$); }
+    | KW_NAMELIST { $$ = SYMBOL($1, @$); }
+    | KW_NOPASS { $$ = SYMBOL($1, @$); }
+    | KW_NON_INTRINSIC { $$ = SYMBOL($1, @$); }
+    | KW_NON_OVERRIDABLE { $$ = SYMBOL($1, @$); }
+    | KW_NON_RECURSIVE { $$ = SYMBOL($1, @$); }
+    | KW_NONE { $$ = SYMBOL($1, @$); }
+    | KW_NULLIFY { $$ = SYMBOL($1, @$); }
+    | KW_ONLY { $$ = SYMBOL($1, @$); }
+    | KW_OPEN { $$ = SYMBOL($1, @$); }
+    | KW_OPERATOR { $$ = SYMBOL($1, @$); }
+    | KW_OPTIONAL { $$ = SYMBOL($1, @$); }
+    | KW_OUT { $$ = SYMBOL($1, @$); }
+    | KW_PARAMETER { $$ = SYMBOL($1, @$); }
+    | KW_PASS { $$ = SYMBOL($1, @$); }
+    | KW_POINTER { $$ = SYMBOL($1, @$); }
+    | KW_POST { $$ = SYMBOL($1, @$); }
+    | KW_PRECISION { $$ = SYMBOL($1, @$); }
+    | KW_PRINT { $$ = SYMBOL($1, @$); }
+    | KW_PRIVATE { $$ = SYMBOL($1, @$); }
+    | KW_PROCEDURE { $$ = SYMBOL($1, @$); }
+    | KW_PROGRAM { $$ = SYMBOL($1, @$); }
+    | KW_PROTECTED { $$ = SYMBOL($1, @$); }
+    | KW_PUBLIC { $$ = SYMBOL($1, @$); }
+    | KW_PURE { $$ = SYMBOL($1, @$); }
+    | KW_QUIET { $$ = SYMBOL($1, @$); }
+    | KW_RANK { $$ = SYMBOL($1, @$); }
+    | KW_READ { $$ = SYMBOL($1, @$); }
+    | KW_REAL { $$ = SYMBOL($1, @$); }
+    | KW_RECURSIVE { $$ = SYMBOL($1, @$); }
+    | KW_REDUCE { $$ = SYMBOL($1, @$); }
+    | KW_RESULT { $$ = SYMBOL($1, @$); }
+    | KW_RETURN { $$ = SYMBOL($1, @$); }
+    | KW_REWIND { $$ = SYMBOL($1, @$); }
+    | KW_SAVE { $$ = SYMBOL($1, @$); }
+    | KW_SELECT { $$ = SYMBOL($1, @$); }
+    | KW_SEQUENCE { $$ = SYMBOL($1, @$); }
+    | KW_SHARED { $$ = SYMBOL($1, @$); }
+    | KW_SOURCE { $$ = SYMBOL($1, @$); }
+    | KW_STAT { $$ = SYMBOL($1, @$); }
+    | KW_STOP { $$ = SYMBOL($1, @$); }
+    | KW_SUBMODULE { $$ = SYMBOL($1, @$); }
+    | KW_SUBROUTINE { $$ = SYMBOL($1, @$); }
+    | KW_SYNC { $$ = SYMBOL($1, @$); }
+    | KW_TARGET { $$ = SYMBOL($1, @$); }
+    | KW_TEAM { $$ = SYMBOL($1, @$); }
+    | KW_TEAM_NUMBER { $$ = SYMBOL($1, @$); }
+    | KW_THEN { $$ = SYMBOL($1, @$); }
+    | KW_TO { $$ = SYMBOL($1, @$); }
+    | KW_TYPE { $$ = SYMBOL($1, @$); }
+    | KW_UNFORMATTED { $$ = SYMBOL($1, @$); }
+    | KW_USE { $$ = SYMBOL($1, @$); }
+    | KW_VALUE { $$ = SYMBOL($1, @$); }
+    | KW_VOLATILE { $$ = SYMBOL($1, @$); }
+    | KW_WAIT { $$ = SYMBOL($1, @$); }
+    | KW_WHERE { $$ = SYMBOL($1, @$); }
+    | KW_WHILE { $$ = SYMBOL($1, @$); }
+    | KW_WRITE { $$ = SYMBOL($1, @$); }
     ;
