@@ -796,12 +796,12 @@ char* def_op_to_str(Allocator &al, const LFortran::Str &s) {
     return s2.c_str(al);
 }
 
-#define PRINT0(l) make_Print_t(p.m_a, l, 0, nullptr, nullptr, 0)
-#define PRINT(args, l) make_Print_t(p.m_a, l, 0, nullptr, EXPRS(args), args.size())
+#define PRINT0(l) make_Print_t(p.m_a, l, 0, nullptr, nullptr, 0, nullptr)
+#define PRINT(args, l) make_Print_t(p.m_a, l, 0, nullptr, EXPRS(args), args.size(), nullptr)
 #define PRINTF0(fmt, l) make_Print_t(p.m_a, l, 0, \
-        print_format_to_str(p.m_a, fmt.str()), nullptr, 0)
+        print_format_to_str(p.m_a, fmt.str()), nullptr, 0, nullptr)
 #define PRINTF(fmt, args, l) make_Print_t(p.m_a, l, 0, \
-        print_format_to_str(p.m_a, fmt.str()), EXPRS(args), args.size())
+        print_format_to_str(p.m_a, fmt.str()), EXPRS(args), args.size(), nullptr)
 
 ast_t* WRITE1(Allocator &al,
         const Vec<ArgStarKw> &args0,
@@ -936,6 +936,9 @@ ast_t* builtin3(Allocator &al,
 #define NULLIFY(args0, l) builtin1(p.m_a, args0, l, make_Nullify_t)
 #define BACKSPACE(args0, l) builtin1(p.m_a, args0, l, make_Backspace_t)
 #define FLUSH(args0, l) builtin1(p.m_a, args0, l, make_Flush_t)
+
+#define COMMENT_STATEMENT(comment, l) LFortran::AST::make_CommentStatement_t( \
+        p.m_a, l, comment.c_str(p.m_a))
 
 #define INQUIRE0(args0, l) builtin2(p.m_a, args0, empty_vecast(), l, \
             make_Inquire_t)
@@ -1705,4 +1708,33 @@ ast_t* COARRAY(Allocator &al, const ast_t *id,
 #define CRITICAL1(x, stmts, l) make_Critical_t(p.m_a, l, 0, nullptr, \
         VEC_CAST(x, event_attribute), x.size(), STMTS(stmts), stmts.size())
 
+void set_trivia(Allocator &al, ast_t *ast, ast_t *trivia) {
+    stmt_t *s = down_cast<stmt_t>(ast);
+    if (is_a<Print_t>(*s)) {
+        Print_t *p = down_cast<Print_t>(s);
+        TriviaNode_t *t = down_cast2<TriviaNode_t>(trivia);
+        Vec<trivia_node_t*> v;
+        v.reserve(al, t->n_after);
+        for (size_t i=0; i<t->n_after; i++) {
+            if (i == 0) {
+                if (is_a<EmptyLines_t>(*t->m_after[i])) {
+                    continue;
+                }
+            }
+            v.push_back(al, t->m_after[i]);
+        }
+        if (v.size() > 0) {
+            t->n_after = v.size();
+            t->m_after = v.p;
+            p->m_trivia = down_cast<trivia_t>(trivia);
+        }
+    }
+}
+
+#define TRIVIA_(stmt, x) set_trivia(p.m_a, stmt, x)
+#define NEWLINE(l) make_EmptyLines_t(p.m_a, l)
+#define SEMICOLON(l) make_Semicolon_t(p.m_a, l)
+#define COMMENT(cmt, l) make_Comment_t(p.m_a, l, cmt.c_str(p.m_a))
+#define TRIVIA_AFTER(x, l) make_TriviaNode_t(p.m_a, l, nullptr, 0, \
+        VEC_CAST(x, trivia_node), x.size())
 #endif
