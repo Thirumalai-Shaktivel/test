@@ -18,16 +18,16 @@ void Tokenizer::set_string(const std::string &str)
 }
 
 template<int base>
-bool adddgt(unsigned long &u, unsigned long d)
+bool adddgt(uint64_t &u, uint64_t d)
 {
-    if (u > (std::numeric_limits<unsigned long>::max() - d) / base) {
+    if (u > (std::numeric_limits<uint64_t>::max() - d) / base) {
         return false;
     }
     u = u * base + d;
     return true;
 }
 
-bool lex_dec(const unsigned char *s, const unsigned char *e, unsigned long &u)
+bool lex_dec(const unsigned char *s, const unsigned char *e, uint64_t &u)
 {
     for (u = 0; s < e; ++s) {
         if (!adddgt<10>(u, *s - 0x30u)) {
@@ -336,7 +336,7 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             // built-in or custom defined operator, such as: `.eq.`, `.not.`,
             // or `.custom.`.
             integer / defop {
-                unsigned long u;
+                uint64_t u;
                 if (lex_dec(tok, cur, u)) {
                     yylval.n = u;
                     RET(TK_INTEGER)
@@ -351,7 +351,7 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
 
             real { token(yylval.string); RET(TK_REAL) }
             integer / (whitespace name) {
-                unsigned long u;
+                uint64_t u;
                 if (lex_dec(tok, cur, u)) {
                     yylval.n = u;
                     if (last_token == yytokentype::TK_NEWLINE) {
@@ -367,7 +367,7 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
                 }
             }
             integer {
-                unsigned long u;
+                uint64_t u;
                 if (lex_dec(tok, cur, u)) {
                     yylval.n = u;
                     RET(TK_INTEGER)

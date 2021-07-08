@@ -41,7 +41,7 @@ struct ArgStarKw {
 };
 
 union YYSTYPE {
-    unsigned long n;
+    uint64_t n;
     Str string;
 
     AST::ast_t* ast;
