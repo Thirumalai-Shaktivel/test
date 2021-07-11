@@ -78,6 +78,7 @@ set(WITH_LFORTRAN_BINARY_MODFILES YES
     CACHE BOOL "Use binary modfiles")
 
 #ZLIB
+set(ZLIB_STATIC YES CACHE BOOL "Find static zlib library")
 find_package(ZLIB REQUIRED)
 
 # LLVM
