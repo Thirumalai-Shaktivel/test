@@ -1467,7 +1467,7 @@ public:
     void visit_Num(const AST::Num_t &x) {
         ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
                 4, nullptr, 0));
-        asr = ASR::make_ConstantInteger_t(al, x.base.base.loc, x.m_n, type);
+        asr = ASR::make_ConstantInteger_t(al, x.base.base.loc, x.m_n, type, nullptr);
     }
 
 };
@@ -1789,7 +1789,7 @@ public:
         alloc_args_vec.reserve(al, x.n_args);
         ASR::ttype_t *int32_type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
                                                             4, nullptr, 0));
-        ASR::expr_t* const_1 = LFortran::ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc, 1, int32_type));
+        ASR::expr_t* const_1 = LFortran::ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc, 1, int32_type, nullptr));
         for( size_t i = 0; i < x.n_args; i++ ) {
             ASR::alloc_arg_t new_arg;
             new_arg.loc = x.base.base.loc;
@@ -2677,7 +2677,7 @@ public:
     void visit_Num(const AST::Num_t &x) {
         ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
                 4, nullptr, 0));
-        tmp = ASR::make_ConstantInteger_t(al, x.base.base.loc, x.m_n, type);
+        tmp = ASR::make_ConstantInteger_t(al, x.base.base.loc, x.m_n, type, nullptr);
     }
 
     void visit_Logical(const AST::Logical_t &x) {

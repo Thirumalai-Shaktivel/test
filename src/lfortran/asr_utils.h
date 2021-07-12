@@ -82,6 +82,17 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
     }
 }
 
+static inline auto node_value(const ASR::expr_t *f)
+{
+    if (LFortran::ASR::is_a<ASR::ConstantInteger_t>(*f)) {
+        int64_t val = LFortran::ASR::down_cast<ASR::ConstantInteger_t>(f)->m_n;
+        return val;
+    }
+    else {
+        throw LFortranException("Not implemented");
+    }
+}
+
 static inline char *symbol_name(const ASR::symbol_t *f)
 {
     switch (f->type) {
