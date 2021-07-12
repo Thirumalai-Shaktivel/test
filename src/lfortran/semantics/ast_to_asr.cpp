@@ -3,7 +3,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <any>
 
 #include <lfortran/ast.h>
 #include <lfortran/asr.h>
