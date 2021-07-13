@@ -1645,6 +1645,8 @@ format_item
     | format_item_slash
     | format_item_slash format_item1
     | format_item1 format_item_slash format_item1
+    | format_item1 format_item_slash
+    | format_item_slash format_item1 format_item_slash
     | ":"
     ;
 
