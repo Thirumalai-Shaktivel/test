@@ -413,7 +413,8 @@ std::string highlight_line(const std::string &line,
     for (size_t i=first_column; i < last_column; i++) {
         out << "~";
     }
-    out << redoff << std::endl;
+    if(use_colors) out << redoff;
+    out << std::endl;
     return out.str();
 }
 
