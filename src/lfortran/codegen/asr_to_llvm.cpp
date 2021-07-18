@@ -156,7 +156,6 @@ public:
     // Maps for containing information regarding derived types
     std::map<std::string, llvm::StructType*> name2dertype;
     std::map<std::string, std::map<std::string, int>> name2memidx;
-    std::map<std::string, std::vector<std::string>> name2methods;
 
     std::map<uint64_t, llvm::Value*> llvm_symtab; // llvm_symtab_value
     std::map<uint64_t, llvm::Function*> llvm_symtab_fn;
@@ -495,10 +494,6 @@ public:
                     member_types.push_back(mem_type);
                     name2memidx[der_type_name][std::string(member->m_name)] = member_idx;
                     member_idx++;
-                } else {
-                    // Account for class procedures
-                    name2methods[der_type_name].push_back(std::string(
-                        itr->first));
                 }
             }
             der_type_llvm = llvm::StructType::create(context, member_types, der_type_name);
@@ -3026,17 +3021,17 @@ public:
     void visit_SubroutineCall(const ASR::SubroutineCall_t &x) {
         ASR::Subroutine_t *s;
         std::vector<llvm::Value*> args;
-        if (x.m_v){
-            ASR::Variable_t *a2 = EXPR2VAR(x.m_v);
-            std::uint32_t h = get_hash((ASR::asr_t*)a2);
+        const ASR::symbol_t *proc_sym = symbol_get_past_external(x.m_name);
+        if (x.m_dt){
+            ASR::Variable_t *caller = EXPR2VAR(x.m_dt);
+            std::uint32_t h = get_hash((ASR::asr_t*)caller);
             args.push_back(llvm_symtab[h]);
         }
-        if (ASR::is_a<ASR::Subroutine_t>(*symbol_get_past_external(x.m_name))) {
-            s = ASR::down_cast<ASR::Subroutine_t>(
-                symbol_get_past_external(x.m_name));
+        if (ASR::is_a<ASR::Subroutine_t>(*proc_sym)) {
+            s = ASR::down_cast<ASR::Subroutine_t>(proc_sym);
         } else {
             ASR::ClassProcedure_t *clss_proc = ASR::down_cast<
-                ASR::ClassProcedure_t>(symbol_get_past_external(x.m_name));
+                ASR::ClassProcedure_t>(proc_sym);
             s = ASR::down_cast<ASR::Subroutine_t>(clss_proc->m_proc);
         }
         if (parent_function){
@@ -3078,17 +3073,17 @@ public:
     void visit_FunctionCall(const ASR::FunctionCall_t &x) {
         ASR::Function_t *s;
         std::vector<llvm::Value*> args;
-        if (x.m_v){
-            ASR::Variable_t *a2 = EXPR2VAR(x.m_v);
-            std::uint32_t h = get_hash((ASR::asr_t*)a2);
+        const ASR::symbol_t *proc_sym = symbol_get_past_external(x.m_name);
+        if (x.m_dt){
+            ASR::Variable_t *caller = EXPR2VAR(x.m_dt);
+            std::uint32_t h = get_hash((ASR::asr_t*)caller);
             args.push_back(llvm_symtab[h]);
         }
-        if (ASR::is_a<ASR::Function_t>(*symbol_get_past_external(x.m_name))) {
-            s = ASR::down_cast<ASR::Function_t>(
-                symbol_get_past_external(x.m_name));
+        if (ASR::is_a<ASR::Function_t>(*proc_sym)) {
+            s = ASR::down_cast<ASR::Function_t>(proc_sym);
         } else {
             ASR::ClassProcedure_t *clss_proc = ASR::down_cast<
-                ASR::ClassProcedure_t>(symbol_get_past_external(x.m_name));
+                ASR::ClassProcedure_t>(proc_sym);
             s = ASR::down_cast<ASR::Function_t>(clss_proc->m_proc);
         }
         s = ASR::down_cast<ASR::Function_t>(symbol_get_past_external(x.m_name));
