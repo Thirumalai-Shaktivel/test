@@ -1,4 +1,4 @@
 input:1:16 syntax error: token type 'identifier' is unexpected here
 subroutine g() r
-               ^[0;00m
+               ^
 Parsing error: syntax error

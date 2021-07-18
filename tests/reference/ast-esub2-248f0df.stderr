@@ -1,4 +1,4 @@
 input:3:5 syntax error: token '~' is not recognized
 x = ~1
-    ^[0;00m
+    ^
 Tokenizing error: token '~' is not recognized
