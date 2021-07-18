@@ -341,7 +341,7 @@ int emit_ast(const std::string &infile, bool colors, bool indent)
     Allocator al(64*1024*1024);
     LFortran::AST::TranslationUnit_t* ast;
     try {
-        ast = LFortran::parse2(al, input);
+        ast = LFortran::parse2(al, input, colors);
     } catch (const LFortran::TokenizerError &e) {
         std::cerr << "Tokenizing error: " << e.msg() << std::endl;
         return 1;
@@ -361,7 +361,7 @@ int emit_ast_f90(const std::string &infile, bool colors)
     Allocator al(64*1024*1024);
     LFortran::AST::TranslationUnit_t* ast;
     try {
-        ast = LFortran::parse2(al, input);
+        ast = LFortran::parse2(al, input, colors);
     } catch (const LFortran::TokenizerError &e) {
         std::cerr << "Tokenizing error: " << e.msg() << std::endl;
         return 1;
@@ -386,7 +386,7 @@ int format(const std::string &file, bool inplace, bool color, int indent,
     Allocator al(64*1024*1024);
     LFortran::AST::TranslationUnit_t* ast;
     try {
-        ast = LFortran::parse2(al, input);
+        ast = LFortran::parse2(al, input, color);
     } catch (const LFortran::TokenizerError &e) {
         std::cerr << "Tokenizing error: " << e.msg() << std::endl;
         return 1;
@@ -419,7 +419,7 @@ int emit_asr(const std::string &infile, bool colors,
     Allocator al(64*1024*1024);
     LFortran::AST::TranslationUnit_t* ast;
     try {
-        ast = LFortran::parse2(al, input);
+        ast = LFortran::parse2(al, input, colors);
     } catch (const LFortran::TokenizerError &e) {
         std::cerr << "Tokenizing error: " << e.msg() << std::endl;
         return 1;
