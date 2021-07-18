@@ -5,7 +5,7 @@
 %locations
 %glr-parser
 %expect    620 // shift/reduce conflicts
-%expect-rr 101 // reduce/reduce conflicts
+%expect-rr 102 // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
 //%define parse.error verbose
@@ -213,6 +213,9 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token <string> KW_END_CRITICAL
 %token <string> KW_ENDCRITICAL
 
+%token <string> KW_END_FILE
+%token <string> KW_ENDFILE
+
 %token <string> KW_ENTRY
 %token <string> KW_ENUM
 %token <string> KW_ENUMERATOR
@@ -389,6 +392,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> inquire_statement
 %type <ast> rewind_statement
 %type <ast> backspace_statement
+%type <ast> endfile_statement
 %type <ast> if_statement
 %type <ast> if_statement_single
 %type <ast> if_block
@@ -586,6 +590,8 @@ endinterface
     | endinterface0 id
     | endinterface0 KW_ASSIGNMENT "(" "=" ")"
     | endinterface0 KW_OPERATOR "(" operator_type ")"
+    | endinterface0 KW_OPERATOR "(" "/)"
+    | endinterface0 KW_OPERATOR "(" TK_DEF_OP ")"
     ;
 
 endinterface0
@@ -657,6 +663,8 @@ procedure_decl
             $$ = DERIVED_TYPE_PROC1($3, $5, $6, @$); }
     | KW_GENERIC access_spec_list KW_OPERATOR "(" operator_type ")" "=>" id_list sep {
             $$ = GENERIC_OPERATOR($2, $5, $8, @$); }
+    | KW_GENERIC access_spec_list KW_OPERATOR "(" "/)" "=>" id_list sep {
+            $$ = GENERIC_OPERATOR($2, OPERATOR(DIV, @$), $7, @$); }
     | KW_GENERIC access_spec_list KW_OPERATOR "(" TK_DEF_OP ")" "=>" id_list sep {
             $$ = GENERIC_DEFOP($2, $5, $8, @$); }
     | KW_GENERIC access_spec_list KW_ASSIGNMENT "(" "=" ")" "=>" id_list sep {
@@ -1041,6 +1049,7 @@ use_symbol
     | id "=>" id  { $$ = USE_SYMBOL2($1, $3, @$); }
     | KW_ASSIGNMENT "(" "=" ")"  { $$ = USE_ASSIGNMENT(@$); }
     | KW_OPERATOR "(" operator_type ")"  { $$ = INTRINSIC_OPERATOR($3, @$); }
+    | KW_OPERATOR "(" "/)"  { $$ = INTRINSIC_OPERATOR(OPERATOR(DIV, @$), @$); }
     | KW_OPERATOR "(" TK_DEF_OP ")"  { $$ = DEFINED_OPERATOR($3, @$); }
     | KW_OPERATOR "(" TK_DEF_OP ")" "=>" KW_OPERATOR "(" TK_DEF_OP ")" {
         $$ = RENAME_OPERATOR($3, $8, @$); }
@@ -1376,6 +1385,7 @@ single_line_statement
     | return_statement
     | rewind_statement
     | backspace_statement
+    | endfile_statement
     | stop_statement
     | subroutine_call
     | sync_all_statement
@@ -1517,6 +1527,18 @@ flush_statement
     : KW_FLUSH "(" write_arg_list ")" { $$ = FLUSH($3, @$); }
     | KW_FLUSH TK_INTEGER { $$ = FLUSH1($2, @$); }
     ;
+
+endfile_statement
+    : end_file "(" write_arg_list ")" { $$ = ENDFILE($3, @$); }
+    | end_file id { $$ = ENDFILE2($2, @$); }
+    | end_file TK_INTEGER { $$ = ENDFILE3($2, @$); }
+    ;
+
+end_file
+    : KW_END_FILE
+    | KW_ENDFILE
+    ;
+
 // sr-conflict (2x): KW_ENDIF can be an "id" or end of "if_statement"
 if_statement
     : if_block endif {}
@@ -1893,6 +1915,12 @@ expr
             $$ = IMPLIED_DO_LOOP2($2, $4, $6, $8, $10, @$); }
     | "(" expr "," expr "," expr_list "," id "=" expr "," expr ")" {
             $$ = IMPLIED_DO_LOOP3($2, $4, $6, $8, $10, $12, @$); }
+    | "(" expr "," id "=" expr "," expr "," expr ")" {
+            $$ = IMPLIED_DO_LOOP4($2, $4, $6, $8, $10, @$); }
+    | "(" expr "," expr "," id "=" expr "," expr "," expr ")" {
+            $$ = IMPLIED_DO_LOOP5($2, $4, $6, $8, $10, $12, @$); }
+    | "(" expr "," expr "," expr_list "," id "=" expr "," expr "," expr ")" {
+            $$ = IMPLIED_DO_LOOP6($2, $4, $6, $8, $10, $12, $14, @$); }
 
 // ### level-1
 
@@ -2059,6 +2087,7 @@ id
     | KW_ENDFORALL { $$ = SYMBOL($1, @$); }
     | KW_ENDWHERE { $$ = SYMBOL($1, @$); }
     | KW_ENDCRITICAL { $$ = SYMBOL($1, @$); }
+    | KW_ENDFILE { $$ = SYMBOL($1, @$); }
     | KW_ENTRY { $$ = SYMBOL($1, @$); }
     | KW_ENUM { $$ = SYMBOL($1, @$); }
     | KW_ENUMERATOR { $$ = SYMBOL($1, @$); }

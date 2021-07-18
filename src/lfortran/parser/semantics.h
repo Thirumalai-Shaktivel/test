@@ -674,24 +674,26 @@ ast_t* implied_do_loop(Allocator &al, Location &loc,
         Vec<ast_t*> &ex_list,
         ast_t* i,
         ast_t* low,
-        ast_t* high) {
+        ast_t* high,
+        ast_t* incr) {
     return make_ImpliedDoLoop_t(al, loc,
             EXPRS(ex_list), ex_list.size(),
             name2char(i),
             EXPR(low),
             EXPR(high),
-            nullptr);
+            EXPR_OPT(incr));
 }
 
 ast_t* implied_do1(Allocator &al, Location &loc,
         ast_t* ex,
         ast_t* i,
         ast_t* low,
-        ast_t* high) {
+        ast_t* high,
+        ast_t* incr) {
     Vec<ast_t*> v;
     v.reserve(al, 1);
     v.push_back(al, ex);
-    return implied_do_loop(al, loc, v, i, low, high);
+    return implied_do_loop(al, loc, v, i, low, high, incr);
 }
 
 ast_t* implied_do2(Allocator &al, Location &loc,
@@ -699,12 +701,13 @@ ast_t* implied_do2(Allocator &al, Location &loc,
         ast_t* ex2,
         ast_t* i,
         ast_t* low,
-        ast_t* high) {
+        ast_t* high,
+        ast_t* incr) {
     Vec<ast_t*> v;
     v.reserve(al, 2);
     v.push_back(al, ex1);
     v.push_back(al, ex2);
-    return implied_do_loop(al, loc, v, i, low, high);
+    return implied_do_loop(al, loc, v, i, low, high, incr);
 }
 
 ast_t* implied_do3(Allocator &al, Location &loc,
@@ -713,7 +716,8 @@ ast_t* implied_do3(Allocator &al, Location &loc,
         Vec<ast_t*> ex_list,
         ast_t* i,
         ast_t* low,
-        ast_t* high) {
+        ast_t* high,
+        ast_t* incr) {
     Vec<ast_t*> v;
     v.reserve(al, 2+ex_list.size());
     v.push_back(al, ex1);
@@ -721,15 +725,22 @@ ast_t* implied_do3(Allocator &al, Location &loc,
     for (size_t i=0; i<ex_list.size(); i++) {
         v.push_back(al, ex_list[i]);
     }
-    return implied_do_loop(al, loc, v, i, low, high);
+    return implied_do_loop(al, loc, v, i, low, high, incr);
 }
 
 #define IMPLIED_DO_LOOP1(ex, i, low, high, l) \
-    implied_do1(p.m_a, l, ex, i, low, high)
+    implied_do1(p.m_a, l, ex, i, low, high, nullptr)
 #define IMPLIED_DO_LOOP2(ex1, ex2, i, low, high, l) \
-    implied_do2(p.m_a, l, ex1, ex2, i, low, high)
+    implied_do2(p.m_a, l, ex1, ex2, i, low, high, nullptr)
 #define IMPLIED_DO_LOOP3(ex1, ex2, ex_list, i, low, high, l) \
-    implied_do3(p.m_a, l, ex1, ex2, ex_list, i, low, high)
+    implied_do3(p.m_a, l, ex1, ex2, ex_list, i, low, high, nullptr)
+// with incr
+#define IMPLIED_DO_LOOP4(ex, i, low, high, incr, l) \
+    implied_do1(p.m_a, l, ex, i, low, high, incr)
+#define IMPLIED_DO_LOOP5(ex1, ex2, i, low, high, incr, l) \
+    implied_do2(p.m_a, l, ex1, ex2, i, low, high, incr)
+#define IMPLIED_DO_LOOP6(ex1, ex2, ex_list, i, low, high, incr, l) \
+    implied_do3(p.m_a, l, ex1, ex2, ex_list, i, low, high, incr)
 
 char *str2str_null(Allocator &al, const LFortran::Str &s) {
     if (s.p == nullptr) {
@@ -982,6 +993,7 @@ ast_t* builtin3(Allocator &al,
 #define NULLIFY(args0, l) builtin1(p.m_a, args0, l, make_Nullify_t)
 #define BACKSPACE(args0, l) builtin1(p.m_a, args0, l, make_Backspace_t)
 #define FLUSH(args0, l) builtin1(p.m_a, args0, l, make_Flush_t)
+#define ENDFILE(args0, l) builtin1(p.m_a, args0, l, make_Endfile_t)
 
 #define INQUIRE0(args0, l) builtin2(p.m_a, args0, empty_vecast(), l, \
             make_Inquire_t)
@@ -999,6 +1011,11 @@ ast_t* builtin3(Allocator &al,
 
 #define FLUSH1(arg, l) make_Flush_t(p.m_a, l, 0, \
             EXPRS(A2LIST(p.m_a, INTEGER(arg, l))), 1, nullptr, 0)
+
+#define ENDFILE2(arg, l) make_Endfile_t(p.m_a, l, 0, \
+        EXPRS(A2LIST(p.m_a, arg)), 1, nullptr, 0)
+#define ENDFILE3(arg, l) make_Endfile_t(p.m_a, l, 0, \
+        EXPRS(A2LIST(p.m_a, INTEGER(arg, l))), 1, nullptr, 0)
 
 #define BIND2(args0, l) builtin3(p.m_a, args0, l, make_Bind_t)
 
@@ -1728,7 +1745,7 @@ ast_t* COARRAY(Allocator &al, const ast_t *id,
         p.m_a, l, name2char(name), USES(use), use.size(), \
         VEC_CAST(implicit, implicit_statement), implicit.size(), \
         DECLS(decl), decl.size())
-        
+
 #define INTERFACE_HEADER(l) make_InterfaceHeader_t(p.m_a, l)
 #define INTERFACE_HEADER_NAME(id, l) make_InterfaceHeaderName_t(p.m_a, l, \
         name2char(id))
