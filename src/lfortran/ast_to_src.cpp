@@ -1038,6 +1038,11 @@ public:
             }
             r.append("]");
         }
+        if(x.m_kind) {
+            r += "*";
+            visit_expr(*x.m_kind);
+            r.append(s);
+        }
         if (x.m_initializer) {
             visit_expr(*x.m_initializer);
             r += symbol2str(x.m_sym) + s;

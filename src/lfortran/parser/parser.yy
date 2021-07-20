@@ -1284,7 +1284,12 @@ var_sym_decl
     | id "=>" expr { $$ = VAR_SYM_DIM_INIT($1, nullptr, 0, $3, Arrow, @$); }
     | id "*" expr { $$ = VAR_SYM_DIM_INIT($1, nullptr, 0, $3, Asterisk, @$); }
     | id "*" "(" "*" ")" { $$ = VAR_SYM_NAME($1, DoubleAsterisk, @$); }
-    | id "(" array_comp_decl_list ")" %dprec 1 { $$ = VAR_SYM_DIM($1, $3.p, $3.n, None, @$); }
+    | id "(" array_comp_decl_list ")" "*" TK_INTEGER {
+            $$ = VAR_SYM_DIM_KIND($1, $3.p, $3.n, $6, None, @$); }
+    | id "(" array_comp_decl_list ")" %dprec 1 {
+            $$ = VAR_SYM_DIM($1, $3.p, $3.n, None, @$); }
+    | id "(" array_comp_decl_list ")" "*" TK_INTEGER "=" expr {
+            $$ = VAR_SYM_DIM_INIT_KIND($1, $3.p, $3.n, $6, $8, Equal, @$); }
     | id "(" array_comp_decl_list ")" "=" expr {
             $$ = VAR_SYM_DIM_INIT($1, $3.p, $3.n, $6, Equal, @$); }
     | id "(" array_comp_decl_list ")" "=>" expr {
