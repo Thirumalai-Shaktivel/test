@@ -437,10 +437,13 @@ std::string format_syntax_error(const std::string &filename,
         const std::string *tstr, bool use_colors)
 {
     std::stringstream out;
+    /*
     out << filename << ":" << loc.first_line << ":" << loc.first_column;
     if (loc.first_line != loc.last_line) {
         out << " - " << loc.last_line << ":" << loc.last_column;
     }
+    */
+    out << filename << ":" << loc.first;
     if(use_colors) out << " " << redon << "syntax error:" << redoff << " ";
     else out << " " << "syntax error:" <<  " ";
     if (token == -1) {
@@ -459,6 +462,7 @@ std::string format_syntax_error(const std::string &filename,
             out << "' is unexpected here" << std::endl;
         }
     }
+    /*
     if (loc.first_line == loc.last_line) {
         std::string line = get_line(input, loc.first_line);
         out << highlight_line(line, loc.first_column, loc.last_column, use_colors);
@@ -472,6 +476,7 @@ std::string format_syntax_error(const std::string &filename,
         line = get_line(input, loc.last_line);
         out << highlight_line(line, 1, loc.last_column, use_colors);
     }
+    */
     return out.str();
 }
 
@@ -480,13 +485,17 @@ std::string format_semantic_error(const std::string &filename,
         const std::string msg, bool use_colors)
 {
     std::stringstream out;
+    out << filename << ":" << loc.first;
+    /*
     out << filename << ":" << loc.first_line << ":" << loc.first_column;
     if (loc.first_line != loc.last_line) {
         out << " - " << loc.last_line << ":" << loc.last_column;
     }
+    */
     if(use_colors) out << " " << redon << "semantic error:" << redoff << " ";
     else out << " " << "syntax error:" <<  " ";
     out << msg << std::endl;
+    /*
     if (loc.first_line == loc.last_line) {
         std::string line = get_line(input, loc.first_line);
         out << highlight_line(line, loc.first_column, loc.last_column, use_colors);
@@ -500,6 +509,7 @@ std::string format_semantic_error(const std::string &filename,
         line = get_line(input, loc.last_line);
         out << highlight_line(line, 1, loc.last_column, use_colors);
     }
+    */
     return out.str();
 }
 
