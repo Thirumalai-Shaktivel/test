@@ -10,10 +10,9 @@ namespace LFortran
 class Tokenizer
 {
 public:
+    unsigned char *start;
     unsigned char *cur;
     unsigned char *tok;
-    unsigned char *cur_line;
-    unsigned int line_num;
 
     int last_token=-1;
 
@@ -52,10 +51,8 @@ public:
     // Return the current token's location
     void token_loc(Location &loc)
     {
-        loc.first_line = line_num;
-        loc.last_line = line_num;
-        loc.first_column = tok-cur_line+1;
-        loc.last_column = cur-cur_line;
+        loc.first = tok-start;
+        loc.last = cur-start;
     }
 };
 
