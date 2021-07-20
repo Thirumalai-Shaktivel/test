@@ -1,6 +1,6 @@
 module a
 implicit none
-integer, parameter :: r8 = kind(0.d0)
+integer, parameter :: r8 =  = kind(0.d0)
 type :: B
 end type B
 type :: C
@@ -8,8 +8,8 @@ end type C
 type, extends(B), public :: X
     private
     real(r8) :: r1
-    type(C), pointer :: cc => null()
-    real(r8), pointer :: r2(:) => null(), r3(:) => null()
+    type(C), pointer :: cc =>  => null()
+    real(r8), pointer :: r2 => (:) => null(), r3 => (:) => null()
 
 contains
 

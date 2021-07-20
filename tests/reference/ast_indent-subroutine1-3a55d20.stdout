@@ -7,9 +7,9 @@
             TypeInteger [] () 
             None) [] [
          (x [] [] () 
-            None ()) 
+            None () ()) 
          (i [] [] () 
-            None ())])] [
+            None () ())])] [
       (= 0 x 1) 
       (DoLoop 0 () 0 i 1 10 () [
          (= 0 x (* x i))])] []) 
@@ -20,9 +20,9 @@
             TypeInteger [] () 
             None) [] [
          (x [] [] () 
-            None ()) 
+            None () ()) 
          (i [] [] () 
-            None ())])] [
+            None () ())])] [
       (= 0 x 1) 
       (DoLoop 0 () 0 i 1 10 () [
          (= 0 x (* i x))])] [])])

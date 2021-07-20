@@ -1,7 +1,7 @@
 program stop1
 implicit none
-integer :: stop = 15
-integer :: errstop = 25
+integer :: stop =  = 15
+integer :: errstop =  = 25
 if ((stop) /= (15)) then
     stop
 else
