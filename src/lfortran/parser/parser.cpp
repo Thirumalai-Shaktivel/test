@@ -499,7 +499,7 @@ std::string highlight_line(const std::string &line,
 }
 
 std::string format_syntax_error(const std::string &filename,
-        const std::string &input, const Location &loc, const int token,
+        const std::string &/*input*/, const Location &loc, const int token,
         const std::string *tstr, bool use_colors)
 {
     std::stringstream out;
@@ -547,7 +547,7 @@ std::string format_syntax_error(const std::string &filename,
 }
 
 std::string format_semantic_error(const std::string &filename,
-        const std::string &input, const Location &loc,
+        const std::string &/*input*/, const Location &loc,
         const std::string msg, bool use_colors)
 {
     std::stringstream out;
