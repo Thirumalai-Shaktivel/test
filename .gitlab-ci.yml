@@ -60,7 +60,7 @@ cxx:
   image: registry.gitlab.com/lfortran/ci-images:full-1.7.0
   script:
     - export PATH="$HOME/conda_root/bin:$PATH"
-    - conda install -c conda-forge rapidjson
+    - conda install -c conda-forge rapidjson ninja
     - tar xzf dist/lfortran-*.tar.gz
     - cd lfortran-*
     - CXXFLAGS="-Werror" cmake
@@ -68,7 +68,7 @@ cxx:
          -DCMAKE_INSTALL_PREFIX=`pwd`
          -DCMAKE_BUILD_TYPE=Debug
          -DWITH_JSON=yes
-         .
+         . -G "Ninja"
     - cmake --build . --target install
     - ctest --output-on-failure
     - ./src/bin/parse
@@ -86,7 +86,7 @@ cxx_binary:
          -DWITH_LLVM=yes
          -DLFORTRAN_STATIC_BIN=yes
          .
-    - make
+    - make -j
     - ctest --output-on-failure
     - cpack
   artifacts:
@@ -168,8 +168,8 @@ cxx_binary_tests:
     - cd ../..
 
     - cd examples/project1
-    - FC=../../src/bin/lfortran FFLAGS="--openmp --backend=cpp" cmake .
-    - make
+    - FC=../../src/bin/lfortran FFLAGS="--openmp --backend=cpp" cmake . -G "Ninja"
+    - ninja
     - ./project1
     - git clean -dfx
     - FC=../../src/bin/lfortran cmake .
@@ -234,13 +234,13 @@ cxx_binary_min_tests:
   script:
     - export CONDA_PREFIX="$HOME/conda_root"
     - export PATH="$HOME/conda_root/bin:$PATH"
-    - conda install -c conda-forge toml
+    - conda install -c conda-forge toml ninja
     - tar xzf dist/lfortran-*.tar.gz
     - cd lfortran-*
     - CXXFLAGS="-Werror" cmake
          -DCMAKE_BUILD_TYPE=Debug
-         .
-    - make
+         . -G "Ninja"
+    - ninja
     - ctest --output-on-failure
     - cp src/bin/lfortran ../src/bin/
     - cp src/bin/cpptranslate ../src/bin/
@@ -257,8 +257,8 @@ build.xsh:
     - export PATH="$HOME/conda_root/bin:$PATH"
     - sudo apt-get update
     - sudo apt-get install -yq --no-install-recommends zlib1g-dev git
-    - conda install -c conda-forge llvmdev=11.0.1 toml pytest jupyter xeus xtl nlohmann_json cppzmq jupyter_kernel_test
-    - export LFORTRAN_CMAKE_GENERATOR="Unix Makefiles"
+    - conda install -c conda-forge llvmdev=11.0.1 toml pytest jupyter xeus xtl nlohmann_json cppzmq jupyter_kernel_test ninja
+    - export LFORTRAN_CMAKE_GENERATOR="Ninja"
     - export WIN=0
     - export MACOS=0
     - rm -rf dist
@@ -273,7 +273,7 @@ documentation:
     - sudo apt-get install -yq --no-install-recommends openssh-client git
     - export CONDA_PREFIX="$HOME/conda_root"
     - export PATH="$HOME/conda_root/bin:$PATH"
-    - conda install -c conda-forge nbconvert=5.6.0 mkdocs
+    - conda install -c conda-forge nbconvert=5.6.0 mkdocs ninja
     - tar xzf dist/lfortran-*.tar.gz
     - cd lfortran-*
     - CXXFLAGS="-Werror" cmake
@@ -282,9 +282,9 @@ documentation:
          -DWITH_XEUS=yes
          -DCMAKE_PREFIX_PATH=$CONDA_PREFIX
          -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX
-         .
-    - make
-    - make install
+         . -G "Ninja"
+    - ninja
+    - ninja install
     - ctest
     - cd ..
     - jupyter kernelspec list --json

@@ -71,7 +71,7 @@ export PATH="$HOME/conda_root/bin:$PATH"
 ```
 Then prepare the environment:
 ```bash
-conda create -n lf -c conda-forge llvmdev=11.0.1 bison=3.4 re2c python cmake make toml
+conda create -n lf -c conda-forge llvmdev=11.0.1 bison=3.4 re2c python cmake ninja toml
 conda activate lf
 ```
 Clone the LFortran git repository:
@@ -85,8 +85,8 @@ Generate files that are needed for the build (this step depends on `re2c`, `biso
 ```
 Now the process is the same as installing from the source tarball. For example to build in Debug mode:
 ```
-cmake -DCMAKE_BUILD_TYPE=Debug -DWITH_LLVM=yes -DCMAKE_INSTALL_PREFIX=`pwd`/inst .
-make -j8
+cmake -DCMAKE_BUILD_TYPE=Debug -DWITH_LLVM=yes -DCMAKE_INSTALL_PREFIX=`pwd`/inst . -G "Ninja"
+ninja
 ```
 
 Run tests:
