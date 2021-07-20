@@ -14,15 +14,11 @@ AST::TranslationUnit_t* parse(Allocator &al, const std::string &s)
     p.parse(s);
     Location l;
     if (p.result.size() == 0) {
-        l.first_line=0;
-        l.first_column=0;
-        l.last_line=0;
-        l.last_column=0;
+        l.first=0;
+        l.last=0;
     } else {
-        l.first_line=p.result[0]->loc.first_line;
-        l.first_column=p.result[0]->loc.first_column;
-        l.last_line=p.result[p.result.size()-1]->loc.last_line;
-        l.last_column=p.result[p.result.size()-1]->loc.last_column;
+        l.first=p.result[0]->loc.first;
+        l.last=p.result[p.result.size()-1]->loc.last;
     }
     return (AST::TranslationUnit_t*)AST::make_TranslationUnit_t(al, l,
         p.result.p, p.result.size());

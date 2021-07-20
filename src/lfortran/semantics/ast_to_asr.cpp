@@ -1249,10 +1249,8 @@ public:
     void add_generic_procedures() {
         for (auto &proc : generic_procedures) {
             Location loc;
-            loc.first_line = 1;
-            loc.last_line = 1;
-            loc.first_column = 1;
-            loc.last_column = 1;
+            loc.first = 0;
+            loc.last = 0;
             Str s;
             s.from_str_view(proc.first);
             char *generic_name = s.c_str(al);
@@ -1276,10 +1274,8 @@ public:
     void add_class_procedures() {
         for (auto &proc : class_procedures) {
             Location loc;
-            loc.first_line = 1;
-            loc.last_line = 1;
-            loc.first_column = 1;
-            loc.last_column = 1;
+            loc.first = 0;
+            loc.last = 0;
             ASR::DerivedType_t *clss = ASR::down_cast<ASR::DerivedType_t>(
                 current_scope->scope[proc.first]);
             for (auto &pname : proc.second) {
