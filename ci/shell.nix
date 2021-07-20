@@ -43,5 +43,9 @@ in mkShellNewEnv {
     # git
     xonsh
     rapidjson
+    ninja
   ];
+  shellHook = ''
+export PATH=$(pwd)/inst/bin:$PATH
+'';
 }
