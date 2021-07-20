@@ -40,6 +40,8 @@ install_manifest.txt
 Testing/Temporary
 CPackConfig.cmake
 CPackSourceConfig.cmake
+build.ninja
+_CPack_Packages
 
 
 ## libraries
@@ -117,3 +119,11 @@ output
 /.ccls-cache/
 ext/
 extsrc/
+tmp/
+tmpdebug/
+inst/
+*#
+
+## Ninja
+.ninja_deps
+.ninja_log
