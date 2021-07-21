@@ -225,7 +225,9 @@ cast_kind
     | IntegerToLogical
     | ComplexToComplex
 
-dimension = (expr? start, expr? end)
+-- Similar to the AST implementation
+dimension = (expr? start, expr? end, dimension_type end_star)
+dimension_type = DimensionExpr | DimensionStar
 
 alloc_arg = (symbol a, dimension* dims)
 

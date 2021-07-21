@@ -843,6 +843,11 @@ public:
             } else {
                 dim.m_start = nullptr;
             }
+            if (m_dim[i].m_end_star == AST::dimension_typeType::DimensionExpr) {
+                dim.m_end_star = ASR::dimension_typeType::DimensionExpr;
+            } else {
+                dim.m_end_star = ASR::dimension_typeType::DimensionStar;
+            }
             if (m_dim[i].m_end) {
                 this->visit_expr(*m_dim[i].m_end);
                 dim.m_end = LFortran::ASRUtils::EXPR(asr);
@@ -1891,6 +1896,7 @@ public:
                 }
                 ASR::expr_t* m_right = array_ref->m_args[j].m_right;
                 new_dim.m_end = m_right;
+                new_dim.m_end_star = ASR::dimension_typeType::DimensionExpr;
                 dims_vec.push_back(al, new_dim);
             }
             new_arg.m_dims = dims_vec.p;
