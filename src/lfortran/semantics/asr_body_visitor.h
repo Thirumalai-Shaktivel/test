@@ -1,30 +1,11 @@
 #ifndef LFORTRAN_SEMANTICS_ASR_BODY_VISITOR_H
 #define LFORTRAN_SEMANTICS_ASR_BODY_VISITOR_H
 
-#include <map>
-
 #include <lfortran/asr.h>
 #include <lfortran/ast.h>
 
 namespace LFortran {
 class BodyVisitor : public AST::BaseVisitor<BodyVisitor> {
-private:
-  std::map<std::string, std::string> intrinsic_procedures = {
-      {"kind", "lfortran_intrinsic_kind"},
-      {"selected_int_kind", "lfortran_intrinsic_kind"},
-      {"selected_real_kind", "lfortran_intrinsic_kind"},
-      {"size", "lfortran_intrinsic_array"},
-      {"lbound", "lfortran_intrinsic_array"},
-      {"ubound", "lfortran_intrinsic_array"},
-      {"min", "lfortran_intrinsic_array"},
-      {"max", "lfortran_intrinsic_array"},
-      {"allocated", "lfortran_intrinsic_array"},
-      {"minval", "lfortran_intrinsic_array"},
-      {"maxval", "lfortran_intrinsic_array"},
-      {"real", "lfortran_intrinsic_array"},
-      {"sum", "lfortran_intrinsic_array"},
-      {"abs", "lfortran_intrinsic_array"}};
-
 public:
   Allocator &al;
   ASR::asr_t *asr, *tmp;
