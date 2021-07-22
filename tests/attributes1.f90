@@ -14,4 +14,5 @@ type details
 end type details
 intrinsic sin, cos
 doubleprecision, intent (in) :: x(..)
+save /zzrayc/
 end program
