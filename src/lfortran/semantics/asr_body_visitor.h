@@ -88,6 +88,7 @@ public:
   void visit_ArrayInitializer(const AST::ArrayInitializer_t &x);
   void visit_Print(const AST::Print_t &x);
   void visit_If(const AST::If_t &x);
+  void visit_Where(const AST::Where_t &x);
   void visit_WhileLoop(const AST::WhileLoop_t &x);
   void visit_ImpliedDoLoop(const AST::ImpliedDoLoop_t &x);
   void visit_DoLoop(const AST::DoLoop_t &x);
