@@ -1117,7 +1117,7 @@ namespace LFortran {
 
     void BodyVisitor::visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
         std::vector<std::string> all_intrinsics = {
-            "sin",  "cos",  "tan",  "sinh",  "cosh",  "tanh",
+            "tan",  "sinh",  "cosh",  "tanh",
             "asin", "acos", "atan", "asinh", "acosh", "atanh"};
         SymbolTable *scope = current_scope;
         std::string var_name = x.m_func;
