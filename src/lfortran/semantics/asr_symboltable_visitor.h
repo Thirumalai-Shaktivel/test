@@ -25,7 +25,7 @@ private:
       {"real", "lfortran_intrinsic_array"},
       {"sum", "lfortran_intrinsic_array"},
       {"abs", "lfortran_intrinsic_array"},
-      {"tiny", "lfortran_intrinsic_misc"}
+      {"tiny", "lfortran_intrinsic_tmp"}
 };
 
 public:
