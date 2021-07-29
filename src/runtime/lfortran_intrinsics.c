@@ -1,3 +1,5 @@
+#include <limits.h>
+#include <float.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -567,4 +569,21 @@ char* _lfortran_malloc(int size) {
 
 void _lfortran_free(char* ptr) {
     free((void*)ptr);
+}
+
+// tiny -------------------------------------------------------------------------
+
+void _lfortran_tiny(float x, float *result)
+{
+    *result = FLT_MIN;
+}
+
+float _lfortran_stiny(float x)
+{
+    return FLT_MIN;
+}
+
+double _lfortran_dtiny(double x)
+{
+    return DBL_MIN;
 }
