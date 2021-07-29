@@ -9,7 +9,7 @@
 namespace LFortran {
 class BodyVisitor : public AST::BaseVisitor<BodyVisitor> {
 private:
-  std::map<std::string, std::string> intrinsic_procedures = {
+  std::map<std::string, std::string> intrinsic_procedures {
       {"kind", "lfortran_intrinsic_kind"},
       {"selected_int_kind", "lfortran_intrinsic_kind"},
       {"selected_real_kind", "lfortran_intrinsic_kind"},
@@ -23,7 +23,9 @@ private:
       {"maxval", "lfortran_intrinsic_array"},
       {"real", "lfortran_intrinsic_array"},
       {"sum", "lfortran_intrinsic_array"},
-      {"abs", "lfortran_intrinsic_array"}};
+      {"abs", "lfortran_intrinsic_array"},
+      {"tiny", "lfortran_intrinsic_tiny"}
+};
 
 public:
   Allocator &al;
