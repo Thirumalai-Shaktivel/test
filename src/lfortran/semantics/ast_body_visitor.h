@@ -23,7 +23,10 @@ private:
       {"maxval", "lfortran_intrinsic_array"},
       {"real", "lfortran_intrinsic_array"},
       {"sum", "lfortran_intrinsic_array"},
-      {"abs", "lfortran_intrinsic_array"}};
+      {"abs", "lfortran_intrinsic_array"},
+      {"sin", "lfortran_intrinsic_math_inter"},
+      {"cos", "lfortran_intrinsic_math_inter"}
+};
 
 public:
   Allocator &al;
