@@ -1167,6 +1167,7 @@ public:
         }
         if (!v) {
             std::string remote_sym = to_lower(var_name);
+            // Check if it is an intrinsic in an internal module
             if (intrinsic_procedures.find(remote_sym)
                         != intrinsic_procedures.end()) {
                 std::string module_name = intrinsic_procedures[remote_sym];

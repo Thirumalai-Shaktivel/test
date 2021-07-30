@@ -86,7 +86,8 @@ public:
         }
         value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(
             al, x.base.base.loc, result, dest_type));
-      } else if (ASR::is_a<LFortran::ASR::Real_t>(*dest_type)) {
+      }
+      else if (ASR::is_a<LFortran::ASR::Real_t>(*dest_type)) {
         double left_value = ASR::down_cast<ASR::ConstantReal_t>(
                                 LFortran::ASRUtils::expr_value(left))
                                 ->m_r;

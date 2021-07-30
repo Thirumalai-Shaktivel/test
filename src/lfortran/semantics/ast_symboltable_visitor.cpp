@@ -781,8 +781,28 @@ public:
         ASR::ttype_t *type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(
                 LFortran::ASRUtils::symbol_get_past_external(v))
                 ->m_return_var)->m_type;
+        // Add value where possible
+        ASR::expr_t *value = nullptr;
+        if (var_name=="kind" && args.n==1) {
+            int a_kind=4; // default
+            ASR::expr_t* kind_expr=args[0];
+            ASR::ttype_t *kind_type = LFortran::ASRUtils::expr_type(kind_expr);
+            if (ASR::is_a<LFortran::ASR::Real_t>(*kind_type)) {
+                // Strips information needed for determining kind, need AST's string representation
+                double kind_val = ASR::down_cast<ASR::ConstantReal_t>(
+                    LFortran::ASRUtils::expr_value(kind_expr))
+                    ->m_r;
+                // Fix
+                a_kind = 99999;
+                    } else {
+                a_kind = ASRUtils::extract_kind(args[0], x.base.base.loc);
+                    }
+            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(
+                                                    al, x.base.base.loc, a_kind, type));
+            LFORTRAN_ASSERT(value!=nullptr);
+        }
         asr = ASR::make_FunctionCall_t(al, x.base.base.loc, v, nullptr,
-            args.p, args.size(), nullptr, 0, type, nullptr, nullptr);
+            args.p, args.size(), nullptr, 0, type, value, nullptr);
     }
 
     void visit_DerivedType(const AST::DerivedType_t &x) {
