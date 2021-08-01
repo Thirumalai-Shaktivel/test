@@ -17,8 +17,7 @@ void Tokenizer::set_string(const std::string &str)
     // to end with \0, but we check this here just in case.
     LFORTRAN_ASSERT(str[str.size()] == '\0');
     cur = (unsigned char *)(&str[0]);
-    cur_line = cur;
-    line_num = 1;
+    start = cur;
 }
 
 template<int base>
@@ -426,7 +425,7 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
 
             // Tokens
             newline {
-                    token_loc(loc); line_num++; cur_line=cur;
+                    token_loc(loc);
                     last_token = yytokentype::TK_NEWLINE;
                     return yytokentype::TK_NEWLINE;
             }
@@ -536,13 +535,13 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
             [zZ] "'" [0-9a-fA-F]+ "'" { token(yylval.string); RET(TK_BOZ_CONSTANT) }
 
             "&" ws_comment+ whitespace? "&"? {
-                line_num++; cur_line=cur; continue;
+                continue;
             }
 
             comment / newline { token(yylval.string); RET(TK_COMMENT) }
 
             // Macros are ignored for now:
-            "#" [^\n\x00]* newline { line_num++; cur_line=cur; continue; }
+            "#" [^\n\x00]* newline { continue; }
 
             // Include statements are ignored for now
             'include' whitespace string1 { continue; }
@@ -564,10 +563,8 @@ std::string token(unsigned char *tok, unsigned char* cur)
 
 void token_loc(Location &loc)
 {
-    loc.first_line = 1;
-    loc.last_line = 1;
-    loc.first_column = 1;
-    loc.last_column = 1;
+    loc.first = 0;
+    loc.last = 0;
 }
 
 void lex_format(unsigned char *&cur, Location &loc,
