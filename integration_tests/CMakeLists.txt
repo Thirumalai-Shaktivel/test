@@ -215,6 +215,7 @@ RUN(NAME program_03 LABELS gfortran llvm)
 RUN(NAME program_04 LABELS gfortran)
 
 RUN(NAME where_01 LABELS gfortran)
+RUN(NAME where_02 LABELS gfortran)
 
 RUN(NAME forallloop_01 LABELS gfortran)
 
