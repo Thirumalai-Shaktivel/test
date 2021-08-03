@@ -43,10 +43,20 @@ public:
     }
 
     // Return the current token as YYSTYPE::Str, strips first and last character
-    void token_str(Str &s) const
+    // De-escapes the string
+    void token_str(Allocator &al, Str &s) const
     {
-        s.p = (char*) tok + 1;
+        char quote = *tok;
         s.n = cur-tok-2;
+        //s.p = (char*) tok + 1;
+        s.p = al.allocate<char>(s.n);
+        size_t i = 0, j = 0;
+        while (j < s.n) {
+            s.p[i] = *(tok+j+1);
+            if (*(tok+j+1) == quote && *(tok+j+2) == quote) j++;
+            i++;
+            j++;
+        }
     }
 
     // Return the current token's location
