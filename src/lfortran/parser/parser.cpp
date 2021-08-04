@@ -180,6 +180,22 @@ bool is_num(char c)
     return '0' <= c && c <= '9';
 }
 
+// Parses an int or real number, removes all whitespace
+void parse_num(std::string &out, const std::string &s, size_t &pos)
+{
+    LFORTRAN_ASSERT(is_num(s[pos]));
+    while (pos < s.size()) {
+        if (is_num(s[pos])) {
+            out += s[pos];
+            pos++;
+        } else if (s[pos] == ' ') {
+            pos++;
+        } else {
+            break;
+        }
+    }
+}
+
 void copy_label(std::string &out, const std::string &s, size_t &pos)
 {
     size_t col = 1;
@@ -199,6 +215,8 @@ void copy_rest_of_line(std::string &out, const std::string &s, size_t &pos)
             skip_rest_of_line(s, pos);
             out += '\n';
             return;
+        } else if (is_num(s[pos])) {
+            parse_num(out, s, pos);
         } else {
             out += s[pos];
             pos++;
