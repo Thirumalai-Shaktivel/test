@@ -1,0 +1,13 @@
+{
+    "basename": "llvm-associate_05-7b6455b",
+    "cmd": "lfortran --show-llvm {infile} -o {outfile}",
+    "infile": "tests/../integration_tests/associate_05.f90",
+    "infile_hash": "b699897ec4cc51434032d1e5a11558bdb8d41d86df5ed2e380a1da94",
+    "outfile": null,
+    "outfile_hash": null,
+    "stdout": "llvm-associate_05-7b6455b.stdout",
+    "stdout_hash": "67fbc80f1b08576d4d24b406b33db30dc0d53b15982846b9e178be07",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

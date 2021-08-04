@@ -728,7 +728,7 @@ public:
         }
         s.append(" ");
         if (x.m_fmt) {
-            s.append(x.m_fmt);
+            this->visit_expr(*x.m_fmt);
         } else {
             s.append("()");
         }
@@ -848,7 +848,7 @@ public:
         s.append("\"" + std::string(x.m_n) + "\"");
         s.append(")");
     }
-    void visit_Str(const Str_t &x) {
+    void visit_String(const String_t &x) {
         s.append("(");
         if (use_colors) {
             s.append(color(style::bold));

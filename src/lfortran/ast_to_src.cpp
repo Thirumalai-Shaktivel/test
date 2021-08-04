@@ -1,6 +1,7 @@
 #include <cctype>
 #include <lfortran/ast_to_src.h>
 #include <lfortran/string_utils.h>
+#include <lfortran/bigint.h>
 
 using LFortran::AST::expr_t;
 using LFortran::AST::Name_t;
@@ -14,12 +15,6 @@ using LFortran::AST::StrOp_t;
 namespace LFortran {
 
 namespace {
-
-    inline std::string convert_to_lowercase(const std::string &s) {
-       std::string res;
-       for(auto x: s) res.push_back(std::tolower(x));
-       return res;
-    }
 
     std::string op2str(const operatorType type)
     {
@@ -36,10 +31,10 @@ namespace {
     std::string boolop2str(const AST::boolopType type)
     {
         switch (type) {
-            case (AST::boolopType::And) : return ".and.";
-            case (AST::boolopType::Or) : return ".or.";
-            case (AST::boolopType::Eqv) : return ".eqv.";
-            case (AST::boolopType::NEqv) : return ".neqv.";
+            case (AST::boolopType::And) : return " .and. ";
+            case (AST::boolopType::Or) : return " .or. ";
+            case (AST::boolopType::Eqv) : return " .eqv. ";
+            case (AST::boolopType::NEqv) : return " .neqv. ";
         }
         throw LFortranException("Unknown type");
     }
@@ -47,12 +42,12 @@ namespace {
     std::string cmpop2str(const AST::cmpopType type)
     {
         switch (type) {
-            case (AST::cmpopType::Eq) : return "==";
-            case (AST::cmpopType::Gt) : return ">";
-            case (AST::cmpopType::GtE) : return ">=";
-            case (AST::cmpopType::Lt) : return "<";
-            case (AST::cmpopType::LtE) : return "<=";
-            case (AST::cmpopType::NotEq) : return "/=";
+            case (AST::cmpopType::Eq) : return " == ";
+            case (AST::cmpopType::Gt) : return " > ";
+            case (AST::cmpopType::GtE) : return " >= ";
+            case (AST::cmpopType::Lt) : return " < ";
+            case (AST::cmpopType::LtE) : return " <= ";
+            case (AST::cmpopType::NotEq) : return " /= ";
         }
         throw LFortranException("Unknown type");
     }
@@ -84,6 +79,7 @@ namespace {
             case (AST::intrinsicopType::LT) : return "<";
             case (AST::intrinsicopType::LTE) : return "<=";
             case (AST::intrinsicopType::NOTEQ) : return "/=";
+            case (AST::intrinsicopType::CONCAT) : return "//";
         }
         throw LFortranException("Unknown type");
     }
@@ -92,9 +88,11 @@ namespace {
     {
         switch (type) {
             case (AST::symbolType::None) : return "";
-            case (AST::symbolType::Assign) : return " => ";
+            case (AST::symbolType::Arrow) : return " => ";
             case (AST::symbolType::Equal) : return " = ";
             case (AST::symbolType::Asterisk) : return " *";
+            case (AST::symbolType::DoubleAsterisk) : return "*(*)";
+            case (AST::symbolType::Slash) : return "/";
         }
         throw LFortranException("Unknown type");
     }
@@ -215,11 +213,18 @@ public:
         for (size_t i=0; i<x.n_items; i++) {
             this->visit_ast(*x.m_items[i]);
             r += s;
-            if (i < x.n_items-1 && (
-                    !is_a<unit_decl2_t>(*x.m_items[i]) &&
-                    !is_a<unit_decl2_t>(*x.m_items[i+1])
-                )) {
-                r.append("\n");
+            if (i < x.n_items-1) {
+                if (is_a<expr_t>(*x.m_items[i]) || (
+                        (  is_a<mod_t>(*x.m_items[i])
+                        || is_a<program_unit_t>(*x.m_items[i])
+                        ) &&
+                        (  is_a<mod_t>(*x.m_items[i+1])
+                        || is_a<program_unit_t>(*x.m_items[i+1])
+                        )
+                            )
+                        ) {
+                    r.append("\n");
+                }
             }
         }
         s = r;
@@ -251,6 +256,10 @@ public:
         r += syn();
         r += " (";
         r.append(x.m_id);
+        if(x.m_parent_name) {
+            r += ":";
+            r.append(x.m_parent_name);
+        }
         r += ") ";
         r.append(x.m_name);
         r += "\n";
@@ -428,6 +437,12 @@ public:
         }
         r.append(" :: ");
         r.append(x.m_name);
+        for (size_t i=0; i<x.n_namelist; i++) {
+            if (i == 0) r += "(";
+            r.append(x.m_namelist[i]);
+            if (i < x.n_namelist-1) r.append(", ");
+            else r += ")";
+        }
         r.append("\n");
         inc_indent();
         for (size_t i=0; i<x.n_items; i++) {
@@ -474,15 +489,21 @@ public:
         for (size_t i=0; i<x.n_symbols; i++) {
             this->visit_use_symbol(*x.m_symbols[i]);
             r.append(s);
+            if (i < x.n_symbols-1) r.append(", ");
         }
         s = r;
     }
     void visit_GenericOperator(const GenericOperator_t &x) {
         std::string r;
         r += syn(gr::String);
-        r.append("generic :: operator");
+        r.append("generic");
         r += syn();
-        r += "(" + intrinsicop2str(x.m_op) + ")";
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: operator(" + intrinsicop2str(x.m_op) + ")";
         r += " => ";
         for (size_t i=0; i<x.n_names; i++) {
             r.append(x.m_names[i]);
@@ -493,9 +514,14 @@ public:
     void visit_GenericDefinedOperator(const GenericDefinedOperator_t &x) {
         std::string r;
         r += syn(gr::String);
-        r.append("generic :: operator");
+        r.append("generic");
         r += syn();
-        r += "(";
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: operator(";
         r += "." + std::string(x.m_optype) + ".";
         r += ")";
         r += " => ";
@@ -508,9 +534,14 @@ public:
     void visit_GenericAssignment(const GenericAssignment_t &x) {
         std::string r;
         r += syn(gr::String);
-        r.append("generic :: assignment(=)");
+        r.append("generic");
         r += syn();
-        r += " => ";
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: assignment(=) => ";
         for (size_t i=0; i<x.n_names; i++) {
             r.append(x.m_names[i]);
             if (i < x.n_names-1) r.append(", ");
@@ -520,8 +551,14 @@ public:
     void visit_GenericName(const GenericName_t &x) {
         std::string r;
         r += syn(gr::String);
-        r.append("generic :: ");
+        r.append("generic");
         r += syn();
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: ";
         r.append(x.m_name);
         r += " => ";
         for (size_t i=0; i<x.n_names; i++) {
@@ -530,6 +567,51 @@ public:
         }
         s = r;
     }
+
+    void visit_GenericWrite(const GenericWrite_t &x) {
+        std::string r;
+        r += syn(gr::String);
+        r.append("generic");
+        r += syn();
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: ";
+        r += "write(";
+        r.append(x.m_id);
+        r += ")";
+        r += " => ";
+        for (size_t i=0; i<x.n_names; i++) {
+            r.append(x.m_names[i]);
+            if (i < x.n_names-1) r.append(", ");
+        }
+        s = r;
+    }
+
+    void visit_GenericRead(const GenericRead_t &x) {
+        std::string r;
+        r += syn(gr::String);
+        r.append("generic");
+        r += syn();
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: ";
+        r += "read(";
+        r.append(x.m_id);
+        r += ")";
+        r += " => ";
+        for (size_t i=0; i<x.n_names; i++) {
+            r.append(x.m_names[i]);
+            if (i < x.n_names-1) r.append(", ");
+        }
+        s = r;
+    }
+
     void visit_FinalName(const FinalName_t &x) {
         std::string r;
         r += syn(gr::String);
@@ -539,6 +621,13 @@ public:
         s = r;
     }
 
+    void visit_Private(const Private_t &/*x*/) {
+        std::string r;
+        r += syn(gr::Type);
+        r.append("private");
+        r += syn();
+        s = r;
+    }
 
     void visit_Enum(const Enum_t & x) {
         std::string r = indent;
@@ -569,6 +658,9 @@ public:
 
     void visit_Interface(const Interface_t &x) {
         std::string r;
+        if(x.m_header->type == AbstractInterfaceHeader) {
+            r += "abstract ";
+        }
         r += syn(gr::UnitHeader);
         r.append("interface");
         r += syn();
@@ -617,6 +709,17 @@ public:
     void visit_AbstractInterfaceHeader
             (const AbstractInterfaceHeader_t &/* x */) {
         s = "";
+    }
+
+    void visit_InterfaceHeaderWrite(const InterfaceHeaderWrite_t &x) {
+        s = " write(";
+        s.append(x.m_id);
+        s += ")";
+    }
+    void visit_InterfaceHeaderRead(const InterfaceHeaderRead_t &x) {
+        s = " read(";
+        s.append(x.m_id);
+        s += ")";
     }
 
     void visit_InterfaceModuleProcedure(const InterfaceModuleProcedure_t &x) {
@@ -783,17 +886,20 @@ public:
         }
         r += " ";
         r.append(x.m_module);
-        if (x.n_symbols > 0) {
+        if (x.m_only_present || x.n_symbols > 0) {
             r.append(", ");
+        }
+        if (x.m_only_present) {
             r += syn(gr::UnitHeader);
             r += "only";
             r += syn();
-            r += ": ";
-            for (size_t i=0; i<x.n_symbols; i++) {
-                this->visit_use_symbol(*x.m_symbols[i]);
-                r.append(s);
-                if (i < x.n_symbols-1) r.append(", ");
-            }
+            r += ":";
+            if (x.n_symbols > 0) r.append(" ");
+        }
+        for (size_t i=0; i<x.n_symbols; i++) {
+            this->visit_use_symbol(*x.m_symbols[i]);
+            r.append(s);
+            if (i < x.n_symbols-1) r.append(", ");
         }
         r += "\n";
         s = r;
@@ -867,6 +973,14 @@ public:
         r += " ";
         visit_decl_attribute(*x.m_type);
         r += s;
+        if (x.n_kind > 0) {
+            r += " (";
+            for (size_t i=0; i<x.n_kind; i++) {
+                visit_letter_spec(*x.m_kind[i]);
+                r += s;
+            }
+            r += ")";
+        }
         if (x.n_specs > 0) {
             r += " (";
             for (size_t i=0; i<x.n_specs; i++) {
@@ -963,8 +1077,15 @@ public:
 
     void visit_var_sym(const var_sym_t &x) {
         std::string r = "";
-        if(x.m_name){
+        if(x.m_name && x.m_sym == Slash){
+            r += "/";
             r.append(x.m_name);
+            r += "/";
+        } else if(x.m_name) {
+            r.append(x.m_name);
+            if(x.m_sym == DoubleAsterisk) {
+                r += symbol2str(x.m_sym);
+            }
         }
         if (x.n_dim > 0) {
             r.append("(");
@@ -1088,7 +1209,7 @@ public:
     }
 #define ATTRTYPE(x) \
             case (simple_attributeType::Attr##x) : \
-                r.append(convert_to_lowercase(#x)); \
+                r.append(str2lower(#x)); \
                 break;
 
     void visit_SimpleAttribute(const SimpleAttribute_t &x) {
@@ -1105,6 +1226,8 @@ public:
             ATTRTYPE(External)
             ATTRTYPE(Impure)
             ATTRTYPE(Intrinsic)
+            ATTRTYPE(Kind)
+            ATTRTYPE(Len)
             ATTRTYPE(Module)
             ATTRTYPE(NoPass)
             ATTRTYPE(NonDeferred)
@@ -1200,6 +1323,11 @@ public:
             r.append(x.m_name);
             r.append(")");
         }
+        if (x.m_sym == symbolType::Asterisk) {
+            r.append("(*)");
+        } else if(x.m_sym == symbolType::DoubleAsterisk){
+            r.append("*(*)");
+        }
         s = r;
     }
 
@@ -1240,14 +1368,7 @@ public:
     }
 
     void visit_AttrBind(const AttrBind_t &x) {
-        std::string r;
-        r += syn(gr::Type);
-        r += "bind";
-        r += syn();
-        r += "(";
-        r.append(x.m_name);
-        r += ")";
-        s = r;
+        visit_bind(*x.m_bind);
     }
 
     void visit_AttrExtends(const AttrExtends_t &x) {
@@ -1300,9 +1421,11 @@ public:
         r += syn(gr::Type);
         r += "pass";
         r += syn();
-        r += "(";
-        r.append(x.m_name);
-        r += ")";
+        if (x.m_name) {
+            r += "(";
+            r.append(x.m_name);
+            r += ")";
+        }
         s = r;
     }
     void visit_AttrAssignment(const AttrAssignment_t &/*x*/) {
@@ -1340,6 +1463,17 @@ public:
         s = r;
     }
 
+    void visit_Assign(const Assign_t &x) {
+        std::string r = indent;
+        r += print_label(x);
+        r.append("assign");
+        r += " " + std::to_string(x.m_assign_label);
+        r += " to ";
+        r += x.m_variable;
+        r += "\n";
+        s = r;
+    }
+
     void visit_Assignment(const Assignment_t &x) {
         std::string r = indent;
         r += print_label(x);
@@ -1359,7 +1493,17 @@ public:
         r += "go to";
         r += syn();
         r.append(" ");
-        r.append(std::to_string(x.m_goto_label));
+        if(x.n_labels > 0) {
+            r += "(";
+            for (size_t i=0; i<x.n_labels; i++) {
+                this->visit_expr(*x.m_labels[i]);
+                r.append(s);
+                if (i < x.n_labels-1) r.append(", ");
+            }
+            r += "), ";
+        }
+        this->visit_expr(*x.m_goto_label);
+        r.append(s);
         r.append("\n");
         s = r;
     }
@@ -1493,6 +1637,14 @@ public:
             }
             if (i < x.n_args-1) r.append(", ");
         }
+        if (x.n_keywords > 0) r.append(", ");
+        for (size_t i=0; i<x.n_keywords; i++) {
+            r.append(std::string(x.m_keywords[i].m_arg));
+            r += "=";
+            this->visit_expr(*x.m_keywords[i].m_value);
+            r.append(s);
+            if (i < x.n_keywords-1) r.append(", ");
+        }
         r.append(")\n");
         s = r;
     }
@@ -1535,6 +1687,24 @@ public:
         r += syn(gr::Conditional);
         r += "end if";
         r += syn();
+        r += "\n";
+        s = r;
+    }
+
+    void visit_IfArithmetic(const IfArithmetic_t &x) {
+        std::string r = indent;
+        r += print_label(x);
+        r += print_stmt_name(x);
+        r += syn(gr::Conditional);
+        r += "if";
+        r += syn();
+        r += " (";
+        this->visit_expr(*x.m_test);
+        r += s;
+        r += ") ";
+        r += std::to_string(x.m_lt_label);
+        r += ", " + std::to_string(x.m_eq_label);
+        r += ", " + std::to_string(x.m_gt_label);
         r += "\n";
         s = r;
     }
@@ -2149,7 +2319,19 @@ public:
         r += syn();
         r += " ";
         if (x.m_fmt) {
-            r += "\"(" + replace(x.m_fmt, "\"", "\"\"") + ")\"";
+            this->visit_expr(*x.m_fmt);
+            if(x.m_fmt->type == exprType::String ) {
+                if(s[0] == '"' || s[0] == '\'') {
+                    s.insert(1, "(");
+                    s.insert(s.size()-1, ")");
+                } else {
+                    s.insert(6, "(");
+                    s.insert(s.size()-6, ")");
+                }
+                r.append(s);
+            } else {
+                r.append(s);
+            }
         } else {
             r += "*";
         }
@@ -2211,29 +2393,41 @@ public:
         r += syn(gr::Keyword);
         r += "read";
         r += syn();
-        r += "(";
-        for (size_t i=0; i<x.n_args; i++) {
-            if (x.m_args[i].m_value == nullptr) {
-                r += "*";
-            } else {
-                this->visit_expr(*x.m_args[i].m_value);
-                r += s;
-            }
-            if (i < x.n_args-1 || x.n_kwargs > 0) r += ", ";
+        if (x.m_format) {
+            r += " ";
+            this->visit_expr(*x.m_format);
+            r.append(s);
         }
-        for (size_t i=0; i<x.n_kwargs; i++) {
-            r += x.m_kwargs[i].m_arg;
-            r += "=";
-            if (x.m_kwargs[i].m_value == nullptr) {
-                r += "*";
-            } else {
-                this->visit_expr(*x.m_kwargs[i].m_value);
-                r += s;
+        if(x.n_args || x.n_kwargs) {
+            r += "(";
+            for (size_t i=0; i<x.n_args; i++) {
+                if (x.m_args[i].m_value == nullptr) {
+                    r += "*";
+                } else {
+                    this->visit_expr(*x.m_args[i].m_value);
+                    r += s;
+                }
+                if (i < x.n_args-1 || x.n_kwargs > 0) r += ", ";
             }
-            if (i < x.n_kwargs-1) r += ", ";
+            for (size_t i=0; i<x.n_kwargs; i++) {
+                r += x.m_kwargs[i].m_arg;
+                r += "=";
+                if (x.m_kwargs[i].m_value == nullptr) {
+                    r += "*";
+                } else {
+                    this->visit_expr(*x.m_kwargs[i].m_value);
+                    r += s;
+                }
+                if (i < x.n_kwargs-1) r += ", ";
+            }
+            r += ")";
+        } else if(!x.m_format) {
+            r += " *,";
         }
-        r += ")";
         if (x.n_values > 0) {
+            if (x.m_format) {
+                r += ",";
+            }
             r += " ";
             for (size_t i=0; i<x.n_values; i++) {
                 this->visit_expr(*x.m_values[i]);
@@ -2397,6 +2591,29 @@ public:
         r += print_label(x);
         r += syn(gr::Keyword);
         r += "flush";
+        r += syn();
+        r += "(";
+        for (size_t i=0; i<x.n_args; i++) {
+            this->visit_expr(*x.m_args[i]);
+            r += s;
+            if (i < x.n_args-1 || x.n_kwargs > 0) r += ", ";
+        }
+        for (size_t i=0; i<x.n_kwargs; i++) {
+            r += x.m_kwargs[i].m_arg;
+            r += "=";
+            this->visit_expr(*x.m_kwargs[i].m_value);
+            r += s;
+            if (i < x.n_kwargs-1) r += ", ";
+        }
+        r += ")\n";
+        s = r;
+    }
+
+    void visit_Endfile(const Endfile_t &x) {
+        std::string r=indent;
+        r += print_label(x);
+        r += syn(gr::Keyword);
+        r += "endfile";
         r += syn();
         r += "(";
         for (size_t i=0; i<x.n_args; i++) {
@@ -2650,8 +2867,20 @@ public:
 
     void visit_Num(const Num_t &x) {
         s = syn(gr::Integer);
-        s += std::to_string(x.m_n);
+        s += BigInt::int_to_str(x.m_n);
+        if (x.m_kind) {
+            s += "_";
+            s += x.m_kind;
+        }
         s += syn();
+    }
+
+    void visit_Parenthesis(const Parenthesis_t &x) {
+        std::string r = "(";
+        this->visit_expr(*x.m_operand);
+        r.append(s);
+        r += ")";
+        s = r;
     }
 
     void visit_Real(const Real_t &x) {
@@ -2660,7 +2889,7 @@ public:
         s += syn();
     }
 
-    void visit_Str(const Str_t &x) {
+    void visit_String(const String_t &x) {
         s = syn(gr::String);
         std::string r = x.m_s;
         int dq = 0, sq = 0;
@@ -2685,6 +2914,7 @@ public:
         s += "\"" + std::string(x.m_s) + "\"";
         s += syn();
     }
+
 
     void visit_Complex(const Complex_t &x){
         std::string r;
@@ -2792,14 +3022,16 @@ public:
             } else {
                 s = left + ":" + right;
             }
-        } else {
-            LFORTRAN_ASSERT(x.m_end_star == dimension_typeType::DimensionStar);
+        } else if (x.m_end_star == dimension_typeType::DimensionStar) {
             if (x.m_start) {
                 this->visit_expr(*x.m_start);
                 s += ":*";
             } else {
                 s = "*";
             }
+        } else {
+            LFORTRAN_ASSERT(x.m_end_star == dimension_typeType::AssumedRank);
+            s = "..";
         }
     }
 
@@ -2968,9 +3200,27 @@ public:
         s = "operator (" + intrinsicop2str(x.m_op) + ")";
     }
 
+    void visit_RenameOperator(const RenameOperator_t &x) {
+        s = "operator(." + std::string(x.m_local_defop) + ".)";
+        s += " => ";
+        s += "operator(." + std::string(x.m_use_defop) + ".)";
+    }
+
     void visit_DefinedOperator(const DefinedOperator_t &x) {
         s = "operator (." + std::string(x.m_opName) + ".)";
     }
+
+    void visit_UseWrite(const UseWrite_t &x) {
+        s = "write(";
+        s.append(x.m_id);
+        s += ")";
+    }
+    void visit_UseRead(const UseRead_t &x) {
+        s = "read(";
+        s.append(x.m_id);
+        s += ")";
+    }
+
 
     void visit_Select(const Select_t &x) {
         std::string r = indent;
@@ -3004,7 +3254,7 @@ public:
         r += syn();
         r += " (";
         for (size_t i=0; i<x.n_test; i++) {
-            this->visit_expr(*x.m_test[i]);
+            this->visit_case_cond(*x.m_test[i]);
             r += s;
             if (i < x.n_test-1) r += ", ";
         }
@@ -3018,12 +3268,12 @@ public:
         s = r;
     }
 
-    void visit_CaseStmt_Range(const CaseStmt_Range_t &x) {
-        std::string r = indent;
-        r += syn(gr::Conditional);
-        r += "case";
-        r += syn();
-        r += " (";
+    void visit_CaseCondExpr(const CaseCondExpr_t &x) {
+        this->visit_expr(*x.m_cond);
+    }
+
+    void visit_CaseCondRange(const CaseCondRange_t &x) {
+        std::string r;
         if (x.m_start) {
             this->visit_expr(*x.m_start);
             r += s;
@@ -3033,6 +3283,61 @@ public:
             this->visit_expr(*x.m_end);
             r += s;
         }
+        s = r;
+    }
+
+    void visit_CaseStmt_Default(const CaseStmt_Default_t &x) {
+        std::string r = indent;
+        r += syn(gr::Conditional);
+        r += "case default";
+        r += syn();
+        r += "\n";
+        inc_indent();
+        for (size_t i=0; i<x.n_body; i++) {
+            this->visit_stmt(*x.m_body[i]);
+            r += s;
+        }
+        dec_indent();
+        s = r;
+    }
+
+    void visit_SelectRank(const SelectRank_t &x) {
+        std::string r = indent;
+        r += print_label(x);
+        r += print_stmt_name(x);
+        r += syn(gr::Conditional);
+        r += "select rank";
+        r += syn();
+        r += " (";
+        if (x.m_assoc_name) {
+            r.append(x.m_assoc_name);
+            r += "=>";
+        }
+        this->visit_expr(*x.m_selector);
+        r += s;
+        r += ")\n";
+        inc_indent();
+        for (size_t i=0; i<x.n_body; i++) {
+            this->visit_rank_stmt(*x.m_body[i]);
+            r += s;
+        }
+        dec_indent();
+        r += syn(gr::Conditional);
+        r += "end select";
+        r += syn();
+        r += end_stmt_name(x);
+        r += "\n";
+        s = r;
+    }
+
+    void visit_RankExpr(const RankExpr_t &x) {
+        std::string r = indent;
+        r += syn(gr::Conditional);
+        r += "rank";
+        r += syn();
+        r += " (";
+        this->visit_expr(*x.m_value);
+        r.append(s);
         r += ")\n";
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
@@ -3043,10 +3348,25 @@ public:
         s = r;
     }
 
-    void visit_CaseStmt_Default(const CaseStmt_Default_t &x) {
+    void visit_RankStar(const RankStar_t &x) {
         std::string r = indent;
         r += syn(gr::Conditional);
-        r += "case default";
+        r += "rank";
+        r += syn();
+        r += " (*)\n";
+        inc_indent();
+        for (size_t i=0; i<x.n_body; i++) {
+            this->visit_stmt(*x.m_body[i]);
+            r += s;
+        }
+        dec_indent();
+        s = r;
+    }
+
+    void visit_RankDefault(const RankDefault_t &x) {
+        std::string r = indent;
+        r += syn(gr::Conditional);
+        r += "rank default";
         r += syn();
         r += "\n";
         inc_indent();

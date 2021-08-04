@@ -304,14 +304,17 @@ FortranEvaluator::~FortranEvaluator()
 {
 }
 
-Result<FortranEvaluator::EvalResult> FortranEvaluator::evaluate(const std::string &code,
-    bool verbose)
+Result<FortranEvaluator::EvalResult> FortranEvaluator::evaluate(
+            const std::string &code_orig,
+            bool verbose)
 {
     try {
         EvalResult result;
 
         // Src -> AST
         LFortran::AST::TranslationUnit_t* ast;
+        LFortran::LocationManager lm;
+        std::string code = LFortran::fix_continuation(code_orig, lm, false);
         ast = LFortran::parse(al, code);
 
         if (verbose) {
@@ -410,11 +413,14 @@ Result<std::string> FortranEvaluator::get_ast(const std::string &code)
     }
 }
 
-Result<AST::TranslationUnit_t*> FortranEvaluator::get_ast2(const std::string &code)
+Result<AST::TranslationUnit_t*> FortranEvaluator::get_ast2(
+            const std::string &code_orig)
 {
     try {
         // Src -> AST
         LFortran::AST::TranslationUnit_t* ast;
+        LFortran::LocationManager lm;
+        std::string code = LFortran::fix_continuation(code_orig, lm, false);
         ast = LFortran::parse(al, code);
         return ast;
     } catch (const TokenizerError &e) {
@@ -442,7 +448,7 @@ Result<AST::TranslationUnit_t*> FortranEvaluator::get_ast2(const std::string &co
 
 Result<std::string> FortranEvaluator::get_asr(const std::string &code)
 {
-    Result<ASR::TranslationUnit_t*> asr = get_asr2(code);
+    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, false);
     if (asr.ok) {
         return LFortran::pickle(*asr.result, true);
     } else {
@@ -450,12 +456,16 @@ Result<std::string> FortranEvaluator::get_asr(const std::string &code)
     }
 }
 
-Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr2(const std::string &code)
+Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr2(
+            const std::string &code_orig, bool fixed_form)
 {
     ASR::TranslationUnit_t* asr;
     try {
         // Src -> AST
         AST::TranslationUnit_t* ast;
+        LFortran::LocationManager lm;
+        std::string code = LFortran::fix_continuation(code_orig, lm,
+                fixed_form);
         ast = parse(al, code);
 
         // AST -> ASR
@@ -520,7 +530,7 @@ Result<std::string> FortranEvaluator::get_llvm(const std::string &code)
 
 Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm2(const std::string &code)
 {
-    Result<ASR::TranslationUnit_t*> asr = get_asr2(code);
+    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, false);
     if (!asr.ok) {
         return asr.error;
     }
@@ -557,7 +567,7 @@ Result<std::string> FortranEvaluator::get_cpp(const std::string &code)
     // Src -> AST -> ASR
     SymbolTable *old_symbol_table = symbol_table;
     symbol_table = nullptr;
-    Result<ASR::TranslationUnit_t*> asr = get_asr2(code);
+    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, false);
     symbol_table = old_symbol_table;
     if (asr.ok) {
         // ASR -> C++
@@ -579,17 +589,18 @@ Result<std::string> FortranEvaluator::get_fmt(const std::string &code)
     }
 }
 
-std::string FortranEvaluator::format_error(const Error &e, const std::string &input) const
+std::string FortranEvaluator::format_error(const Error &e, const std::string &input,
+    bool use_colors) const
 {
     switch (e.type) {
         case (LFortran::FortranEvaluator::Error::Tokenizer) : {
-            return format_syntax_error("input", input, e.loc, -1, &e.token_str);
+            return format_syntax_error("input", input, e.loc, -1, &e.token_str, use_colors);
         }
         case (LFortran::FortranEvaluator::Error::Parser) : {
-            return format_syntax_error("input", input, e.loc, e.token);
+            return format_syntax_error("input", input, e.loc, e.token, nullptr, use_colors);
         }
         case (LFortran::FortranEvaluator::Error::Semantic) : {
-            return format_semantic_error("input", input, e.loc, e.msg);
+            return format_semantic_error("input", input, e.loc, e.msg, use_colors);
         }
         case (LFortran::FortranEvaluator::Error::CodeGen) : {
             return "Code generation error: " + e.msg + "\n";

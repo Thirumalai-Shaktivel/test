@@ -5,6 +5,7 @@
 #include <lfortran/ast.h>
 #include <lfortran/parser/location.h>
 #include <lfortran/containers.h>
+#include <lfortran/bigint.h>
 
 namespace LFortran
 {
@@ -40,9 +41,16 @@ struct ArgStarKw {
     };
 };
 
+struct IntSuffix {
+    BigInt::BigInt int_n;
+    Str int_kind;
+};
+
 union YYSTYPE {
-    unsigned long n;
+    int64_t n;
     Str string;
+
+    IntSuffix int_suffix;
 
     AST::ast_t* ast;
     Vec<AST::ast_t*> vec_ast;

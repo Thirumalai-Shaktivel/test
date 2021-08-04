@@ -61,7 +61,10 @@ std::string pickle(int token, const LFortran::YYSTYPE &yystype,
     if (token == yytokentype::TK_NAME) {
         t += " " + yystype.string.str();
     } else if (token == yytokentype::TK_INTEGER) {
-        t += " " + std::to_string(yystype.n);
+        t += " " + yystype.int_suffix.int_n.str();
+        if (yystype.int_suffix.int_kind.p) {
+            t += "_" + yystype.int_suffix.int_kind.str();
+        }
     } else if (token == yytokentype::TK_STRING) {
         t = t + " " + "\"" + yystype.string.str() + "\"";
     } else if (token == yytokentype::TK_BOZ_CONSTANT) {
@@ -154,9 +157,13 @@ public:
         if (use_colors) {
             s.append(color(fg::cyan));
         }
-        s.append(std::to_string(x.m_n));
+        s.append(BigInt::int_to_str(x.m_n));
         if (use_colors) {
             s.append(color(fg::reset));
+        }
+        if (x.m_kind) {
+            s += "_";
+            s += x.m_kind;
         }
     }
     std::string get_str() {
@@ -191,12 +198,12 @@ public:
         return s;
     }
     void visit_symbol(const ASR::symbol_t &x) {
-        s.append(symbol_parent_symtab(&x)->get_counter());
+        s.append(LFortran::ASRUtils::symbol_parent_symtab(&x)->get_counter());
         s.append(" ");
         if (use_colors) {
             s.append(color(fg::yellow));
         }
-        s.append(symbol_name(&x));
+        s.append(LFortran::ASRUtils::symbol_name(&x));
         if (use_colors) {
             s.append(color(fg::reset));
         }

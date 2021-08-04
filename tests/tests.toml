@@ -40,6 +40,10 @@ filename = "do3.f90"
 ast = true
 
 [[test]]
+filename = "do4.f90"
+ast = true
+
+[[test]]
 filename = "errors/esub1.f90"
 tokens = true
 ast = true
@@ -138,6 +142,18 @@ pass = "global_stmts"
 llvm = true
 
 [[test]]
+filename = "expr7.f90"
+tokens = true
+ast = true
+ast_f90 = true
+
+[[test]]
+filename = "expr8.f90"
+tokens = true
+ast = true
+ast_f90 = true
+
+[[test]]
 filename = "stop.f90"
 asr = true
 llvm = true
@@ -148,7 +164,7 @@ ast = true
 ast_f90 = true
 
 [[test]]
-filename = "procedure1.f90"
+filename = "../integration_tests/submodule_01.f90"
 ast = true
 
 [[test]]
@@ -240,6 +256,16 @@ llvm = true
 [[test]]
 filename = "../integration_tests/subroutines_03.f90"
 ast = true
+
+[[test]]
+filename = "../integration_tests/subroutines_04.f90"
+ast = true
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/subroutines_05.f90"
+asr = true
 
 [[test]]
 filename = "scopes1.f90"
@@ -390,6 +416,26 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/arrays_op_4.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/arrays_op_5.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/arrays_op_6.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/arrays_op_7.f90"
+asr = true
+llvm = true
+
+[[test]]
 filename = "../integration_tests/arrays_02.f90"
 ast = true
 ast_f90 = true
@@ -425,6 +471,10 @@ llvm = true
 filename = "../integration_tests/arrays_09.f90"
 ast = true
 ast_f90 = true
+
+[[test]]
+filename = "../integration_tests/arrays_10.f90"
+asr = true
 
 [[test]]
 filename = "../integration_tests/types_01.f90"
@@ -494,6 +544,7 @@ tokens = true
 [[test]]
 filename = "derived_types_02.f90"
 ast = true
+ast_f90 = true
 
 [[test]]
 filename = "derived_types_03.f90"
@@ -526,6 +577,11 @@ cpp = true
 [[test]]
 filename = "fn3.f90"
 ast = true
+
+[[test]]
+filename = "fn4.f90"
+ast = true
+ast_f90 = true
 
 [[test]]
 filename = "forall1.f90"
@@ -607,6 +663,16 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/allocate_02.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/allocate_03.f90"
+asr = true
+llvm = true
+
+[[test]]
 filename = "allocate1.f90"
 ast = true
 ast_f90 = true
@@ -633,6 +699,16 @@ llvm = true
 
 [[test]]
 filename = "../integration_tests/associate_03.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/associate_04.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/associate_05.f90"
 asr = true
 llvm = true
 
@@ -710,6 +786,11 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/case_04.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
 filename = "../integration_tests/program_02.f90"
 ast = true
 
@@ -773,6 +854,11 @@ ast = true
 ast_f90 = true
 
 [[test]]
+filename = "selectrank1.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
 filename = "../integration_tests/select_type_01.f90"
 ast = true
 
@@ -782,11 +868,26 @@ ast = true
 ast_f90 = true
 
 [[test]]
+filename = "../integration_tests/format_02.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
 filename = "interop/mod1-14.mod"
 mod_to_asr = true
 
 [[test]]
 filename = "fmt1.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
+filename = "assign.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
+filename = "associate1.f90"
 ast = true
 ast_f90 = true
 
@@ -952,6 +1053,16 @@ llvm = true
 filename = "../integration_tests/intrinsics_07.f90"
 asr = true
 
+# tiny (symboltable)
+[[test]]
+filename = "../integration_tests/intrinsics_08.f90"
+asr = true
+
+# tiny (body)
+[[test]]
+filename = "../integration_tests/intrinsics_09.f90"
+asr = true
+
 [[test]]
 filename = "../integration_tests/intrinsics_open_close_read_write.f90"
 asr = true
@@ -1003,6 +1114,11 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/string4.f90"
+asr = true
+llvm = true
+
+[[test]]
 filename = "../integration_tests/string3.f90"
 ast = true
 ast_f90 = true
@@ -1014,12 +1130,6 @@ filename = "global_scope7.f90"
 asr = true
 llvm = true
 pass = "global_stmts"
-
-[[test]]
-filename = "../integration_tests/subroutines_04.f90"
-ast = true
-asr = true
-llvm = true
 
 [[test]]
 filename = "../integration_tests/parsing_01.f90"
@@ -1048,6 +1158,14 @@ cpp = true
 ast_f90 = true
 
 [[test]]
+filename = "../integration_tests/expr_06.f90"
+asr = true
+
+[[test]]
+filename = "../integration_tests/expr_07.f90"
+asr = true
+
+[[test]]
 filename = "../integration_tests/modules_11.f90"
 ast = true
 asr = true
@@ -1064,6 +1182,16 @@ ast_f90 = true
 
 [[test]]
 filename = "../integration_tests/goto_02.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
+filename = "../integration_tests/goto_03.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
+filename = "if1.f90"
 ast = true
 ast_f90 = true
 
@@ -1166,6 +1294,11 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/program_04.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
 filename = "use_statement.f90"
 ast = true
 
@@ -1220,3 +1353,22 @@ ast_f90 = true
 filename = "flush1.f90"
 ast = true
 ast_f90 = true
+
+[[test]]
+filename = "../integration_tests/class_02.f90"
+asr = true
+llvm = true
+
+[[test]]
+filename = "print1.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
+filename = "fixed_form1.f"
+ast = true
+ast_f90 = true
+
+[[test]]
+filename = "fixed_form2.f"
+ast = true

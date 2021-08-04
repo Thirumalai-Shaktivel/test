@@ -3,9 +3,11 @@
 #include <iostream>
 #include <sstream>
 #include <chrono>
+#include <string>
 
 #include <lfortran/parser/parser.h>
 #include <lfortran/parser/parser.tab.hh>
+#include <lfortran/bigint.h>
 
 using LFortran::parse;
 using LFortran::parse2;
@@ -14,6 +16,14 @@ using LFortran::AST::ast_t;
 using LFortran::AST::expr_t;
 using LFortran::AST::Name_t;
 using LFortran::AST::BaseWalkVisitor;
+
+using LFortran::BigInt::is_int_ptr;
+using LFortran::BigInt::ptr_to_int;
+using LFortran::BigInt::int_to_ptr;
+using LFortran::BigInt::string_to_largeint;
+using LFortran::BigInt::largeint_to_string;
+using LFortran::BigInt::MAX_SMALL_INT;
+using LFortran::BigInt::MIN_SMALL_INT;
 
 // Print any vector like iterable to a string
 template <class T>
@@ -84,6 +94,121 @@ TEST_CASE("Test longer parser (N = 500)") {
     std::cout << "String size (bytes):      " << text.size() << std::endl;
     std::cout << "Allocator usage (bytes): " << al.size_current() << std::endl;
     CHECK(c == 4509);
+}
+
+TEST_CASE("Test lex_int") {
+    unsigned char *s;
+    uint64_t u;
+    LFortran::Str suffix;
+
+    // Test ints
+    s = (unsigned char*)"15";
+    CHECK(strlen((char*)s) == 2);
+    REQUIRE(lex_int(s, s+strlen((char*)s), u, suffix));
+    CHECK(u == 15);
+    CHECK(suffix.str() == "");
+
+    s = (unsigned char*)"1";
+    REQUIRE(lex_int(s, s+strlen((char*)s), u, suffix));
+    CHECK(u == 1);
+    CHECK(suffix.str() == "");
+
+    s = (unsigned char*)"9223372036854775807"; // 2^63-1
+    REQUIRE(lex_int(s, s+strlen((char*)s), u, suffix));
+    CHECK(u == 9223372036854775807LL);
+    CHECK(suffix.str() == "");
+
+    s = (unsigned char*)"9223372036854775808"; // 2^63
+    REQUIRE(lex_int(s, s+strlen((char*)s), u, suffix));
+    CHECK(u == 9223372036854775808ULL);
+    CHECK(suffix.str() == "");
+
+    s = (unsigned char*)"18446744073709551615"; // 2^64-1
+    REQUIRE(lex_int(s, s+strlen((char*)s), u, suffix));
+    CHECK(u == 18446744073709551615ULL);
+    CHECK(suffix.str() == "");
+
+    s = (unsigned char*)"18446744073709551616"; // 2^64
+    REQUIRE(!lex_int(s, s+strlen((char*)s), u, suffix));
+
+    // Suffixes
+    s = (unsigned char*)"15_int64";
+    REQUIRE(lex_int(s, s+strlen((char*)s), u, suffix));
+    CHECK(u == 15);
+    CHECK(suffix.str() == "int64");
+
+    s = (unsigned char*)"1234_int64_15_3";
+    REQUIRE(lex_int(s, s+strlen((char*)s), u, suffix));
+    CHECK(u == 1234);
+    CHECK(suffix.str() == "int64_15_3");
+}
+
+TEST_CASE("Test Big Int") {
+    int64_t i;
+    void *p, *p2;
+
+    /* Integer tests */
+    i = 0;
+    CHECK(!is_int_ptr(i));
+
+    i = 5;
+    CHECK(!is_int_ptr(i));
+
+    i = -5;
+    CHECK(!is_int_ptr(i));
+
+    // Largest integer that is allowed is 2^62-1
+    i = 4611686018427387903LL;
+    CHECK(i == MAX_SMALL_INT);
+    CHECK(!is_int_ptr(i)); // this is an integer
+    i = 4611686018427387904LL;
+    CHECK(is_int_ptr(i)); // this is a pointer
+
+    // Smallest integer that is allowed is -2^63
+    i = -9223372036854775808ULL;
+    CHECK(i == MIN_SMALL_INT);
+    CHECK(!is_int_ptr(i)); // this is an integer
+    i = -9223372036854775809ULL; // This does not fit into a signed 64bit int
+    CHECK(is_int_ptr(i)); // this is a pointer
+
+    /* Pointer tests */
+    // Smallest pointer value is 0 (nullptr)
+    p = nullptr;
+    i = ptr_to_int(p);
+    CHECK(is_int_ptr(i));
+    p2 = int_to_ptr(i);
+    CHECK(p == p2);
+
+    // Second smallest pointer value aligned to 4 is 4
+    p = (void*)4;
+    i = ptr_to_int(p);
+    CHECK(is_int_ptr(i));
+    p2 = int_to_ptr(i);
+    CHECK(p == p2);
+
+    // Maximum pointer value aligned to 4 is (2^64-1)-3
+    p = (void*)18446744073709551612ULL;
+    i = ptr_to_int(p);
+    CHECK(is_int_ptr(i));
+    p2 = int_to_ptr(i);
+    CHECK(p == p2);
+
+    /* Big int tests */
+    Allocator al(1024);
+    LFortran::Str s;
+    char *cs;
+
+    s.from_str(al, "123");
+    i = string_to_largeint(al, s);
+    CHECK(is_int_ptr(i));
+    cs = largeint_to_string(i);
+    CHECK(std::string(cs) == "123");
+
+    s.from_str(al, "123567890123456789012345678901234567890");
+    i = string_to_largeint(al, s);
+    CHECK(is_int_ptr(i));
+    cs = largeint_to_string(i);
+    CHECK(std::string(cs) == "123567890123456789012345678901234567890");
 }
 
 TEST_CASE("Test LFortran::Vec") {
@@ -268,6 +393,7 @@ TEST_CASE("Test LFortran::Allocator 2") {
 using tt = yytokentype;
 
 TEST_CASE("Tokenizer") {
+    Allocator al(1024);
     std::string s;
     std::vector<int> ref;
     std::vector<LFortran::YYSTYPE> stypes;
@@ -292,7 +418,7 @@ TEST_CASE("Tokenizer") {
         tt::KW_SUBROUTINE,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2*x**3";
     ref = {
@@ -303,7 +429,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "(2*x**3)";
     ref = {
@@ -316,7 +442,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_RPAREN,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2*x";
     ref = {
@@ -325,34 +451,34 @@ TEST_CASE("Tokenizer") {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2*??";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = "2*@";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = "2*#";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = "2*$";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = "2*^";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = "2*&";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = "2*~";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = "2*`";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = "2*\\";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = "2*4294967295"; // 2**32-1, works everywhere
     ref = {
@@ -361,13 +487,17 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s, &stypes) == ref);
-    CHECK(stypes[0].n == 2);
+    CHECK(tokens(al, s, &stypes) == ref);
+    CHECK(stypes[0].int_suffix.int_n.n == 2);
     unsigned long nref = 4294967295U;
-    CHECK(stypes[2].n == nref);
+    CHECK(stypes[2].int_suffix.int_n.n == nref);
 
     s = "2*18446744073709551616"; // 2**64, too large, will throw an exception
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    stypes.clear();
+    CHECK(tokens(al, s, &stypes) == ref);
+    LFortran::BigInt::BigInt n = stypes[2].int_suffix.int_n;
+    CHECK(n.is_large());
+    CHECK(n.str() == "18446744073709551616");
 
     // The tokenizer will only go to the first null character
     s = "2*x\0yyyyy";
@@ -377,7 +507,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
     s = "2*x yyyyy";
     ref = {
         tt::TK_INTEGER,
@@ -386,7 +516,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2*x\n**3";
     ref = {
@@ -398,7 +528,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(
     x = 1
@@ -428,7 +558,7 @@ TEST_CASE("Tokenizer") {
 
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "x = 1; x = y;;x = 2*y";
     ref = {
@@ -451,7 +581,7 @@ TEST_CASE("Tokenizer") {
 
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "\n2*x\n\n;;\n**3\n";
     ref = {
@@ -469,7 +599,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_NEWLINE,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "exit subroutine";
     ref = {
@@ -477,7 +607,7 @@ TEST_CASE("Tokenizer") {
         tt::KW_SUBROUTINE,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "Exit Subroutine";
     ref = {
@@ -485,7 +615,7 @@ TEST_CASE("Tokenizer") {
         tt::KW_SUBROUTINE,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "EXIT SUBROUTINE";
     ref = {
@@ -493,7 +623,7 @@ TEST_CASE("Tokenizer") {
         tt::KW_SUBROUTINE,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "exIT SuBrOuTiNe";
     ref = {
@@ -501,7 +631,7 @@ TEST_CASE("Tokenizer") {
         tt::KW_SUBROUTINE,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "exITt SuBrOuTiNe";
     ref = {
@@ -509,14 +639,14 @@ TEST_CASE("Tokenizer") {
         tt::KW_SUBROUTINE,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "exitsubroutine";
     ref = {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "x 2";
     ref = {
@@ -524,14 +654,14 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "x2";
     ref = {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2 x";
     ref = {
@@ -539,7 +669,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2x";
     ref = {
@@ -547,49 +677,49 @@ TEST_CASE("Tokenizer") {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "x_2";
     ref = {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "x_";
     ref = {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "_x";
     ref = {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "not";
     ref = {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = ".not.";
     ref = {
         tt::TK_NOT,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = ".nnot.";
     ref = {
         tt::TK_DEF_OP,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2.nnot.3";
     ref = {
@@ -598,7 +728,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2 .nnot. 3";
     ref = {
@@ -607,7 +737,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2.not.3";
     ref = {
@@ -616,7 +746,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2 .not. 3";
     ref = {
@@ -625,7 +755,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2..nnot..3";
     ref = {
@@ -634,7 +764,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2. .nnot. .3";
     ref = {
@@ -643,7 +773,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2 == 3";
     ref = {
@@ -652,7 +782,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2==3";
     ref = {
@@ -661,7 +791,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2 .eq. 3";
     ref = {
@@ -670,7 +800,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2.eq.3";
     ref = {
@@ -679,7 +809,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2.==.3";
     ref = {
@@ -688,7 +818,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2..eq..3";
     ref = {
@@ -697,7 +827,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2..eq.3.";
     ref = {
@@ -706,7 +836,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2._dp.eq.3._dp";
     ref = {
@@ -715,7 +845,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2. .not. .3";
     ref = {
@@ -724,7 +854,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2..nnot..3";
     ref = {
@@ -733,7 +863,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2..not..3";
     ref = {
@@ -742,7 +872,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2.e.3";
     ref = {
@@ -751,7 +881,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "2.e5.3";
     ref = {
@@ -759,14 +889,14 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "nnot";
     ref = {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "1+1.0+2";
     ref = {
@@ -777,7 +907,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "1+1d0+2";
     ref = {
@@ -788,7 +918,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "1D-5+1.e12+2.E-10+1.E+10+1e10";
     ref = {
@@ -803,7 +933,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "3 + .3 + .3e-3";
     ref = {
@@ -814,7 +944,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "3 + 3. + 3.e-3";
     ref = {
@@ -825,7 +955,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "3_i + 3._dp + 3.e-3_dp + 0.3_dp + 1e5_dp";
     ref = {
@@ -840,7 +970,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = "3_4 + 3._8 + 3.e-3_8 + 0.3_8 + 1e5_8";
     ref = {
@@ -855,7 +985,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_REAL,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = ".true. .and. .false.";
     ref = {
@@ -864,7 +994,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_FALSE,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = ".true._lp .and. .false._8";
     ref = {
@@ -873,7 +1003,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_FALSE,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = ".true._lp .and._lp .false._8";
     ref = {
@@ -883,7 +1013,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_FALSE,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = ".true. _lp .and. _lp .false. _8";
     ref = {
@@ -895,13 +1025,13 @@ TEST_CASE("Tokenizer") {
         tt::TK_NAME,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = ".and .false.";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = "and. .false.";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = R"(print *, "ok", 3)";
     ref = {
@@ -913,7 +1043,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, "o'k", 3)";
     ref = {
@@ -925,7 +1055,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, "o''k", 3)";
     ref = {
@@ -937,7 +1067,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, "o'x'k", 3)";
     ref = {
@@ -949,7 +1079,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, "o,""k", 3)";
     ref = {
@@ -961,7 +1091,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, "o,""k", "s""")";
     ref = {
@@ -973,7 +1103,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_STRING,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, 'ok', 3)";
     ref = {
@@ -985,7 +1115,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, 'o"k', 3)";
     ref = {
@@ -997,7 +1127,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, 'o""k', 3)";
     ref = {
@@ -1009,7 +1139,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, 'o"x"k', 3)";
     ref = {
@@ -1021,7 +1151,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, 'o,''k', 3)";
     ref = {
@@ -1033,7 +1163,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, 'o,''k', 's''')";
     ref = {
@@ -1045,7 +1175,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_STRING,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, "o,""k", "s''""''")";
     ref = {
@@ -1057,7 +1187,7 @@ TEST_CASE("Tokenizer") {
         tt::TK_STRING,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, somekind_"o,""k", otherKind_"s''""''")";
     ref = {
@@ -1069,16 +1199,16 @@ TEST_CASE("Tokenizer") {
         tt::TK_STRING,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(print *, "o,'"k", "s''""''")";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = R"(x ")";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
     s = R"(x ')";
-    CHECK_THROWS_AS(tokens(s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
 
 
     s = R"(if (x) then
@@ -1090,7 +1220,7 @@ TEST_CASE("Tokenizer") {
         tt::KW_END_IF,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(if (x) then
                y = 5
@@ -1101,7 +1231,7 @@ TEST_CASE("Tokenizer") {
         tt::KW_END_IF,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 
     s = R"(if (x) then
                y = 5
@@ -1112,7 +1242,7 @@ TEST_CASE("Tokenizer") {
         tt::KW_ENDIF,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(s) == ref);
+    CHECK(tokens(al, s) == ref);
 }
 
 #define cast(type, p) (LFortran::AST::type##_t*) (p)
@@ -1128,7 +1258,7 @@ TEST_CASE("Location") {
     CHECK(result->loc.first_line == 1);
     CHECK(result->loc.first_column == 1);
     CHECK(result->loc.last_line == 4);
-    CHECK(result->loc.last_column == 18);
+    CHECK(result->loc.last_column == 19);
     auto sub = cast(Subroutine, result);
     auto stmt = cast(Assignment, sub->m_body[1]);
     CHECK(stmt->base.base.loc.first_line == 3);
@@ -1177,7 +1307,7 @@ TEST_CASE("Location") {
     CHECK(result->loc.first_line == 1);
     CHECK(result->loc.first_column == 1);
     CHECK(result->loc.last_line == 4);
-    CHECK(result->loc.last_column == 15);
+    CHECK(result->loc.last_column == 16);
 }
 
 TEST_CASE("Errors") {
