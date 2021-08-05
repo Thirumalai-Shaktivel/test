@@ -555,7 +555,18 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
                 line_num++; cur_line=cur; continue;
             }
 
-            comment / newline { token(yylval.string); RET(TK_COMMENT) }
+            comment newline {
+                line_num++; cur_line=cur;
+                token(yylval.string);
+                yylval.string.n--;
+                token_loc(loc);
+                if (last_token == yytokentype::TK_NEWLINE) {
+                    return yytokentype::TK_COMMENT;
+                } else {
+                    last_token=yytokentype::TK_NEWLINE;
+                    return yytokentype::TK_EOLCOMMENT;
+                }
+            }
 
             // Macros are ignored for now:
             "#" [^\n\x00]* newline { line_num++; cur_line=cur; continue; }
