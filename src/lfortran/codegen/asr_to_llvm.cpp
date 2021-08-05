@@ -48,6 +48,7 @@
 #include <lfortran/pass/global_stmts.h>
 #include <lfortran/pass/param_to_const.h>
 #include <lfortran/pass/nested_vars.h>
+#include <lfortran/pass/where_expression.h>
 #include <lfortran/pass/print_arr.h>
 #include <lfortran/pass/arr_slice.h>
 #include <lfortran/exception.h>
@@ -3258,6 +3259,7 @@ std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
     pass_wrap_global_stmts_into_function(al, asr, run_fn);
 
     pass_replace_param_to_const(al, asr);
+    pass_replace_where_expression(al, asr);
     // Uncomment for debugging the ASR after the transformation
     // std::cout << pickle(asr) << std::endl;
     pass_replace_implied_do_loops(al, asr);
