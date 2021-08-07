@@ -1962,7 +1962,7 @@ ast_t* set_trivia1(Allocator &al, Location &l,
 #define TRIVIA_(stmt, x) set_trivia(p.m_a, stmt, x)
 #define TRIVIA(x, y, l) set_trivia1(p.m_a, l, \
         VEC_CAST(x, trivia_node), x.size(), \
-        VEC_CAST(y, trivia_node), x.size())
+        VEC_CAST(y, trivia_node), y.size())
 #define TRIVIA_AFTER(x, l) set_trivia1(p.m_a, l, nullptr, 0, \
         VEC_CAST(x, trivia_node), x.size())
 
