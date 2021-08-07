@@ -1,0 +1,47 @@
+Traceback (most recent call last):
+[2m  Binary file "[0m[1m[35m$DIR/src/bin/lfortran[39m[0m[2m", in _start()[0m
+[2m  Binary file "[0m[1m[35m/lib/x86_64-linux-gnu/libc.so.6[39m[0m[2m", in __libc_start_main()[0m
+[2m  File "[0m[1m[35m$DIR/src/bin/lfortran.cpp[39m[0m[2m", line 1184, in ??[0m
+    return emit_ast(arg_file, !arg_no_color, arg_indent,
+[2m  File "[0m[1m[35m$DIR/src/bin/lfortran.cpp[39m[0m[2m", line 364, in ??[0m
+    std::cout << LFortran::pickle(*ast, colors, indent) << std::endl;
+[2m  File "[0m[1m[35m$DIR/src/lfortran/pickle.cpp[39m[0m[2m", line 186, in LFortran::pickle[abi:cxx11](LFortran::AST::TranslationUnit_t&, bool, bool)[0m
+    v.visit_ast((AST::ast_t&)(ast));
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4276, in LFortran::AST::BaseVisitor<LFortran::PickleVisitor>::visit_ast(LFortran::AST::ast_t const&)[0m
+    void visit_ast(const ast_t &b) { visit_ast_t(b, self()); }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4235, in ??[0m
+    case astType::unit: { v.visit_unit((const unit_t &)x); return; }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4277, in LFortran::AST::BaseVisitor<LFortran::PickleVisitor>::visit_unit(LFortran::AST::unit_t const&)[0m
+    void visit_unit(const unit_t &b) { visit_unit_t(b, self()); }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 3898, in ??[0m
+    case unitType::TranslationUnit: { v.visit_TranslationUnit((const TranslationUnit_t &)x); return; }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 5620, in LFortran::AST::PickleBaseVisitor<LFortran::PickleVisitor>::visit_TranslationUnit(LFortran::AST::TranslationUnit_t const&)[0m
+    self().visit_ast(*x.m_items[i]);
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4276, in LFortran::AST::BaseVisitor<LFortran::PickleVisitor>::visit_ast(LFortran::AST::ast_t const&)[0m
+    void visit_ast(const ast_t &b) { visit_ast_t(b, self()); }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4236, in ??[0m
+    case astType::mod: { v.visit_mod((const mod_t &)x); return; }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4279, in LFortran::AST::BaseVisitor<LFortran::PickleVisitor>::visit_mod(LFortran::AST::mod_t const&)[0m
+    void visit_mod(const mod_t &b) { visit_mod_t(b, self()); }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 3909, in ??[0m
+    case modType::Program: { v.visit_Program((const Program_t &)x); return; }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 5901, in LFortran::AST::PickleBaseVisitor<LFortran::PickleVisitor>::visit_Program(LFortran::AST::Program_t const&)[0m
+    self().visit_program_unit(*x.m_contains[i]);
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4284, in LFortran::AST::BaseVisitor<LFortran::PickleVisitor>::visit_program_unit(LFortran::AST::program_unit_t const&)[0m
+    void visit_program_unit(const program_unit_t &b) { visit_program_unit_t(b, self()); }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 3917, in ??[0m
+    case program_unitType::Subroutine: { v.visit_Subroutine((const Subroutine_t &)x); return; }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 5960, in LFortran::AST::PickleBaseVisitor<LFortran::PickleVisitor>::visit_Subroutine(LFortran::AST::Subroutine_t const&)[0m
+    self().visit_trivia(*x.m_trivia);
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4380, in LFortran::AST::BaseVisitor<LFortran::PickleVisitor>::visit_trivia(LFortran::AST::trivia_t const&)[0m
+    void visit_trivia(const trivia_t &b) { visit_trivia_t(b, self()); }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4079, in ??[0m
+    case triviaType::TriviaNode: { v.visit_TriviaNode((const TriviaNode_t &)x); return; }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 10162, in LFortran::AST::PickleBaseVisitor<LFortran::PickleVisitor>::visit_TriviaNode(LFortran::AST::TriviaNode_t const&)[0m
+    self().visit_trivia_node(*x.m_after[i]);
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4382, in LFortran::AST::BaseVisitor<LFortran::PickleVisitor>::visit_trivia_node(LFortran::AST::trivia_node_t const&)[0m
+    void visit_trivia_node(const trivia_node_t &b) { visit_trivia_node_t(b, self()); }
+[2m  File "[0m[1m[35m$DIR/src/lfortran/ast.h[39m[0m[2m", line 4085, in ??[0m
+    LFORTRAN_ASSERT(x.base.type == astType::trivia_node)
+[2m  Binary file "[0m[1m[35m/lib/x86_64-linux-gnu/libc.so.6[39m[0m[2m", in killpg()[0m
+Segfault: Signal SIGSEGV (segmentation fault) received
