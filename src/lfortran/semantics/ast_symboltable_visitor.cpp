@@ -717,7 +717,23 @@ public:
                     ImplicitCastRules::set_converted_value(al, x.base.base.loc, &init_expr, init_type, type);
                     LFORTRAN_ASSERT(init_expr != nullptr);
                     if (storage_type == ASR::storage_typeType::Parameter) {
-                        value = ASRUtils::expr_value(init_expr);
+                        if (ASR::is_a<LFortran::ASR::Integer_t>(*type)){
+                            int result = ASR::down_cast<ASR::ConstantInteger_t>(ASRUtils::expr_value(init_expr))->m_n;
+                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(
+                                                                    al, x.base.base.loc, result, type));
+                        } else if (ASR::is_a<LFortran::ASR::Real_t>(*type)){
+                            int var_kind = LFortran::ASRUtils::extract_kind_from_ttype_t(type);
+                            if (var_kind == 4){
+                                float result = ASR::down_cast<ASR::ConstantReal_t>(ASRUtils::expr_value(init_expr))->m_r;
+                                value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(
+                                                                        al, x.base.base.loc, result, type));
+                            } else {
+                                double result = ASR::down_cast<ASR::ConstantReal_t>(ASRUtils::expr_value(init_expr))->m_r;
+                                value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(
+                                                                        al, x.base.base.loc, result, type));
+                            }
+                        }
+
                         if (value == nullptr) {
                             // TODO: enable this after intrinsic functions (kind) evaluation is implemented:
                             //throw SemanticError("Value of a parameter variable must evaluate to a compile time constant",
