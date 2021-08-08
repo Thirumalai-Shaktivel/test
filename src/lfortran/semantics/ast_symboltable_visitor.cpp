@@ -1,7 +1,9 @@
+#include "lfortran/exception.h"
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <memory>
+#include <stdint.h>
 #include <string>
 #include <cmath>
 #include <limits>
@@ -16,6 +18,7 @@
 #include <lfortran/parser/parser_stype.h>
 #include <lfortran/string_utils.h>
 #include <lfortran/utils.h>
+#include <sys/_types/_int64_t.h>
 
 namespace LFortran {
 
@@ -36,6 +39,7 @@ private:
         {"real", "lfortran_intrinsic_array"},
         {"sum", "lfortran_intrinsic_array"},
         {"abs", "lfortran_intrinsic_array"},
+        {"real", "lfortran_intrinsic_array"},
         {"tiny", "lfortran_intrinsic_array"}
 };
 
@@ -800,6 +804,38 @@ public:
         ASR::expr_t *value = nullptr;
         switch(args.n) {
             case 1: // Single argument intrinsics
+                if (var_name=="kind") {
+                    // TODO: Refactor to allow early return
+                    // kind_num --> value {4, 8, etc.}
+                    int64_t kind_num = 4; // Default
+                    ASR::expr_t* kind_expr = args[0];
+                    ASR::ttype_t* kind_type = LFortran::ASRUtils::expr_type(kind_expr);
+                    // TODO: Check that the expression reduces to a valid constant expression (10.1.12)
+                    switch( kind_expr->type ) {
+                        case ASR::exprType::ConstantInteger: {
+                            kind_num = ASR::down_cast<ASR::Integer_t>(ASR::down_cast<ASR::ConstantInteger_t>(kind_expr)->m_type)->m_kind;
+                            break;
+                        }
+                        case ASR::exprType::ConstantReal:{
+                            kind_num = ASR::down_cast<ASR::Real_t>(ASR::down_cast<ASR::ConstantReal_t>(kind_expr)->m_type)->m_kind;
+                            break;
+                        }
+                        case ASR::exprType::ConstantLogical:{
+                            kind_num = ASR::down_cast<ASR::Logical_t>(ASR::down_cast<ASR::ConstantLogical_t>(kind_expr)->m_type)->m_kind;
+                            break;
+                        }
+                        case ASR::exprType::Var : {
+                            kind_num = ASRUtils::extract_kind(kind_expr, x.base.base.loc);
+                            break;
+                        }
+                    default: {
+                        std::string msg = R"""(Only Integer literals or expressions which reduce to constant Integer are accepted as kind parameters.)""";
+                        throw SemanticError(msg, x.base.base.loc);
+                        break;
+                    }
+                    }
+                    value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, kind_num, kind_type));
+                }
                 if (var_name=="tiny") {
                     // We assume the input is valid
                     // ASR::expr_t* tiny_expr = args[0];
@@ -809,7 +845,7 @@ public:
                         throw SemanticError("Array values not implemented yet",
                                             x.base.base.loc);
                     }
-                    // TODO: Figure out how to deal with single and double precision later
+                    // TODO: Figure out how to deal with higher precision later
                     if (ASR::is_a<LFortran::ASR::Real_t>(*tiny_type)) {
                         // We don't actually need the value yet, it is enough to know it is a double
                         // but it might provide further information later (precision)
@@ -833,14 +869,46 @@ public:
                     }
                 }
                 break;
-            default: // Not implemented
+                if (var_name=="real") {
+                    ASR::expr_t* real_expr = args[0];
+                    ASR::ttype_t* real_type = LFortran::ASRUtils::expr_type(real_expr);
+                    int real_kind = ASRUtils::extract_kind_from_ttype_t(real_type);
+                    if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*real_type)) {
+                        if (real_kind == 4){
+                            float rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(real_expr))->m_r;
+                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, real_type));
+                        } else {
+                            double rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(real_expr))->m_r;
+                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, real_type));
+                        }
+                    }
+                    else if (LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*real_type)) {
+                        if (real_kind == 4){
+                            int64_t rv = ASR::down_cast<ASR::ConstantInteger_t>(
+                                LFortran::ASRUtils::expr_value(real_expr))->m_n;
+                            float rr = static_cast<float>(rv);
+                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, real_type));
+                        } else {
+                            double rr = static_cast<double>(ASR::down_cast<ASR::ConstantInteger_t>(LFortran::ASRUtils::expr_value(real_expr))->m_n);
+                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, real_type));
+                        }
+                    }
+                    // TODO: Handle BOZ later
+                    // else if () {
+
+                    // }
+                    else {
+                        throw SemanticError("real must have only one argument", x.base.base.loc);
+                    }
+                }
+               break;
+        break;
+        default: // Not implemented
             throw SemanticError("Function '" + var_name + "' with " + std::to_string(args.n) +
                     " arguments not supported yet",
                     x.base.base.loc);
                 break;
         }
-        // if (var_name=="kind" && args.n==1) {
-        // }
         asr = ASR::make_FunctionCall_t(al, x.base.base.loc, v, nullptr,
             args.p, args.size(), nullptr, 0, type, value, nullptr);
     }

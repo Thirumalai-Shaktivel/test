@@ -37,6 +37,7 @@ private:
         {"real", "lfortran_intrinsic_array"},
         {"sum", "lfortran_intrinsic_array"},
         {"abs", "lfortran_intrinsic_array"},
+        {"real", "lfortran_intrinsic_array"},
         {"tiny", "lfortran_intrinsic_array"}
 };
 
@@ -1332,7 +1333,8 @@ public:
                     // Only populate for supported intrinsic functions
                     if (intrinsic_procedures.find(func_name)
                         != intrinsic_procedures.end()) { // Got an intrinsic, now try to assign value
-                        ASR::ttype_t *func_type = LFortran::ASRUtils::expr_type(args[0]);
+                        ASR::expr_t* func_expr = args[0];
+                        ASR::ttype_t *func_type = LFortran::ASRUtils::expr_type(func_expr);
                         if (func_name == "tiny") {
                             if (args.n == 1) {
                                 if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*func_type)) {
@@ -1354,6 +1356,61 @@ public:
                                 }
                             } else {
                                 throw SemanticError("tiny must have only one argument", x.base.base.loc);
+                            }
+                        }
+                        if (func_name == "real") {
+                            if (args.n == 1) {
+                                ASR::expr_t* real_expr = args[0];
+                                int real_kind = LFortran::ASRUtils::extract_kind_from_ttype_t(func_type);
+                                if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*func_type)) {
+                                    if (real_kind == 4){
+                                        float rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(real_expr))->m_r;
+                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, func_type));
+                                    } else {
+                                        double rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(real_expr))->m_r;
+                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, func_type));
+                                    }
+                                }
+                                else if (LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*func_type)) {
+                                    if (real_kind == 4){
+                                        int64_t rv = ASR::down_cast<ASR::ConstantInteger_t>(
+                                            LFortran::ASRUtils::expr_value(real_expr))->m_n;
+                                        float rr = static_cast<float>(rv);
+                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, func_type));
+                                    } else {
+                                        double rr = static_cast<double>(ASR::down_cast<ASR::ConstantInteger_t>(LFortran::ASRUtils::expr_value(real_expr))->m_n);
+                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, func_type));
+                                    }
+                                }
+                                // TODO: Handle BOZ later
+                                // else if () {
+
+                                // }
+                            } else {
+                                throw SemanticError("real must have only one argument", x.base.base.loc);
+                            }
+                        }
+                        if (func_name == "kind") {
+                            if (args.n == 1) {
+                                int kind_val {4};
+                                if (ASR::is_a<ASR::ConstantLogical_t>(*func_expr)){
+                                    kind_val = ASR::down_cast<ASR::Logical_t>(ASR::down_cast<ASR::ConstantLogical_t>(func_expr)->m_type)->m_kind;
+                                }
+                                else if (ASR::is_a<ASR::ConstantReal_t>(*func_expr)){
+                                    kind_val = ASR::down_cast<ASR::Real_t>(ASR::down_cast<ASR::ConstantReal_t>(func_expr)->m_type)->m_kind;
+                                }
+                                else if (ASR::is_a<ASR::ConstantInteger_t>(*func_expr)){
+                                    kind_val = ASR::down_cast<ASR::Integer_t>(ASR::down_cast<ASR::ConstantInteger_t>(func_expr)->m_type)->m_kind;
+                                }
+                                else if (ASR::is_a<ASR::Var_t>(*func_expr)) {
+                                    kind_val = ASRUtils::extract_kind(func_expr, x.base.base.loc);
+                                }
+                                else {
+                                    throw SemanticError("kind supports Real, Integer, Logical and things which reduce to the same", x.base.base.loc);
+                                }
+                                value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, kind_val, func_type));
+                            } else {
+                                throw SemanticError("kind must have only one argument", x.base.base.loc);
                             }
                         }
                     }
