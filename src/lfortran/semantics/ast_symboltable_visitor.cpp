@@ -3,7 +3,6 @@
 #include <iostream>
 #include <map>
 #include <memory>
-#include <stdint.h>
 #include <string>
 #include <cmath>
 #include <limits>
@@ -18,7 +17,6 @@
 #include <lfortran/parser/parser_stype.h>
 #include <lfortran/string_utils.h>
 #include <lfortran/utils.h>
-#include <sys/_types/_int64_t.h>
 
 namespace LFortran {
 
