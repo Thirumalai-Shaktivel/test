@@ -143,6 +143,18 @@ public:
                     rval, dest_type);
             }
 
+        } else if ((ASR::cast_kindType)cast_kind == ASR::cast_kindType::IntegerToInteger) {
+            if (ASRUtils::expr_value(*convert_can)) {
+                LFORTRAN_ASSERT(ASR::is_a<ASR::Integer_t>(*dest_type))
+                LFORTRAN_ASSERT(ASR::is_a<ASR::Integer_t>(*ASRUtils::expr_type(*convert_can)))
+                value = ASRUtils::expr_value(*convert_can);
+                LFORTRAN_ASSERT(ASR::is_a<ASR::ConstantInteger_t>(*value))
+                ASR::ConstantInteger_t *i = ASR::down_cast<ASR::ConstantInteger_t>(value);
+                int64_t ival = i->m_n;
+                value = (ASR::expr_t *)ASR::make_ConstantInteger_t(al, a_loc,
+                    ival, dest_type);
+            }
+
         }
 
       *convert_can = (ASR::expr_t *)ASR::make_ImplicitCast_t(
