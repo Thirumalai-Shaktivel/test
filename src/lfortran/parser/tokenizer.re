@@ -575,8 +575,8 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
             'include' whitespace string1 { continue; }
             'include' whitespace string2 { continue; }
 
-            string1 { token_str(yylval.string); RET(TK_STRING) }
-            string2 { token_str(yylval.string); RET(TK_STRING) }
+            string1 { token_str(al, yylval.string); RET(TK_STRING) }
+            string2 { token_str(al, yylval.string); RET(TK_STRING) }
 
             defop { token(yylval.string); RET(TK_DEF_OP) }
             name { token(yylval.string); RET(TK_NAME) }
