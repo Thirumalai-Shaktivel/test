@@ -55,9 +55,9 @@ int minval(const Kokkos::View<const int*> &x)
     return minval;
 }
 
-int real(const Kokkos::View<const int*> &x, int kind)
+float real(const Kokkos::View<const int*> &x, int kind)
 {
-    int real;
+    float real;
     return real;
 }
 
