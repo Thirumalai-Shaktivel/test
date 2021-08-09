@@ -1321,6 +1321,19 @@ public:
                     v_expr);
                 break;
             }
+            case (ASR::symbolType::GenericProcedure) : {
+                ASR::GenericProcedure_t *p = ASR::down_cast<ASR::GenericProcedure_t>(v);
+                Vec<ASR::expr_t*> args = visit_expr_list(x.m_args, x.n_args);
+                int idx = select_generic_procedure(args, *p, x.base.base.loc);
+                ASR::symbol_t *final_sym = p->m_procs[idx];
+
+                ASR::ttype_t *type;
+                type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+                tmp = ASR::make_FunctionCall_t(al, x.base.base.loc,
+                    final_sym, nullptr, args.p, args.size(), nullptr, 0, type, nullptr,
+                    v_expr);
+                break;
+            }
             case (ASR::symbolType::ExternalSymbol) : {
                 ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
                 LFORTRAN_ASSERT(f2);
