@@ -67,9 +67,9 @@ int sum(const Kokkos::View<const int*> &x)
     return sum;
 }
 
-int tiny(const Kokkos::View<const int*> &x)
+float tiny(const Kokkos::View<const int*> &x)
 {
-    int tiny;
+    float tiny;
     return tiny;
 }
 
