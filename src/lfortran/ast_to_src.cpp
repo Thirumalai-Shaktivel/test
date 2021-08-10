@@ -96,6 +96,22 @@ namespace {
         }
         throw LFortranException("Unknown type");
     }
+
+// >>>>>>>  Operator Precedence >>>>>>>
+
+    int boolprcd(const AST::boolopType type)
+    {
+        switch (type) {
+            case (AST::boolopType::And) :
+                return 4;
+            case (AST::boolopType::Or) :
+                return 3;
+            case (AST::boolopType::Eqv) :
+            case (AST::boolopType::NEqv) :
+                return 2;
+        }
+        throw LFortranException("Unknown type");
+    }
 }
 
 namespace AST {
@@ -109,6 +125,10 @@ public:
     std::string indent;
     int indent_spaces;
     bool indent_unit;
+    bool last_binary_plus;          // `s` contains, e.g.: a+b
+    bool last_unary_minus;          // `s` contains, e.g.: -a
+    bool last_unary_minus_in_mul;   // `s` contains, e.g.: -a*b
+    int tmp = 0;                    // stores precedence value of the last expr
 
     // Syntax highlighting groups
     enum gr {
@@ -3097,17 +3117,56 @@ public:
     void visit_BoolOp(const BoolOp_t &x) {
         this->visit_expr(*x.m_left);
         std::string left = std::move(s);
+        if(tmp > boolprcd(x.m_op)){
+            left = "(" + left + ")";
+        }
+
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        s = "(" + left + ")" + boolop2str(x.m_op) + "(" + right + ")";
+        if(tmp > boolprcd(x.m_op)){
+            right = "(" + right + ")";
+        }
+        s = left + boolop2str(x.m_op) + right;
+        tmp = boolprcd(x.m_op);
     }
 
     void visit_BinOp(const BinOp_t &x) {
         this->visit_expr(*x.m_left);
         std::string left = std::move(s);
+
+        if(last_binary_plus &&
+            !(x.m_op == operatorType::Add
+                || x.m_op == operatorType::Sub)) {
+            left = "(" + left + ")";
+        }
+
+        if(last_unary_minus &&
+            !(x.m_op == operatorType::Add
+                || x.m_op == operatorType::Sub)){
+            last_unary_minus_in_mul = true;
+        }
+
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        s = "(" + left + ")" + op2str(x.m_op) + "(" + right + ")";
+        if(last_unary_minus || last_binary_plus) {
+            last_unary_minus_in_mul = false;
+            right = "(" + right + ")";
+        }
+
+        if(last_unary_minus_in_mul &&
+            (x.m_op == operatorType::Add
+                || x.m_op == operatorType::Sub)){
+            last_unary_minus_in_mul = false;
+            right = "(" + right + ")";
+        }
+        s = left + op2str(x.m_op) + right;
+        if(x.m_op == operatorType::Add
+            || x.m_op == operatorType::Sub) {
+            last_binary_plus = true;
+        }
+        else{
+            last_binary_plus = false;
+        }
     }
 
     void visit_DefBinOp(const DefBinOp_t &x) {
@@ -3115,9 +3174,7 @@ public:
         std::string left = std::move(s);
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        s = "(" + left + ")";
-        s += "." + std::string(x.m_op) + ".";
-        s += "(" + right + ")";
+        s = "(" + left + " ." + std::string(x.m_op) + ". " + right + ")";
     }
 
     void visit_StrOp(const StrOp_t &x) {
@@ -3131,10 +3188,19 @@ public:
     void visit_UnaryOp(const UnaryOp_t &x) {
         this->visit_expr(*x.m_operand);
         if (x.m_op == AST::unaryopType::USub) {
-            s = "-(" + s + ")";
+            if(!last_binary_plus) {
+                s = "-" + s;
+            } else {
+                s = "-(" + s + ")";
+            }
+            last_unary_minus = true;
+            last_binary_plus = false;
         } else if (x.m_op == AST::unaryopType::UAdd) {
             // pass
             // s = s;
+            last_unary_minus = false;
+            last_unary_minus_in_mul = false;
+            last_binary_plus = false;
         } else if (x.m_op == AST::unaryopType::Not) {
             s = ".not.(" + s + ")";
         } else {
@@ -3147,7 +3213,7 @@ public:
         std::string left = std::move(s);
         this->visit_expr(*x.m_right);
         std::string right = std::move(s);
-        s = "(" + left + ")" + cmpop2str(x.m_op) + "(" + right + ")";
+        s = left + cmpop2str(x.m_op) + right;
     }
 
     void visit_FuncCallOrArray(const FuncCallOrArray_t &x) {
@@ -3298,6 +3364,9 @@ public:
             s += x.m_kind;
         }
         s += syn();
+        last_unary_minus = false;
+        last_unary_minus_in_mul = false;
+        last_binary_plus = false;
     }
 
     void visit_Parenthesis(const Parenthesis_t &x) {
@@ -3312,6 +3381,8 @@ public:
         s = syn(gr::Real);
         s += x.m_n;
         s += syn();
+        last_unary_minus = false;
+        last_binary_plus = false;
     }
 
     void visit_String(const String_t &x) {
@@ -3353,6 +3424,8 @@ public:
         r += ")";
         r += syn();
         s = r;
+        last_binary_plus = false;
+        last_unary_minus = false;
     }
 
     void visit_Name(const Name_t &x) {
@@ -3397,6 +3470,8 @@ public:
         }
         r.append(std::string(x.m_id));
         s = r;
+        last_unary_minus = false;
+        last_binary_plus = false;
     }
 
     void visit_Logical(const Logical_t &x) {
