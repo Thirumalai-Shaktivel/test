@@ -52,9 +52,10 @@ add_custom_command(
 )
 
 add_custom_command(
-    TARGET lfortran
     POST_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../runtime
+    DEPENDS lfortran
+    OUTPUT lfortran_intrinsic_iso_fortran_env.mod
     COMMAND ${CMAKE_CURRENT_BINARY_DIR}/lfortran --backend=cpp -c ${CMAKE_CURRENT_SOURCE_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.f90 -o lfortran_intrinsic_iso_fortran_env.o
 )
 
@@ -66,9 +67,10 @@ add_custom_command(
 )
 
 add_custom_command(
-    TARGET lfortran
     POST_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../runtime
+    DEPENDS lfortran_intrinsic_iso_fortran_env.mod
+    OUTPUT lfortran_intrinsic_math2.fmod
     COMMAND ${CMAKE_CURRENT_BINARY_DIR}/lfortran --backend=cpp -c ${CMAKE_CURRENT_SOURCE_DIR}/../runtime/lfortran_intrinsic_math2.f90 -o lfortran_intrinsic_math2.o
 )
 
