@@ -1197,6 +1197,12 @@ public:
                         + "' not found in the module '" + module_name + "'",
                         x.base.base.loc);
                 }
+                if (!ASR::is_a<ASR::Function_t>(*t)) {
+                    throw SemanticError("The symbol '" + remote_sym
+                        + "' found in the module '" + module_name + "', "
+                        + "but it is not a function.",
+                        x.base.base.loc);
+                }
 
                 ASR::Function_t *mfn = ASR::down_cast<ASR::Function_t>(t);
                 ASR::asr_t *fn = ASR::make_ExternalSymbol_t(
