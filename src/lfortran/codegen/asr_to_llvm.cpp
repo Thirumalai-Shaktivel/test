@@ -2423,10 +2423,11 @@ public:
                 if (a_kind == 4) {
                     zero = llvm::ConstantFP::get(context,
                             llvm::APFloat((float)0.0));
-                } else {
-                    LFORTRAN_ASSERT(a_kind == 8)
+                } else if (a_kind == 8) {
                     zero = llvm::ConstantFP::get(context,
                             llvm::APFloat((double)0.0));
+                } else {
+                    throw CodeGenError("Unary type kind not implemented yet, only 4 and 8 is");
                 }
                 tmp = builder ->CreateFSub(zero, tmp);
                 return;
