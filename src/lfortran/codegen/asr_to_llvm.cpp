@@ -2419,7 +2419,7 @@ public:
                 return;
             } else if (x.m_op == ASR::unaryopType::USub) {
                 llvm::Value *zero;
-                int a_kind = ((ASR::Real_t*)(&(x.m_type->base)))->m_kind;
+                int a_kind = down_cast<ASR::Real_t>(x.m_type)->m_kind;
                 if (a_kind == 4) {
                     zero = llvm::ConstantFP::get(context,
                             llvm::APFloat((float)0.0));
@@ -2468,7 +2468,7 @@ public:
 
     void visit_ConstantReal(const ASR::ConstantReal_t &x) {
         double val = x.m_r;
-        int a_kind = ((ASR::Real_t*)(&(x.m_type->base)))->m_kind;
+        int a_kind = down_cast<ASR::Real_t>(x.m_type)->m_kind;
         switch( a_kind ) {
             
             case 4 : {
