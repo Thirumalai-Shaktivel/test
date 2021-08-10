@@ -1197,6 +1197,14 @@ public:
                         + "' not found in the module '" + module_name + "'",
                         x.base.base.loc);
                 }
+                if (ASR::is_a<ASR::GenericProcedure_t>(*t)) {
+                    ASR::GenericProcedure_t *p = ASR::down_cast<ASR::GenericProcedure_t>(t);
+                    Vec<ASR::expr_t*> args = visit_expr_list(x.m_args, x.n_args);
+                    int idx = select_generic_procedure(args, *p, x.base.base.loc);
+                    ASR::symbol_t *final_sym = p->m_procs[idx];
+                    t = final_sym;
+                }
+
                 if (!ASR::is_a<ASR::Function_t>(*t)) {
                     throw SemanticError("The symbol '" + remote_sym
                         + "' found in the module '" + module_name + "', "
