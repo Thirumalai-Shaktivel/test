@@ -3,9 +3,9 @@ module lfortran_intrinsic_math2
 use, intrinsic :: iso_fortran_env, only: sp => real32, dp => real64
 implicit none
 
-!interface abs
-!    module procedure sabs, dabs
-!end interface
+interface abs
+    module procedure sabs, dabs
+end interface
 
 !interface sqrt
 !    module procedure ssqrt, dsqrt
@@ -16,7 +16,7 @@ contains
 
 ! abs --------------------------------------------------------------------------
 
-elemental real(sp) function abs(x) result(r)
+elemental real(sp) function sabs(x) result(r)
 real(sp), intent(in) :: x
 if (x >= 0) then
     r = x
@@ -25,14 +25,14 @@ else
 end if
 end function
 
-!elemental real(dp) function dabs(x) result(r)
-!real(dp), intent(in) :: x
-!if (x >= 0) then
-!    r = x
-!else
-!    r = -x
-!end if
-!end function
+elemental real(dp) function dabs(x) result(r)
+real(dp), intent(in) :: x
+if (x >= 0) then
+    r = x
+else
+    r = -x
+end if
+end function
 
 ! sqrt -------------------------------------------------------------------------
 
