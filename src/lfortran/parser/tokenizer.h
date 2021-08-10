@@ -11,13 +11,14 @@ class Tokenizer
 {
 public:
     unsigned char *cur;
-    unsigned char *mar;
-    unsigned char *ctxmar;
     unsigned char *tok;
     unsigned char *cur_line;
     unsigned int line_num;
 
     int last_token=-1;
+
+    std::vector<uint64_t> label_do_stack = {0};
+    bool next_continue_is_enddo=false;
 
 public:
     // Set the string to tokenize. The caller must ensure `str` will stay valid
@@ -26,7 +27,7 @@ public:
 
     // Get next token. Token ID is returned as function result, the semantic
     // value is put into `yylval`.
-    int lex(YYSTYPE &yylval, Location &loc);
+    int lex(Allocator &al, YYSTYPE &yylval, Location &loc);
 
     // Return the current token as std::string
     std::string token() const
@@ -57,6 +58,9 @@ public:
         loc.last_column = cur-cur_line;
     }
 };
+
+bool lex_int(const unsigned char *s, const unsigned char *e, uint64_t &u,
+    Str &suffix);
 
 } // namespace LFortran
 

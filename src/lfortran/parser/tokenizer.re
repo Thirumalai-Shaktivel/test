@@ -1,10 +1,14 @@
 #include <limits>
 
 #include "tokenizer.h"
+#include <lfortran/bigint.h>
 #include "parser.tab.hh"
 
 namespace LFortran
 {
+
+void lex_format(unsigned char *&cur, Location &loc,
+        unsigned char *&start);
 
 void Tokenizer::set_string(const std::string &str)
 {
@@ -18,16 +22,16 @@ void Tokenizer::set_string(const std::string &str)
 }
 
 template<int base>
-bool adddgt(unsigned long &u, unsigned long d)
+bool adddgt(uint64_t &u, uint64_t d)
 {
-    if (u > (std::numeric_limits<unsigned long>::max() - d) / base) {
+    if (u > (std::numeric_limits<uint64_t>::max() - d) / base) {
         return false;
     }
     u = u * base + d;
     return true;
 }
 
-bool lex_dec(const unsigned char *s, const unsigned char *e, unsigned long &u)
+bool lex_dec(const unsigned char *s, const unsigned char *e, uint64_t &u)
 {
     for (u = 0; s < e; ++s) {
         if (!adddgt<10>(u, *s - 0x30u)) {
@@ -37,16 +41,84 @@ bool lex_dec(const unsigned char *s, const unsigned char *e, unsigned long &u)
     return true;
 }
 
+// Tokenizes integer of the kind 1234_ikind into `u` and `suffix`
+// s ... the start of the integer
+// e ... the character after the end
+bool lex_int(const unsigned char *s, const unsigned char *e, uint64_t &u,
+    Str &suffix)
+{
+    for (u = 0; s < e; ++s) {
+        if (*s == '_') {
+            s++;
+            suffix.p = (char*) s;
+            suffix.n = e-s;
+            return true;
+        } else if (!adddgt<10>(u, *s - 0x30u)) {
+            return false;
+        }
+    }
+    suffix.p = nullptr;
+    suffix.n = 0;
+    return true;
+}
+
+void lex_int_large(Allocator &al, const unsigned char *s,
+    const unsigned char *e, BigInt::BigInt &u, Str &suffix)
+{
+    uint64_t ui;
+    if (lex_int(s, e, ui, suffix)) {
+        if (ui <= BigInt::MAX_SMALL_INT) {
+            u.from_smallint(ui);
+            return;
+        }
+    }
+    const unsigned char *start = s;
+    for (; s < e; ++s) {
+        if (*s == '_') {
+            s++;
+            suffix.p = (char*) s;
+            suffix.n = e-s;
+
+            Str num;
+            num.p = (char*)start;
+            num.n = s-start-1;
+            u.from_largeint(al, num);
+            return;
+        }
+    }
+    suffix.p = nullptr;
+    suffix.n = 0;
+    Str num;
+    num.p = (char*)start;
+    num.n = e-start;
+    u.from_largeint(al, num);
+}
+
+uint64_t parse_int(const unsigned char *s)
+{
+    while (*s == ' ') s++;
+    uint64_t u;
+    for (u = 0; ; ++s) {
+        if (*s >= '0' && *s <= '9') {
+            if (!adddgt<10>(u, *s - 0x30u)) {
+                return false;
+            }
+        } else {
+            return u;
+        }
+    }
+}
+
 #define KW(x) token(yylval.string); RET(KW_##x);
 #define RET(x) token_loc(loc); last_token=yytokentype::x; return yytokentype::x;
 
-int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
+int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
 {
-	unsigned long u;
     for (;;) {
         tok = cur;
+
         /*
-        Re2c has an excellent documentation at:
+        Re2c has excellent documentation at:
 
         https://re2c.org/manual/manual_c.html
 
@@ -57,9 +129,55 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
           precedence
         * Default rule `*` should always be defined, it has the lowest priority
           regardless of its place and matches any code unit
+        * We use the "Sentinel character" method for end of input:
+            * The end of the input text is denoted with a null character \x00
+            * Thus the null character cannot be part of the input otherwise
+            * There is one rule to match \x00 to end the parser
+            * No other rule is allowed to match \x00, otherwise the re2c block
+              would parse past the end of the string and segfaults
+            * A special case of the previous point are negated character
+              ranges, such as [^"\x00], where one must include \x00 in it to
+              ensure this rule does not match \x00 (all other rules simply do
+              not mention \x00)
+            * See the "Handling the end of input" section in the re2c
+              documentation for more info
+
+        The re2c block interacts with the rest of the code via just one pointer
+        variable `cur`. On entering the re2c block, the `cur` variable must
+        point to the first character of the token to be tokenized by the block.
+        The re2c block below then executes on its own until a rule is matched:
+        the action in {} is then executed. In that action `cur` points to the
+        first character of the next token.
+
+        Before the re2c block we save the current `cur` into `tok`, so that we
+        can use `tok` and `cur` in the action in {} to extract the token that
+        corresponds to the rule that got matched:
+
+        * `tok` points to the first character of the token
+        * `cur-1` points to the last character of the token
+        * `cur` points to the first character of the next token
+        * `cur-tok` is the length of the token
+
+        In the action, we do one of:
+
+        * call `continue` which executes another cycle in the for loop (which
+          will parse the next token); we use this to skip a token
+        * call `return` which returns from this function; we return a token
+        * throw an exception (terminates the tokenizer)
+
+        In the first two cases, `cur` points to first character of the next
+        token, which becomes `tok` at the next iteration of the loop (either
+        right away after `continue` or after the `lex` function is called again
+        after `return`).
 
         See the manual for more details.
         */
+
+
+        // These two variables are needed by the re2c block below internally,
+        // initialization is not needed. One can think of them as local
+        // variables of the re2c block.
+        unsigned char *mar, *ctxmar;
         /*!re2c
             re2c:define:YYCURSOR = cur;
             re2c:define:YYMARKER = mar;
@@ -73,7 +191,7 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             digit = [0-9];
             char =  [a-zA-Z_];
             name = char (char | digit)*;
-            defop = "."[a-z]+".";
+            defop = "."[a-zA-Z]+".";
             kind = digit+ | name;
             significand = (digit+"."digit*) | ("."digit+);
             exp = [edED][-+]? digit+;
@@ -82,7 +200,7 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             string1 = (kind "_")? '"' ('""'|[^"\x00])* '"';
             string2 = (kind "_")? "'" ("''"|[^'\x00])* "'";
             comment = "!" [^\n\x00]*;
-            ws_comment = whitespace? comment? "\n";
+            ws_comment = whitespace? comment? newline;
 
             * { token_loc(loc);
                 std::string t = token();
@@ -97,6 +215,7 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             'all' { KW(ALL) }
             'allocatable' { KW(ALLOCATABLE) }
             'allocate' { KW(ALLOCATE) }
+            'assign' { KW(ASSIGN) }
             'assignment' { KW(ASSIGNMENT) }
             'associate' { KW(ASSOCIATE) }
             'asynchronous' { KW(ASYNCHRONOUS) }
@@ -114,7 +233,15 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             'concurrent' { KW(CONCURRENT) }
             'contains' { KW(CONTAINS) }
             'contiguous' { KW(CONTIGUOUS) }
-            'continue' { KW(CONTINUE) }
+            'continue' {
+                if (last_token == yytokentype::TK_LABEL
+                        && next_continue_is_enddo) {
+                    next_continue_is_enddo = false;
+                    KW(END_DO)
+                } else {
+                    KW(CONTINUE)
+                }
+            }
             'critical' { KW(CRITICAL) }
             'cycle' { KW(CYCLE) }
             'data' { KW(DATA) }
@@ -122,24 +249,83 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             'default' { KW(DEFAULT) }
             'deferred' { KW(DEFERRED) }
             'dimension' { KW(DIMENSION) }
+            'do' / (whitespace digit+) {
+                // This is a label do statement, we have to match the
+                // corresponding continue base "end do".
+                uint64_t n = parse_int(cur);
+                label_do_stack.push_back(n);
+                KW(DO);
+            }
             'do' { KW(DO) }
             'dowhile' { KW(DOWHILE) }
             'double' { KW(DOUBLE) }
+            'doubleprecision' { KW(DOUBLE_PRECISION) }
             'elemental' { KW(ELEMENTAL) }
             'else' { KW(ELSE) }
             'elseif' { KW(ELSEIF) }
             'elsewhere' { KW(ELSEWHERE) }
+
             'end' { KW(END) }
+
+            'end' whitespace 'program' { KW(END_PROGRAM) }
+            'endprogram' { KW(ENDPROGRAM) }
+
+            'end' whitespace 'module' { KW(END_MODULE) }
+            'endmodule' { KW(ENDMODULE) }
+
+            'end' whitespace 'submodule' { KW(END_SUBMODULE) }
+            'endsubmodule' { KW(ENDSUBMODULE) }
+
+            'end' whitespace 'block' { KW(END_BLOCK) }
+            'endblock' { KW(ENDBLOCK) }
+
+            'end' whitespace 'block' whitespace 'data' { KW(END_BLOCK_DATA) }
+            'endblock' whitespace 'data' { KW(END_BLOCK_DATA) }
+            'end' whitespace 'blockdata' { KW(END_BLOCK_DATA) }
+            'endblockdata' { KW(ENDBLOCKDATA) }
+
+            'end' whitespace 'subroutine' { KW(END_SUBROUTINE) }
+            'endsubroutine' { KW(ENDSUBROUTINE) }
+
+            'end' whitespace 'function' { KW(END_FUNCTION) }
+            'endfunction' { KW(ENDFUNCTION) }
+
+            'end' whitespace 'procedure' { KW(END_PROCEDURE) }
+            'endprocedure' { KW(ENDPROCEDURE) }
+
+            'end' whitespace 'enum' { KW(END_ENUM) }
+            'endenum' { KW(ENDENUM) }
+
+            'end' whitespace 'select' { KW(END_SELECT) }
+            'endselect' { KW(ENDSELECT) }
+
+            'end' whitespace 'associate' { KW(END_ASSOCIATE) }
+            'endassociate' { KW(ENDASSOCIATE) }
+
+            'end' whitespace 'critical' { KW(END_CRITICAL) }
+            'endcritical' { KW(ENDCRITICAL) }
+
             'end' whitespace 'forall' { KW(END_FORALL) }
             'endforall' { KW(ENDFORALL) }
+
             'end' whitespace 'if' { KW(END_IF) }
             'endif' { KW(ENDIF) }
+
             'end' whitespace 'interface' { KW(END_INTERFACE) }
             'endinterface' { KW(ENDINTERFACE) }
+
+            'end' whitespace 'type' { KW(END_TYPE) }
+            'endtype' { KW(ENDTYPE) }
+
             'end' whitespace 'do' { KW(END_DO) }
             'enddo' { KW(ENDDO) }
+
             'end' whitespace 'where' { KW(END_WHERE) }
             'endwhere' { KW(ENDWHERE) }
+
+            'end file' { KW(END_FILE) }
+            'endfile' { KW(ENDFILE) }
+
             'entry' { KW(ENTRY) }
             'enum' { KW(ENUM) }
             'enumerator' { KW(ENUMERATOR) }
@@ -154,11 +340,23 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             'final' { KW(FINAL) }
             'flush' { KW(FLUSH) }
             'forall' { KW(FORALL) }
-            'format' { KW(FORMAT) }
+            'format' {
+                if (last_token == yytokentype::TK_LABEL) {
+                    unsigned char *start;
+                    lex_format(cur, loc, start);
+                    yylval.string.p = (char*) start;
+                    yylval.string.n = cur-start-1;
+                    RET(TK_FORMAT)
+                } else {
+                    token(yylval.string);
+                    RET(TK_NAME)
+                }
+            }
             'formatted' { KW(FORMATTED) }
             'function' { KW(FUNCTION) }
             'generic' { KW(GENERIC) }
-            'go'  { KW(GO) }
+            'go' { KW(GO) }
+            'goto' { KW(GOTO) }
             'if' { KW(IF) }
             'implicit' { KW(IMPLICIT) }
             'import' { KW(IMPORT) }
@@ -216,6 +414,9 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             'rewind' { KW(REWIND) }
             'save' { KW(SAVE) }
             'select' { KW(SELECT) }
+            'selectcase' { KW(SELECT_CASE) }
+            'selectrank' { KW(SELECT_RANK) }
+            'selecttype' { KW(SELECT_TYPE) }
             'sequence' { KW(SEQUENCE) }
             'shared' { KW(SHARED) }
             'source' { KW(SOURCE) }
@@ -249,12 +450,12 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             // Single character symbols
             "(" { RET(TK_LPAREN) }
             "(" / "/=" { RET(TK_LPAREN) } // To parse "operator(/=)" correctly
-            "(" / "/," { RET(TK_LPAREN) } // To parse "format(/,'xx')" correctly
-            "(" / ("/" whitespace ",") { RET(TK_LPAREN) } // To parse "format(/ ,'xx')" correctly
-            "(" / "//," { RET(TK_LPAREN) } // To parse "format(//,'xx')" correctly
-            "(" / ("//" whitespace ",") { RET(TK_LPAREN) } // To parse "format(// ,'xx')" correctly
-            "(" / "/)" { RET(TK_LPAREN) } // To parse "format(/)" correctly
-            "(" / ("/" whitespace ")") { RET(TK_LPAREN) } // To parse "format(/ )" correctly
+            "(" / "/)" { RET(TK_LPAREN) } // To parse "operator(/)" correctly
+            // To parse "operator(/ )" correctly
+            "(" / "/" whitespace ")" { RET(TK_LPAREN) }
+            // To parse "operator(// )" correctly
+            "(" / "//" whitespace ")" { RET(TK_LPAREN) }
+            "(" / "//)" { RET(TK_LPAREN) } // To parse "operator(//)" correctly
             ")" { RET(TK_RPAREN) }
             "[" | "(/" { RET(TK_LBRACKET) }
             "]" { RET(TK_RBRACKET) }
@@ -303,44 +504,44 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
             // built-in or custom defined operator, such as: `.eq.`, `.not.`,
             // or `.custom.`.
             integer / defop {
-                if (lex_dec(tok, cur, u)) {
-                    yylval.n = u;
-                    RET(TK_INTEGER)
-                } else {
-                    token_loc(loc);
-                    std::string t = token();
-                    throw LFortran::TokenizerError("Integer too large",
-                        loc, t);
-                }
+                lex_int_large(al, tok, cur,
+                    yylval.int_suffix.int_n,
+                    yylval.int_suffix.int_kind);
+                RET(TK_INTEGER)
             }
 
 
             real { token(yylval.string); RET(TK_REAL) }
             integer / (whitespace name) {
-                if (lex_dec(tok, cur, u)) {
-                    yylval.n = u;
-                    if (last_token == yytokentype::TK_NEWLINE) {
-                        RET(TK_LABEL)
+                if (last_token == yytokentype::TK_NEWLINE) {
+                    uint64_t u;
+                    if (lex_int(tok, cur, u, yylval.int_suffix.int_kind)) {
+                            yylval.n = u;
+                            if (label_do_stack[label_do_stack.size()-1] == u) {
+                                label_do_stack.pop_back();
+                                next_continue_is_enddo = true;
+                            } else {
+                                next_continue_is_enddo = false;
+                            }
+                            RET(TK_LABEL)
                     } else {
-                        RET(TK_INTEGER)
+                        token_loc(loc);
+                        std::string t = token();
+                        throw LFortran::TokenizerError("Integer too large",
+                            loc, t);
                     }
                 } else {
-                    token_loc(loc);
-                    std::string t = token();
-                    throw LFortran::TokenizerError("Integer too large",
-                        loc, t);
+                    lex_int_large(al, tok, cur,
+                        yylval.int_suffix.int_n,
+                        yylval.int_suffix.int_kind);
+                    RET(TK_INTEGER)
                 }
             }
             integer {
-                if (lex_dec(tok, cur, u)) {
-                    yylval.n = u;
-                    RET(TK_INTEGER)
-                } else {
-                    token_loc(loc);
-                    std::string t = token();
-                    throw LFortran::TokenizerError("Integer too large",
-                        loc, t);
-                }
+                lex_int_large(al, tok, cur,
+                    yylval.int_suffix.int_n,
+                    yylval.int_suffix.int_kind);
+                RET(TK_INTEGER)
             }
 
             [bB] '"' [01]+ '"' { token(yylval.string); RET(TK_BOZ_CONSTANT) }
@@ -354,10 +555,21 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
                 line_num++; cur_line=cur; continue;
             }
 
-            comment / "\n" { token(yylval.string); RET(TK_COMMENT) }
+            comment newline {
+                line_num++; cur_line=cur;
+                token(yylval.string);
+                yylval.string.n--;
+                token_loc(loc);
+                if (last_token == yytokentype::TK_NEWLINE) {
+                    return yytokentype::TK_COMMENT;
+                } else {
+                    last_token=yytokentype::TK_NEWLINE;
+                    return yytokentype::TK_EOLCOMMENT;
+                }
+            }
 
             // Macros are ignored for now:
-            "#" [^\n\x00]* "\n" { line_num++; cur_line=cur; continue; }
+            "#" [^\n\x00]* newline { line_num++; cur_line=cur; continue; }
 
             // Include statements are ignored for now
             'include' whitespace string1 { continue; }
@@ -368,6 +580,114 @@ int Tokenizer::lex(YYSTYPE &yylval, Location &loc)
 
             defop { token(yylval.string); RET(TK_DEF_OP) }
             name { token(yylval.string); RET(TK_NAME) }
+        */
+    }
+}
+
+std::string token(unsigned char *tok, unsigned char* cur)
+{
+    return std::string((char *)tok, cur - tok);
+}
+
+void token_loc(Location &loc)
+{
+    loc.first_line = 1;
+    loc.last_line = 1;
+    loc.first_column = 1;
+    loc.last_column = 1;
+}
+
+void lex_format(unsigned char *&cur, Location &loc,
+        unsigned char *&start) {
+    int num_paren = 0;
+    for (;;) {
+        unsigned char *tok = cur;
+        unsigned char *mar;
+        /*!re2c
+            re2c:define:YYCURSOR = cur;
+            re2c:define:YYMARKER = mar;
+            re2c:yyfill:enable = 0;
+            re2c:define:YYCTYPE = "unsigned char";
+
+            int = digit+;
+            data_edit_desc
+                = 'I' int ('.' int)?
+                | 'B' int ('.' int)?
+                | 'O' int ('.' int)?
+                | 'Z' int ('.' int)?
+                | 'F' int '.' int
+                | 'E' int '.' int ('E' int)?
+                | 'EN' int '.' int ('E' int)?
+                | 'ES' int '.' int ('E' int)?
+                | 'EX' int '.' int ('E' int)?
+                | 'G' int ('.' int ('E' int)?)?
+                | 'L' int
+                | 'A' (int)?
+                | 'D' int '.' int
+                | 'PE' int '.' int
+                | 'PF' int '.' int
+                | 'P'
+                | 'X'
+                ;
+            position_edit_desc
+                = 'T' int
+                | 'TL' int
+                | 'TR' int
+                | int 'X'
+                ;
+            control_edit_desc
+                = position_edit_desc
+                | (int)? '/'
+                | ':'
+                ;
+
+            * {
+                token_loc(loc);
+                std::string t = token(tok, cur);
+                throw LFortran::TokenizerError("Token '" + t
+                    + "' is not recognized in `format` statement", loc, t);
+            }
+            '(' {
+                if (num_paren == 0) {
+                    num_paren++;
+                    start = cur;
+                    continue;
+                } else {
+                    cur--;
+                    unsigned char *tmp;
+                    lex_format(cur, loc, tmp);
+                    continue;
+                }
+            }
+            int whitespace? '(' {
+                cur--;
+                unsigned char *tmp;
+                lex_format(cur, loc, tmp);
+                continue;
+            }
+            '*' whitespace? '(' {
+                cur--;
+                unsigned char *tmp;
+                lex_format(cur, loc, tmp);
+                continue;
+            }
+            ')' {
+                LFORTRAN_ASSERT(num_paren == 1);
+                return;
+            }
+            end {
+                token_loc(loc);
+                std::string t = token(tok, cur);
+                throw LFortran::TokenizerError(
+                    "End of file not expected in `format` statemenet", loc, t);
+            }
+            whitespace { continue; }
+            ',' { continue; }
+            "&" ws_comment+ whitespace? "&"? { continue; }
+            '"' ('""'|[^"\x00])* '"' { continue; }
+            "'" ("''"|[^'\x00])* "'" { continue; }
+            (int)? data_edit_desc { continue; }
+            control_edit_desc { continue; }
         */
     }
 }

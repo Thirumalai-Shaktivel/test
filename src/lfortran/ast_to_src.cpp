@@ -1,6 +1,7 @@
 #include <cctype>
 #include <lfortran/ast_to_src.h>
 #include <lfortran/string_utils.h>
+#include <lfortran/bigint.h>
 
 using LFortran::AST::expr_t;
 using LFortran::AST::Name_t;
@@ -14,12 +15,6 @@ using LFortran::AST::StrOp_t;
 namespace LFortran {
 
 namespace {
-
-    inline std::string convert_to_lowercase(const std::string &s) {
-       std::string res;
-       for(auto x: s) res.push_back(std::tolower(x));
-       return res;
-    }
 
     std::string op2str(const operatorType type)
     {
@@ -65,25 +60,26 @@ namespace {
         throw LFortranException("Unknown type");
     }
 
-    std::string interfaceop2str(const AST::interfaceopType type)
+    std::string intrinsicop2str(const AST::intrinsicopType type)
     {
         switch (type) {
-            case (AST::interfaceopType::AND) : return ".and.";
-            case (AST::interfaceopType::OR) : return ".or.";
-            case (AST::interfaceopType::EQV) : return ".eqv.";
-            case (AST::interfaceopType::NEQV) : return ".neqv.";
-            case (AST::interfaceopType::PLUS) : return "+";
-            case (AST::interfaceopType::MINUS) : return "-";
-            case (AST::interfaceopType::STAR) : return "*";
-            case (AST::interfaceopType::DIV) : return "/";
-            case (AST::interfaceopType::POW) : return "**";
-            case (AST::interfaceopType::NOT) : return ".not.";
-            case (AST::interfaceopType::EQ) : return "==";
-            case (AST::interfaceopType::GT) : return ">";
-            case (AST::interfaceopType::GTE) : return ">=";
-            case (AST::interfaceopType::LT) : return "<";
-            case (AST::interfaceopType::LTE) : return "<=";
-            case (AST::interfaceopType::NOTEQ) : return "/=";
+            case (AST::intrinsicopType::AND) : return ".and.";
+            case (AST::intrinsicopType::OR) : return ".or.";
+            case (AST::intrinsicopType::EQV) : return ".eqv.";
+            case (AST::intrinsicopType::NEQV) : return ".neqv.";
+            case (AST::intrinsicopType::PLUS) : return "+";
+            case (AST::intrinsicopType::MINUS) : return "-";
+            case (AST::intrinsicopType::STAR) : return "*";
+            case (AST::intrinsicopType::DIV) : return "/";
+            case (AST::intrinsicopType::POW) : return "**";
+            case (AST::intrinsicopType::NOT) : return ".not.";
+            case (AST::intrinsicopType::EQ) : return "==";
+            case (AST::intrinsicopType::GT) : return ">";
+            case (AST::intrinsicopType::GTE) : return ">=";
+            case (AST::intrinsicopType::LT) : return "<";
+            case (AST::intrinsicopType::LTE) : return "<=";
+            case (AST::intrinsicopType::NOTEQ) : return "/=";
+            case (AST::intrinsicopType::CONCAT) : return "//";
         }
         throw LFortranException("Unknown type");
     }
@@ -92,9 +88,11 @@ namespace {
     {
         switch (type) {
             case (AST::symbolType::None) : return "";
-            case (AST::symbolType::Assign) : return " => ";
+            case (AST::symbolType::Arrow) : return " => ";
             case (AST::symbolType::Equal) : return " = ";
             case (AST::symbolType::Asterisk) : return " *";
+            case (AST::symbolType::DoubleAsterisk) : return "*(*)";
+            case (AST::symbolType::Slash) : return "/";
         }
         throw LFortranException("Unknown type");
     }
@@ -230,16 +228,99 @@ public:
         indent = std::string(indent_level*indent_spaces, ' ');
     }
 
+    std::string print_trivia_inside(const trivia_t &x) {
+        std::string r = " ";
+        auto y = (TriviaNode_t &)x;
+        if(y.n_inside > 0) {
+            for (size_t i=0; i<y.n_inside; i++) {
+                switch (y.m_inside[i]->type) {
+                    case trivia_nodeType::Comment: {
+                        if(i == 0) r += "\n";
+                        r += std::string(
+                            down_cast<Comment_t>(y.m_inside[i])->m_comment
+                        );
+                        r += "\n";
+                        break;
+                    }
+                    case trivia_nodeType::EOLComment: {
+                        r += std::string(
+                            down_cast<EOLComment_t>(y.m_inside[i])->m_comment
+                        );
+                        r += "\n";
+                        break;
+                    }
+                    case trivia_nodeType::EmptyLines: {
+                        if(i == 0) r += "\n";
+                        r += "\n";
+                        break;
+                    }
+                    case trivia_nodeType::Semicolon: {
+                        r += "; ";
+                        break;
+                    }
+                }
+            }
+        } else {
+            return "\n";
+        }
+        return r;
+    }
+
+    std::string print_trivia_after(const trivia_t &x) {
+        std::string r = " ";
+        auto y = (TriviaNode_t &)x;
+        if(y.n_after > 0) {
+            for (size_t i=0; i<y.n_after; i++) {
+                switch (y.m_after[i]->type) {
+                    case trivia_nodeType::Comment: {
+                        if(i == 0) r += "\n";
+                        r += std::string(
+                            down_cast<Comment_t>(y.m_after[i])->m_comment
+                        );
+                        r += "\n";
+                        break;
+                    }
+                    case trivia_nodeType::EOLComment: {
+                        r += std::string(
+                            down_cast<EOLComment_t>(y.m_after[i])->m_comment
+                        );
+                        r += "\n";
+                        break;
+                    }
+                    case trivia_nodeType::EmptyLines: {
+                        if(i == 0) r += "\n";
+                        r += "\n";
+                        break;
+                    }
+                    case trivia_nodeType::Semicolon: {
+                        r += "; ";
+                        break;
+                    }
+                }
+            }
+        } else {
+            return "\n";
+        }
+        return r;
+    }
+
     void visit_TranslationUnit(const TranslationUnit_t &x) {
         std::string r;
         for (size_t i=0; i<x.n_items; i++) {
             this->visit_ast(*x.m_items[i]);
             r += s;
-            if (i < x.n_items-1 && (
-                    !is_a<unit_decl2_t>(*x.m_items[i]) &&
-                    !is_a<unit_decl2_t>(*x.m_items[i+1])
-                )) {
-                r.append("\n");
+            if (i < x.n_items-1) {
+                if (is_a<expr_t>(*x.m_items[i]) || (
+                        (  is_a<mod_t>(*x.m_items[i])
+                        || is_a<program_unit_t>(*x.m_items[i])
+                        ) &&
+                        (  is_a<mod_t>(*x.m_items[i+1])
+                        || is_a<program_unit_t>(*x.m_items[i+1])
+                        )
+                            )
+                        ) {
+                    r.append("\n");
+                }
             }
         }
         s = r;
@@ -252,7 +333,11 @@ public:
         r += syn();
         r += " ";
         r.append(x.m_name);
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_inside(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
 
         r += format_unit_body(x);
 
@@ -261,7 +346,11 @@ public:
         r += syn();
         r += " ";
         r.append(x.m_name);
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
     void visit_Submodule(const Submodule_t &x) {
@@ -271,9 +360,17 @@ public:
         r += syn();
         r += " (";
         r.append(x.m_id);
+        if(x.m_parent_name) {
+            r += ":";
+            r.append(x.m_parent_name);
+        }
         r += ") ";
         r.append(x.m_name);
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_inside(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         if (indent_unit) inc_indent();
         if(x.n_use > 0) {
             for (size_t i=0; i<x.n_use; i++) {
@@ -309,7 +406,52 @@ public:
         r += syn();
         r += " ";
         r.append(x.m_name);
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        s = r;
+    }
+
+    void visit_BlockData(const BlockData_t &x) {
+        std::string r = indent;
+        r += syn(gr::UnitHeader);
+        r += "block data";
+        r += syn();
+        if(x.m_name) {
+            r += " ";
+            r.append(x.m_name);
+        }
+        if(x.m_trivia){
+            r += print_trivia_inside(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        inc_indent();
+        for (size_t i=0; i<x.n_use; i++) {
+            this->visit_unit_decl1(*x.m_use[i]);
+            r.append(s);
+        }
+        r += format_implicit(x);
+        for (size_t i=0; i<x.n_decl; i++) {
+            this->visit_unit_decl2(*x.m_decl[i]);
+            r.append(s);
+        }
+        dec_indent();
+        r += indent;
+        r += syn(gr::UnitHeader);
+        r.append("end block data");
+        r += syn();
+        if(x.m_name) {
+            r += " ";
+            r.append(x.m_name);
+        }
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -320,7 +462,11 @@ public:
         r += syn();
         r += " ";
         r.append(x.m_name);
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_inside(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
 
         r += format_unit_body(x);
         r += syn(gr::UnitHeader);
@@ -328,8 +474,11 @@ public:
         r += syn();
         r += " ";
         r.append(x.m_name);
-        r.append("\n");
-
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -357,7 +506,11 @@ public:
             this->visit_bind(*x.m_bind);
             r.append(s);
         }
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_inside(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
 
         r += format_unit_body(x, !indent_unit);
         r += indent;
@@ -366,7 +519,11 @@ public:
         r += syn();
         r += " ";
         r.append(x.m_name);
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -389,7 +546,11 @@ public:
             if (i < x.n_args-1) r.append(", ");
         }
         r.append(")");
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_inside(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
 
         r += format_unit_body(x, !indent_unit);
         r += indent;
@@ -398,7 +559,11 @@ public:
         r += syn();
         r += " ";
         r.append(x.m_name);
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -415,7 +580,17 @@ public:
         }
         r.append(" :: ");
         r.append(x.m_name);
-        r.append("\n");
+        for (size_t i=0; i<x.n_namelist; i++) {
+            if (i == 0) r += "(";
+            r.append(x.m_namelist[i]);
+            if (i < x.n_namelist-1) r.append(", ");
+            else r += ")";
+        }
+        if(x.m_trivia){
+            r += print_trivia_inside(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_items; i++) {
             visit_unit_decl2(*x.m_items[i]);
@@ -431,14 +606,18 @@ public:
             for (size_t i=0; i<x.n_contains; i++) {
                 this->visit_procedure_decl(*x.m_contains[i]);
                 r.append(s);
-                r.append("\n");
+                // r.append("\n");
             }
         }
         r += syn(gr::UnitHeader);
         r.append(indent + "end type ");
         r += syn();
         r.append(x.m_name);
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
     void visit_DerivedTypeProc(const DerivedTypeProc_t &x) {
@@ -461,28 +640,49 @@ public:
         for (size_t i=0; i<x.n_symbols; i++) {
             this->visit_use_symbol(*x.m_symbols[i]);
             r.append(s);
+            if (i < x.n_symbols-1) r.append(", ");
+        }
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
         }
         s = r;
     }
     void visit_GenericOperator(const GenericOperator_t &x) {
         std::string r;
         r += syn(gr::String);
-        r.append("generic :: operator");
+        r.append("generic");
         r += syn();
-        r += "(" + interfaceop2str(x.m_op) + ")";
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: operator(" + intrinsicop2str(x.m_op) + ")";
         r += " => ";
         for (size_t i=0; i<x.n_names; i++) {
             r.append(x.m_names[i]);
             if (i < x.n_names-1) r.append(", ");
+        }
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
         }
         s = r;
     }
     void visit_GenericDefinedOperator(const GenericDefinedOperator_t &x) {
         std::string r;
         r += syn(gr::String);
-        r.append("generic :: operator");
+        r.append("generic");
         r += syn();
-        r += "(";
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: operator(";
         r += "." + std::string(x.m_optype) + ".";
         r += ")";
         r += " => ";
@@ -490,42 +690,140 @@ public:
             r.append(x.m_names[i]);
             if (i < x.n_names-1) r.append(", ");
         }
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
     void visit_GenericAssignment(const GenericAssignment_t &x) {
         std::string r;
         r += syn(gr::String);
-        r.append("generic :: assignment(=)");
+        r.append("generic");
         r += syn();
-        r += " => ";
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: assignment(=) => ";
         for (size_t i=0; i<x.n_names; i++) {
             r.append(x.m_names[i]);
             if (i < x.n_names-1) r.append(", ");
+        }
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
         }
         s = r;
     }
     void visit_GenericName(const GenericName_t &x) {
         std::string r;
         r += syn(gr::String);
-        r.append("generic :: ");
+        r.append("generic");
         r += syn();
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: ";
         r.append(x.m_name);
         r += " => ";
         for (size_t i=0; i<x.n_names; i++) {
             r.append(x.m_names[i]);
             if (i < x.n_names-1) r.append(", ");
         }
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
+
+    void visit_GenericWrite(const GenericWrite_t &x) {
+        std::string r;
+        r += syn(gr::String);
+        r.append("generic");
+        r += syn();
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: ";
+        r += "write(";
+        r.append(x.m_id);
+        r += ")";
+        r += " => ";
+        for (size_t i=0; i<x.n_names; i++) {
+            r.append(x.m_names[i]);
+            if (i < x.n_names-1) r.append(", ");
+        }
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        s = r;
+    }
+
+    void visit_GenericRead(const GenericRead_t &x) {
+        std::string r;
+        r += syn(gr::String);
+        r.append("generic");
+        r += syn();
+        if(x.n_attr > 0 && x.m_attr[0] != nullptr){
+            r += ", ";
+            this->visit_decl_attribute(*x.m_attr[0]);
+            r.append(s);
+        }
+        r += " :: ";
+        r += "read(";
+        r.append(x.m_id);
+        r += ")";
+        r += " => ";
+        for (size_t i=0; i<x.n_names; i++) {
+            r.append(x.m_names[i]);
+            if (i < x.n_names-1) r.append(", ");
+        }
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        s = r;
+    }
+
     void visit_FinalName(const FinalName_t &x) {
         std::string r;
         r += syn(gr::String);
         r.append("final :: ");
         r += syn();
         r.append(x.m_name);
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
+    void visit_Private(const Private_t &x) {
+        std::string r;
+        r += syn(gr::Type);
+        r.append("private");
+        r += syn();
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        s = r;
+    }
 
     void visit_Enum(const Enum_t & x) {
         std::string r = indent;
@@ -540,7 +838,11 @@ public:
             }
         }
 
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_inside(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_items; i++) {
             this->visit_unit_decl2(*x.m_items[i]);
@@ -549,19 +851,30 @@ public:
         dec_indent();
         r += syn(gr::UnitHeader);
         r.append("end enum");
-        r.append("\n");
         r += syn();
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
     void visit_Interface(const Interface_t &x) {
         std::string r;
+        if(x.m_header->type == AbstractInterfaceHeader) {
+            r += "abstract ";
+        }
         r += syn(gr::UnitHeader);
         r.append("interface");
         r += syn();
         this->visit_interface_header(*x.m_header);
         r.append(s);
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_inside(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_items; i++) {
             this->visit_interface_item(*x.m_items[i]);
@@ -573,7 +886,11 @@ public:
         r += syn();
         this->visit_interface_header(*x.m_header);
         r.append(s);
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -593,7 +910,7 @@ public:
 
     void visit_InterfaceHeaderOperator
             (const InterfaceHeaderOperator_t &x) {
-        s = " operator (" + interfaceop2str(x.m_op) + ")";
+        s = " operator (" + intrinsicop2str(x.m_op) + ")";
     }
 
     void visit_InterfaceHeaderDefinedOperator
@@ -604,6 +921,17 @@ public:
     void visit_AbstractInterfaceHeader
             (const AbstractInterfaceHeader_t &/* x */) {
         s = "";
+    }
+
+    void visit_InterfaceHeaderWrite(const InterfaceHeaderWrite_t &x) {
+        s = " write(";
+        s.append(x.m_id);
+        s += ")";
+    }
+    void visit_InterfaceHeaderRead(const InterfaceHeaderRead_t &x) {
+        s = " read(";
+        s.append(x.m_id);
+        s += ")";
     }
 
     void visit_InterfaceModuleProcedure(const InterfaceModuleProcedure_t &x) {
@@ -620,7 +948,11 @@ public:
             r.append(x.m_names[i]);
             if (i < x.n_names-1) r.append(", ");
         }
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -743,7 +1075,11 @@ public:
             this->visit_bind(*x.m_bind);
             r.append(s);
         }
-        r.append("\n");
+        if(x.m_trivia){
+            r += print_trivia_inside(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
 
         r += format_unit_body(x, !indent_unit);
         r += indent;
@@ -752,8 +1088,11 @@ public:
         r += syn();
         r += " ";
         r.append(x.m_name);
-        r.append("\n");
-
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -770,19 +1109,26 @@ public:
         }
         r += " ";
         r.append(x.m_module);
-        if (x.n_symbols > 0) {
+        if (x.m_only_present || x.n_symbols > 0) {
             r.append(", ");
+        }
+        if (x.m_only_present) {
             r += syn(gr::UnitHeader);
             r += "only";
             r += syn();
-            r += ": ";
-            for (size_t i=0; i<x.n_symbols; i++) {
-                this->visit_use_symbol(*x.m_symbols[i]);
-                r.append(s);
-                if (i < x.n_symbols-1) r.append(", ");
-            }
+            r += ":";
+            if (x.n_symbols > 0) r.append(" ");
         }
-        r += "\n";
+        for (size_t i=0; i<x.n_symbols; i++) {
+            this->visit_use_symbol(*x.m_symbols[i]);
+            r.append(s);
+            if (i < x.n_symbols-1) r.append(", ");
+        }
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -808,7 +1154,7 @@ public:
             r += "all";
             r += syn();
         } else if (x.m_mod == import_modifierType::ImportDefault) {
-            r += " ::";
+            if (x.n_symbols) r += " ::";
         }
         if (x.n_symbols > 0) {
             r += " ";
@@ -817,7 +1163,11 @@ public:
                 if (i < x.n_symbols-1) r.append(", ");
             }
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -835,7 +1185,11 @@ public:
             }
             r += ")";
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -854,6 +1208,14 @@ public:
         r += " ";
         visit_decl_attribute(*x.m_type);
         r += s;
+        if (x.n_kind > 0) {
+            r += " (";
+            for (size_t i=0; i<x.n_kind; i++) {
+                visit_letter_spec(*x.m_kind[i]);
+                r += s;
+            }
+            r += ")";
+        }
         if (x.n_specs > 0) {
             r += " (";
             for (size_t i=0; i<x.n_specs; i++) {
@@ -863,7 +1225,11 @@ public:
             }
             r += ")";
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -912,6 +1278,12 @@ public:
                 r += s;
                 if (i < x.n_syms-1) r.append(", ");
             }
+        } else if (x.m_vartype == nullptr && x.n_attributes == 1 &&
+                is_a<SimpleAttribute_t>(*x.m_attributes[0]) &&
+                down_cast<SimpleAttribute_t>(x.m_attributes[0])->m_attr
+                == simple_attributeType::AttrCommon) {
+            visit_Common(x);
+            r.append(s);
         } else {
             if (x.m_vartype) {
                 visit_decl_attribute(*x.m_vartype);
@@ -919,6 +1291,12 @@ public:
                 if (x.n_attributes > 0) r.append(", ");
             }
             for (size_t i=0; i<x.n_attributes; i++) {
+                if(x.m_attributes[i]->type == decl_attributeType::AttrData
+                        && i == 0 ){
+                    r += syn(gr::Type);
+                    r += "data ";
+                    r += syn();
+                }
                 visit_decl_attribute(*x.m_attributes[i]);
                 r += s;
                 if (i < x.n_attributes-1) r.append(", ");
@@ -932,13 +1310,26 @@ public:
                 }
             }
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
     void visit_var_sym(const var_sym_t &x) {
         std::string r = "";
-        r.append(x.m_name);
+        if(x.m_name && x.m_sym == Slash){
+            r += "/";
+            r.append(x.m_name);
+            r += "/";
+        } else if(x.m_name) {
+            r.append(x.m_name);
+            if(x.m_sym == DoubleAsterisk) {
+                r += symbol2str(x.m_sym);
+            }
+        }
         if (x.n_dim > 0) {
             r.append("(");
             for (size_t i=0; i<x.n_dim; i++) {
@@ -961,12 +1352,107 @@ public:
             visit_expr(*x.m_initializer);
             r += symbol2str(x.m_sym) + s;
         }
+        if (x.m_spec) {
+            this->visit_decl_attribute(*x.m_spec);
+            r.append(s);
+        }
         s = r;
     }
 
+    void visit_Common(const Declaration_t &x) {
+        std::string r;
+        r += syn(gr::Type);
+        r += "common ";
+        r += syn();
+        for (size_t i=0; i<x.n_syms; i++) {
+            if(x.m_syms[i].m_name){
+                r += "/";
+                r.append(x.m_syms[i].m_name);
+                r += "/ ";
+            }
+            if (x.m_syms[i].m_initializer) {
+                visit_expr(*x.m_syms[i].m_initializer);
+                r += s;
+            }
+            if (i < x.n_syms-1) r.append(", ");
+        }
+        s = r;
+    }
+
+    void visit_AttrData(const AttrData_t &x) {
+        std::string r;
+        for (size_t i=0; i<x.n_object; i++) {
+            this->visit_expr(*x.m_object[i]);
+            r.append(s);
+            if (i < x.n_object-1) r.append(", ");
+        }
+        r += "/";
+        for (size_t i=0; i<x.n_value; i++) {
+            this->visit_expr(*x.m_value[i]);
+            r.append(s);
+            if (i < x.n_value-1) r.append(", ");
+        }
+        r += "/";
+        s = r;
+    }
+
+    void visit_DataImpliedDo(const DataImpliedDo_t &x) {
+        std::string r;
+        r += "(";
+        for (size_t i=0; i<x.n_object_list; i++) {
+            this->visit_expr(*x.m_object_list[i]);
+            r.append(s);
+            if (i < x.n_object_list-1) r.append(", ");
+        }
+        r += ", ";
+        if (x.m_type) {
+            this->visit_decl_attribute(*x.m_type);
+            r.append(s);
+            r += " :: ";
+        }
+        r.append(x.m_var);
+        r += " = ";
+        this->visit_expr(*x.m_start);
+        r.append(s);
+        r += ", ";
+        this->visit_expr(*x.m_end);
+        r.append(s);
+        if (x.m_increment) {
+            r += ", ";
+            this->visit_expr(*x.m_increment);
+            r.append(s);
+        }
+        r += ")";
+        s = r;
+    }
+
+    void visit_AttrEquivalence(const AttrEquivalence_t &x) {
+        std::string r;
+        r += syn(gr::Type);
+        r += "equivalence ";
+        r += syn();
+        for (size_t i=0; i<x.n_args; i++) {
+            this->visit_equi(x.m_args[i]);
+            r.append(s);
+            if (i < x.n_args-1) r.append(", ");
+        }
+        s = r;
+    }
+
+    void visit_equi(const equi_t &x) {
+        std::string r;
+        r += "(";
+        for (size_t i=0; i<x.n_set_list; i++) {
+            this->visit_expr(*x.m_set_list[i]);
+            r.append(s);
+            if (i < x.n_set_list-1) r.append(", ");
+        }
+        r += ")";
+        s = r;
+    }
 #define ATTRTYPE(x) \
             case (simple_attributeType::Attr##x) : \
-                r.append(convert_to_lowercase(#x)); \
+                r.append(str2lower(#x)); \
                 break;
 
     void visit_SimpleAttribute(const SimpleAttribute_t &x) {
@@ -975,12 +1461,20 @@ public:
         switch (x.m_attr) {
             ATTRTYPE(Abstract)
             ATTRTYPE(Allocatable)
+            ATTRTYPE(Asynchronous)
             ATTRTYPE(Contiguous)
+            ATTRTYPE(Deferred)
             ATTRTYPE(Elemental)
             ATTRTYPE(Enumerator)
+            ATTRTYPE(External)
             ATTRTYPE(Impure)
+            ATTRTYPE(Intrinsic)
+            ATTRTYPE(Kind)
+            ATTRTYPE(Len)
             ATTRTYPE(Module)
             ATTRTYPE(NoPass)
+            ATTRTYPE(NonDeferred)
+            ATTRTYPE(Non_Intrinsic)
             ATTRTYPE(Optional)
             ATTRTYPE(Parameter)
             ATTRTYPE(Pointer)
@@ -990,12 +1484,10 @@ public:
             ATTRTYPE(Pure)
             ATTRTYPE(Recursive)
             ATTRTYPE(Save)
+            ATTRTYPE(Sequence)
             ATTRTYPE(Target)
             ATTRTYPE(Value)
-            ATTRTYPE(Intrinsic)
-            ATTRTYPE(Non_Intrinsic)
-            ATTRTYPE(Deferred)
-            ATTRTYPE(NonDeferred)
+            ATTRTYPE(Volatile)
             default :
                 throw LFortranException("Attribute type not implemented");
         }
@@ -1074,6 +1566,11 @@ public:
             r.append(x.m_name);
             r.append(")");
         }
+        if (x.m_sym == symbolType::Asterisk) {
+            r.append("(*)");
+        } else if(x.m_sym == symbolType::DoubleAsterisk){
+            r.append("*(*)");
+        }
         s = r;
     }
 
@@ -1114,14 +1611,7 @@ public:
     }
 
     void visit_AttrBind(const AttrBind_t &x) {
-        std::string r;
-        r += syn(gr::Type);
-        r += "bind";
-        r += syn();
-        r += "(";
-        r.append(x.m_name);
-        r += ")";
-        s = r;
+        visit_bind(*x.m_bind);
     }
 
     void visit_AttrExtends(const AttrExtends_t &x) {
@@ -1174,10 +1664,23 @@ public:
         r += syn(gr::Type);
         r += "pass";
         r += syn();
-        r += "(";
-        r.append(x.m_name);
-        r += ")";
+        if (x.m_name) {
+            r += "(";
+            r.append(x.m_name);
+            r += ")";
+        }
         s = r;
+    }
+    void visit_AttrAssignment(const AttrAssignment_t &/*x*/) {
+        s = "assignment (=)";
+    }
+
+    void visit_AttrIntrinsicOperator(const AttrIntrinsicOperator_t &x) {
+        s = "operator (" + intrinsicop2str(x.m_op) + ")";
+    }
+
+    void visit_AttrDefinedOperator(const AttrDefinedOperator_t &x) {
+        s = "operator (." + std::string(x.m_op_name) + ".)";
     }
 
     void visit_AttrStat(const AttrStat_t &x) {
@@ -1203,6 +1706,21 @@ public:
         s = r;
     }
 
+    void visit_Assign(const Assign_t &x) {
+        std::string r = indent;
+        r += print_label(x);
+        r.append("assign");
+        r += " " + std::to_string(x.m_assign_label);
+        r += " to ";
+        r += x.m_variable;
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        s = r;
+    }
+
     void visit_Assignment(const Assignment_t &x) {
         std::string r = indent;
         r += print_label(x);
@@ -1211,7 +1729,11 @@ public:
         r.append(" = ");
         this->visit_expr(*x.m_value);
         r.append(s);
-        r += "\n";
+        if (x.m_trivia) {
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r += "\n";
+        }
         s = r;
     }
 
@@ -1222,8 +1744,22 @@ public:
         r += "go to";
         r += syn();
         r.append(" ");
-        r.append(std::to_string(x.m_goto_label));
-        r.append("\n");
+        if(x.n_labels > 0) {
+            r += "(";
+            for (size_t i=0; i<x.n_labels; i++) {
+                this->visit_expr(*x.m_labels[i]);
+                r.append(s);
+                if (i < x.n_labels-1) r.append(", ");
+            }
+            r += "), ";
+        }
+        this->visit_expr(*x.m_goto_label);
+        r.append(s);
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1235,7 +1771,11 @@ public:
         r.append(" => ");
         this->visit_expr(*x.m_value);
         r.append(s);
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1248,6 +1788,35 @@ public:
         r += " ";
         for (size_t i=0; i<x.n_member; i++) {
             r.append(x.m_member[i].m_name);
+            for (size_t j=0; j<x.m_member[i].n_args; j++) {
+                r += "(";
+                expr_t *start = x.m_member[i].m_args[j].m_start;
+                expr_t *end = x.m_member[i].m_args[j].m_end;
+                expr_t *step = x.m_member[i].m_args[j].m_step;
+                if (step != nullptr) {
+                    if (start) {
+                        this->visit_expr(*start);
+                        r.append(s);
+                    }
+                    r += ":";
+                    if (end) {
+                        this->visit_expr(*end);
+                        r.append(s);
+                    }
+                    if (is_a<Num_t>(*step) &&
+                            down_cast<Num_t>(step)->m_n != 1) {
+                        r += ":";
+                        this->visit_expr(*step);
+                        r.append(s);
+                    }
+                } else if (end != nullptr && start == nullptr) {
+                    this->visit_expr(*end);
+                    r.append(s);
+                } else {
+                    throw LFortranException("Incorrect array elements");
+                }
+                r += ")";
+            }
             r.append("%");
         }
         r.append(x.m_name);
@@ -1267,7 +1836,12 @@ public:
             r.append(s);
             if (i < x.n_keywords-1) r.append(", ");
         }
-        r.append(")\n");
+        r.append(")");
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1301,7 +1875,12 @@ public:
             r.append(s);
             if (i < x.n_keywords-1) r.append(", ");
         }
-        r.append(")\n");
+        r.append(")");
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1327,7 +1906,20 @@ public:
             }
             if (i < x.n_args-1) r.append(", ");
         }
-        r.append(")\n");
+        if (x.n_keywords > 0) r.append(", ");
+        for (size_t i=0; i<x.n_keywords; i++) {
+            r.append(std::string(x.m_keywords[i].m_arg));
+            r += "=";
+            this->visit_expr(*x.m_keywords[i].m_value);
+            r.append(s);
+            if (i < x.n_keywords-1) r.append(", ");
+        }
+        r.append(")");
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1345,7 +1937,11 @@ public:
         r += syn(gr::Conditional);
         r += "then";
         r += syn();
-        r += "\n";
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -1357,7 +1953,11 @@ public:
             r += syn(gr::Conditional);
             r += "else";
             r += syn();
-            r += "\n";
+            if(x.m_t_inside){
+                r += print_trivia_inside(*x.m_t_inside);
+            } else {
+                r.append("\n");
+            }
             inc_indent();
             for (size_t i=0; i<x.n_orelse; i++) {
                 this->visit_stmt(*x.m_orelse[i]);
@@ -1369,7 +1969,33 @@ public:
         r += syn(gr::Conditional);
         r += "end if";
         r += syn();
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        s = r;
+    }
+
+    void visit_IfArithmetic(const IfArithmetic_t &x) {
+        std::string r = indent;
+        r += print_label(x);
+        r += print_stmt_name(x);
+        r += syn(gr::Conditional);
+        r += "if";
+        r += syn();
+        r += " (";
+        this->visit_expr(*x.m_test);
+        r += s;
+        r += ") ";
+        r += std::to_string(x.m_lt_label);
+        r += ", " + std::to_string(x.m_eq_label);
+        r += ", " + std::to_string(x.m_gt_label);
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1383,7 +2009,12 @@ public:
         r += " (";
         this->visit_expr(*x.m_test);
         r += s;
-        r += ")\n";
+        r += ")";
+        if(x.m_t_inside){
+            r += print_trivia_inside(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -1395,7 +2026,11 @@ public:
             r += syn(gr::Conditional);
             r += "else where";
             r += syn();
-            r += "\n";
+            if(x.m_t_inside){
+                r += print_trivia_after(*x.m_t_inside);
+            } else {
+                r.append("\n");
+            }
             inc_indent();
             for (size_t i=0; i<x.n_orelse; i++) {
                 this->visit_stmt(*x.m_orelse[i]);
@@ -1407,7 +2042,11 @@ public:
         r += syn(gr::Repeat);
         r += "end where";
         r += syn();
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1425,7 +2064,11 @@ public:
             this->visit_expr(*x.m_quiet);
             r += ", quiet = " + s;
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1443,7 +2086,11 @@ public:
             this->visit_expr(*x.m_quiet);
             r += ", quiet = " + s;
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1464,7 +2111,11 @@ public:
             }
         }
         r += ")";
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1486,7 +2137,11 @@ public:
             }
         }
         r += ")";
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1504,7 +2159,11 @@ public:
             }
             r += ")";
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1514,6 +2173,9 @@ public:
         r += print_stmt_name(x);
         r += syn(gr::Repeat);
         r += "do";
+        if (x.m_do_label){
+            r += " " + std::to_string(x.m_do_label);
+        }
         r += syn();
         if (x.m_var) {
             r.append(" ");
@@ -1534,7 +2196,11 @@ public:
             this->visit_expr(*x.m_increment);
             r.append(s);
         }
-        r.append("\n");
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -1546,7 +2212,11 @@ public:
         r.append("end do");
         r += syn();
         r += end_stmt_name(x);
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1607,7 +2277,11 @@ public:
             if (i < x.n_syms-1) r.append(", ");
         }
         r.append(")");
-        r += "\n";
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -1617,11 +2291,12 @@ public:
         r += syn(gr::UnitHeader);
         r.append("end associate");
         r += syn();
-        if (x.m_stmt_name) {
-            r += " ";
-            r += x.m_stmt_name;
+        r += end_stmt_name(x);
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
         }
-        r += "\n";
         s = r;
     }
 
@@ -1632,8 +2307,17 @@ public:
         r += syn(gr::UnitHeader);
         r += "block";
         r += syn();
-        r.append("\n");
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
+        for (size_t i=0; i<x.n_use; i++) {
+            this->visit_unit_decl1(*x.m_use[i]);
+            r.append(s);
+        }
+        r += format_import(x);
         for (size_t i=0; i<x.n_decl; i++) {
             this->visit_unit_decl2(*x.m_decl[i]);
             r.append(s);
@@ -1647,11 +2331,51 @@ public:
         r += syn(gr::UnitHeader);
         r.append("end block");
         r += syn();
-        if (x.m_stmt_name) {
-            r += " ";
-            r += x.m_stmt_name;
+        r += end_stmt_name(x);
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
         }
-        r += "\n";
+        s = r;
+    }
+
+    void visit_Critical(const Critical_t &x) {
+        std::string r = indent;
+        r += print_label(x);
+        r += print_stmt_name(x);
+        r += syn(gr::UnitHeader);
+        r += "critical";
+        r += syn();
+        if (x.m_sync_stat) {
+            r += " (";
+            for (size_t i=0; i<x.n_sync_stat; i++) {
+                this->visit_event_attribute(*x.m_sync_stat[i]);
+                r.append(s);
+            }
+            r += ")";
+        }
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
+        inc_indent();
+        for (size_t i=0; i<x.n_body; i++) {
+            this->visit_stmt(*x.m_body[i]);
+            r.append(s);
+        }
+        dec_indent();
+        r += indent;
+        r += syn(gr::UnitHeader);
+        r.append("end critical");
+        r += syn();
+        r += end_stmt_name(x);
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1696,7 +2420,11 @@ public:
             this->visit_concurrent_locality(*x.m_locality[i]);
             r.append(s);
         }
-        r.append("\n");
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -1707,7 +2435,11 @@ public:
         r += syn(gr::Repeat);
         r.append("end do");
         r += syn();
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1734,7 +2466,11 @@ public:
             this->visit_concurrent_locality(*x.m_locality[i]);
             r.append(s);
         }
-        r.append("\n");
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -1746,7 +2482,11 @@ public:
         r.append("end forall");
         r += syn();
         r += end_stmt_name(x);
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1779,7 +2519,11 @@ public:
         r.append("end forall");
         r += syn();
         r += end_stmt_name(x);
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1877,11 +2621,12 @@ public:
         r += syn(gr::Keyword);
         r.append("cycle");
         r += syn();
-        if (x.m_stmt_name) {
-            r += " ";
-            r += x.m_stmt_name;
+        r += end_stmt_name(x);
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
         }
-        r += "\n";
         s = r;
     }
 
@@ -1891,7 +2636,11 @@ public:
         r += syn(gr::Keyword);
         r.append("continue");
         r += syn();
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1901,11 +2650,12 @@ public:
         r += syn(gr::Keyword);
         r.append("exit");
         r += syn();
-        if (x.m_stmt_name) {
-            r += " ";
-            r += x.m_stmt_name;
+        r += end_stmt_name(x);
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
         }
-        r += "\n";
         s = r;
     }
 
@@ -1919,7 +2669,11 @@ public:
             this->visit_expr(*x.m_value);
             r += " " + s;
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1933,7 +2687,12 @@ public:
         r += " (";
         this->visit_expr(*x.m_test);
         r += s;
-        r += ")\n";
+        r += ")";
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -1944,7 +2703,11 @@ public:
         r += syn(gr::Repeat);
         r += "end do";
         r += syn();
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -1956,7 +2719,8 @@ public:
         r += syn();
         r += " ";
         if (x.m_fmt) {
-            r += "\"(" + replace(x.m_fmt, "\"", "\"\"") + ")\"";
+            this->visit_expr(*x.m_fmt);
+            r.append(s);
         } else {
             r += "*";
         }
@@ -1968,7 +2732,11 @@ public:
                 if (i < x.n_values-1) r += ", ";
             }
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2008,7 +2776,11 @@ public:
                 if (i < x.n_values-1) r += ", ";
             }
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2018,29 +2790,41 @@ public:
         r += syn(gr::Keyword);
         r += "read";
         r += syn();
-        r += "(";
-        for (size_t i=0; i<x.n_args; i++) {
-            if (x.m_args[i].m_value == nullptr) {
-                r += "*";
-            } else {
-                this->visit_expr(*x.m_args[i].m_value);
-                r += s;
-            }
-            if (i < x.n_args-1 || x.n_kwargs > 0) r += ", ";
+        if (x.m_format) {
+            r += " ";
+            this->visit_expr(*x.m_format);
+            r.append(s);
         }
-        for (size_t i=0; i<x.n_kwargs; i++) {
-            r += x.m_kwargs[i].m_arg;
-            r += "=";
-            if (x.m_kwargs[i].m_value == nullptr) {
-                r += "*";
-            } else {
-                this->visit_expr(*x.m_kwargs[i].m_value);
-                r += s;
+        if(x.n_args || x.n_kwargs) {
+            r += "(";
+            for (size_t i=0; i<x.n_args; i++) {
+                if (x.m_args[i].m_value == nullptr) {
+                    r += "*";
+                } else {
+                    this->visit_expr(*x.m_args[i].m_value);
+                    r += s;
+                }
+                if (i < x.n_args-1 || x.n_kwargs > 0) r += ", ";
             }
-            if (i < x.n_kwargs-1) r += ", ";
+            for (size_t i=0; i<x.n_kwargs; i++) {
+                r += x.m_kwargs[i].m_arg;
+                r += "=";
+                if (x.m_kwargs[i].m_value == nullptr) {
+                    r += "*";
+                } else {
+                    this->visit_expr(*x.m_kwargs[i].m_value);
+                    r += s;
+                }
+                if (i < x.n_kwargs-1) r += ", ";
+            }
+            r += ")";
+        } else if(!x.m_format) {
+            r += " *,";
         }
-        r += ")";
         if (x.n_values > 0) {
+            if (x.m_format) {
+                r += ",";
+            }
             r += " ";
             for (size_t i=0; i<x.n_values; i++) {
                 this->visit_expr(*x.m_values[i]);
@@ -2048,7 +2832,11 @@ public:
                 if (i < x.n_values-1) r += ", ";
             }
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2071,7 +2859,12 @@ public:
             r += s;
             if (i < x.n_kwargs-1) r += ", ";
         }
-        r += ")\n";
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2094,7 +2887,12 @@ public:
             r += s;
             if (i < x.n_kwargs-1) r += ", ";
         }
-        r += ")\n";
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2126,7 +2924,11 @@ public:
                 if (i < x.n_values-1) r += ", ";
             }
         }
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2149,7 +2951,12 @@ public:
             r += s;
             if (i < x.n_kwargs-1) r += ", ";
         }
-        r += ")\n";
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2172,7 +2979,12 @@ public:
             r += s;
             if (i < x.n_kwargs-1) r += ", ";
         }
-        r += ")\n";
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2195,7 +3007,68 @@ public:
             r += s;
             if (i < x.n_kwargs-1) r += ", ";
         }
-        r += ")\n";
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        s = r;
+    }
+
+    void visit_Flush(const Flush_t &x) {
+        std::string r=indent;
+        r += print_label(x);
+        r += syn(gr::Keyword);
+        r += "flush";
+        r += syn();
+        r += "(";
+        for (size_t i=0; i<x.n_args; i++) {
+            this->visit_expr(*x.m_args[i]);
+            r += s;
+            if (i < x.n_args-1 || x.n_kwargs > 0) r += ", ";
+        }
+        for (size_t i=0; i<x.n_kwargs; i++) {
+            r += x.m_kwargs[i].m_arg;
+            r += "=";
+            this->visit_expr(*x.m_kwargs[i].m_value);
+            r += s;
+            if (i < x.n_kwargs-1) r += ", ";
+        }
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        s = r;
+    }
+
+    void visit_Endfile(const Endfile_t &x) {
+        std::string r=indent;
+        r += print_label(x);
+        r += syn(gr::Keyword);
+        r += "endfile";
+        r += syn();
+        r += "(";
+        for (size_t i=0; i<x.n_args; i++) {
+            this->visit_expr(*x.m_args[i]);
+            r += s;
+            if (i < x.n_args-1 || x.n_kwargs > 0) r += ", ";
+        }
+        for (size_t i=0; i<x.n_kwargs; i++) {
+            r += x.m_kwargs[i].m_arg;
+            r += "=";
+            this->visit_expr(*x.m_kwargs[i].m_value);
+            r += s;
+            if (i < x.n_kwargs-1) r += ", ";
+        }
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2232,7 +3105,12 @@ public:
         r += syn(gr::Keyword);
         r += "format";
         r += syn();
-        r += "(" + std::string(x.m_fmt) + ")\n";
+        r += "(" + std::string(x.m_fmt) + ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2380,11 +3258,56 @@ public:
             if (i < x.n_keywords-1) r.append(", ");
         }
         r.append(")");
+        for (size_t i=0; i<x.n_subargs; i++) {
+            r.append("(");
+            this->visit_fnarg(x.m_subargs[i]);
+            r.append(s);
+            if (i < x.n_subargs-1) r.append(", ");
+            r.append(")");
+        }
         s = r;
     }
 
     void visit_CoarrayRef(const CoarrayRef_t &x) {
         std::string r;
+        if (x.n_member > 0) {
+            for (size_t i=0; i<x.n_member; i++) {
+                r.append(x.m_member[i].m_name);
+                if (x.m_member[i].n_args > 0) {
+                    r.append("(");
+                    for (size_t j=0; j<x.m_member[i].n_args; j++) {
+                        expr_t *start = x.m_member[i].m_args[j].m_start;
+                        expr_t *end = x.m_member[i].m_args[j].m_end;
+                        expr_t *step = x.m_member[i].m_args[j].m_step;
+                        if (step != nullptr) {
+                            if (start) {
+                                this->visit_expr(*start);
+                                r.append(s);
+                            }
+                            r += ":";
+                            if (end) {
+                                this->visit_expr(*end);
+                                r.append(s);
+                            }
+                            if (is_a<Num_t>(*step) &&
+                                    down_cast<Num_t>(step)->m_n != 1) {
+                                r += ":";
+                                this->visit_expr(*step);
+                                r.append(s);
+                            }
+                        } else if (end != nullptr && start == nullptr) {
+                            this->visit_expr(*end);
+                            r.append(s);
+                        } else {
+                            throw LFortranException("Incorrect coarray elements");
+                        }
+                        if (i < x.m_member[i].n_args-1) r.append(",");
+                    }
+                    r.append(")");
+                }
+                r.append("%");
+            }
+        }
         r.append(x.m_name);
         if(x.n_args > 0) {
             r.append("(");
@@ -2435,11 +3358,23 @@ public:
 
     void visit_Num(const Num_t &x) {
         s = syn(gr::Integer);
-        s += std::to_string(x.m_n);
+        s += BigInt::int_to_str(x.m_n);
+        if (x.m_kind) {
+            s += "_";
+            s += x.m_kind;
+        }
         s += syn();
         last_unary_minus = false;
         last_unary_minus_in_mul = false;
         last_binary_plus = false;
+    }
+
+    void visit_Parenthesis(const Parenthesis_t &x) {
+        std::string r = "(";
+        this->visit_expr(*x.m_operand);
+        r.append(s);
+        r += ")";
+        s = r;
     }
 
     void visit_Real(const Real_t &x) {
@@ -2450,11 +3385,23 @@ public:
         last_binary_plus = false;
     }
 
-    void visit_Str(const Str_t &x) {
+    void visit_String(const String_t &x) {
         s = syn(gr::String);
-        s += "\"";
-        s += replace(x.m_s, "\"", "\"\"");
-        s += "\"";
+        std::string r = x.m_s;
+        int dq = 0, sq = 0;
+        for (auto x: r) {
+            if (x == '"') dq++;
+            if (x == '\'') sq++;
+        }
+        if (dq > sq) {
+            s += "'";
+            s += replace(r, "'", "''");
+            s += "'";
+        } else {
+            s += "\"";
+            s += replace(r, "\"", "\"\"");
+            s += "\"";
+        }
         s += syn();
     }
 
@@ -2463,6 +3410,7 @@ public:
         s += "\"" + std::string(x.m_s) + "\"";
         s += syn();
     }
+
 
     void visit_Complex(const Complex_t &x){
         std::string r;
@@ -2491,16 +3439,28 @@ public:
                         expr_t *start = x.m_member[i].m_args[j].m_start;
                         expr_t *end = x.m_member[i].m_args[j].m_end;
                         expr_t *step = x.m_member[i].m_args[j].m_step;
-                        // TODO: Also show start, and step correctly
-                        LFORTRAN_ASSERT(start == nullptr);
-                        LFORTRAN_ASSERT(end != nullptr);
-                        LFORTRAN_ASSERT(step == nullptr);
-                        if (end) {
+                        if (step != nullptr) {
+                            if (start) {
+                                this->visit_expr(*start);
+                                r.append(s);
+                            }
+                            r += ":";
+                            if (end) {
+                                this->visit_expr(*end);
+                                r.append(s);
+                            }
+                            if (is_a<Num_t>(*step) &&
+                                    down_cast<Num_t>(step)->m_n != 1) {
+                                r += ":";
+                                this->visit_expr(*step);
+                                r.append(s);
+                            }
+                        } else if (end != nullptr && start == nullptr) {
                             this->visit_expr(*end);
                             r.append(s);
+                        } else {
+                            throw LFortranException("Incorrect array elements");
                         }
-                        if (start) {}
-                        if (step) {}
                         if (i < x.m_member[i].n_args-1) r.append(",");
                     }
                     r.append(")");
@@ -2562,14 +3522,16 @@ public:
             } else {
                 s = left + ":" + right;
             }
-        } else {
-            LFORTRAN_ASSERT(x.m_end_star == dimension_typeType::DimensionStar);
+        } else if (x.m_end_star == dimension_typeType::DimensionStar) {
             if (x.m_start) {
                 this->visit_expr(*x.m_start);
                 s += ":*";
             } else {
                 s = "*";
             }
+        } else {
+            LFORTRAN_ASSERT(x.m_end_star == dimension_typeType::AssumedRank);
+            s = "..";
         }
     }
 
@@ -2735,12 +3697,30 @@ public:
     }
 
     void visit_IntrinsicOperator(const IntrinsicOperator_t &x) {
-        s = "operator (" + interfaceop2str(x.m_op) + ")";
+        s = "operator (" + intrinsicop2str(x.m_op) + ")";
+    }
+
+    void visit_RenameOperator(const RenameOperator_t &x) {
+        s = "operator(." + std::string(x.m_local_defop) + ".)";
+        s += " => ";
+        s += "operator(." + std::string(x.m_use_defop) + ".)";
     }
 
     void visit_DefinedOperator(const DefinedOperator_t &x) {
         s = "operator (." + std::string(x.m_opName) + ".)";
     }
+
+    void visit_UseWrite(const UseWrite_t &x) {
+        s = "write(";
+        s.append(x.m_id);
+        s += ")";
+    }
+    void visit_UseRead(const UseRead_t &x) {
+        s = "read(";
+        s.append(x.m_id);
+        s += ")";
+    }
+
 
     void visit_Select(const Select_t &x) {
         std::string r = indent;
@@ -2752,7 +3732,12 @@ public:
         r += " (";
         this->visit_expr(*x.m_test);
         r += s;
-        r += ")\n";
+        r += ")";
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_case_stmt(*x.m_body[i]);
@@ -2763,7 +3748,11 @@ public:
         r += syn(gr::Conditional);
         r += "end select";
         r += syn();
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2774,11 +3763,16 @@ public:
         r += syn();
         r += " (";
         for (size_t i=0; i<x.n_test; i++) {
-            this->visit_expr(*x.m_test[i]);
+            this->visit_case_cond(*x.m_test[i]);
             r += s;
             if (i < x.n_test-1) r += ", ";
         }
-        r += ")\n";
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -2788,12 +3782,12 @@ public:
         s = r;
     }
 
-    void visit_CaseStmt_Range(const CaseStmt_Range_t &x) {
-        std::string r = indent;
-        r += syn(gr::Conditional);
-        r += "case";
-        r += syn();
-        r += " (";
+    void visit_CaseCondExpr(const CaseCondExpr_t &x) {
+        this->visit_expr(*x.m_cond);
+    }
+
+    void visit_CaseCondRange(const CaseCondRange_t &x) {
+        std::string r;
         if (x.m_start) {
             this->visit_expr(*x.m_start);
             r += s;
@@ -2803,7 +3797,19 @@ public:
             this->visit_expr(*x.m_end);
             r += s;
         }
-        r += ")\n";
+        s = r;
+    }
+
+    void visit_CaseStmt_Default(const CaseStmt_Default_t &x) {
+        std::string r = indent;
+        r += syn(gr::Conditional);
+        r += "case default";
+        r += syn();
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -2813,12 +3819,97 @@ public:
         s = r;
     }
 
-    void visit_CaseStmt_Default(const CaseStmt_Default_t &x) {
+    void visit_SelectRank(const SelectRank_t &x) {
+        std::string r = indent;
+        r += print_label(x);
+        r += print_stmt_name(x);
+        r += syn(gr::Conditional);
+        r += "select rank";
+        r += syn();
+        r += " (";
+        if (x.m_assoc_name) {
+            r.append(x.m_assoc_name);
+            r += "=>";
+        }
+        this->visit_expr(*x.m_selector);
+        r += s;
+        r += ")";
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
+        inc_indent();
+        for (size_t i=0; i<x.n_body; i++) {
+            this->visit_rank_stmt(*x.m_body[i]);
+            r += s;
+        }
+        dec_indent();
+        r += syn(gr::Conditional);
+        r += "end select";
+        r += syn();
+        r += end_stmt_name(x);
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        s = r;
+    }
+
+    void visit_RankExpr(const RankExpr_t &x) {
         std::string r = indent;
         r += syn(gr::Conditional);
-        r += "case default";
+        r += "rank";
         r += syn();
-        r += "\n";
+        r += " (";
+        this->visit_expr(*x.m_value);
+        r.append(s);
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        inc_indent();
+        for (size_t i=0; i<x.n_body; i++) {
+            this->visit_stmt(*x.m_body[i]);
+            r += s;
+        }
+        dec_indent();
+        s = r;
+    }
+
+    void visit_RankStar(const RankStar_t &x) {
+        std::string r = indent;
+        r += syn(gr::Conditional);
+        r += "rank";
+        r += syn();
+        r += " (*)";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
+        inc_indent();
+        for (size_t i=0; i<x.n_body; i++) {
+            this->visit_stmt(*x.m_body[i]);
+            r += s;
+        }
+        dec_indent();
+        s = r;
+    }
+
+    void visit_RankDefault(const RankDefault_t &x) {
+        std::string r = indent;
+        r += syn(gr::Conditional);
+        r += "rank default";
+        r += syn();
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -2842,7 +3933,12 @@ public:
         }
         this->visit_expr(*x.m_selector);
         r += s;
-        r += ")\n";
+        r += ")";
+        if(x.m_t_inside){
+            r += print_trivia_after(*x.m_t_inside);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_type_stmt(*x.m_body[i]);
@@ -2852,7 +3948,11 @@ public:
         r += syn(gr::Conditional);
         r += "end select";
         r += syn();
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         s = r;
     }
 
@@ -2865,7 +3965,12 @@ public:
         if (x.m_name) {
             r.append(x.m_name);
         }
-        r += ")\n";
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -2884,7 +3989,12 @@ public:
             this->visit_decl_attribute(*x.m_vartype);
             r += s;
         }
-        r += ")\n";
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -2902,7 +4012,12 @@ public:
         if (x.m_id) {
             r.append(x.m_id);
         }
-        r += ")\n";
+        r += ")";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
@@ -2916,7 +4031,11 @@ public:
         r += syn(gr::Conditional);
         r += "class default";
         r += syn();
-        r += "\n";
+        if(x.m_trivia){
+            r += print_trivia_after(*x.m_trivia);
+        } else {
+            r.append("\n");
+        }
         inc_indent();
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);

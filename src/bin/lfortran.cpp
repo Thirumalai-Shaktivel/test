@@ -11,6 +11,7 @@
 #include <lfortran/mod_to_asr.h>
 #include <lfortran/codegen/asr_to_llvm.h>
 #include <lfortran/codegen/asr_to_cpp.h>
+#include <lfortran/codegen/asr_to_py.h>
 #include <lfortran/codegen/asr_to_x86.h>
 #include <lfortran/ast_to_src.h>
 #include <lfortran/codegen/evaluator.h>
@@ -18,6 +19,8 @@
 #include <lfortran/pass/global_stmts.h>
 #include <lfortran/pass/implied_do_loops.h>
 #include <lfortran/pass/array_op.h>
+#include <lfortran/pass/arr_slice.h>
+#include <lfortran/pass/print_arr.h>
 #include <lfortran/asr_utils.h>
 #include <lfortran/asr_verify.h>
 #include <lfortran/modfile.h>
@@ -43,7 +46,8 @@ enum Platform {
 };
 
 enum ASRPass {
-    do_loops, global_stmts, implied_do_loops, array_op
+    do_loops, global_stmts, implied_do_loops, array_op,
+    arr_slice, print_arr
 };
 
 std::string remove_extension(const std::string& filename) {
@@ -102,7 +106,7 @@ int emit_tokens(const std::string &input, std::vector<std::string>
     //std::vector<int> toks;
     //std::vector<LFortran::YYSTYPE> stypes;
     try {
-        toks = LFortran::tokens(input, &stypes);
+        toks = LFortran::tokens(al, input, &stypes);
     } catch (const LFortran::TokenizerError &e) {
         std::cerr << "Tokenizing error: " << e.msg() << std::endl;
         return 1;
@@ -143,13 +147,9 @@ bool determine_completeness(std::string command)
         for (size_t i = 0; i < toks.size(); i++) {
             if (toks[i] == KW_SUBROUTINE) {
                 sr_blnc++;
-            } else if (toks[i] == KW_END) {
-                // Need another subroutine token for this to be properly
-                // terminated
-                if (toks[i+1] == KW_SUBROUTINE) {
-                    sr_blnc--;
-                    i++;
-                }
+            } else if (toks[i] == KW_END_SUBROUTINE
+                    || toks[i] == KW_ENDSUBROUTINE) {
+                sr_blnc--;
             }
         }
     }
@@ -159,13 +159,9 @@ bool determine_completeness(std::string command)
         for (size_t i = 0; i < toks.size(); i++) {
             if (toks[i] == KW_FUNCTION) {
                 fn_blnc++;
-            } else if (toks[i] == KW_END) {
-                // Need another function token for this to be properly
-                // terminated
-                if (toks[i+1] == KW_FUNCTION) {
-                    fn_blnc--;
-                    i++;
-                }
+            } else if (toks[i] == KW_END_FUNCTION
+                    || toks[i] == KW_ENDFUNCTION) {
+                fn_blnc--;
             }
         }
     }
@@ -320,6 +316,15 @@ int prompt(bool verbose)
 }
 #endif
 
+int emit_prescan(const std::string &infile, bool fixed_form)
+{
+    std::string input = read_file(infile);
+    LFortran::LocationManager lm;
+    std::string prescan = LFortran::fix_continuation(input, lm, fixed_form);
+    std::cout << prescan << std::endl;
+    return 0;
+}
+
 int emit_tokens(const std::string &infile)
 {
     std::string input = read_file(infile);
@@ -328,7 +333,7 @@ int emit_tokens(const std::string &infile)
     std::vector<int> toks;
     std::vector<LFortran::YYSTYPE> stypes;
     try {
-        toks = LFortran::tokens(input, &stypes);
+        toks = LFortran::tokens(al, input, &stypes);
     } catch (const LFortran::TokenizerError &e) {
         std::cerr << "Tokenizing error: " << e.msg() << std::endl;
         return 1;
@@ -340,14 +345,15 @@ int emit_tokens(const std::string &infile)
     return 0;
 }
 
-int emit_ast(const std::string &infile, bool colors, bool indent)
+int emit_ast(const std::string &infile, bool colors, bool indent,
+        bool fixed_form)
 {
     std::string input = read_file(infile);
     // Src -> AST
     Allocator al(64*1024*1024);
     LFortran::AST::TranslationUnit_t* ast;
     try {
-        ast = LFortran::parse2(al, input);
+        ast = LFortran::parse2(al, input, colors, fixed_form);
     } catch (const LFortran::TokenizerError &e) {
         std::cerr << "Tokenizing error: " << e.msg() << std::endl;
         return 1;
@@ -360,14 +366,14 @@ int emit_ast(const std::string &infile, bool colors, bool indent)
     return 0;
 }
 
-int emit_ast_f90(const std::string &infile, bool colors)
+int emit_ast_f90(const std::string &infile, bool colors, bool fixed_form)
 {
     std::string input = read_file(infile);
     // Src -> AST
     Allocator al(64*1024*1024);
     LFortran::AST::TranslationUnit_t* ast;
     try {
-        ast = LFortran::parse2(al, input);
+        ast = LFortran::parse2(al, input, colors, fixed_form);
     } catch (const LFortran::TokenizerError &e) {
         std::cerr << "Tokenizing error: " << e.msg() << std::endl;
         return 1;
@@ -384,7 +390,7 @@ int emit_ast_f90(const std::string &infile, bool colors)
 }
 
 int format(const std::string &file, bool inplace, bool color, int indent,
-    bool indent_unit)
+    bool indent_unit, bool fixed_form)
 {
     if (inplace) color = false;
     std::string input = read_file(file);
@@ -392,7 +398,7 @@ int format(const std::string &file, bool inplace, bool color, int indent,
     Allocator al(64*1024*1024);
     LFortran::AST::TranslationUnit_t* ast;
     try {
-        ast = LFortran::parse2(al, input);
+        ast = LFortran::parse2(al, input, color, fixed_form);
     } catch (const LFortran::TokenizerError &e) {
         std::cerr << "Tokenizing error: " << e.msg() << std::endl;
         return 1;
@@ -416,6 +422,37 @@ int format(const std::string &file, bool inplace, bool color, int indent,
     return 0;
 }
 
+int python_wrapper(const std::string &infile, std::string /*array_order*/)
+{
+    std::string input = read_file(infile);
+
+    // Src -> AST
+    Allocator al(64*1024*1024);
+    LFortran::AST::TranslationUnit_t* ast;
+    try {
+        ast = LFortran::parse2(al, input);
+    } catch (const LFortran::TokenizerError &e) {
+        std::cerr << "Tokenizing error: " << e.msg() << std::endl;
+        return 1;
+    } catch (const LFortran::ParserError &e) {
+        std::cerr << "Parsing error: " << e.msg() << std::endl;
+        return 2;
+    }
+
+    // AST -> ASR
+    LFortran::ASR::TranslationUnit_t* asr = LFortran::ast_to_asr(al, *ast);
+
+    // ASR -> C / Python
+    // TODO: this returns a C header file
+    // we will have to also return the Cython files, as arguments
+    std::string c_h;
+    c_h = LFortran::asr_to_py(*asr);
+
+    // TODO: change this to print to a file
+    std::cout << c_h;
+    return 0;
+}
+
 int emit_asr(const std::string &infile, bool colors,
     const std::vector<ASRPass> &passes, bool indent)
 {
@@ -425,7 +462,7 @@ int emit_asr(const std::string &infile, bool colors,
     Allocator al(64*1024*1024);
     LFortran::AST::TranslationUnit_t* ast;
     try {
-        ast = LFortran::parse2(al, input);
+        ast = LFortran::parse2(al, input, colors);
     } catch (const LFortran::TokenizerError &e) {
         std::cerr << "Tokenizing error: " << e.msg() << std::endl;
         return 1;
@@ -460,6 +497,14 @@ int emit_asr(const std::string &infile, bool colors,
             }
             case (ASRPass::array_op) : {
                 LFortran::pass_replace_array_op(al, *asr);
+                break;
+            }
+            case (ASRPass::arr_slice) : {
+                LFortran::pass_replace_arr_slice(al, *asr);
+                break;
+            }
+            case (ASRPass::print_arr) : {
+                LFortran::pass_replace_print_arr(al, *asr);
                 break;
             }
             default : throw LFortran::LFortranException("Pass not implemened");
@@ -532,7 +577,7 @@ int save_mod_files(const LFortran::ASR::TranslationUnit_t &u)
             std::string modfile = std::string(m->m_name) + ".mod";
             {
                 std::ofstream out;
-                out.open(modfile);
+                out.open(modfile, std::ofstream::out | std::ofstream::binary);
                 out << modfile_binary;
             }
         }
@@ -578,7 +623,8 @@ int emit_llvm(const std::string &infile)
 
 int compile_to_object_file(const std::string &infile, const std::string &outfile,
         bool assembly=false,
-        bool show_stacktrace=false)
+        bool show_stacktrace=false, bool colors=true,
+        bool fixed_form=false)
 {
     std::string input = read_file(infile);
 
@@ -588,14 +634,14 @@ int compile_to_object_file(const std::string &infile, const std::string &outfile
 
     // Src -> AST -> ASR
     LFortran::FortranEvaluator::Result<LFortran::ASR::TranslationUnit_t*>
-    result = fe.get_asr2(input);
+    result = fe.get_asr2(input, fixed_form);
     if (result.ok) {
         asr = result.result;
     } else {
         if (show_stacktrace) {
             std::cerr << fe.error_stacktrace(result.error);
         }
-        std::cerr << fe.format_error(result.error, input);
+        std::cerr << fe.format_error(result.error, input, colors);
         return 1;
     }
 
@@ -605,7 +651,7 @@ int compile_to_object_file(const std::string &infile, const std::string &outfile
         if (err) return err;
     }
 
-    if (!LFortran::main_program_present(*asr)) {
+    if (!LFortran::ASRUtils::main_program_present(*asr)) {
         // Create an empty object file (things will be actually
         // compiled and linked when the main program is present):
         {
@@ -640,9 +686,9 @@ int compile_to_object_file(const std::string &infile, const std::string &outfile
     return 0;
 }
 
-int compile_to_assembly_file(const std::string &infile, const std::string &outfile)
+int compile_to_assembly_file(const std::string &infile, const std::string &outfile, bool fixed_form)
 {
-    return compile_to_object_file(infile, outfile, true, false);
+    return compile_to_object_file(infile, outfile, true, false, fixed_form);
 }
 #endif
 
@@ -746,7 +792,7 @@ int compile_to_object_file_cpp(const std::string &infile,
         if (err) return err;
     }
 
-    if (!LFortran::main_program_present(*asr)) {
+    if (!LFortran::ASRUtils::main_program_present(*asr)) {
         // Create an empty object file (things will be actually
         // compiled and linked when the main program is present):
         {
@@ -954,9 +1000,11 @@ int main(int argc, char *argv[])
         bool arg_E = false;
         std::vector<std::string> arg_I;
         bool arg_cpp = false;
+        bool arg_fixed_form = false;
         std::string arg_o;
         std::vector<std::string> arg_files;
         bool arg_version = false;
+        bool show_prescan = false;
         bool show_tokens = false;
         bool show_ast = false;
         bool show_asr = false;
@@ -978,10 +1026,14 @@ int main(int argc, char *argv[])
         bool arg_fmt_indent_unit = false;
         bool arg_fmt_inplace = false;
         bool arg_fmt_no_color = false;
+        bool arg_fmt_fixed_form = false;
 
         std::string arg_mod_file;
         bool arg_mod_show_asr = false;
         bool arg_mod_no_color = false;
+
+        std::string arg_pywrap_file;
+        std::string arg_pywrap_array_order="f";
 
         bool openmp = false;
 
@@ -999,6 +1051,8 @@ int main(int argc, char *argv[])
 
         // LFortran specific options
         app.add_flag("--cpp", arg_cpp, "Enable preprocessing");
+        app.add_flag("--fixed-form", arg_fixed_form, "Use fixed form Fortran source parsing");
+        app.add_flag("--show-prescan", show_prescan, "Show tokens for the given file and exit");
         app.add_flag("--show-tokens", show_tokens, "Show tokens for the given file and exit");
         app.add_flag("--show-ast", show_ast, "Show AST for the given file and exit");
         app.add_flag("--show-asr", show_asr, "Show ASR for the given file and exit");
@@ -1026,6 +1080,7 @@ int main(int argc, char *argv[])
         fmt.add_option("--spaces", arg_fmt_indent, "Number of spaces to use for indentation", true);
         fmt.add_flag("--indent-unit", arg_fmt_indent_unit, "Indent contents of sub / fn / prog / mod");
         fmt.add_flag("--no-color", arg_fmt_no_color, "Turn off color when writing to stdout");
+        fmt.add_flag("--fixed-form", arg_fmt_fixed_form, "Use fixed form Fortran source parsing");
 
         // kernel
         CLI::App &kernel = *app.add_subcommand("kernel", "Run in Jupyter kernel mode.");
@@ -1036,6 +1091,12 @@ int main(int argc, char *argv[])
         mod.add_option("file", arg_mod_file, "Mod file (*.mod)")->required();
         mod.add_flag("--show-asr", arg_mod_show_asr, "Show ASR for the module");
         mod.add_flag("--no-color", arg_mod_no_color, "Turn off colored ASR");
+
+        // pywrap
+        CLI::App &pywrap = *app.add_subcommand("pywrap", "Python wrapper generator");
+        pywrap.add_option("file", arg_pywrap_file, "Fortran source file (*.f90)")->required();
+        pywrap.add_option("--array-order", arg_pywrap_array_order,
+                "Select array order (c, f)", true);
 
 
         app.get_formatter()->column_width(25);
@@ -1057,7 +1118,7 @@ int main(int argc, char *argv[])
 
         if (fmt) {
             return format(arg_fmt_file, arg_fmt_inplace, !arg_fmt_no_color,
-                arg_fmt_indent, arg_fmt_indent_unit);
+                arg_fmt_indent, arg_fmt_indent_unit, arg_fmt_fixed_form);
         }
 
         if (kernel) {
@@ -1078,6 +1139,10 @@ int main(int argc, char *argv[])
                 return 0;
             }
             return 0;
+        }
+
+        if (pywrap) {
+            return python_wrapper(arg_pywrap_file, arg_pywrap_array_order);
         }
 
         if (arg_backend == "llvm") {
@@ -1114,6 +1179,8 @@ int main(int argc, char *argv[])
             outfile = basename + ".s";
         } else if (arg_c) {
             outfile = basename + ".o";
+        } else if (show_prescan) {
+            outfile = basename + ".prescan";
         } else if (show_tokens) {
             outfile = basename + ".tokens";
         } else if (show_ast) {
@@ -1137,7 +1204,8 @@ int main(int argc, char *argv[])
             }
             std::string file_cpp2 = file_cpp + "2";
             std::string input = read_file(file_cpp);
-            std::string output = LFortran::fix_continuation(input);
+            LFortran::LocationManager lm;
+            std::string output = LFortran::fix_continuation(input, lm, false);
             {
                 std::ofstream out;
                 out.open(file_cpp2);
@@ -1151,14 +1219,18 @@ int main(int argc, char *argv[])
         }
 
 
+        if (show_prescan) {
+            return emit_prescan(arg_file, arg_fixed_form);
+        }
         if (show_tokens) {
             return emit_tokens(arg_file);
         }
         if (show_ast) {
-            return emit_ast(arg_file, !arg_no_color, arg_indent);
+            return emit_ast(arg_file, !arg_no_color, arg_indent,
+                    arg_fixed_form);
         }
         if (show_ast_f90) {
-            return emit_ast_f90(arg_file, !arg_no_color);
+            return emit_ast_f90(arg_file, !arg_no_color, arg_fixed_form);
         }
         std::vector<ASRPass> passes;
         if (arg_pass != "") {
@@ -1170,6 +1242,10 @@ int main(int argc, char *argv[])
                 passes.push_back(ASRPass::implied_do_loops);
             } else if (arg_pass == "array_op") {
                 passes.push_back(ASRPass::array_op);
+            } else if (arg_pass == "print_arr") {
+                passes.push_back(ASRPass::print_arr);
+            } else if (arg_pass == "arr_slice") {
+                passes.push_back(ASRPass::arr_slice);
             } else {
                 std::cerr << "Pass must be one of: do_loops, global_stmts" << std::endl;
                 return 1;
@@ -1193,7 +1269,8 @@ int main(int argc, char *argv[])
         if (arg_S) {
             if (backend == Backend::llvm) {
 #ifdef HAVE_LFORTRAN_LLVM
-                return compile_to_assembly_file(arg_file, outfile);
+                return compile_to_assembly_file(arg_file, outfile,
+                        arg_fixed_form);
 #else
                 std::cerr << "The -S option requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
                 return 1;
@@ -1209,7 +1286,7 @@ int main(int argc, char *argv[])
             if (backend == Backend::llvm) {
 #ifdef HAVE_LFORTRAN_LLVM
                 return compile_to_object_file(arg_file, outfile, false,
-                    show_stacktrace);
+                    show_stacktrace, !arg_no_color, arg_fixed_form);
 #else
                 std::cerr << "The -c option requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
                 return 1;
@@ -1234,7 +1311,7 @@ int main(int argc, char *argv[])
             if (backend == Backend::llvm) {
 #ifdef HAVE_LFORTRAN_LLVM
                 err = compile_to_object_file(arg_file, tmp_o, false,
-                    show_stacktrace);
+                    show_stacktrace, !arg_no_color, arg_fixed_form);
 #else
                 std::cerr << "Compiling Fortran files to object files requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
                 return 1;

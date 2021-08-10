@@ -4,6 +4,10 @@
 #include <lfortran/asr_utils.h>
 #include <lfortran/asr_verify.h>
 #include <lfortran/pass/array_op.h>
+#include <lfortran/pass/pass_utils.h>
+
+#include <vector>
+#include <utility>
 
 
 namespace LFortran {
@@ -56,11 +60,6 @@ array operations and perform the do loop pass. As of now, some of the
 nodes are implemented and more are yet to be implemented with time. 
 */
 
-struct dimension_descriptor
-{
-    int lbound, ubound;
-};
-
 class ArrayOpVisitor : public ASR::BaseWalkVisitor<ArrayOpVisitor>
 {
 private:
@@ -87,6 +86,8 @@ private:
         unnecessary do loop passes.
     */
     ASR::expr_t *result_var;
+    Vec<ASR::expr_t*> result_lbound, result_ubound, result_inc;
+    bool use_custom_loop_params;
 
     /*
         This integer just maintains the count of new result
@@ -105,9 +106,13 @@ private:
 
 public:
     ArrayOpVisitor(Allocator &al, ASR::TranslationUnit_t &unit) : al{al}, unit{unit}, 
-    tmp_val{nullptr}, result_var{nullptr}, result_var_num{0},
-    current_scope{nullptr} {
+    tmp_val{nullptr}, result_var{nullptr}, use_custom_loop_params{false},
+    result_var_num{0}, current_scope{nullptr}
+    {
         array_op_result.reserve(al, 1);
+        result_lbound.reserve(al, 1);
+        result_ubound.reserve(al, 1);
+        result_inc.reserve(al, 1);
     }
 
     void transform_stmts(ASR::stmt_t **&m_body, size_t &n_body) {
@@ -135,12 +140,7 @@ public:
     // to visit_stmt().
 
     void visit_Program(const ASR::Program_t &x) {
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        ASR::Program_t &xx = const_cast<ASR::Program_t&>(x);
-        current_scope = xx.m_symtab;
-        transform_stmts(xx.m_body, xx.n_body);
-
+        std::vector<std::pair<std::string, ASR::symbol_t*>> replace_vec;
         // Transform nested functions and subroutines
         for (auto &item : x.m_symtab->scope) {
             if (is_a<ASR::Subroutine_t>(*item.second)) {
@@ -150,8 +150,51 @@ public:
             if (is_a<ASR::Function_t>(*item.second)) {
                 ASR::Function_t *s = down_cast<ASR::Function_t>(item.second);
                 visit_Function(*s);
+                /*
+                * A function which returns an array will be converted
+                * to a subroutine with the destination array as the last
+                * argument. This helps in avoiding deep copies and the
+                * destination memory directly gets filled inside the subroutine.
+                */
+                if( PassUtils::is_array(s->m_return_var) ) {
+                    for( auto& s_item: s->m_symtab->scope ) {
+                        ASR::symbol_t* curr_sym = s_item.second;
+                        if( curr_sym->type == ASR::symbolType::Variable ) {
+                            ASR::Variable_t* var = down_cast<ASR::Variable_t>(curr_sym);
+                            if( var->m_intent == ASR::intentType::Unspecified ) {
+                                var->m_intent = ASR::intentType::In;
+                            } else if( var->m_intent == ASR::intentType::ReturnVar ) {
+                                var->m_intent = ASR::intentType::Out;
+                            }
+                        } 
+                    }
+                    Vec<ASR::expr_t*> a_args;
+                    a_args.reserve(al, s->n_args + 1);
+                    for( size_t i = 0; i < s->n_args; i++ ) {
+                        a_args.push_back(al, s->m_args[i]);
+                    }
+                    a_args.push_back(al, s->m_return_var);
+                    ASR::asr_t* s_sub_asr = ASR::make_Subroutine_t(al, s->base.base.loc, s->m_symtab, 
+                                                    s->m_name, a_args.p, a_args.size(), s->m_body, s->n_body, 
+                                                    s->m_abi, s->m_access, s->m_deftype);
+                    ASR::symbol_t* s_sub = ASR::down_cast<ASR::symbol_t>(s_sub_asr);
+                    replace_vec.push_back(std::make_pair(item.first, s_sub));
+                }
             }
         }
+
+        // FIXME: this is a hack, we need to pass in a non-const `x`,
+        // which requires to generate a TransformVisitor.
+        ASR::Program_t &xx = const_cast<ASR::Program_t&>(x);
+        current_scope = xx.m_symtab;
+        // Updating the symbol table so that the now the name
+        // of the function (which returned array) now points
+        // to the newly created subroutine.
+        for( auto& item: replace_vec ) {
+            current_scope->scope[item.first] = item.second;
+        }
+        transform_stmts(xx.m_body, xx.n_body);
+
     }
 
     void visit_Subroutine(const ASR::Subroutine_t &x) {
@@ -170,177 +213,115 @@ public:
         transform_stmts(xx.m_body, xx.n_body);
     }
 
-    inline int get_rank(ASR::expr_t* x) {
-        int n_dims = 0;
-        ASR::ttype_t* x_type = expr_type(x);
-        if( x->type == ASR::exprType::Var ) {
-            ASR::Var_t* x_var = ASR::down_cast<ASR::Var_t>(x);
-            ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(symbol_get_past_external(x_var->m_v));
-            switch( v->m_type->type ) {
-                case ASR::ttypeType::Integer: {
-                    ASR::Integer_t* x_type_ref = down_cast<ASR::Integer_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::IntegerPointer: {
-                    ASR::IntegerPointer_t* x_type_ref = down_cast<ASR::IntegerPointer_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::Real: {
-                    ASR::Real_t* x_type_ref = down_cast<ASR::Real_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::RealPointer: {
-                    ASR::RealPointer_t* x_type_ref = down_cast<ASR::RealPointer_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::Complex: {
-                    ASR::Complex_t* x_type_ref = down_cast<ASR::Complex_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::ComplexPointer: {
-                    ASR::ComplexPointer_t* x_type_ref = down_cast<ASR::ComplexPointer_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::Derived: {
-                    ASR::Derived_t* x_type_ref = down_cast<ASR::Derived_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::DerivedPointer: {
-                    ASR::DerivedPointer_t* x_type_ref = down_cast<ASR::DerivedPointer_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::Logical: {
-                    ASR::Logical_t* x_type_ref = down_cast<ASR::Logical_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::LogicalPointer: {
-                    ASR::LogicalPointer_t* x_type_ref = down_cast<ASR::LogicalPointer_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::Character: {
-                    ASR::Character_t* x_type_ref = down_cast<ASR::Character_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                case ASR::ttypeType::CharacterPointer: {
-                    ASR::CharacterPointer_t* x_type_ref = down_cast<ASR::CharacterPointer_t>(x_type);
-                    n_dims = x_type_ref->n_dims;
-                    break;
-                }
-                default:
-                    break;
-            }
-        }
-        return n_dims;
-    }
-
-    inline bool is_array(ASR::expr_t* x) {
-        return get_rank(x) > 0;
-    }
-
     void visit_Assignment(const ASR::Assignment_t& x) {
-        if( is_array(x.m_target) ) {
+        if( PassUtils::is_array(x.m_target) ) {
             result_var = x.m_target;
             this->visit_expr(*(x.m_value));
+        } else if( PassUtils::is_slice_present(x.m_target) ) {
+            ASR::ArrayRef_t* array_ref = ASR::down_cast<ASR::ArrayRef_t>(x.m_target);
+            result_var = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, x.m_target->base.loc, array_ref->m_v));
+            result_lbound.reserve(al, array_ref->n_args);
+            result_ubound.reserve(al, array_ref->n_args);
+            result_inc.reserve(al, array_ref->n_args);
+            ASR::expr_t *m_start, *m_end, *m_increment;
+            m_start = m_end = m_increment = nullptr;
+            for( int i = 0; i < (int) array_ref->n_args; i++ ) {
+                if( array_ref->m_args[i].m_step != nullptr ) {
+                    if( array_ref->m_args[i].m_left == nullptr ) {
+                        m_start = PassUtils::get_bound(result_var, i + 1, "lbound", al, unit, current_scope);
+                    } else {
+                        m_start = array_ref->m_args[i].m_left;
+                    }
+                    if( array_ref->m_args[i].m_right == nullptr ) {
+                        m_end = PassUtils::get_bound(result_var, i + 1, "ubound", al, unit, current_scope);
+                    } else {
+                        m_end = array_ref->m_args[i].m_right;
+                    }
+                } else {
+                    m_start = array_ref->m_args[i].m_right;
+                    m_end = array_ref->m_args[i].m_right;
+                }
+                m_increment = array_ref->m_args[i].m_step;
+                result_lbound.push_back(al, m_start);
+                result_ubound.push_back(al, m_end);
+                result_inc.push_back(al, m_increment);
+            }
+            use_custom_loop_params = true;
+            this->visit_expr(*(x.m_value));
         }
+        result_var = nullptr;
     }
 
-    ASR::expr_t* create_array_ref(ASR::expr_t* arr_expr, Vec<ASR::expr_t*>& idx_vars) {
-        ASR::Var_t* arr_var = down_cast<ASR::Var_t>(arr_expr);
-        ASR::symbol_t* arr = arr_var->m_v;
-        Vec<ASR::array_index_t> args;
-        args.reserve(al, 1);
-        for( size_t i = 0; i < idx_vars.size(); i++ ) {
-            ASR::array_index_t ai;
-            ai.loc = arr_expr->base.loc;
-            ai.m_left = nullptr;
-            ai.m_right = idx_vars[i];
-            ai.m_step = nullptr;
-            args.push_back(al, ai);
+    ASR::ttype_t* get_matching_type(ASR::expr_t* sibling) {
+        ASR::ttype_t* sibling_type = LFortran::ASRUtils::expr_type(sibling);
+        if( sibling->type != ASR::exprType::Var ) {
+            return sibling_type;
         }
-        ASR::expr_t* array_ref = EXPR(ASR::make_ArrayRef_t(al, arr_expr->base.loc, arr, 
-                                                            args.p, args.size(), 
-                                                            expr_type(EXPR((ASR::asr_t*)arr_var))));
-        return array_ref;
+        ASR::dimension_t* m_dims;
+        int ndims;
+        PassUtils::get_dim_rank(sibling_type, m_dims, ndims);
+        for( int i = 0; i < ndims; i++ ) {
+            if( m_dims[i].m_start != nullptr || 
+                m_dims[i].m_end != nullptr ) {
+                return sibling_type;
+            }
+        }
+        Vec<ASR::dimension_t> new_m_dims;
+        new_m_dims.reserve(al, ndims);
+        for( int i = 0; i < ndims; i++ ) {
+            ASR::dimension_t new_m_dim;
+            new_m_dim.loc = m_dims[i].loc;
+            new_m_dim.m_start = PassUtils::get_bound(sibling, i + 1, "lbound", 
+                                                     al, unit, current_scope);
+            new_m_dim.m_end = PassUtils::get_bound(sibling, i + 1, "ubound",
+                                                    al, unit, current_scope);
+            new_m_dims.push_back(al, new_m_dim);
+        }
+        return PassUtils::set_dim_rank(sibling_type, new_m_dims.p, ndims, true, &al);
     }
 
     ASR::expr_t* create_var(int counter, std::string suffix, const Location& loc,
-                            ASR::ttype_t* var_type) {
+                            ASR::expr_t* sibling) {
         ASR::expr_t* idx_var = nullptr;
-
+        ASR::ttype_t* var_type = get_matching_type(sibling);
         Str str_name;
-        str_name.from_str(al, std::to_string(counter) + suffix);
+        str_name.from_str(al, "~" + std::to_string(counter) + suffix);
         const char* const_idx_var_name = str_name.c_str(al);
         char* idx_var_name = (char*)const_idx_var_name;
 
         if( current_scope->scope.find(std::string(idx_var_name)) == current_scope->scope.end() ) {
             ASR::asr_t* idx_sym = ASR::make_Variable_t(al, loc, current_scope, idx_var_name, 
-                                                    ASR::intentType::Local, nullptr, ASR::storage_typeType::Default, 
-                                                    var_type, ASR::abiType::Source, ASR::accessType::Public);
+                                                    ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default, 
+                                                    var_type, ASR::abiType::Source, ASR::accessType::Public, ASR::presenceType::Required);
             current_scope->scope[std::string(idx_var_name)] = ASR::down_cast<ASR::symbol_t>(idx_sym);
-            idx_var = EXPR(ASR::make_Var_t(al, loc, ASR::down_cast<ASR::symbol_t>(idx_sym)));
+            idx_var = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, loc, ASR::down_cast<ASR::symbol_t>(idx_sym)));
         } else {
             ASR::symbol_t* idx_sym = current_scope->scope[std::string(idx_var_name)];
-            idx_var = EXPR(ASR::make_Var_t(al, loc, idx_sym));
+            idx_var = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, loc, idx_sym));
         }
 
         return idx_var;
     }
 
-    void create_idx_vars(Vec<ASR::expr_t*>& idx_vars, int n_dims, const Location& loc, std::string suffix=std::string("_k")) {
-        idx_vars.reserve(al, n_dims);
-        ASR::ttype_t* int32_type = TYPE(ASR::make_Integer_t(al, loc, 4, nullptr, 0));
-        for( int i = 1; i <= n_dims; i++ ) {
-            ASR::expr_t* idx_var = create_var(i, suffix, loc, int32_type);
-            idx_vars.push_back(al, idx_var);
-        }
-    }
-
-    ASR::expr_t* get_bound(ASR::expr_t* arr_expr, int dim, std::string bound) {
-        ASR::symbol_t *v;
-        std::string remote_sym = bound;
-        std::string module_name = "lfortran_intrinsic_array";
-        SymbolTable* current_scope_copy = current_scope;
-        current_scope = unit.m_global_scope;
-        ASR::Module_t *m = load_module(al, current_scope,
-                                        module_name, arr_expr->base.loc, true);
-
-        ASR::symbol_t *t = m->m_symtab->resolve_symbol(remote_sym);
-        ASR::Function_t *mfn = ASR::down_cast<ASR::Function_t>(t);
-        ASR::asr_t *fn = ASR::make_ExternalSymbol_t(al, mfn->base.base.loc, current_scope,
-                                                    mfn->m_name, (ASR::symbol_t*)mfn,
-                                                    m->m_name, mfn->m_name, ASR::accessType::Private);
-        std::string sym = mfn->m_name;
-        if( current_scope->scope.find(sym) != current_scope->scope.end() ) {
-            v = current_scope->scope[sym];
-        } else {
-            current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
-            v = ASR::down_cast<ASR::symbol_t>(fn);
-        }
-        Vec<ASR::expr_t*> args;
-        args.reserve(al, 2);
-        args.push_back(al, arr_expr);
-        ASR::expr_t* const_1 = EXPR(ASR::make_ConstantInteger_t(al, arr_expr->base.loc, dim, expr_type(mfn->m_args[1])));
-        args.push_back(al, const_1);
-        ASR::ttype_t *type = EXPR2VAR(ASR::down_cast<ASR::Function_t>(
-                                     symbol_get_past_external(v))->m_return_var)->m_type;
-        current_scope = current_scope_copy;
-        return EXPR(ASR::make_FunctionCall_t(al, arr_expr->base.loc, v, nullptr,
-                                             args.p, args.size(), nullptr, 0, type));
-    }
-
     void visit_ConstantInteger(const ASR::ConstantInteger_t& x) {
         tmp_val = const_cast<ASR::expr_t*>(&(x.base));
+    }
+
+    void visit_ConstantComplex(const ASR::ConstantComplex_t& x) {
+        tmp_val = const_cast<ASR::expr_t*>(&(x.base));
+    }
+
+    void visit_ConstantReal(const ASR::ConstantReal_t& x) {
+        tmp_val = const_cast<ASR::expr_t*>(&(x.base));
+    }
+
+    void fix_dimension(const ASR::ImplicitCast_t& x, ASR::expr_t* arg_expr) {
+        ASR::ttype_t* x_type = const_cast<ASR::ttype_t*>(x.m_type);
+        ASR::ttype_t* arg_type = LFortran::ASRUtils::expr_type(arg_expr);
+        ASR::dimension_t* m_dims;
+        int ndims;
+        PassUtils::get_dim_rank(arg_type, m_dims, ndims);
+        PassUtils::set_dim_rank(x_type, m_dims, ndims);
     }
 
     void visit_ImplicitCast(const ASR::ImplicitCast_t& x) {
@@ -348,34 +329,35 @@ public:
         result_var = nullptr;
         this->visit_expr(*(x.m_arg));
         result_var = result_var_copy;
-        if( is_array(tmp_val) ) {
+        if( PassUtils::is_array(tmp_val) ) {
             if( result_var == nullptr ) {
-                result_var = create_var(result_var_num, std::string("_implicit_cast_res"), x.base.base.loc, x.m_type);
+                fix_dimension(x, tmp_val);
+                result_var = create_var(result_var_num, std::string("_implicit_cast_res"), x.base.base.loc, const_cast<ASR::expr_t*>(&(x.base)));
                 result_var_num += 1;
             }
-            int n_dims = get_rank(result_var);
+            int n_dims = PassUtils::get_rank(result_var);
             Vec<ASR::expr_t*> idx_vars;
-            create_idx_vars(idx_vars, n_dims, x.base.base.loc);
+            PassUtils::create_idx_vars(idx_vars, n_dims, x.base.base.loc, al, current_scope);
             ASR::stmt_t* doloop = nullptr;
             for( int i = n_dims - 1; i >= 0; i-- ) {
                 ASR::do_loop_head_t head;
                 head.m_v = idx_vars[i];
-                head.m_start = get_bound(result_var, i + 1, "lbound");
-                head.m_end = get_bound(result_var, i + 1, "ubound");
+                head.m_start = PassUtils::get_bound(result_var, i + 1, "lbound", al, unit, current_scope);
+                head.m_end = PassUtils::get_bound(result_var, i + 1, "ubound", al, unit, current_scope);
                 head.m_increment = nullptr;
                 head.loc = head.m_v->base.loc;
                 Vec<ASR::stmt_t*> doloop_body;
                 doloop_body.reserve(al, 1);
                 if( doloop == nullptr ) {
-                    ASR::expr_t* ref = create_array_ref(tmp_val, idx_vars);
-                    ASR::expr_t* res = create_array_ref(result_var, idx_vars);
-                    ASR::expr_t* impl_cast_el_wise = EXPR(ASR::make_ImplicitCast_t(al, x.base.base.loc, ref, x.m_kind, x.m_type));
-                    ASR::stmt_t* assign = STMT(ASR::make_Assignment_t(al, x.base.base.loc, res, impl_cast_el_wise));
+                    ASR::expr_t* ref = PassUtils::create_array_ref(tmp_val, idx_vars, al);
+                    ASR::expr_t* res = PassUtils::create_array_ref(result_var, idx_vars, al);
+                    ASR::expr_t* impl_cast_el_wise = LFortran::ASRUtils::EXPR(ASR::make_ImplicitCast_t(al, x.base.base.loc, ref, x.m_kind, x.m_type, nullptr));
+                    ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, res, impl_cast_el_wise));
                     doloop_body.push_back(al, assign);
                 } else {
                     doloop_body.push_back(al, doloop);
                 }
-                doloop = STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
+                doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
             }
             array_op_result.push_back(al, doloop);
             tmp_val = result_var;
@@ -386,9 +368,97 @@ public:
 
     void visit_Var(const ASR::Var_t& x) {
         tmp_val = const_cast<ASR::expr_t*>(&(x.base));
+        if( result_var != nullptr && PassUtils::is_array(result_var) ) {
+            int rank_var = PassUtils::get_rank(tmp_val);
+            int n_dims = rank_var;
+            Vec<ASR::expr_t*> idx_vars;
+            PassUtils::create_idx_vars(idx_vars, n_dims, x.base.base.loc, al, current_scope);
+            ASR::stmt_t* doloop = nullptr;
+            for( int i = n_dims - 1; i >= 0; i-- ) {
+                // TODO: Add an If debug node to check if the lower and upper bounds of both the arrays are same.
+                ASR::do_loop_head_t head;
+                head.m_v = idx_vars[i];
+                head.m_start = PassUtils::get_bound(result_var, i + 1, "lbound", al, unit, current_scope);
+                head.m_end = PassUtils::get_bound(result_var, i + 1, "ubound", al, unit, current_scope);
+                head.m_increment = nullptr;
+                head.loc = head.m_v->base.loc;
+                Vec<ASR::stmt_t*> doloop_body;
+                doloop_body.reserve(al, 1);
+                if( doloop == nullptr ) {
+                    ASR::expr_t* ref = nullptr;
+                    if( rank_var > 0 ) {
+                        ref = PassUtils::create_array_ref(tmp_val, idx_vars, al);
+                    } else {
+                        ref = tmp_val;
+                    }
+                    ASR::expr_t* res = PassUtils::create_array_ref(result_var, idx_vars, al);
+                    ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, res, ref));
+                    doloop_body.push_back(al, assign);
+                } else {
+                    doloop_body.push_back(al, doloop);
+                }
+                doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
+            }
+            array_op_result.push_back(al, doloop);
+            tmp_val = nullptr;
+        }
     }
 
-    void visit_BinOp(const ASR::BinOp_t &x) {
+    void visit_UnaryOp(const ASR::UnaryOp_t& x) {
+        std::string res_prefix = "_unary_op_res";
+        ASR::expr_t* result_var_copy = result_var;
+        result_var = nullptr;
+        this->visit_expr(*(x.m_operand));
+        ASR::expr_t* operand = tmp_val;
+        int rank_operand = PassUtils::get_rank(operand);
+        if( rank_operand == 0 ) {
+            tmp_val = const_cast<ASR::expr_t*>(&(x.base));
+            return ;
+        }
+        if( rank_operand > 0 ) {
+            result_var = result_var_copy;
+            if( result_var == nullptr ) {
+                result_var = create_var(result_var_num, res_prefix, 
+                                        x.base.base.loc, operand);
+                result_var_num += 1;
+            }
+            tmp_val = result_var;
+
+            int n_dims = rank_operand;
+            Vec<ASR::expr_t*> idx_vars;
+            PassUtils::create_idx_vars(idx_vars, n_dims, x.base.base.loc, al, current_scope);
+            ASR::stmt_t* doloop = nullptr;
+            for( int i = n_dims - 1; i >= 0; i-- ) {
+                // TODO: Add an If debug node to check if the lower and upper bounds of both the arrays are same.
+                ASR::do_loop_head_t head;
+                head.m_v = idx_vars[i];
+                head.m_start = PassUtils::get_bound(result_var, i + 1, "lbound", al, unit, current_scope);
+                head.m_end = PassUtils::get_bound(result_var, i + 1, "ubound", al, unit, current_scope);
+                head.m_increment = nullptr;
+                head.loc = head.m_v->base.loc;
+                Vec<ASR::stmt_t*> doloop_body;
+                doloop_body.reserve(al, 1);
+                if( doloop == nullptr ) {
+                    ASR::expr_t* ref = PassUtils::create_array_ref(operand, idx_vars, al);
+                    ASR::expr_t* res = PassUtils::create_array_ref(result_var, idx_vars, al);
+                    ASR::expr_t* op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_UnaryOp_t(
+                                                    al, x.base.base.loc, 
+                                                    x.m_op, ref, x.m_type, nullptr));
+                    ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, res, op_el_wise));
+                    doloop_body.push_back(al, assign);
+                } else {
+                    doloop_body.push_back(al, doloop);
+                }
+                doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
+            }
+            array_op_result.push_back(al, doloop);
+        }
+    }
+
+    template <typename T>
+    void visit_ArrayOpCommon(const T& x, std::string res_prefix) {
+        bool current_status = use_custom_loop_params;
+        use_custom_loop_params = false;
         ASR::expr_t* result_var_copy = result_var;
         result_var = nullptr;
         this->visit_expr(*(x.m_left));
@@ -396,50 +466,87 @@ public:
         result_var = nullptr;
         this->visit_expr(*(x.m_right));
         ASR::expr_t* right = tmp_val;
-        int rank_left = get_rank(left);
-        int rank_right = get_rank(right);
+        use_custom_loop_params = current_status;
+        int rank_left = PassUtils::get_rank(left);
+        int rank_right = PassUtils::get_rank(right);
         if( rank_left == 0 && rank_right == 0 ) {
             tmp_val = const_cast<ASR::expr_t*>(&(x.base));
             return ;
         }
         if( rank_left > 0 && rank_right > 0 ) {
             if( rank_left != rank_right ) {
-                throw SemanticError("Cannot generate loop operands of different shapes", 
+                throw SemanticError("Cannot generate loop for operands of different shapes", 
                                     x.base.base.loc);
             }
             result_var = result_var_copy;
             if( result_var == nullptr ) {
-                result_var = create_var(result_var_num, std::string("_bin_op_res"), x.base.base.loc, expr_type(left));
+                result_var = create_var(result_var_num, res_prefix, x.base.base.loc, left);
                 result_var_num += 1;
             }
             tmp_val = result_var;
 
             int n_dims = rank_left;
-            Vec<ASR::expr_t*> idx_vars;
-            create_idx_vars(idx_vars, n_dims, x.base.base.loc);
+            Vec<ASR::expr_t*> idx_vars, idx_vars_value;
+            PassUtils::create_idx_vars(idx_vars, n_dims, x.base.base.loc, al, current_scope, "_t");
+            PassUtils::create_idx_vars(idx_vars_value, n_dims, x.base.base.loc, al, current_scope, "_v");
+            ASR::ttype_t* int32_type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc, 4, nullptr, 0));
+            ASR::expr_t* const_1 = LFortran::ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc, 1, int32_type));
             ASR::stmt_t* doloop = nullptr;
             for( int i = n_dims - 1; i >= 0; i-- ) {
                 // TODO: Add an If debug node to check if the lower and upper bounds of both the arrays are same.
                 ASR::do_loop_head_t head;
                 head.m_v = idx_vars[i];
-                head.m_start = get_bound(result_var, i + 1, "lbound");
-                head.m_end = get_bound(result_var, i + 1, "ubound");
-                head.m_increment = nullptr;
+                if( use_custom_loop_params ) {
+                    head.m_start = result_lbound[i];
+                    head.m_end = result_ubound[i];
+                    head.m_increment = result_inc[i];
+                } else {
+                    head.m_start = PassUtils::get_bound(result_var, i + 1, "lbound", al, unit, current_scope);
+                    head.m_end = PassUtils::get_bound(result_var, i + 1, "ubound", al, unit, current_scope);
+                    head.m_increment = nullptr;
+                }
                 head.loc = head.m_v->base.loc;
                 Vec<ASR::stmt_t*> doloop_body;
                 doloop_body.reserve(al, 1);
                 if( doloop == nullptr ) {
-                    ASR::expr_t* ref_1 = create_array_ref(left, idx_vars);
-                    ASR::expr_t* ref_2 = create_array_ref(right, idx_vars);
-                    ASR::expr_t* res = create_array_ref(result_var, idx_vars);
-                    ASR::expr_t* bin_op_el_wise = EXPR(ASR::make_BinOp_t(al, x.base.base.loc, ref_1, x.m_op, ref_2, x.m_type));
-                    ASR::stmt_t* assign = STMT(ASR::make_Assignment_t(al, x.base.base.loc, res, bin_op_el_wise));
+                    ASR::expr_t* ref_1 = PassUtils::create_array_ref(left, idx_vars_value, al);
+                    ASR::expr_t* ref_2 = PassUtils::create_array_ref(right, idx_vars_value, al);
+                    ASR::expr_t* res = PassUtils::create_array_ref(result_var, idx_vars, al);
+                    ASR::expr_t* op_el_wise = nullptr;
+                    switch( x.class_type ) {
+                        case ASR::exprType::BinOp:
+                            op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(
+                                                al, x.base.base.loc, 
+                                                ref_1, (ASR::binopType)x.m_op, ref_2, x.m_type, nullptr));
+                            break;
+                        case ASR::exprType::Compare:
+                            op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_Compare_t(
+                                                al, x.base.base.loc, 
+                                                ref_1, (ASR::cmpopType)x.m_op, ref_2, x.m_type, nullptr));
+                            break;
+                        case ASR::exprType::BoolOp:
+                            op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_BoolOp_t(
+                                                al, x.base.base.loc, 
+                                                ref_1, (ASR::boolopType)x.m_op, ref_2, x.m_type, nullptr));
+                            break;
+                        default:
+                            throw SemanticError("The desired operation is not supported yet for arrays.",
+                                                x.base.base.loc);
+                    }
+                    ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, res, op_el_wise));
                     doloop_body.push_back(al, assign);
                 } else {
+                    ASR::stmt_t* set_to_one = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[i+1], const_1));
+                    doloop_body.push_back(al, set_to_one);
                     doloop_body.push_back(al, doloop);
                 }
-                doloop = STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
+                ASR::expr_t* inc_expr = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(al, x.base.base.loc, idx_vars_value[i], ASR::binopType::Add, const_1, int32_type, nullptr));
+                ASR::stmt_t* assign_stmt = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[i], inc_expr));
+                doloop_body.push_back(al, assign_stmt);
+                doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
             }
+            ASR::stmt_t* set_to_one = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[0], const_1));
+            array_op_result.push_back(al, set_to_one);
             array_op_result.push_back(al, doloop);
         } else if( (rank_left == 0 && rank_right > 0) || 
                    (rank_right == 0 && rank_left > 0) ) {
@@ -456,38 +563,123 @@ public:
                 n_dims = rank_right;
             }
             if( result_var == nullptr ) {
-                result_var = create_var(result_var_num, std::string("_bin_op_res"), x.base.base.loc, expr_type(arr_expr));
+                result_var = create_var(result_var_num, res_prefix, x.base.base.loc, arr_expr);
                 result_var_num += 1;
             }
             tmp_val = result_var;
 
-            Vec<ASR::expr_t*> idx_vars;
-            create_idx_vars(idx_vars, n_dims, x.base.base.loc);
+            Vec<ASR::expr_t*> idx_vars, idx_vars_value;
+            PassUtils::create_idx_vars(idx_vars, n_dims, x.base.base.loc, al, current_scope, "_t");
+            PassUtils::create_idx_vars(idx_vars_value, n_dims, x.base.base.loc, al, current_scope, "_v");
+            ASR::ttype_t* int32_type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc, 4, nullptr, 0));
+            ASR::expr_t* const_1 = LFortran::ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc, 1, int32_type));
             ASR::stmt_t* doloop = nullptr;
             for( int i = n_dims - 1; i >= 0; i-- ) {
                 // TODO: Add an If debug node to check if the lower and upper bounds of both the arrays are same.
                 ASR::do_loop_head_t head;
                 head.m_v = idx_vars[i];
-                head.m_start = get_bound(result_var, i + 1, "lbound");
-                head.m_end = get_bound(result_var, i + 1, "ubound");
-                head.m_increment = nullptr;
+                if( use_custom_loop_params ) {
+                    head.m_start = result_lbound[i];
+                    head.m_end = result_ubound[i];
+                    head.m_increment = result_inc[i];
+                } else {
+                    head.m_start = PassUtils::get_bound(result_var, i + 1, "lbound", al, unit, current_scope);
+                    head.m_end = PassUtils::get_bound(result_var, i + 1, "ubound", al, unit, current_scope);
+                    head.m_increment = nullptr;
+                }
                 head.loc = head.m_v->base.loc;
                 Vec<ASR::stmt_t*> doloop_body;
                 doloop_body.reserve(al, 1);
                 if( doloop == nullptr ) {
-                    ASR::expr_t* ref = create_array_ref(arr_expr, idx_vars);
-                    ASR::expr_t* res = create_array_ref(result_var, idx_vars);
-                    ASR::expr_t* bin_op_el_wise = EXPR(ASR::make_BinOp_t(al, x.base.base.loc, ref, x.m_op, other_expr, x.m_type));
-                    ASR::stmt_t* assign = STMT(ASR::make_Assignment_t(al, x.base.base.loc, res, bin_op_el_wise));
+                    ASR::expr_t* ref = PassUtils::create_array_ref(arr_expr, idx_vars_value, al);
+                    ASR::expr_t* res = PassUtils::create_array_ref(result_var, idx_vars, al);
+                    ASR::expr_t* op_el_wise = nullptr;
+                    switch( x.class_type ) {
+                        case ASR::exprType::BinOp:
+                            op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(
+                                                    al, x.base.base.loc, 
+                                                    ref, (ASR::binopType)x.m_op, other_expr, x.m_type, nullptr));
+                            break;
+                        case ASR::exprType::Compare:
+                            op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_Compare_t(
+                                                    al, x.base.base.loc, 
+                                                    ref, (ASR::cmpopType)x.m_op, other_expr, x.m_type, nullptr));
+                            break;
+                        case ASR::exprType::BoolOp:
+                            op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_BoolOp_t(
+                                                    al, x.base.base.loc, 
+                                                    ref, (ASR::boolopType)x.m_op, other_expr, x.m_type, nullptr));
+                            break;
+                        default:
+                            throw SemanticError("The desired operation is not supported yet for arrays.",
+                                                x.base.base.loc);
+                    }
+                    ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, res, op_el_wise));
                     doloop_body.push_back(al, assign);
                 } else {
+                    ASR::stmt_t* set_to_one = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[i+1], const_1));
+                    doloop_body.push_back(al, set_to_one);
                     doloop_body.push_back(al, doloop);
                 }
-                doloop = STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
+                ASR::expr_t* inc_expr = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(al, x.base.base.loc, idx_vars_value[i], ASR::binopType::Add, const_1, int32_type, nullptr));
+                ASR::stmt_t* assign_stmt = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[i], inc_expr));
+                doloop_body.push_back(al, assign_stmt);
+                doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
             }
+            ASR::stmt_t* set_to_one = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[0], const_1));
+            array_op_result.push_back(al, set_to_one);
             array_op_result.push_back(al, doloop);
         }
     }
+
+    void visit_BinOp(const ASR::BinOp_t &x) {
+        visit_ArrayOpCommon<ASR::BinOp_t>(x, "_bin_op_res");
+    }
+
+    void visit_Compare(const ASR::Compare_t &x) {
+        visit_ArrayOpCommon<ASR::Compare_t>(x, "_comp_op_res");
+    }
+
+    void visit_BoolOp(const ASR::BoolOp_t &x) {
+        visit_ArrayOpCommon<ASR::BoolOp_t>(x, "_bool_op_res");
+    }
+
+    void visit_FunctionCall(const ASR::FunctionCall_t& x) {
+        tmp_val = const_cast<ASR::expr_t*>(&(x.base));
+        std::string x_name;
+        if( x.m_name->type == ASR::symbolType::ExternalSymbol ) {
+            x_name = down_cast<ASR::ExternalSymbol_t>(x.m_name)->m_name;
+        } else if( x.m_name->type == ASR::symbolType::Function ) {
+            x_name = down_cast<ASR::Function_t>(x.m_name)->m_name;
+        }
+        // The following checks if the name of a function actually 
+        // points to a subroutine. If true this would mean that the
+        // original function returned an array and is now a subroutine.
+        // So the current function call will be converted to a subroutine
+        // call. In short, this check acts as a signal whether to convert
+        // a function call to a subroutine call.
+        if( current_scope != nullptr && 
+            current_scope->scope.find(x_name) != current_scope->scope.end() &&
+            current_scope->scope[x_name]->type == ASR::symbolType::Subroutine ) {
+            if( result_var == nullptr ) {
+                result_var = create_var(result_var_num, "_func_call_res", x.base.base.loc, x.m_args[x.n_args - 1]);
+                result_var_num += 1;
+            }
+            Vec<ASR::expr_t*> s_args;
+            s_args.reserve(al, x.n_args + 1);
+            for( size_t i = 0; i < x.n_args; i++ ) {
+                s_args.push_back(al, x.m_args[i]);
+            }
+            s_args.push_back(al, result_var);
+            tmp_val = result_var;
+            ASR::stmt_t* subrout_call = LFortran::ASRUtils::STMT(ASR::make_SubroutineCall_t(al, x.base.base.loc,
+                                                current_scope->scope[x_name], nullptr, 
+                                                s_args.p, s_args.size(), nullptr));
+            array_op_result.push_back(al, subrout_call);
+        }
+        result_var = nullptr;
+    }
+
 };
 
 void pass_replace_array_op(Allocator &al, ASR::TranslationUnit_t &unit) {

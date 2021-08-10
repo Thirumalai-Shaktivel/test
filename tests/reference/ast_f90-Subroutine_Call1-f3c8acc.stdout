@@ -1,5 +1,7 @@
 program Subroutine_Call1
-implicit none
+implicit none 
+! Syntax check
+!Subroutine CALL
 call randn(x(i))
 call randn(x)
 call random_number(U)
@@ -14,4 +16,6 @@ call a%random_number(u)
 call a%b%random_number(u)
 call f(a=4, b=6, c=i)
 call x%f%e()
+call self%dependency(ii)%info(unit, pr - 1)
+call self%dep(:self%ndep)%done(a)
 end program Subroutine_Call1

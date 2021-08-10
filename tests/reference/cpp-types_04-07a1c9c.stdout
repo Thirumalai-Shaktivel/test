@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <vector>
 #include <Kokkos_Core.hpp>
 
@@ -18,7 +19,7 @@ void main2() {
         int i;
         float r;
         float x;
-        r = 1.5;
+        r = 1.500000;
         i = 2;
         x = i*i;
         x = r*r;

@@ -73,8 +73,13 @@ set(WITH_LFORTRAN_ASSERT ${WITH_LFORTRAN_ASSERT_DEFAULT}
 # LFORTRAN_STATIC_BIN
 set(LFORTRAN_STATIC_BIN no CACHE BOOL "Build LFortran as a static binary")
 
-#ZLIB
-find_package(ZLIB REQUIRED)
+# WITH_LFORTRAN_BINARY_MODFILES
+set(WITH_LFORTRAN_BINARY_MODFILES YES
+    CACHE BOOL "Use binary modfiles")
+
+# Find ZLIB with our custom finder before including LLVM since the finder for LLVM
+# might search for ZLIB again and find the shared libraries instead of the static ones
+find_package(StaticZLIB REQUIRED)
 
 # LLVM
 set(WITH_LLVM no CACHE BOOL "Build with LLVM support")
@@ -225,6 +230,7 @@ message("WITH_LLVM: ${WITH_LLVM}")
 message("WITH_XEUS: ${WITH_XEUS}")
 message("WITH_JSON: ${WITH_JSON}")
 message("WITH_FMT: ${WITH_FMT}")
+message("WITH_LFORTRAN_BINARY_MODFILES: ${WITH_LFORTRAN_BINARY_MODFILES}")
 
 
 add_subdirectory(src)

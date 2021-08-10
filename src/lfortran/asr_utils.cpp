@@ -8,7 +8,10 @@
 
 namespace LFortran {
 
-void visit(int a, std::map<int,std::vector<int>> &deps,
+    namespace ASRUtils  {
+
+
+        void visit(int a, std::map<int,std::vector<int>> &deps,
         std::vector<bool> &visited, std::vector<int> &result) {
     visited[a] = true;
     for (auto n : deps[a]) {
@@ -107,6 +110,14 @@ ASR::Module_t* load_module(Allocator &al, SymbolTable *symtab,
     LFORTRAN_ASSERT(symtab->parent == nullptr);
     ASR::TranslationUnit_t *mod1 = find_and_load_module(al, module_name,
             *symtab, intrinsic);
+    if (mod1 == nullptr && !intrinsic) {
+        // Module not found as a regular module. Try intrinsic module
+        if (module_name == "iso_c_binding"
+            ||module_name == "iso_fortran_env") {
+            mod1 = find_and_load_module(al, "lfortran_intrinsic_" + module_name,
+                *symtab, true);
+        }
+    }
     if (mod1 == nullptr) {
         throw SemanticError("Module '" + module_name + "' not declared in the current source and the modfile was not found",
             loc);
@@ -228,5 +239,7 @@ ASR::TranslationUnit_t* find_and_load_module(Allocator &al, const std::string &m
     }
     return asr;
 }
+    } // namespace ASRUtils
+
 
 } // namespace LFortran
