@@ -1243,11 +1243,8 @@ public:
                         x.base.base.loc);
                 }
                 if (ASR::is_a<ASR::GenericProcedure_t>(*t)) {
-                    ASR::GenericProcedure_t *p = ASR::down_cast<ASR::GenericProcedure_t>(t);
-                    Vec<ASR::expr_t*> args = visit_expr_list(x.m_args, x.n_args);
-                    int idx = select_generic_procedure(args, *p, x.base.base.loc);
-                    ASR::symbol_t *final_sym = p->m_procs[idx];
-                    t = final_sym;
+                    symbol_resolve_generic_procedure(t, x);
+                    return;
                 }
 
                 if (!ASR::is_a<ASR::Function_t>(*t)) {
