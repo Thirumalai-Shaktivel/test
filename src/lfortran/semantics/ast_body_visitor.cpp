@@ -1243,7 +1243,19 @@ public:
                         x.base.base.loc);
                 }
                 if (ASR::is_a<ASR::GenericProcedure_t>(*t)) {
-                    symbol_resolve_generic_procedure(t, x);
+                    ASR::GenericProcedure_t *gp = ASR::down_cast<ASR::GenericProcedure_t>(t);
+                    ASR::asr_t *fn = ASR::make_ExternalSymbol_t(
+                        al, gp->base.base.loc,
+                        /* a_symtab */ current_scope,
+                        /* a_name */ gp->m_name,
+                        (ASR::symbol_t*)gp,
+                        m->m_name, gp->m_name,
+                        ASR::accessType::Private
+                        );
+                    std::string sym = gp->m_name;
+                    current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
+                    symbol_resolve_generic_procedure(
+                        ASR::down_cast<ASR::symbol_t>(fn), x);
                     return;
                 }
 
