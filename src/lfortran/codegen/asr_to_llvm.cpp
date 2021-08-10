@@ -2418,8 +2418,16 @@ public:
                 // tmp = tmp;
                 return;
             } else if (x.m_op == ASR::unaryopType::USub) {
-                llvm::Value *zero = llvm::ConstantFP::get(context,
-                        llvm::APFloat((float)0.0));
+                llvm::Value *zero;
+                int a_kind = ((ASR::Real_t*)(&(x.m_type->base)))->m_kind;
+                if (a_kind == 4) {
+                    zero = llvm::ConstantFP::get(context,
+                            llvm::APFloat((float)0.0));
+                } else {
+                    LFORTRAN_ASSERT(a_kind == 8)
+                    zero = llvm::ConstantFP::get(context,
+                            llvm::APFloat((double)0.0));
+                }
                 tmp = builder ->CreateFSub(zero, tmp);
                 return;
             } else {
