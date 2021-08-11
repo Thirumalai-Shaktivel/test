@@ -3,6 +3,7 @@ source_filename = "LFortran"
 
 %array = type { i32*, i32, [1 x %dimension_descriptor] }
 %dimension_descriptor = type { i32, i32, i32, i32 }
+%array.0 = type { float*, i32, [1 x %dimension_descriptor] }
 %size_arg = type { %dimension_descriptor*, i32 }
 %array_call = type { float*, i32, [1 x %dimension_descriptor] }
 %array.1 = type { [3 x float], i32, [1 x %dimension_descriptor] }
@@ -16,6 +17,27 @@ source_filename = "LFortran"
 declare i32 @__module_lfortran_intrinsic_array_abs(%array*)
 
 declare i1 @__module_lfortran_intrinsic_array_allocated(%array*)
+
+define i32 @__module_lfortran_intrinsic_array_iint(i32* %x) {
+.entry:
+  %iint = alloca i32, align 4
+  %0 = load i32, i32* %iint, align 4
+  ret i32 %0
+}
+
+define i32 @__module_lfortran_intrinsic_array_iinta(%array* %x) {
+.entry:
+  %iinta = alloca i32, align 4
+  %0 = load i32, i32* %iinta, align 4
+  ret i32 %0
+}
+
+define i32 @__module_lfortran_intrinsic_array_iintk(%array* %x, i32* %kind) {
+.entry:
+  %iintk = alloca i32, align 4
+  %0 = load i32, i32* %iintk, align 4
+  ret i32 %0
+}
 
 define i32 @__module_lfortran_intrinsic_array_lbound(%dimension_descriptor** %x, i32* %dim) {
 .entry:
@@ -40,6 +62,27 @@ declare i32 @__module_lfortran_intrinsic_array_min(i32*, i32*)
 declare i32 @__module_lfortran_intrinsic_array_minval(%array*)
 
 declare float @__module_lfortran_intrinsic_array_real(%array*, i32*)
+
+define i32 @__module_lfortran_intrinsic_array_rint(float* %x) {
+.entry:
+  %rint = alloca i32, align 4
+  %0 = load i32, i32* %rint, align 4
+  ret i32 %0
+}
+
+define i32 @__module_lfortran_intrinsic_array_rinta(%array.0* %x) {
+.entry:
+  %rinta = alloca i32, align 4
+  %0 = load i32, i32* %rinta, align 4
+  ret i32 %0
+}
+
+define i32 @__module_lfortran_intrinsic_array_rintk(%array.0* %x, i32* %kind) {
+.entry:
+  %rintk = alloca i32, align 4
+  %0 = load i32, i32* %rintk, align 4
+  ret i32 %0
+}
 
 define i32 @__module_lfortran_intrinsic_array_size(%size_arg* %x) {
 .entry:

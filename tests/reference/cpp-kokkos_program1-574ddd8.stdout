@@ -25,6 +25,24 @@ bool allocated(const Kokkos::View<const int*> &x)
     return allocated;
 }
 
+int iint(int x)
+{
+    int iint;
+    return iint;
+}
+
+int iinta(const Kokkos::View<const int*> &x)
+{
+    int iinta;
+    return iinta;
+}
+
+int iintk(const Kokkos::View<const int*> &x, int kind)
+{
+    int iintk;
+    return iintk;
+}
+
 int lbound(const Kokkos::View<const int*> &x, int dim)
 {
     int lbound;
@@ -59,6 +77,24 @@ float real(const Kokkos::View<const int*> &x, int kind)
 {
     float real;
     return real;
+}
+
+int rint(float x)
+{
+    int rint;
+    return rint;
+}
+
+int rinta(const Kokkos::View<const float*> &x)
+{
+    int rinta;
+    return rinta;
+}
+
+int rintk(const Kokkos::View<const float*> &x, int kind)
+{
+    int rintk;
+    return rintk;
 }
 
 int sum(const Kokkos::View<const int*> &x)
