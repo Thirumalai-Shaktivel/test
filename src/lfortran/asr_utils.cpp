@@ -238,10 +238,12 @@ void set_intrinsic(ASR::TranslationUnit_t* trans_unit) {
 ASR::TranslationUnit_t* find_and_load_module(Allocator &al, const std::string &msym,
                                                 SymbolTable &symtab, bool intrinsic) {
     std::string modfilename = msym + ".mod";
+    std::cout << "LFORTRAN DEBUG: FINDING: " << modfilename << std::endl;
     if (intrinsic) {
         std::string rl_path = get_runtime_library_dir();
         modfilename = rl_path + "/" + modfilename;
     }
+    std::cout << "LFORTRAN DEBUG: path:    " << modfilename << std::endl;
     std::string modfile = read_file(modfilename);
     if (modfile == "") return nullptr;
     ASR::TranslationUnit_t *asr = load_modfile(al, modfile, false,
