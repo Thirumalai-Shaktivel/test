@@ -43,7 +43,7 @@ macro(LFORTRAN_COMPILE_RUNTIME name)
         COMMAND lfortran
         ARGS --backend=cpp -c ${CMAKE_CURRENT_SOURCE_DIR}/../runtime/${name}.f90 -o ${name}.o
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../runtime
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../runtime/${name}.f90
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../runtime/${name}.f90 ${ARGN}
         COMMENT "LFortran Compiling ${name}.f90")
 endmacro(LFORTRAN_COMPILE_RUNTIME)
 
@@ -51,7 +51,9 @@ LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_array)
 LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_kind)
 LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_iso_fortran_env)
 LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_iso_c_binding)
-LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_math2)
+LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_math2
+  ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
+)
 
 add_custom_target(lfortran2
     ALL
