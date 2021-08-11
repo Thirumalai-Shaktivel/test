@@ -56,7 +56,7 @@ end interface
 
 interface int
    ! TODO: Handle arrays and more precision
-   module procedure iint, rint, iintk, rintk
+   module procedure iint, rint, iintk, rintk, iinta, rinta
 end interface
 
 contains
@@ -69,6 +69,14 @@ end function
 
 elemental integer function rint(x)
 real, intent(in) :: x
+end function
+
+elemental integer function iinta(x)
+integer, intent(in) :: x(:)
+end function
+
+elemental integer function rinta(x)
+real, intent(in) :: x(:)
 end function
 
 elemental integer function iintk(x, kind)
