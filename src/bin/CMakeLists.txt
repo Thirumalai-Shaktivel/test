@@ -47,11 +47,14 @@ macro(LFORTRAN_COMPILE_RUNTIME name)
         COMMENT "LFortran Compiling ${name}.f90")
 endmacro(LFORTRAN_COMPILE_RUNTIME)
 
-LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_array)
 LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_kind)
 LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_iso_fortran_env)
 LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_iso_c_binding)
 LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_math2
+  ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
+)
+
+LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_array
   ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
 )
 
