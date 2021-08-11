@@ -111,9 +111,12 @@ ASR::Module_t* load_module(Allocator &al, SymbolTable *symtab,
     ASR::TranslationUnit_t *mod1 = find_and_load_module(al, module_name,
             *symtab, intrinsic);
     if (mod1 == nullptr && !intrinsic) {
+        std::cout << "LFORTRAN DEBUG: module '" + module_name + "' not found"
+            ", trying prepending" << std::endl;
         // Module not found as a regular module. Try intrinsic module
         if (module_name == "iso_c_binding"
             ||module_name == "iso_fortran_env") {
+            std::cout << "LFORTRAN DEBUG: prepending" << std::endl;
             mod1 = find_and_load_module(al, "lfortran_intrinsic_" + module_name,
                 *symtab, true);
         }
