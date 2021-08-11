@@ -575,6 +575,7 @@ int save_mod_files(const LFortran::ASR::TranslationUnit_t &u)
 
 
             std::string modfile = std::string(m->m_name) + ".mod";
+            std::cout << "LFORTRAN DEBUG: Saving mod file: " << modfile << std::endl;
             {
                 std::ofstream out;
                 out.open(modfile, std::ofstream::out | std::ofstream::binary);

@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <lfortran/asr_utils.h>
 #include <lfortran/string_utils.h>
 #include <lfortran/serialization.h>
@@ -111,9 +113,12 @@ ASR::Module_t* load_module(Allocator &al, SymbolTable *symtab,
     ASR::TranslationUnit_t *mod1 = find_and_load_module(al, module_name,
             *symtab, intrinsic);
     if (mod1 == nullptr && !intrinsic) {
+        std::cout << "LFORTRAN DEBUG: module '" + module_name + "' not found"
+            ", trying prepending" << std::endl;
         // Module not found as a regular module. Try intrinsic module
         if (module_name == "iso_c_binding"
             ||module_name == "iso_fortran_env") {
+            std::cout << "LFORTRAN DEBUG: prepending" << std::endl;
             mod1 = find_and_load_module(al, "lfortran_intrinsic_" + module_name,
                 *symtab, true);
         }
@@ -235,10 +240,12 @@ void set_intrinsic(ASR::TranslationUnit_t* trans_unit) {
 ASR::TranslationUnit_t* find_and_load_module(Allocator &al, const std::string &msym,
                                                 SymbolTable &symtab, bool intrinsic) {
     std::string modfilename = msym + ".mod";
+    std::cout << "LFORTRAN DEBUG: FINDING: " << modfilename << std::endl;
     if (intrinsic) {
         std::string rl_path = get_runtime_library_dir();
         modfilename = rl_path + "/" + modfilename;
     }
+    std::cout << "LFORTRAN DEBUG: path:    " << modfilename << std::endl;
     std::string modfile = read_file(modfilename);
     if (modfile == "") return nullptr;
     ASR::TranslationUnit_t *asr = load_modfile(al, modfile, false,
