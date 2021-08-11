@@ -38,6 +38,7 @@ private:
         {"sum", "lfortran_intrinsic_array"},
         {"abs", "lfortran_intrinsic_math2"},
         {"sqrt", "lfortran_intrinsic_math2"},
+        {"int", "lfortran_intrinsic_array"},
         {"real", "lfortran_intrinsic_array"},
         {"tiny", "lfortran_intrinsic_array"}
 };
@@ -1447,6 +1448,40 @@ public:
                                 }
                             } else {
                                 throw SemanticError("tiny must have only one argument", x.base.base.loc);
+                            }
+                        }
+                        else if (func_name == "int") {
+                            if (args.n == 1) {
+                                ASR::expr_t* func_expr = args[0];
+                                int func_kind = LFortran::ASRUtils::extract_kind_from_ttype_t(func_type);
+                                if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*func_type)) {
+                                    if (func_kind == 4){
+                                        float rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(func_expr))->m_r;
+                                        int32_t ival = static_cast<int32_t>(rr);
+                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
+                                    } else {
+                                        double rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(func_expr))->m_r;
+                                        int64_t ival = static_cast<int64_t>(rr);
+                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
+                                    }
+                                }
+                                else if (LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*func_type)) {
+                                    if (func_kind == 4){
+                                        int32_t ival = ASR::down_cast<ASR::ConstantInteger_t>(
+                                            LFortran::ASRUtils::expr_value(func_expr))->m_n;
+                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
+                                    } else {
+                                        int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(
+                                            LFortran::ASRUtils::expr_value(func_expr))->m_n;
+                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, ival, func_type));
+                                    }
+                                }
+                                // TODO: Handle BOZ later
+                                // else if () {
+
+                                // }
+                            } else {
+                                throw SemanticError("int must have only one argument", x.base.base.loc);
                             }
                         }
                         else if (func_name == "real") {
