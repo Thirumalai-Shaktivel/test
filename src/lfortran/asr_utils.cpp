@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <lfortran/asr_utils.h>
 #include <lfortran/string_utils.h>
 #include <lfortran/serialization.h>
