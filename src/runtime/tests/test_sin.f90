@@ -4,13 +4,13 @@ integer, parameter :: dp = 8
 real(dp), parameter :: pi = 3.1415926535897932384626433832795_dp
 
 real(dp) :: x
-x = dsin(1.5_dp)
+x = a6dsin(1.5_dp)
 print *, x
 print *, 0.99749498660405445_dp
 
 contains
 
-elemental integer function floor(x) result(r)
+elemental integer function a1floor(x) result(r)
 real(dp), intent(in) :: x
 if (x >= 0) then
     r = x
@@ -19,12 +19,12 @@ else
 end if
 end function
 
-elemental real(dp) function modulo2(x, y) result(r)
+elemental real(dp) function a2modulo(x, y) result(r)
 real(dp), intent(in) :: x, y
-r = x-floor(x/y)*y
+r = x-a1floor(x/y)*y
 end function
 
-elemental real(dp) function min(x, y) result(r)
+elemental real(dp) function a3min(x, y) result(r)
 real(dp), intent(in) :: x, y
 if (x < y) then
     r = x
@@ -33,7 +33,7 @@ else
 end if
 end function
 
-elemental real(dp) function max(x, y) result(r)
+elemental real(dp) function a4max(x, y) result(r)
 real(dp), intent(in) :: x, y
 if (x > y) then
     r = x
@@ -42,19 +42,19 @@ else
 end if
 end function
 
-elemental real(dp) function dsin(x) result(r)
+elemental real(dp) function a6dsin(x) result(r)
 real(dp), intent(in) :: x
 real(dp) :: y
 integer :: n
-y = modulo2(x, 2*pi)
-y = min(y, pi - y)
-y = max(y, -pi - y)
-y = min(y, pi - y)
-r = kernel_dsin(y)
+y = a2modulo(x, 2*pi)
+y = a3min(y, pi - y)
+y = a4max(y, -pi - y)
+y = a3min(y, pi - y)
+r = a5kernel_dsin(y)
 end function
 
 ! Accurate on [-pi/2,pi/2] to about 1e-16
-elemental real(dp) function kernel_dsin(x) result(res)
+elemental real(dp) function a5kernel_dsin(x) result(res)
 real(dp), intent(in) :: x
 real(dp), parameter :: S1 = 0.9999999999999990771_dp
 real(dp), parameter :: S2 = -0.16666666666664811048_dp
