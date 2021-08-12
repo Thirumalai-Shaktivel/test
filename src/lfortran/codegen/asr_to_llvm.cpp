@@ -2287,6 +2287,13 @@ public:
                     tmp = builder->CreateMul(left_val, right_val);
                     break;
                 };
+                case ASR::binopType::Caret: {
+                    tmp = builder->CreateAdd(left_val, right_val);
+                    llvm::Value *two = llvm::ConstantInt::get(context,
+                        llvm::APInt(32, 2, true));
+                    tmp = builder->CreateUDiv(tmp, two);
+                    break;
+                };
                 case ASR::binopType::Div: {
                     tmp = builder->CreateUDiv(left_val, right_val);
                     break;
