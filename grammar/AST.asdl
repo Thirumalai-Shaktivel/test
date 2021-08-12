@@ -219,7 +219,7 @@ trivia_node
 
 boolop = And | Or | Eqv | NEqv
 
-operator = Add | Sub | Mul | Div | Pow
+operator = Add | Sub | Mul | Div | Pow | Caret
 
 stroperator = Concat
 

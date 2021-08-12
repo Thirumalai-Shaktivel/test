@@ -82,6 +82,7 @@ std::string op2str(const operatorType type)
         case (operatorType::Mul) : return "*";
         case (operatorType::Div) : return "/";
         case (operatorType::Pow) : return "**";
+        case (operatorType::Caret) : return "^";
     }
     throw std::runtime_error("Unknown type");
 }
