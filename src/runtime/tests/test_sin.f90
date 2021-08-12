@@ -1,12 +1,12 @@
 program test_sin
-use, intrinsic :: iso_fortran_env, only: sp => real32, dp => real64
 implicit none
+integer, parameter :: dp = 8
 real(dp), parameter :: pi = 3.1415926535897932384626433832795_dp
 
 real(dp) :: x
 x = dsin(1.5_dp)
 print *, x
-if (abs(x - 0.997494996_dp) > 1e-5_dp) error stop
+print *, 0.99749498660405445_dp
 
 contains
 
@@ -19,16 +19,34 @@ else
 end if
 end function
 
-elemental real(dp) function modulo(x, y) result(r)
+elemental real(dp) function modulo2(x, y) result(r)
 real(dp), intent(in) :: x, y
 r = x-floor(x/y)*y
+end function
+
+elemental real(dp) function min(x, y) result(r)
+real(dp), intent(in) :: x, y
+if (x < y) then
+    r = x
+else
+    r = y
+end if
+end function
+
+elemental real(dp) function max(x, y) result(r)
+real(dp), intent(in) :: x, y
+if (x > y) then
+    r = x
+else
+    r = y
+end if
 end function
 
 elemental real(dp) function dsin(x) result(r)
 real(dp), intent(in) :: x
 real(dp) :: y
 integer :: n
-y = modulo(x, 2*pi)
+y = modulo2(x, 2*pi)
 y = min(y, pi - y)
 y = max(y, -pi - y)
 y = min(y, pi - y)
