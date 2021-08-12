@@ -469,6 +469,7 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
             "%" { RET(TK_PERCENT) }
             "," { RET(TK_COMMA) }
             "*" { RET(TK_STAR) }
+            "^" { RET(TK_CARET) }
             "|" { RET(TK_VBAR) }
 
             // Multiple character symbols

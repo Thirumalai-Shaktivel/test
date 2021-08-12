@@ -77,6 +77,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token TK_PLUS "+"
 %token TK_MINUS "-"
 %token TK_STAR "*"
+%token TK_CARET "^"
 %token TK_SLASH "/"
 %token TK_COLON ":"
 %token TK_SEMICOLON ";"
