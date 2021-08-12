@@ -27,6 +27,9 @@ public:
     case (AST::Pow):
       op = ASR::Pow;
       break;
+    case (AST::Caret):
+      op = ASR::Caret;
+      break;
     // Fix compiler warning:
     default: {
       LFORTRAN_ASSERT(false);
@@ -77,6 +80,9 @@ public:
           break;
         case (ASR::Pow):
           result = std::pow(left_value, right_value);
+          break;
+        case (ASR::Caret):
+          result = (left_value + right_value)/2;
           break;
           // Reconsider
         default: {

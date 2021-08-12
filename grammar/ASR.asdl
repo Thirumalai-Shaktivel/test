@@ -210,7 +210,7 @@ ttype
 
 boolop = And | Or | NEqv | Eqv
 
-binop = Add | Sub | Mul | Div | Pow
+binop = Add | Sub | Mul | Div | Pow | Caret
 
 unaryop = Invert | Not | UAdd | USub
 
