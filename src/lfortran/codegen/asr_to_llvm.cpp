@@ -2880,7 +2880,7 @@ public:
                         break;
                     }
                     case 8 : {
-                        fmt.push_back("%lf");
+                        fmt.push_back("%23.17f");
                         d = builder->CreateFPExt(tmp,
                         llvm::Type::getDoubleTy(context));
                         break;
