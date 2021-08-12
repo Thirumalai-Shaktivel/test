@@ -1099,12 +1099,12 @@ asr = true
 
 # int (body)
 [[test]]
-filename = "../integration_tests/intrinsics_15.f90"
+filename = "../integration_tests/int_01.f90"
 asr = true
 
 # int (symboltable)
 [[test]]
-filename = "../integration_tests/intrinsics_16.f90"
+filename = "../integration_tests/int_02.f90"
 asr = true
 
 

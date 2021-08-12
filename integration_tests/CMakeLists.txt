@@ -170,6 +170,9 @@ RUN(NAME format_02 LABELS gfortran)
 
 RUN(NAME submodule_01 LABELS gfortran)
 
+RUN(NAME int_01 LABELS gfortran llvm) # int body
+RUN(NAME int_02 LABELS gfortran) # int symboltable
+
 RUN(NAME intrinsics_01 LABELS gfortran) # sqrt, abs, log
 RUN(NAME intrinsics_02 LABELS gfortran llvm) # sin
 RUN(NAME intrinsics_03 LABELS gfortran llvm) # cos
@@ -184,8 +187,6 @@ RUN(NAME intrinsics_11 LABELS gfortran) # real symboltable
 RUN(NAME intrinsics_12 LABELS gfortran) # kind body
 RUN(NAME intrinsics_13 LABELS gfortran) # kind symboltable
 RUN(NAME intrinsics_14 LABELS gfortran) # selected_real,int_kind body
-RUN(NAME intrinsics_15 LABELS gfortran llvm) # int body
-RUN(NAME intrinsics_16 LABELS gfortran) # int symboltable
 RUN(NAME intrinsics_open_close_read_write LABELS gfortran)
 
 RUN(NAME parameter_01 LABELS gfortran)
