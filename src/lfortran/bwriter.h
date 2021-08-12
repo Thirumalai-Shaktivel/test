@@ -89,7 +89,7 @@ public:
     }
 
     void write_float64(double d) {
-        write_int64((uint64_t)d);
+        write_int64(*((uint64_t*)(&d)));
     }
 
 };
@@ -140,7 +140,8 @@ public:
     }
 
     double read_float64() {
-        return (double)read_int64();
+        uint64_t x = read_int64();
+        return *((double*)(&x));
     }
 };
 
