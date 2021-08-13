@@ -1937,8 +1937,10 @@ public:
         r += syn(gr::Conditional);
         r += "then";
         r += syn();
-        if(x.m_t_inside){
-            r += print_trivia_after(*x.m_t_inside);
+        if(x.m_if_trivia){
+            r += print_trivia_after(*x.m_if_trivia);
+        } else if(x.m_else_trivia) {
+            r += print_trivia_inside(*x.m_else_trivia);
         } else {
             r.append("\n");
         }
@@ -1953,8 +1955,8 @@ public:
             r += syn(gr::Conditional);
             r += "else";
             r += syn();
-            if(x.m_t_inside){
-                r += print_trivia_inside(*x.m_t_inside);
+            if(x.m_else_trivia){
+                r += print_trivia_after(*x.m_else_trivia);
             } else {
                 r.append("\n");
             }
