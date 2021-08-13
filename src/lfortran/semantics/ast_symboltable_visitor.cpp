@@ -541,7 +541,7 @@ public:
             // real(dp), private :: x, y(3), z
             for (size_t i=0; i<x.n_syms; i++) {
                 AST::var_sym_t &s = x.m_syms[i];
-                std::string sym = s.m_name;
+                std::string sym = to_lower(s.m_name);
                 ASR::accessType s_access = dflt_access;
                 ASR::presenceType s_presence = dflt_presence;
                 AST::AttrType_t *sym_type =

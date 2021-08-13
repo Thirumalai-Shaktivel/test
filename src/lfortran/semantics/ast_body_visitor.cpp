@@ -1007,8 +1007,8 @@ public:
 
     ASR::asr_t* resolve_variable(const Location &loc, const char* id) {
         SymbolTable *scope = current_scope;
-        std::string var_name = to_lower(id);
-        ASR::symbol_t *v = scope->resolve_symbol(var_name);
+        std::string var_name = id;
+        ASR::symbol_t *v = scope->resolve_symbol(to_lower(var_name));
         if (!v) {
             throw SemanticError("Variable '" + var_name + "' not declared", loc);
         }
