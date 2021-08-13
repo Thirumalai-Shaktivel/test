@@ -114,6 +114,20 @@ uint64_t parse_int(const unsigned char *s)
 
 int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
 {
+    if (enddo_state == 1) {
+        enddo_count--;
+        enddo_state = 2;
+        KW(END_DO)
+    } else if (enddo_state == 2) {
+        if (enddo_count > 0) {
+            enddo_state = 1;
+        } else {
+            ignore_continue_or_enddo = true;
+            enddo_state = 0;
+            last_token = yytokentype::TK_LABEL;
+        }
+        return yytokentype::TK_NEWLINE;
+    }
     for (;;) {
         tok = cur;
 
@@ -235,9 +249,8 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
             'contiguous' { KW(CONTIGUOUS) }
             'continue' {
                 if (last_token == yytokentype::TK_LABEL
-                        && next_continue_is_enddo) {
-                    next_continue_is_enddo = false;
-                    KW(END_DO)
+                        && ignore_continue_or_enddo) {
+                    continue;
                 } else {
                     KW(CONTINUE)
                 }
@@ -317,8 +330,22 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
             'end' whitespace 'type' { KW(END_TYPE) }
             'endtype' { KW(ENDTYPE) }
 
-            'end' whitespace 'do' { KW(END_DO) }
-            'enddo' { KW(ENDDO) }
+            'end' whitespace 'do' { 
+                if (last_token == yytokentype::TK_LABEL
+                        && ignore_continue_or_enddo) {
+                    continue;
+                } else {
+                    KW(END_DO)
+                }
+            }
+            'enddo' {
+                if (last_token == yytokentype::TK_LABEL
+                        && ignore_continue_or_enddo) {
+                    continue;
+                } else {
+                    KW(ENDDO)
+                }
+            }
 
             'end' whitespace 'where' { KW(END_WHERE) }
             'endwhere' { KW(ENDWHERE) }
@@ -442,9 +469,16 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
 
             // Tokens
             newline {
-                    token_loc(loc); line_num++; cur_line=cur;
+                token_loc(loc); line_num++; cur_line=cur;
+                if (last_token == yytokentype::TK_LABEL
+                        && ignore_continue_or_enddo) {
+                    ignore_continue_or_enddo = false;
+                    last_token = yytokentype::TK_NEWLINE;
+                    continue;
+                } else {
                     last_token = yytokentype::TK_NEWLINE;
                     return yytokentype::TK_NEWLINE;
+                }
             }
 
             // Single character symbols
@@ -516,14 +550,19 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
                 if (last_token == yytokentype::TK_NEWLINE) {
                     uint64_t u;
                     if (lex_int(tok, cur, u, yylval.int_suffix.int_kind)) {
-                            yylval.n = u;
-                            if (label_do_stack[label_do_stack.size()-1] == u) {
+                        yylval.n = u;
+                        if (label_do_stack[label_do_stack.size()-1] == u) {
+                            while (label_do_stack[label_do_stack.size()-1] == u) {
                                 label_do_stack.pop_back();
-                                next_continue_is_enddo = true;
-                            } else {
-                                next_continue_is_enddo = false;
+                                enddo_count++;
                             }
-                            RET(TK_LABEL)
+                            enddo_state = 1;
+                        } else {
+                            enddo_count = 0;
+                            enddo_state = 0;
+                        }
+                        ignore_continue_or_enddo = false;
+                        RET(TK_LABEL)
                     } else {
                         token_loc(loc);
                         std::string t = token();
