@@ -98,6 +98,7 @@ RUN(NAME expr_07 LABELS gfortran llvm)
 RUN(NAME variables_01 LABELS gfortran llvm cpp x86)
 RUN(NAME variables_02 LABELS gfortran llvm cpp x86)
 RUN(NAME variables_03 LABELS gfortran llvm cpp)
+RUN(NAME variables_04 LABELS gfortran llvm llvm)
 
 RUN(NAME if_01 LABELS gfortran llvm cpp x86)
 RUN(NAME if_02 FAIL LABELS gfortran llvm cpp x86)
