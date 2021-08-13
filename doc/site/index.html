@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="None">
+  
+  
+  <link rel="shortcut icon" href="img/favicon.ico">
+  <title>LFortran Documentation</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  <link href="ansi.css" rel="stylesheet" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Home";
+    var mkdocs_page_input_path = "index.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="js/jquery-2.1.1.min.js" defer></script>
+  <script src="js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/fortran.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="." class="icon icon-home"> LFortran Documentation</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href=".">Home</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#feature-highlights">Feature Highlights</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#works-today">Works today</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#planned">Planned</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#roadmap">Roadmap</a>
+    </li>
+    </ul>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="installation/">Installation</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="language/">Fortran Language</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="progress/">LFortran Development Status</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Developer's Guide</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="design/">LFortran Design</a>
+                    </li>
+                    <li class="toctree-l1"><a class="" href="developer_tutorial.md">None</a>
+                    </li>
+                    <li class="toctree-l1"><a class="" href="AST and ASR.md">None</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="contribution/">Contributing</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href=".">LFortran Documentation</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Home</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="lfortran-documentation">LFortran Documentation</h1>
+<p>LFortran is a modern open-source (BSD licensed) interactive Fortran compiler
+built on top of LLVM.
+It can execute user's code interactively to allow exploratory work (much like
+Python, MATLAB or Julia) as well as compile to binaries with the goal to run
+user's code on modern architectures such as multi-core CPUs and GPUs.</p>
+<p>Website:
+<a href="https://lfortran.org/">https://lfortran.org/</a><br />
+Main repository:
+<a href="https://gitlab.com/lfortran/lfortran">https://gitlab.com/lfortran/lfortran</a><br />
+Try online using Binder:
+<a href="https://mybinder.org/v2/gl/lfortran%2Fweb%2Flfortran-binder/master?filepath=Demo.ipynb"><img alt="Binder" src="https://mybinder.org/badge_logo.svg" /></a></p>
+<h2 id="feature-highlights">Feature Highlights</h2>
+<p>LFortran is in development, there are features that work today, and there are
+features that are being implemented. You can also check out the <a href="progress/">Development Status</a> section for more information on features being supported and being worked on.</p>
+<h3 id="works-today">Works today</h3>
+<ul>
+<li>
+<p><strong>Interactive, Jupyter support</strong><br />
+    LFortran can be used from Jupyter as a Fortran kernel, allowing a
+    Python/Julia style rapid prototyping and exploratory workflow
+    (see the <a href="https://nbviewer.jupyter.org/gist/certik/f1d28a486510810d824869ab0c491b1c">static</a>
+    or
+    <a href="https://mybinder.org/v2/gl/lfortran%2Fweb%2Flfortran-binder/master?filepath=Demo.ipynb">interactive</a>
+    example notebook).
+    Or it can be used from the command-line in an interactive prompt (REPL).</p>
+</li>
+<li>
+<p><strong>Clean, modular design, usable as a library</strong><br />
+    LFortran is structured around two independent modules, AST and ASR, both of
+    which are standalone (completely independent of the rest of LFortran) and
+    users are encouraged to use them independently for other applications and
+    build tools on top. See the <a href="design/">Design</a>
+    and <a href="developer_tutorial.md">Developer Tutorial</a> documents for more details.</p>
+</li>
+<li>
+<p><strong>Interoperation with GFortran</strong><br />
+    LFortran can parse GFortran module files into an ASR and generate a Fortran
+    wrapper that can be compiled with any Fortran compiler and linked with the
+    original GFortran compiled module.</p>
+</li>
+<li>
+<p><strong>Create executables</strong><br />
+    It can create executables just like other Fortran compilers.</p>
+</li>
+<li>
+<p><strong>Runs on Linux, Mac and Windows</strong><br />
+    All three platforms are regularly tested by our CI.</p>
+</li>
+</ul>
+<h3 id="planned">Planned</h3>
+<p>These features are under development, there is a link to the corresponding
+issue so that you can track the progress by following it.</p>
+<ul>
+<li>
+<p><strong>Native interoperation with other languages (and other Fortran compilers)</strong><br />
+    It can automatically call code written in other languages (such as C or
+    Python) just by using the <code>use</code> statement, see
+    <a href="https://gitlab.com/lfortran/lfortran/issues/44">#44</a>. It understands
+    other Fortran compilers module files (one can just "use" them) and their
+    ABI to link correctly (GFortran is supported, other compilers are planned,
+    see <a href="https://gitlab.com/lfortran/lfortran/issues/56">#56</a>), which allows to
+    use LFortran with production codes today.</p>
+</li>
+<li>
+<p><strong>Modern hardware support</strong><br />
+    Thanks to LLVM, the goal of LFortran is to run on modern hardware and take
+    advantage of native Fortran language constructs (such as <code>do concurrent</code>)
+    to run on multi-core CPUs and GPUs, see
+    <a href="https://gitlab.com/lfortran/lfortran/issues/57">#57</a>.</p>
+</li>
+<li>
+<p><strong>Full Fortran 2018 support</strong><br />
+    Currently only a subset of Fortran is implemented, but the goal is to have
+    a full implementation of the latest Fortran 2018 standard, see
+    <a href="https://gitlab.com/lfortran/lfortran/issues/58">#58</a>.</p>
+</li>
+</ul>
+<p>Please vote on issues in our
+<a href="https://gitlab.com/lfortran/lfortran/issues">issue tracker</a> that you want us
+to prioritize (feel free to create new ones if we are missing anything).</p>
+<h2 id="roadmap">Roadmap</h2>
+<p>Here is our roadmap how to get all the planned features above implemented:</p>
+<ol>
+<li>
+<p>Port code generation to use ASR and pass all the current tests
+(<a href="https://gitlab.com/lfortran/lfortran/issues/74">#74</a>).
+Remove the old code generation and old semantics, that used to annotate the AST tree, which was messy.</p>
+</li>
+<li>
+<p>Get GFortran module files working with <code>use</code> module, both assumed-size and
+assumed-shape arrays (<a href="https://gitlab.com/lfortran/lfortran/issues/52">#52</a>).
+This will allow right away to use production codes with LFortran.</p>
+</li>
+<li>
+<p>Do these at the same time:</p>
+<p>a) Implement more Fortran features, until eventually full Fortran 2018 is
+supported (<a href="https://gitlab.com/lfortran/lfortran/issues/58">#58</a>).</p>
+<p>b) Gradually move to C++ for robustness and speed
+(<a href="https://gitlab.com/lfortran/lfortran/issues/70">#70</a>).
+The Python API will not change (or only minimally), so the user experience
+from Python will not change.</p>
+<p>c) Implement all the other cool features: <code>use</code> module for C and Python
+and automatic wrappers
+(<a href="https://gitlab.com/lfortran/lfortran/issues/44">#44</a>),
+modern hardware support
+(<a href="https://gitlab.com/lfortran/lfortran/issues/57">#57</a>),
+generating an older standard of Fortran
+(<a href="https://gitlab.com/lfortran/lfortran/issues/72">#72</a>),
+Fortran doctest feature
+(<a href="https://gitlab.com/lfortran/lfortran/issues/73">#73</a>),
+SymPy integration
+(<a href="https://gitlab.com/lfortran/lfortran/issues/71">#71</a>),
+language service for IDEs
+(<a href="https://gitlab.com/lfortran/lfortran/issues/12">#12</a>),
+and other ideas (<a href="https://gitlab.com/lfortran/lfortran/issues/29">#29</a>).</p>
+</li>
+</ol>
+<p>The step 1. is an internal refactoring that will not take long.</p>
+<p>The step 2. will allow LFortran to be used interactively with production codes
+right away (the production code will get compiled with GFortran, then one
+"uses" any module in LFortran and functions/subroutines can be interactively
+called, the module itself can use any GFortran supported feature, but the API
+must fit into the subset that LFortran understands --- for large number of
+applications simple functions/subroutines with array arguments are enough).
+This will make LFortran usable for first users and one can always use GFortran
+temporarily until LFortran supports the given feature.
+We expect to be finished with the step 2. by the end of summer 2019, hopefully sooner.</p>
+<p>Finally the step 3. will improve LFortran overall, allowing the first users
+to contribute back, growing the community and making LFortran gradually useful
+for more and more people.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="installation/" class="btn btn-neutral float-right" title="Installation">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+      <span><a href="installation/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '.';</script>
+    <script src="js/theme_extra.js" defer></script>
+    <script src="js/theme.js" defer></script>
+      <script src="search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.2.2
+Build Date UTC : 2021-08-12 16:47:20.256661+00:00
+-->

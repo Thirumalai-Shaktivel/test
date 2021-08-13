@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  
+  <link rel="shortcut icon" href="../img/favicon.ico">
+  <title>Installation - LFortran Documentation</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+  <link href="../ansi.css" rel="stylesheet" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Installation";
+    var mkdocs_page_input_path = "installation.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/languages/fortran.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> LFortran Documentation</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                    </li>
+                </ul>
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Installation</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#binaries">Binaries</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#build-from-a-source-tarball">Build From a Source Tarball</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#build-from-git">Build From Git</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#enabling-the-jupyter-kernel">Enabling the Jupyter Kernel</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#build-from-git-with-nix">Build From Git with Nix</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#with-root">With Root</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#without-root">Without Root</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#development">Development</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#note-about-dependencies">Note About Dependencies</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#note-for-users-who-do-not-use-conda">Note for users who do not use Conda</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#stacktraces">Stacktraces</a>
+    </li>
+    </ul>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../language/">Fortran Language</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../progress/">LFortran Development Status</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Developer's Guide</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../design/">LFortran Design</a>
+                    </li>
+                    <li class="toctree-l1"><a class="" href="../developer_tutorial.md">None</a>
+                    </li>
+                    <li class="toctree-l1"><a class="" href="../AST and ASR.md">None</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="../contribution/">Contributing</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">LFortran Documentation</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Installation</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="installation">Installation</h1>
+<p>All the instructions below work on Linux, macOS and Windows.</p>
+<h2 id="binaries">Binaries</h2>
+<p>The recommended way to install LFortran is using Conda.
+Install Conda for example by installing the
+<a href="https://conda.io/en/latest/miniconda.html">Miniconda</a> installation by following instructions there for your platform.
+Then create a new environment (you can choose any name, here we chose <code>lf</code>) and
+activate it:</p>
+<pre><code class="language-bash">conda create -n lf
+conda activate lf
+</code></pre>
+<p>Then install LFortran by:</p>
+<pre><code class="language-bash">conda install lfortran -c conda-forge
+</code></pre>
+<p>Now the <code>lf</code> environment has the <code>lfortran</code> compiler available, you can start the
+interactive prompt by executing <code>lfortran</code>, or see the command line options using
+<code>lfortran -h</code>.</p>
+<p>The Jupyter kernel is automatically installed by the above command, so after installing Jupyter itself:</p>
+<pre><code class="language-bash">conda install jupyter -c conda-forge
+</code></pre>
+<p>You can create a Fortran based Jupyter notebook by executing:</p>
+<pre><code class="language-bash">jupyter notebook
+</code></pre>
+<p>and selecting <code>New-&gt;Fortran</code>.</p>
+<h2 id="build-from-a-source-tarball">Build From a Source Tarball</h2>
+<p>This method is the recommended method if you just want to install LFortran, either yourself or in a package manager (Spack, Conda, Debian, etc.). The source tarball has all the generated files included and has minimal dependencies.</p>
+<p>First we have to install dependencies, for example using Conda:</p>
+<pre><code class="language-bash">conda create -n lf python cmake llvmdev
+conda activate lf
+</code></pre>
+<p>Then download a tarball from 
+<a href="https://lfortran.org/download/">https://lfortran.org/download/</a>, 
+e.g.:</p>
+<pre><code class="language-bash">wget https://lfortran.github.io/tarballs/dev/lfortran-0.9.0.tar.gz
+tar xzf lfortran-0.9.0.tar.gz
+cd lfortran-0.9.0
+</code></pre>
+<p>And build:</p>
+<pre><code>cmake -DWITH_LLVM=yes -DCMAKE_INSTALL_PREFIX=`pwd`/inst .
+make -j8
+make install
+</code></pre>
+<p>This will install the <code>lfortran</code> into the <code>inst/bin</code>.</p>
+<h2 id="build-from-git">Build From Git</h2>
+<p>We assume you have C++ compilers installed, as well as <code>git</code> and <code>wget</code>.
+In Ubuntu, you can also install <code>binutils-dev</code> for stacktraces.</p>
+<p>If you do not have Conda installed, you can do so on Linux (and similarly on
+other platforms):</p>
+<pre><code class="language-bash">wget --no-check-certificate https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+bash miniconda.sh -b -p $HOME/conda_root
+export PATH=&quot;$HOME/conda_root/bin:$PATH&quot;
+</code></pre>
+<p>Then prepare the environment:</p>
+<pre><code class="language-bash">conda create -n lf -c conda-forge llvmdev=11.0.1 bison=3.4 re2c python cmake make toml
+conda activate lf
+</code></pre>
+<p>Clone the LFortran git repository:</p>
+<pre><code>git clone https://gitlab.com/lfortran/lfortran.git
+cd lfortran
+</code></pre>
+<p>Generate files that are needed for the build (this step depends on <code>re2c</code>, <code>bison</code> and <code>python</code>):</p>
+<pre><code class="language-bash">./build0.sh
+</code></pre>
+<p>Now the process is the same as installing from the source tarball. For example to build in Debug mode:</p>
+<pre><code>cmake -DCMAKE_BUILD_TYPE=Debug -DWITH_LLVM=yes -DCMAKE_INSTALL_PREFIX=`pwd`/inst .
+make -j8
+</code></pre>
+<p>Run tests:</p>
+<pre><code class="language-bash">ctest
+./run_tests.py
+</code></pre>
+<p>Run an interactive prompt:</p>
+<pre><code class="language-bash">./src/bin/lfortran
+</code></pre>
+<h2 id="enabling-the-jupyter-kernel">Enabling the Jupyter Kernel</h2>
+<p>To install the Jupyter kernel, install the following Conda packages also:</p>
+<pre><code>conda install xeus xtl nlohmann_json cppzmq
+</code></pre>
+<p>and enable the kernel by <code>-DWITH_XEUS=yes</code> and install into <code>$CONDA_PREFIX</code>. For
+example:</p>
+<pre><code>cmake \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DWITH_LLVM=yes \
+    -DWITH_XEUS=yes \
+    -DCMAKE_PREFIX_PATH=&quot;$CONDA_PREFIX&quot; \
+    -DCMAKE_INSTALL_PREFIX=&quot;$CONDA_PREFIX&quot; \
+    .
+cmake --build . -j4 --target install
+</code></pre>
+<p>To use it, install Jupyter (<code>conda install jupyter</code>) and test that the LFortran
+kernel was found:</p>
+<pre><code>jupyter kernelspec list --json
+</code></pre>
+<p>Then launch a Jupyter notebook as follows:</p>
+<pre><code>jupyter notebook
+</code></pre>
+<p>Click <code>New-&gt;Fortran</code>. To launch a terminal jupyter LFortran console:</p>
+<pre><code>jupyter console --kernel=fortran
+</code></pre>
+<h2 id="build-from-git-with-nix">Build From Git with Nix</h2>
+<p>One of the ways to ensure exact environment and dependencies is with <code>nix</code>. This will ensure that system dependencies do not interfere with the development environment. If you want, you can report bugs in a <code>nix-shell</code> environment to make it easier for others to reproduce.</p>
+<h3 id="with-root">With Root</h3>
+<p>We start by getting <code>nix</code>. The following multi-user installation will work on any machine with a Linux distribution, MacOS or Windows (via WSL):</p>
+<pre><code class="language-bash">sh &lt;(curl -L https://nixos.org/nix/install) --daemon
+</code></pre>
+<h3 id="without-root">Without Root</h3>
+<p>If you would like to not provide <code>nix</code> with root access to your machine, on Linux distributions we can use <a href="https://github.com/DavHau/nix-portable">nix-portable</a>.</p>
+<pre><code class="language-bash">wget https://github.com/DavHau/nix-portable/releases/download/v003/nix-portable
+</code></pre>
+<p>Now just prepend all <code>nix-shell</code> commands with <code>NP_RUNTIME=bwrap ./nix-portable</code>. So:</p>
+<pre><code class="language-bash"># Do not
+nix-shell --run &quot;bash&quot;
+# Do
+NP_RUNTIME=bwrap ./nix-portable nix-shell --run &quot;bash&quot;
+</code></pre>
+<h3 id="development">Development</h3>
+<p>Now we can enter the development environment:</p>
+<pre><code class="language-bash">nix-shell --run &quot;bash&quot; --cores 4 -j4 --pure ci/shell.nix
+</code></pre>
+<p>The <code>--pure</code> flag ensures no system dependencies are used in the environment.</p>
+<p>The build steps are the same as with the <code>ci</code>:</p>
+<pre><code class="language-bash">./build0.sh
+./build1.sh
+</code></pre>
+<p>To change the compilation environment from <code>gcc</code> (default) to <code>clang</code> we can use <code>--argstr</code>:</p>
+<pre><code class="language-bash">nix-shell --run &quot;bash&quot; --cores 4 -j4 --pure ci/shell.nix --argstr clangOnly &quot;yes&quot;
+</code></pre>
+<h2 id="note-about-dependencies">Note About Dependencies</h2>
+<p>End users (and distributions) are encouraged to use the tarball
+from <a href="https://lfortran.org/download/">https://lfortran.org/download/</a>,
+which only depends on LLVM, CMake and a C++ compiler.</p>
+<p>The tarball is generated automatically by our CI (continuous integration) and
+contains some autogenerated files: the parser, the AST and ASR nodes, which is generated by an ASDL
+translator (requires Python).</p>
+<p>The instructions from git are to be used when developing LFortran itself.</p>
+<h2 id="note-for-users-who-do-not-use-conda">Note for users who do not use Conda</h2>
+<p>Following are the dependencies necessary for installing this
+repository in development mode,</p>
+<ul>
+<li><a href="https://ftp.gnu.org/gnu/bison/bison-3.5.1.tar.xz">Bison - 3.5.1</a></li>
+<li><a href="https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/llvm-11.0.1.src.tar.xz">LLVM - 11.0.1</a></li>
+<li><a href="https://re2c.org/install/install.html">re2c - 2.0.3</a></li>
+<li><a href="ftp://sourceware.org/pub/binutils/snapshots/binutils-2.31.90.tar.xz">binutils - 2.31.90</a> - Make sure that you should enable the required options related to this dependency to build the dynamic libraries (the ones ending with <code>.so</code>).</li>
+</ul>
+<h2 id="stacktraces">Stacktraces</h2>
+<p>LFortran can print stacktraces when there is an unhandled exception, as well as
+on any compiler error with the <code>--show-stacktrace</code> option. This is very helpful
+for developing the compiler itself to see where in LFortran the problem is. The
+stacktrace support is turned off by default, to enable it, install <code>binutils</code>
+and compile LFortran with the <code>-DWITH_STACKTRACE=yes</code> cmake option.</p>
+<p>In Ubuntu, <code>apt install binutils-dev</code>.</p>
+<p>On macOS, you can install <a href="https://spack.io/">Spack</a>, then:</p>
+<pre><code>spack install binutils
+spack find -p binutils
+</code></pre>
+<p>The last command will show a full path to the installed <code>binutils</code> package. Add
+this path to your shell config file, e.g.:</p>
+<pre><code>export CMAKE_PREFIX_PATH_LFORTRAN=/Users/ondrej/repos/spack/opt/spack/darwin-catalina-broadwell/apple-clang-11.0.0/binutils-2.36.1-wy6osfm6bp2323g3jpv2sjuttthwx3gd
+</code></pre>
+<p>and compile LFortran with the
+<code>-DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH_LFORTRAN;$CONDA_PREFIX"</code> cmake option.
+The <code>$CONDA_PREFIX</code> is there if you install some other dependencies (such as
+<code>llvm</code>) using Conda, otherwise you can remove it.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../language/" class="btn btn-neutral float-right" title="Fortran Language">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href=".." class="btn btn-neutral" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href=".." style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../language/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
