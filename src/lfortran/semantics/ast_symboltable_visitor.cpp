@@ -253,7 +253,7 @@ public:
         args.reserve(al, x.n_args);
         for (size_t i=0; i<x.n_args; i++) {
             char *arg=x.m_args[i].m_arg;
-            std::string arg_s = arg;
+            std::string arg_s = to_lower(arg);
             if (current_scope->scope.find(arg_s) == current_scope->scope.end()) {
                 throw SemanticError("Dummy argument '" + arg_s + "' not defined", x.base.base.loc);
             }
