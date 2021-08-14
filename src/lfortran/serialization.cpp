@@ -152,7 +152,7 @@ public:
         s = (ASR::symbol_t*)al.make_new<ASR::x##_t>();     \
         s->type = ASR::symbolType::x;                      \
         s->base.type = ASR::asrType::symbol;               \
-        s->base.loc.first_line = 123;                      \
+        s->base.loc.first = 123;                           \
         break;                                             \
     }
 
@@ -200,7 +200,7 @@ public:
             // We have to copy the contents of `sym` into `sym2` without
             // changing the `sym2` pointer already in the table
             ASR::symbol_t *sym2 = symtab.scope[name];
-            LFORTRAN_ASSERT(sym2->base.loc.first_line == 123);
+            LFORTRAN_ASSERT(sym2->base.loc.first == 123);
             switch (sym->type) {
                 INSERT_SYMBOL_CASE(Program)
                 INSERT_SYMBOL_CASE(Module)
