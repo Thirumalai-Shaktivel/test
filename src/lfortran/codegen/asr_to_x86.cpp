@@ -7,6 +7,7 @@
 #include <lfortran/codegen/asr_to_x86.h>
 #include <lfortran/codegen/x86_assembler.h>
 #include <lfortran/pass/do_loops.h>
+#include <lfortran/pass/where_expression.h>
 #include <lfortran/pass/global_stmts.h>
 #include <lfortran/exception.h>
 #include <lfortran/asr_utils.h>

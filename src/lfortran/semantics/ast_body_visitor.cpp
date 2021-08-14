@@ -1874,6 +1874,31 @@ public:
                 body.size(), orelse.p, orelse.size());
     }
 
+// Essentially where -> loop over variables --> do things if
+// Broken horribly right now
+    void visit_Where(const AST::Where_t &x) {
+        visit_expr(*x.m_test);
+        ASR::expr_t *test = LFortran::ASRUtils::EXPR(tmp);
+        Vec<ASR::stmt_t*> body;
+        body.reserve(al, x.n_body);
+        for (size_t i=0; i<x.n_body; i++) {
+            visit_stmt(*x.m_body[i]);
+            if (tmp != nullptr) {
+                body.push_back(al, LFortran::ASRUtils::STMT(tmp));
+            }
+        }
+        Vec<ASR::stmt_t*> orelse;
+        orelse.reserve(al, x.n_orelse);
+        for (size_t i=0; i<x.n_orelse; i++) {
+            visit_stmt(*x.m_orelse[i]);
+            if (tmp != nullptr) {
+                orelse.push_back(al, LFortran::ASRUtils::STMT(tmp));
+            }
+        }
+        tmp = ASR::make_Where_t(al, x.base.base.loc, test, body.p,
+                body.size(), orelse.p, orelse.size());
+    }
+
     void visit_WhileLoop(const AST::WhileLoop_t &x) {
         visit_expr(*x.m_test);
         ASR::expr_t *test = LFortran::ASRUtils::EXPR(tmp);
