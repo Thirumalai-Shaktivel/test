@@ -4,7 +4,7 @@
 %param {LFortran::Parser &p}
 %locations
 %glr-parser
-%expect    650 // shift/reduce conflicts
+%expect    1954 // shift/reduce conflicts
 %expect-rr 169 // reduce/reduce conflicts
 
 // Uncomment this to get verbose error messages
@@ -338,6 +338,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> interface_stmt
 %type <ast> derived_type_decl
 %type <ast> enum_decl
+%type <ast> statement_function
 %type <ast> program
 %type <ast> subroutine
 %type <ast> procedure
@@ -899,6 +900,12 @@ decl
     | interface_decl
     | derived_type_decl
     | enum_decl
+    | statement_function
+    ;
+
+statement_function
+    : id "(" id_list ")" "=" expr sep {
+            $$ = STATEMENT_FUNCTION($1, $6, TRIVIA_AFTER($7, @$), @$); }
     ;
 
 contains_block_opt
