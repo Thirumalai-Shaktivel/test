@@ -1008,7 +1008,7 @@ public:
     ASR::asr_t* resolve_variable(const Location &loc, const char* id) {
         SymbolTable *scope = current_scope;
         std::string var_name = id;
-        ASR::symbol_t *v = scope->resolve_symbol(var_name);
+        ASR::symbol_t *v = scope->resolve_symbol(to_lower(var_name));
         if (!v) {
             throw SemanticError("Variable '" + var_name + "' not declared", loc);
         }
@@ -1228,7 +1228,7 @@ public:
             "cos",  "tan",  "sinh",  "cosh",  "tanh",
             "asin", "acos", "atan", "asinh", "acosh", "atanh"};
         SymbolTable *scope = current_scope;
-        std::string var_name = x.m_func;
+        std::string var_name = to_lower(x.m_func);
         ASR::symbol_t *v = scope->resolve_symbol(var_name);
         ASR::expr_t *v_expr = nullptr;
         // If this is a type bound procedure (in a class) it won't be in the

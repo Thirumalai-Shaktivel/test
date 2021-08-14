@@ -114,7 +114,7 @@ public:
             current_module_dependencies.p,
             current_module_dependencies.n,
             false);
-        std::string sym_name = x.m_name;
+        std::string sym_name = to_lower(x.m_name);
         if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
             throw SemanticError("Module already defined", asr->loc);
         }
@@ -144,7 +144,7 @@ public:
             current_module_dependencies.n,
             /* a_body */ nullptr,
             /* n_body */ 0);
-        std::string sym_name = x.m_name;
+        std::string sym_name = to_lower(x.m_name);
         if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
             throw SemanticError("Program already defined", asr->loc);
         }
@@ -197,8 +197,8 @@ public:
             /* n_body */ 0,
             ASR::abiType::Source,
             s_access, deftype);
-        if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
-            ASR::symbol_t *f1 = parent_scope->scope[sym_name];
+        if (parent_scope->scope.find(to_lower(sym_name)) != parent_scope->scope.end()) {
+            ASR::symbol_t *f1 = parent_scope->scope[to_lower(sym_name)];
             ASR::Subroutine_t *f2 = ASR::down_cast<ASR::Subroutine_t>(f1);
             if (f2->m_abi == ASR::abiType::Interactive) {
                 // Previous declaration will be shadowed
@@ -206,7 +206,7 @@ public:
                 throw SemanticError("Subroutine already defined", asr->loc);
             }
         }
-        parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(asr);
+        parent_scope->scope[to_lower(sym_name)] = ASR::down_cast<ASR::symbol_t>(asr);
         current_scope = parent_scope;
         /* FIXME: This can become incorrect/get cleared prematurely, perhaps
            in nested functions, and also in callback.f90 test, but it may not
@@ -253,7 +253,7 @@ public:
         args.reserve(al, x.n_args);
         for (size_t i=0; i<x.n_args; i++) {
             char *arg=x.m_args[i].m_arg;
-            std::string arg_s = arg;
+            std::string arg_s = to_lower(arg);
             if (current_scope->scope.find(arg_s) == current_scope->scope.end()) {
                 throw SemanticError("Dummy argument '" + arg_s + "' not defined", x.base.base.loc);
             }
@@ -284,7 +284,7 @@ public:
         ASR::asr_t *return_var;
         AST::AttrType_t *return_type = find_return_type(x.m_attributes,
             x.n_attributes, x.base.base.loc);
-        if (current_scope->scope.find(std::string(return_var_name)) == current_scope->scope.end()) {
+        if (current_scope->scope.find(to_lower(std::string(return_var_name))) == current_scope->scope.end()) {
             // The variable is not defined among local variables, extract the
             // type from "integer function f()" and add the variable.
             if (!return_type) {
@@ -324,7 +324,7 @@ public:
                 current_scope, return_var_name, LFortran::ASRUtils::intent_return_var, nullptr, nullptr,
                 ASR::storage_typeType::Default, type,
                 ASR::abiType::Source, ASR::Public, ASR::presenceType::Required);
-            current_scope->scope[std::string(return_var_name)]
+            current_scope->scope[to_lower(std::string(return_var_name))]
                 = ASR::down_cast<ASR::symbol_t>(return_var);
         } else {
             if (return_type) {
@@ -332,7 +332,7 @@ public:
                     x.base.base.loc);
             }
             // Extract the variable from the local scope
-            return_var = (ASR::asr_t*) current_scope->scope[std::string(return_var_name)];
+            return_var = (ASR::asr_t*) current_scope->scope[to_lower(std::string(return_var_name))];
             ASR::down_cast2<ASR::Variable_t>(return_var)->m_intent = LFortran::ASRUtils::intent_return_var;
         }
 
@@ -340,9 +340,9 @@ public:
             ASR::down_cast<ASR::symbol_t>(return_var));
 
         // Create and register the function
-        std::string sym_name = x.m_name;
+        std::string sym_name = to_lower(x.m_name);
         if (assgnd_access.count(sym_name)) {
-            s_access = assgnd_access[sym_name];
+            s_access = assgnd_access[to_lower(sym_name)];
         }
 
         if (is_interface) {
@@ -358,8 +358,8 @@ public:
             /* n_body */ 0,
             /* a_return_var */ LFortran::ASRUtils::EXPR(return_var_ref),
             ASR::abiType::Source, s_access, deftype);
-        if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
-            ASR::symbol_t *f1 = parent_scope->scope[sym_name];
+        if (parent_scope->scope.find(to_lower(sym_name)) != parent_scope->scope.end()) {
+            ASR::symbol_t *f1 = parent_scope->scope[to_lower(sym_name)];
             ASR::Function_t *f2 = ASR::down_cast<ASR::Function_t>(f1);
             if (f2->m_abi == ASR::abiType::Interactive) {
                 // Previous declaration will be shadowed
@@ -367,7 +367,7 @@ public:
                 throw SemanticError("Function already defined", asr->loc);
             }
         }
-        parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(asr);
+        parent_scope->scope[to_lower(sym_name)] = ASR::down_cast<ASR::symbol_t>(asr);
         current_scope = parent_scope;
         current_procedure_args.clear();
     }
@@ -541,7 +541,7 @@ public:
             // real(dp), private :: x, y(3), z
             for (size_t i=0; i<x.n_syms; i++) {
                 AST::var_sym_t &s = x.m_syms[i];
-                std::string sym = s.m_name;
+                std::string sym = to_lower(s.m_name);
                 ASR::accessType s_access = dflt_access;
                 ASR::presenceType s_presence = dflt_presence;
                 AST::AttrType_t *sym_type =
@@ -702,7 +702,7 @@ public:
                 } else if (sym_type->m_type == AST::decl_typeType::TypeType) {
                     LFORTRAN_ASSERT(sym_type->m_name);
                     std::string derived_type_name = sym_type->m_name;
-                    ASR::symbol_t *v = current_scope->resolve_symbol(derived_type_name);
+                    ASR::symbol_t *v = current_scope->resolve_symbol(to_lower(derived_type_name));
                     if (!v) {
                         throw SemanticError("Derived type '"
                             + derived_type_name + "' not declared", x.base.base.loc);
@@ -793,7 +793,7 @@ public:
                     m->m_name, mfn->m_name,
                     ASR::accessType::Private
                     );
-                std::string sym = mfn->m_name;
+                std::string sym = to_lower(mfn->m_name);
                 current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
                 v = ASR::down_cast<ASR::symbol_t>(fn);
                 // Add the module `m` to current module dependencies
@@ -1045,7 +1045,7 @@ public:
         for (size_t i=0; i<x.n_contains; i++) {
             visit_procedure_decl(*x.m_contains[i]);
         }
-        std::string sym_name = x.m_name;
+        std::string sym_name = to_lower(x.m_name);
         if (current_scope->scope.find(sym_name) != current_scope->scope.end()) {
             throw SemanticError("DerivedType already defined", x.base.base.loc);
         }
@@ -1126,7 +1126,7 @@ public:
             ASR::asr_t *v = ASR::make_GenericProcedure_t(al, loc,
                 current_scope,
                 generic_name, symbols.p, symbols.size(), ASR::Public);
-            current_scope->scope[proc.first] = ASR::down_cast<ASR::symbol_t>(v);
+            current_scope->scope[to_lower(proc.first)] = ASR::down_cast<ASR::symbol_t>(v);
         }
     }
 
@@ -1138,9 +1138,9 @@ public:
             loc.first_column = 1;
             loc.last_column = 1;
             ASR::DerivedType_t *clss = ASR::down_cast<ASR::DerivedType_t>(
-                current_scope->scope[proc.first]);
+                current_scope->scope[to_lower(proc.first)]);
             for (auto &pname : proc.second) {
-                ASR::symbol_t *proc_sym = current_scope->scope[pname.second];
+                ASR::symbol_t *proc_sym = current_scope->scope[to_lower(pname.second)];
                 Str s;
                 s.from_str_view(pname.first);
                 char *name = s.c_str(al);
@@ -1150,7 +1150,7 @@ public:
                     current_scope, name, proc_name, proc_sym,
                     ASR::abiType::Source);
                 ASR::symbol_t *cls_proc_sym = ASR::down_cast<ASR::symbol_t>(v);
-                clss->m_symtab->scope[pname.first] = cls_proc_sym;
+                clss->m_symtab->scope[to_lower(pname.first)] = cls_proc_sym;
             }
         }
     }
@@ -1222,7 +1222,7 @@ public:
                         m->m_name, mvar->m_name,
                         dflt_access
                         );
-                    std::string sym = mvar->m_name;
+                    std::string sym = to_lower(mvar->m_name);
                     current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(var);
                 } else {
                     throw LFortranException("'" + item.first + "' is not supported yet for declaring with use.");
@@ -1245,7 +1245,7 @@ public:
                         x.base.base.loc);
                 }
                 if (ASR::is_a<ASR::Subroutine_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->scope.find(to_lower(local_sym)) != current_scope->scope.end()) {
                         throw SemanticError("Subroutine already defined",
                             x.base.base.loc);
                     }
@@ -1263,9 +1263,9 @@ public:
                         m->m_name, msub->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(sub);
+                    current_scope->scope[to_lower(local_sym)] = ASR::down_cast<ASR::symbol_t>(sub);
                 } else if (ASR::is_a<ASR::GenericProcedure_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->scope.find(to_lower(local_sym)) != current_scope->scope.end()) {
                         throw SemanticError("Symbol already defined",
                             x.base.base.loc);
                     }
@@ -1281,9 +1281,9 @@ public:
                         m->m_name, gp->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(ep);
+                    current_scope->scope[to_lower(local_sym)] = ASR::down_cast<ASR::symbol_t>(ep);
                 } else if (ASR::is_a<ASR::ExternalSymbol_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->scope.find(to_lower(local_sym)) != current_scope->scope.end()) {
                         throw SemanticError("Symbol already defined",
                             x.base.base.loc);
                     }
@@ -1297,9 +1297,9 @@ public:
                         es->m_module_name, es->m_original_name,
                         es->m_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(ep);
+                    current_scope->scope[to_lower(local_sym)] = ASR::down_cast<ASR::symbol_t>(ep);
                 } else if (ASR::is_a<ASR::Function_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->scope.find(to_lower(local_sym)) != current_scope->scope.end()) {
                         throw SemanticError("Function already defined",
                             x.base.base.loc);
                     }
@@ -1317,9 +1317,9 @@ public:
                         m->m_name, mfn->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(fn);
+                    current_scope->scope[to_lower(local_sym)] = ASR::down_cast<ASR::symbol_t>(fn);
                 } else if (ASR::is_a<ASR::Variable_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->scope.find(to_lower(local_sym)) != current_scope->scope.end()) {
                         throw SemanticError("Variable already defined",
                             x.base.base.loc);
                     }
@@ -1337,9 +1337,9 @@ public:
                         m->m_name, mv->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(v);
+                    current_scope->scope[to_lower(local_sym)] = ASR::down_cast<ASR::symbol_t>(v);
                 } else if( ASR::is_a<ASR::DerivedType_t>(*t) ) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->scope.find(to_lower(local_sym)) != current_scope->scope.end()) {
                         throw SemanticError("Derived type already defined",
                             x.base.base.loc);
                     }
@@ -1357,7 +1357,7 @@ public:
                         m->m_name, mv->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(v);
+                    current_scope->scope[to_lower(local_sym)] = ASR::down_cast<ASR::symbol_t>(v);
                 } else {
                     throw LFortranException("Only Subroutines, Functions, Variables and Derived supported in 'use'");
                 }

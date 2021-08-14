@@ -2,6 +2,7 @@
 #include <lfortran/exception.h>
 #include <lfortran/asr_utils.h>
 #include <lfortran/asr_verify.h>
+#include <lfortran/string_utils.h>
 
 
 namespace LFortran {
@@ -220,9 +221,9 @@ public:
         SymbolTable *symtab = x.m_parent_symtab;
         require(symtab != nullptr,
             "Variable::m_parent_symtab cannot be nullptr");
-        require(symtab->scope.find(std::string(x.m_name)) != symtab->scope.end(),
+        require(symtab->scope.find(to_lower(std::string(x.m_name))) != symtab->scope.end(),
             "Variable not found in parent_symtab symbol table");
-        symbol_t *symtab_sym = symtab->scope[std::string(x.m_name)];
+        symbol_t *symtab_sym = symtab->scope[to_lower(std::string(x.m_name))];
         const symbol_t *current_sym = &x.base;
         require(symtab_sym == current_sym,
             "Variable's parent symbol table does not point to it");
