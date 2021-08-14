@@ -66,6 +66,7 @@ unit_decl2
     | DerivedType(identifier name, identifier* namelist, trivia? trivia, decl_attribute* attrtype,
         unit_decl2* items, procedure_decl* contains)
     | Enum(decl_attribute* attr, trivia? trivia, unit_decl2* items)
+    | StatementFunction(identifier name, expr e, trivia? trivia)
 
 interface_header
     = InterfaceHeader()
