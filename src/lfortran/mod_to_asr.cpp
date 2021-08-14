@@ -14,6 +14,32 @@
 #include <lfortran/string_utils.h>
 #include <lfortran/containers.h>
 
+/*
+See also: https://gitlab.com/lfortran/lfortran.py/-/blob/7a3b356122174d291562a5c47f0d2c9dc3b183da/lfortran/adapters/gfortran/mod.py#L67
+
+The GFortran ABI is stable for a given GFortran module file version. The module
+file version stays the same between releases (4.5.0 and 4.5.2), but usually
+changes between minor versions (4.5 vs. 4.6). Here is a correspondence of
+GFortran compiler versions and GFortran module file versions:
+
+GFortran version    module file version
+---------------------------------------
+<= 4.3              unversioned
+4.4 (Apr 2009)       0
+4.5 (Apr 2010)       4
+4.6 (Mar 2011)       6
+4.7 (Mar 2012)       9
+4.8 (Mar 2013)      10
+4.9 (Apr 2014)      12
+5.x (Apr 2015)      14
+6.x (Apr 2016)      14
+7.x (May 2017)      14
+8.x (May 2018)      15
+9.x (??? 2019)      ??
+
+The GFortran array descriptor is defined in libgfortran.h.
+*/
+
 
 namespace LFortran {
 
@@ -217,14 +243,12 @@ ASR::TranslationUnit_t* parse_gfortran_mod_file(Allocator &al, const std::string
 {
     std::vector<std::string> s2 = split(s);
     int version = std::atoi(&str_(s2[3])[0]);
-    if (version != 14) {
-        throw LFortranException("Only GFortran module version 14 is implemented so far");
-    }
-    std::vector<std::string> s3 = slice(s2, 7);
-    std::string s4 = "(" + join(" ", s3) + ")";
-
     std::map<uint64_t, GSymbol> gsymtab;
     SymbolTable *parent_scope = al.make_new<SymbolTable>(nullptr);
+    switch (version) {
+        case 14: {
+    std::vector<std::string> s3 = slice(s2, 7);
+    std::string s4 = "(" + join(" ", s3) + ")";
 
     Item mod = parse(s4);
     EXPECT(mod, Item::list);
@@ -267,7 +291,7 @@ ASR::TranslationUnit_t* parse_gfortran_mod_file(Allocator &al, const std::string
                 char *name = a.c_str(al);
                 ASR::asr_t *asr = ASR::make_Subroutine_t(al, loc,
                     proc_symtab, name, nullptr, 0,
-                    nullptr, 0, ASR::abiType::GFortranModule, ASR::Public, 
+                    nullptr, 0, ASR::abiType::GFortranModule, ASR::Public,
                     ASR::Interface);
                 s.p.proc = down_cast<ASR::symbol_t>(asr);
                 std::string sym_name = s.name;
@@ -330,6 +354,13 @@ ASR::TranslationUnit_t* parse_gfortran_mod_file(Allocator &al, const std::string
     }
     */
 
+            break;
+        }
+default: {
+    throw LFortranException("Only GFortran module version 14 is implemented so far");
+            break;
+    }
+    }
 
     ASR::asr_t *asr;
     Location loc;
@@ -338,7 +369,6 @@ ASR::TranslationUnit_t* parse_gfortran_mod_file(Allocator &al, const std::string
     ASR::TranslationUnit_t *tu = down_cast2<ASR::TranslationUnit_t>(asr);
     LFORTRAN_ASSERT(asr_verify(*tu));
     return tu;
-
     //std::cout << format_item(mod);
 
     //std::cout << s;
