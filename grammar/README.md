@@ -219,3 +219,226 @@ Or:
     factor
         = number               { $$ = $1 }
         | "(" expr ")"         { $$ = $2 }
+
+-----------------------------------------------------------------------
+
+Building blocks (idioms) of a LL grammar:
+
+
+    factor
+        = NUMBER               { $$ = $1 }
+        | "(" expr ")"         { $$ = $2 }
+
+    ast factor() {
+        if (token == TK_NUMBER) {
+            ast t = number;
+            return t;
+        } else if (token == "(") {
+            accept("(");
+            ast t = expr();
+            accept(")");
+            return t;
+        } else {
+            throw SyntaxError();
+        }
+    }
+
+-------------------------
+
+    power
+        = factor "**" power   { $$ = POW($1, $3) }
+        | factor              { $$ = $1 }
+
+    // left associative
+    // Don't know how to easily do
+
+    // right associative
+    ast power() {
+        ast t = factor();
+        if (token == "**") {
+            accept("**");
+            return POW(t, power());
+        } else {
+            return t;
+        }
+    }
+
+-------------------------
+
+    expr
+        = term (
+            ( "+"             { $$ = PLUS($1, $3)  }
+            | "-"             { $$ = MINUS($1, $3) }
+            ) term)*
+
+    // left associative
+    ast expr() {
+        ast t = term();
+        while (true) {
+            if (token == "+") {
+                accept("+");
+                t = PLUS(t, term());
+            } else if (token == "-") {
+                accept("-");
+                t = MINUS(t, term());
+            } else {
+                break;
+            }
+        }
+        return t
+    }
+
+    // right associative
+    ast expr() {
+        std::vector<ast> stack;
+        stack.push_back(term());
+        std::vector<action> actions;
+        while (true) {
+            if (token == "+") {
+                accept("+");
+                stack.push_back(term())
+                actions.push_back(+)
+            } else if (token == "-") {
+                accept("-");
+                stack.push_back(term())
+                actions.push_back(-)
+            } else {
+                break;
+            }
+        }
+        term t = stack.pop();
+        while (stack.size() > 0);
+            switch (actions.pop()) {
+                case(+) {
+                    t = PLUS(stack.pop(), t);
+                    break;
+                }
+                case(-) {
+                    t = MINUS(stack.pop(), t);
+                    break;
+                }
+            }
+        }
+        return t;
+    }
+
+--------------------------
+
+    expr
+        = term expr2           // No action -- returns the result of expr2
+    expr2
+        = "+" term expr2       { $$ = PLUS($0, $2) }
+        = "-" term expr2       { $$ = MINUS($0, $2) }
+        | %empty               { $$ = $0 }
+
+    // Left associative
+    ast expr() {
+        return expr2(term());
+    }
+    ast expr2(term t) {
+        if (token == "+") {
+            accept("+");
+            return expr2(PLUS(t, term()));
+        } else if (token == "-") {
+            accept("-");
+            return expr2(MINUS(t, term()));
+        } else {
+            return t;
+        }
+    }
+
+
+    // right associative
+    ast expr() {
+        return expr2(term());
+    }
+    ast expr2(term t) {
+        if (token == "+") {
+            accept("+");
+            return PLUS(t, expr2(term()));
+        } else if (token == "-") {
+            accept("-");
+            return MINUS(t, expr2(term()));
+        } else {
+            return t;
+        }
+    }
+
+Alternatively, one can construct the AST expression in an internal variable
+`tmp` (=$0) variable:
+
+    // Left associative
+    void expr() {
+        term();
+        expr2();
+    }
+    void expr2() {
+        if (token == "+") {
+            accept("+");
+            ast t = tmp;
+            term();
+            tmp = PLUS(t, tmp);
+            expr2();
+        } else if (token == "-") {
+            accept("-");
+            ast t = tmp;
+            term();
+            tmp = MINUS(t, tmp);
+            expr2();
+        } else {
+            return;
+        }
+    }
+
+
+    // right associative
+    void expr() {
+        term()
+        expr2();
+    }
+    void expr2() {
+        if (token == "+") {
+            accept("+");
+            ast t = tmp;
+            term();
+            expr2()
+            tmp = PLUS(t, tmp);
+        } else if (token == "-") {
+            accept("-");
+            ast t = tmp;
+            term();
+            expr2()
+            tmp = MINUS(t, tmp);
+        } else {
+            return;
+        }
+    }
+
+--------------------------------------------
+
+    expr
+        = term expr2           // No action -- returns the result of expr2
+    expr2
+        = "+" expr             { $$ = PLUS($0, $2) }
+        = "-" expr             { $$ = MINUS($0, $2) }
+        | %empty               { $$ = $0 }
+
+    // Left associative
+    // Not possible, unless one rewrites to the previous style
+
+
+    // right associative
+    ast expr() {
+        return expr2(term());
+    }
+    ast expr2(term t) {
+        if (token == "+") {
+            accept("+");
+            return PLUS(t, expr());
+        } else if (token == "-") {
+            accept("-");
+            return MINUS(t, expr());
+        } else {
+            return t;
+        }
+    }
