@@ -514,6 +514,8 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <vec_equi> equivalence_set_list
 %type <ast> sep_one
 %type <vec_ast> sep
+%type <ast> sep2_one
+%type <vec_ast> sep2
 
 // Precedence
 
@@ -1412,9 +1414,17 @@ sep
 
 sep_one
     : TK_NEWLINE { $$ = NEWLINE(@$); }
-    | TK_COMMENT { $$ = COMMENT($1, @$); }
     | TK_EOLCOMMENT { $$ = EOLCOMMENT($1, @$); }
     | ";" { $$ = SEMICOLON(@$); }
+    ;
+
+sep2
+    : sep2 sep2_one { $$ = $1; LIST_ADD($$, $2); }
+    | sep2_one { LIST_NEW($$); LIST_ADD($$, $1); }
+    ;
+
+sep2_one
+    : TK_COMMENT { $$ = COMMENT($1, @$); }
     ;
 
 decl_statements
@@ -1431,7 +1441,7 @@ decl_statement
     ;
 
 statement
-    : statement1 sep { $$ = $1; TRIVIA_($$, TRIVIA_AFTER($2, @$)); }
+    : sep2 statement1 sep { $$ = $2; TRIVIA_($$, TRIVIA_AFTER($3, @$)); }
     | TK_LABEL statement1 sep { $$ = $2;
             LABEL($$, $1); TRIVIA_($$, TRIVIA_AFTER($3, @$)); }
     ;
