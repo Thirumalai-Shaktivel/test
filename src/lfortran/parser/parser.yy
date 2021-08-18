@@ -858,61 +858,61 @@ subroutine
     ;
 
 procedure
-    : fn_mod_plus KW_PROCEDURE id sub_args sep use_statement_star
+    : sep2 fn_mod_plus KW_PROCEDURE id sub_args sep use_statement_star
     import_statement_star implicit_statement_star decl_statements
         contains_block_opt
         end_procedure sep {
-            LLOC(@$, @12); $$ = PROCEDURE($1, $3, $4, TRIVIA($5, $12, @$), $6,
-                $7, $8, SPLIT_DECL(p.m_a, $9), SPLIT_STMT(p.m_a, $9), $10, @$); }
+            LLOC(@$, @13); $$ = PROCEDURE($2, $4, $5, TRIVIA($6, $13, @$), $7,
+                $8, $9, SPLIT_DECL(p.m_a, $10), SPLIT_STMT(p.m_a, $10), $11, @$); }
     ;
 
 function
-    : KW_FUNCTION id "(" id_list_opt ")"
+    : sep2 KW_FUNCTION id "(" id_list_opt ")"
         sep use_statement_star import_statement_star implicit_statement_star decl_statements
         contains_block_opt
         end_function sep {
-            LLOC(@$, @13); $$ = FUNCTION0($2, $4, nullptr, nullptr,
-                TRIVIA($6, $13, @$), $7, $8, $9, SPLIT_DECL(p.m_a, $10),
-                SPLIT_STMT(p.m_a, $10), $11, @$); }
-    | KW_FUNCTION id "(" id_list_opt ")"
-        bind
-        result_opt
-        sep use_statement_star import_statement_star implicit_statement_star decl_statements
-        contains_block_opt
-        end_function sep {
-            LLOC(@$, @15); $$ = FUNCTION0($2, $4, $7, $6, TRIVIA($8, $15, @$),
-                $9, $10, $11, SPLIT_DECL(p.m_a, $12), SPLIT_STMT(p.m_a, $12), $13, @$); }
-    | KW_FUNCTION id "(" id_list_opt ")"
-        result
-        bind_opt
-        sep use_statement_star import_statement_star implicit_statement_star decl_statements
-        contains_block_opt
-        end_function sep {
-            LLOC(@$, @15); $$ = FUNCTION0($2, $4, $6, $7, TRIVIA($8, $15, @$),
-                $9, $10, $11, SPLIT_DECL(p.m_a, $12), SPLIT_STMT(p.m_a, $12), $13, @$); }
-    | fn_mod_plus KW_FUNCTION id "(" id_list_opt ")"
-        sep use_statement_star import_statement_star implicit_statement_star decl_statements
-        contains_block_opt
-        end_function sep {
-            LLOC(@$, @14); $$ = FUNCTION($1, $3, $5, nullptr, nullptr,
+            LLOC(@$, @14); $$ = FUNCTION0($3, $5, nullptr, nullptr,
                 TRIVIA($7, $14, @$), $8, $9, $10, SPLIT_DECL(p.m_a, $11),
                 SPLIT_STMT(p.m_a, $11), $12, @$); }
-    | fn_mod_plus KW_FUNCTION id "(" id_list_opt ")"
+    | sep2 KW_FUNCTION id "(" id_list_opt ")"
         bind
         result_opt
         sep use_statement_star import_statement_star implicit_statement_star decl_statements
         contains_block_opt
         end_function sep {
-            LLOC(@$, @16); $$ = FUNCTION($1, $3, $5, $8, $7, TRIVIA($9, $16, @$),
+            LLOC(@$, @16); $$ = FUNCTION0($3, $5, $8, $7, TRIVIA($9, $16, @$),
                 $10, $11, $12, SPLIT_DECL(p.m_a, $13), SPLIT_STMT(p.m_a, $13), $14, @$); }
-    | fn_mod_plus KW_FUNCTION id "(" id_list_opt ")"
+    | sep2 KW_FUNCTION id "(" id_list_opt ")"
         result
         bind_opt
         sep use_statement_star import_statement_star implicit_statement_star decl_statements
         contains_block_opt
         end_function sep {
-            LLOC(@$, @16); $$ = FUNCTION($1, $3, $5, $7, $8, TRIVIA($9, $16, @$),
+            LLOC(@$, @16); $$ = FUNCTION0($3, $5, $7, $8, TRIVIA($9, $16, @$),
                 $10, $11, $12, SPLIT_DECL(p.m_a, $13), SPLIT_STMT(p.m_a, $13), $14, @$); }
+    | sep2 fn_mod_plus KW_FUNCTION id "(" id_list_opt ")"
+        sep use_statement_star import_statement_star implicit_statement_star decl_statements
+        contains_block_opt
+        end_function sep {
+            LLOC(@$, @15); $$ = FUNCTION($2, $4, $6, nullptr, nullptr,
+                TRIVIA($8, $15, @$), $9, $10, $11, SPLIT_DECL(p.m_a, $12),
+                SPLIT_STMT(p.m_a, $12), $13, @$); }
+    | sep2 fn_mod_plus KW_FUNCTION id "(" id_list_opt ")"
+        bind
+        result_opt
+        sep use_statement_star import_statement_star implicit_statement_star decl_statements
+        contains_block_opt
+        end_function sep {
+            LLOC(@$, @17); $$ = FUNCTION($2, $4, $6, $9, $8, TRIVIA($10, $17, @$),
+                $11, $12, $13, SPLIT_DECL(p.m_a, $14), SPLIT_STMT(p.m_a, $14), $15, @$); }
+    | sep2 fn_mod_plus KW_FUNCTION id "(" id_list_opt ")"
+        result
+        bind_opt
+        sep use_statement_star import_statement_star implicit_statement_star decl_statements
+        contains_block_opt
+        end_function sep {
+            LLOC(@$, @17); $$ = FUNCTION($2, $4, $6, $8, $9, TRIVIA($10, $17, @$),
+                $11, $12, $13, SPLIT_DECL(p.m_a, $14), SPLIT_STMT(p.m_a, $14), $15, @$); }
     ;
 
 fn_mod_plus
