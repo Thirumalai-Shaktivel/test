@@ -557,10 +557,10 @@ script_unit
     | procedure
     | function
     | use_statement
-    | implicit_statement
+//    | implicit_statement
     | var_decl
     | statement          %dprec 7
-    | expr sep           %dprec 8
+    | sep2 expr sep           %dprec 8
     ;
 
 // ----------------------------------------------------------------------------
@@ -1070,13 +1070,13 @@ use_statement_star
     ;
 
 use_statement
-    : KW_USE use_modifiers id sep { $$ = USE1($2, $3, TRIVIA_AFTER($4, @$), @$); }
-    | KW_USE use_modifiers id "," KW_ONLY ":" use_symbol_list sep {
-            $$ = USE2($2, $3, $7, TRIVIA_AFTER($8, @$), @$); }
-    | KW_USE use_modifiers id "," KW_ONLY ":" sep {
-            $$ = USE3($2, $3, TRIVIA_AFTER($7, @$), @$); }
-    | KW_USE use_modifiers id "," use_symbol_list sep {
-            $$ = USE4($2, $3, $5, TRIVIA_AFTER($6, @$), @$); }
+    : sep2 KW_USE use_modifiers id sep { $$ = USE1($3, $4, TRIVIA_AFTER($5, @$), @$); }
+    | sep2 KW_USE use_modifiers id "," KW_ONLY ":" use_symbol_list sep {
+            $$ = USE2($3, $4, $8, TRIVIA_AFTER($9, @$), @$); }
+    | sep2 KW_USE use_modifiers id "," KW_ONLY ":" sep {
+            $$ = USE3($3, $4, TRIVIA_AFTER($8, @$), @$); }
+    | sep2 KW_USE use_modifiers id "," use_symbol_list sep {
+            $$ = USE4($3, $4, $6, TRIVIA_AFTER($7, @$), @$); }
     ;
 
 import_statement_star
@@ -1085,12 +1085,12 @@ import_statement_star
     ;
 
 import_statement
-    : KW_IMPORT sep { $$ = IMPORT0(Default, TRIVIA_AFTER($2, @$), @$); }
-    | KW_IMPORT id_list sep { $$ = IMPORT1($2, Default, TRIVIA_AFTER($3, @$), @$); }
-    | KW_IMPORT "::" id_list sep { $$ = IMPORT1($3, Default, TRIVIA_AFTER($4, @$), @$); }
-    | KW_IMPORT "," KW_ONLY ":" id_list sep { $$ = IMPORT1($5, Only, TRIVIA_AFTER($6, @$), @$); }
-    | KW_IMPORT "," KW_NONE sep { $$ = IMPORT0(None, TRIVIA_AFTER($4, @$), @$); }
-    | KW_IMPORT "," KW_ALL sep { $$ = IMPORT0(All, TRIVIA_AFTER($4, @$), @$); }
+    : sep2 KW_IMPORT sep { $$ = IMPORT0(Default, TRIVIA_AFTER($3, @$), @$); }
+    | sep2 KW_IMPORT id_list sep { $$ = IMPORT1($3, Default, TRIVIA_AFTER($4, @$), @$); }
+    | sep2 KW_IMPORT "::" id_list sep { $$ = IMPORT1($4, Default, TRIVIA_AFTER($5, @$), @$); }
+    | sep2 KW_IMPORT "," KW_ONLY ":" id_list sep { $$ = IMPORT1($6, Only, TRIVIA_AFTER($7, @$), @$); }
+    | sep2 KW_IMPORT "," KW_NONE sep { $$ = IMPORT0(None, TRIVIA_AFTER($5, @$), @$); }
+    | sep2 KW_IMPORT "," KW_ALL sep { $$ = IMPORT0(All, TRIVIA_AFTER($5, @$), @$); }
     ;
 
 use_symbol_list
