@@ -1418,7 +1418,7 @@ sep_one
 
 sep2
     : sep2 sep2_one { $$ = $1; LIST_ADD($$, $2); }
-    | sep2_one { LIST_NEW($$); LIST_ADD($$, $1); }
+    | %empty { LIST_NEW($$); }
     ;
 
 sep2_one
@@ -1439,8 +1439,7 @@ decl_statement
     ;
 
 statement
-    : statement1 sep { $$ = $1; TRIVIA_($$, TRIVIA_AFTER($2, @$)); }
-    | sep2 statement1 sep { $$ = $2; TRIVIA_($$, TRIVIA_AFTER($3, @$)); }
+    : sep2 statement1 sep { $$ = $2; TRIVIA_($$, TRIVIA_AFTER($3, @$)); }
     | TK_LABEL statement1 sep { $$ = $2;
             LABEL($$, $1); TRIVIA_($$, TRIVIA_AFTER($3, @$)); }
     ;
