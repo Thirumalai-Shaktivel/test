@@ -658,19 +658,18 @@ int compile_to_object_file(const std::string &infile, const std::string &outfile
         if (err) return err;
     }
 
+    // ASR -> LLVM
+    LFortran::LLVMEvaluator e;
+
     if (!LFortran::ASRUtils::main_program_present(*asr)) {
         // Create an empty object file (things will be actually
         // compiled and linked when the main program is present):
         {
-            std::ofstream out;
-            out.open(outfile);
-            out << " ";
+            e.create_empty_object_file(outfile);
         }
         return 0;
     }
 
-    // ASR -> LLVM
-    LFortran::LLVMEvaluator e;
     std::unique_ptr<LFortran::LLVMModule> m;
     Allocator al(64*1024*1024);
     try {
@@ -802,10 +801,17 @@ int compile_to_object_file_cpp(const std::string &infile,
     if (!LFortran::ASRUtils::main_program_present(*asr)) {
         // Create an empty object file (things will be actually
         // compiled and linked when the main program is present):
+        std::string outfile_empty = outfile + ".empty.c";
         {
             std::ofstream out;
-            out.open(outfile);
+            out.open(outfile_empty);
             out << " ";
+        }
+        std::string cmd = "gcc -c " + outfile_empty + " -o " + outfile;
+        int err = system(cmd.c_str());
+        if (err) {
+            std::cout << "The command '" + cmd + "' failed." << std::endl;
+            return 11;
         }
         return 0;
     }
@@ -852,7 +858,8 @@ int compile_to_object_file_cpp(const std::string &infile,
 
 // infile is an object file
 // outfile will become the executable
-int link_executable(const std::string &infile, const std::string &outfile,
+int link_executable(const std::vector<std::string> &infiles,
+    const std::string &outfile,
     const std::string &runtime_library_dir, Backend backend,
     bool static_executable, bool kokkos, bool openmp, Platform platform)
 {
@@ -928,7 +935,11 @@ int link_executable(const std::string &infile, const std::string &outfile,
             }
             runtime_lib = "lfortran_runtime_static";
         }
-        std::string cmd = CC + options + " -o " + outfile + " " + infile + " -L"
+        std::string cmd = CC + options + " -o " + outfile + " ";
+        for (auto &s : infiles) {
+            cmd += s + " ";
+        }
+        cmd += + " -L"
             + base_path + " -Wl,-rpath," + base_path + " -l" + runtime_lib + " -lm";
         int err = system(cmd.c_str());
         if (err) {
@@ -950,8 +961,12 @@ int link_executable(const std::string &infile, const std::string &outfile,
             post_options += kokkos_dir + "/lib/libkokkoscontainers.a "
                 + kokkos_dir + "/lib/libkokkoscore.a -ldl";
         }
-        std::string cmd = CXX + options + " -o " + outfile + " " + infile
-            + " " + post_options + " -lm";
+        std::string cmd = CXX + options + " -o " + outfile + " ";
+        for (auto &s : infiles) {
+            cmd += s + " ";
+        }
+        cmd += + " -L";
+        cmd += " " + post_options + " -lm";
         int err = system(cmd.c_str());
         if (err) {
             std::cout << "The command '" + cmd + "' failed." << std::endl;
@@ -959,7 +974,7 @@ int link_executable(const std::string &infile, const std::string &outfile,
         }
         return 0;
     } else if (backend == Backend::x86) {
-        std::string cmd = "cp " + infile + " " + outfile;
+        std::string cmd = "cp " + infiles[0] + " " + outfile;
         int err = system(cmd.c_str());
         if (err) {
             std::cout << "The command '" + cmd + "' failed." << std::endl;
@@ -1006,6 +1021,8 @@ int main(int argc, char *argv[])
         bool arg_v = false;
         bool arg_E = false;
         std::vector<std::string> arg_I;
+        std::vector<std::string> arg_l;
+        std::vector<std::string> arg_L;
         bool arg_cpp = false;
         bool arg_fixed_form = false;
         std::string arg_o;
@@ -1054,6 +1071,8 @@ int main(int argc, char *argv[])
         app.add_option("-o", arg_o, "Specify the file to place the output into");
         app.add_flag("-v", arg_v, "Be more verbose");
         app.add_flag("-E", arg_E, "Preprocess only; do not compile, assemble or link");
+        app.add_option("-l", arg_l, "Link library option");
+        app.add_option("-L", arg_L, "Library path option");
         app.add_option("-I", arg_I, "Include path");
         app.add_flag("--version", arg_version, "Display compiler version information");
 
@@ -1335,10 +1354,10 @@ int main(int argc, char *argv[])
                 throw LFortran::LFortranException("Backend not supported");
             }
             if (err) return err;
-            return link_executable(tmp_o, outfile, runtime_library_dir,
+            return link_executable({tmp_o}, outfile, runtime_library_dir,
                     backend, static_link, true, openmp, platform);
         } else {
-            return link_executable(arg_file, outfile, runtime_library_dir,
+            return link_executable(arg_files, outfile, runtime_library_dir,
                     backend, static_link, true, openmp, platform);
         }
     } catch(const LFortran::LFortranException &e) {
