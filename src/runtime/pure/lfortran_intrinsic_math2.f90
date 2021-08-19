@@ -15,6 +15,10 @@ interface exp
     module procedure sexp, dexp !, csexp, cdexp
 end interface
 
+interface log
+    module procedure slog, dlog !, cslog, cdlog
+end interface
+
 interface sqrt
     module procedure ssqrt, dsqrt
 end interface
@@ -37,6 +41,140 @@ if (x >= 0) then
 else
     r = x-1
 end if
+end function
+
+! log --------------------------------------------------------------------------
+! J3/18-007r1 16.9.118 (F2018)
+! TODO: Handle complex
+! TODO: Benchmark, and use a better approximation
+! TODO: Fix for large positive values
+! TODO: Make pure later, for elemental
+
+real(sp) function slog(x) result(r)
+real(sp), intent(in) :: x
+real(sp), parameter :: ln2 = 0.69314718055994530943_sp
+integer(sp) :: i=1
+real(sp) :: tmp, arg, a, b
+if (x<=1e-20_sp) then
+   error stop "Below threshold"
+end if
+if (x<=1) then
+   r = sk2log(x)
+else if ((x>1) .and. (x<=2)) then
+   r = sklog(x)
+else
+   ! From https://math.stackexchange.com/a/75398/506917
+   a = 0.5 * (1+x)
+   b = sqrt(x)
+   do while (abs(a-b) <= tiny(0.0))
+    a = (a + b)*0.5
+    b = sqrt(a*b)
+   end do
+r = 2 * ((x-1)/(a+b))
+end if
+end function slog
+
+real(dp) function dlog(x) result(r)
+real(dp), intent(in) :: x
+real(dp), parameter :: ln2 = 0.69314718055994530943_dp
+integer(dp) :: i=1
+real(dp) :: tmp, arg, a, b
+if (x<=1e-20_dp) then
+   error stop "Below threshold"
+end if
+if (x<=1) then
+   r = dk2log(x)
+else if ((x>1) .and. (x<=2)) then
+   r = dklog(x)
+else
+   ! From https://math.stackexchange.com/a/75398/506917
+   a = 0.5 * (1+x)
+   b = sqrt(x)
+   do while (abs(a-b) <= tiny(0.0))
+    a = (a + b)*0.5
+    b = sqrt(a*b)
+   end do
+r = 2 * ((x-1)/(a+b))
+end if
+end function dlog
+
+real(dp) function dk2log(x) result(r)
+! p=remez(log(x),12,[1e-20,1],default,1e-30,1e-30);
+  real(dp), intent(in) :: x
+  r = -44.6241805019019418886284037335713020737_dp + &
+x * (3863.54067377322457882890109080339011761_dp + &
+x * (-1.165700867590407357585069275982654323345e5_dp + &
+x * (1.648256701134734739562680048235424185076e6_dp + &
+x * (-1.30878533145293064094806074739229217909e7_dp + &
+x * (6.43835208287059911154361948875487242565e7_dp + &
+x * (-2.07271978815287223322518760593793108305e8_dp + &
+x * (4.49060849708921868099742690777312605834e8_dp + &
+x * (-6.5947855116652079353323140383123494016e8_dp + &
+x * (6.47398609939110884636899766407673347824e8_dp + &
+x * (-4.06766384833646667566069278407306328638e8_dp + &
+x * (1.47886801367615131735410692815199504564e8_dp + &
+x * (-2.36605206727602080616022383416332100042e7_dp))))))))))))
+end function
+
+real(sp) function sk2log(x) result(r)
+! p=remez(log(x),12,[1e-20,1],default,1e-30,1e-30);
+  real(sp), intent(in) :: x
+  r = -44.635902078015333855_sp + &
+x * (4294.813627967851624_sp + &
+x * (-1.27295737841369601774e5_sp + &
+x * (1.7649571878737459499e6_sp + &
+x * (-1.382526254140659912e7_sp + &
+x * (6.7372517571984996335e7_sp + &
+x * (-2.153755495472285572e8_sp + &
+x * (4.6401394579896055322e8_sp + &
+x * (-6.782794287479116882e8_sp + &
+x * (6.632358688389824827e8_sp + &
+x * (-4.15314086480325569e8_sp + &
+x * (1.5055838728634916506e8_sp + &
+x * (-2.4028305222962831884e7_sp))))))))))))
+end function
+
+real(dp) function dklog(x) result(r)
+  ! p=remez(log(x),12,[1,2],default,1e-30,1e-30);
+  real(dp), intent(in) :: x
+  r = -3.25289140173914202504698307666434606988_dp + &
+x * (14.14509453264892141178187612834139991_dp + &
+x * (-47.376013235901408059920736965787402451_dp + &
+x * (133.21752028460297994968316515339923569_dp + &
+x * (-297.604451589775528244303496588849520219_dp + &
+x * (532.346246547842284087369343163786619816_dp + &
+x * (-772.604443308758329898532352436237770824_dp + &
+x * (919.89279264583773410916742072557906998_dp + &
+x * (-905.715396084325276442519440762751986207_dp + &
+x * (741.091317656321219625562208155466756458_dp + &
+x * (-505.017288840578619268438397926571944247_dp + &
+x * (286.43840983648298042117522872791996061_dp + &
+x * (-134.750821763023655637064270436594793655_dp + &
+x * (52.2236315953768540684814726120759228964_dp + &
+x * (-16.494313139531541066479053346891786479_dp + &
+x * (4.17687172429043318322938942387333344103_dp + &
+x * (-0.827635076539055488141085786532566586193_dp + &
+x * (0.123606771032212536293499037500301654607_dp + &
+x * (-1.308435592222155657935521636304954215667e-2_dp + &
+x * (8.74994929937514073811801065616538964265e-4_dp + &
+x * (-2.7793270779212376012509501528009442969e-5_dp))))))))))))))))))))
+end function
+
+real(sp) function sklog(x) result(r)
+  real(sp), intent(in) :: x
+  r = -2.7583768557201352593_sp + x &
+ * (8.478514044070050984_sp + x &
+ * (-16.390332927188993577_sp + x &
+ * (25.474828460628157993_sp + x &
+ * (-29.915663903161725894_sp + x &
+ * (26.513663516934948714_sp + x &
+ * (-17.759339260607131876_sp + x &
+ * (8.944803435906684667_sp + x &
+ * (-3.337035420742565326_sp + x &
+ * (0.8949790681237649383_sp + x &
+ * (-0.16325706464506785083_sp + x &
+ * (1.814451508707195218e-2_sp + x &
+ * (-9.276086688770115036e-4_sp))))))))))))
 end function
 
 ! sign --------------------------------------------------------------------------
@@ -110,6 +248,7 @@ end function
 ! TODO: Benchmark, and use a better approximation
 ! TODO: Fix for large positive values
 ! TODO: Make pure later, for elemental
+
 real(sp) function sexp(x) result(r)
 real(sp), intent(in) :: x
 integer(sp) :: y=0
