@@ -38,6 +38,7 @@ private:
         {"floor", "lfortran_intrinsic_array"},
         {"sum", "lfortran_intrinsic_array"},
         {"abs", "lfortran_intrinsic_math2"},
+        {"aimag", "lfortran_intrinsic_math2"},
         {"sin", "lfortran_intrinsic_trig"},
         {"sqrt", "lfortran_intrinsic_math2"},
         {"int", "lfortran_intrinsic_array"},
@@ -925,10 +926,10 @@ public:
                     return i;
                 }
             } else {
-                throw SemanticError("Only Subroutine supported in generic procedure", loc);
+                throw SemanticError("Only Subroutine and Function supported in generic procedure", loc);
             }
         }
-        throw SemanticError("Arguments do not match", loc);
+        throw SemanticError("Arguments do not match for any generic procedure", loc);
     }
 
     template <typename T>
@@ -952,7 +953,18 @@ public:
     bool types_equal(const ASR::ttype_t &a, const ASR::ttype_t &b) {
         if (a.type == b.type) {
             // TODO: check dims
+            // TODO: check all types
             switch (a.type) {
+                case (ASR::ttypeType::Integer) : {
+                    ASR::Integer_t *a2 = ASR::down_cast<ASR::Integer_t>(&a);
+                    ASR::Integer_t *b2 = ASR::down_cast<ASR::Integer_t>(&b);
+                    if (a2->m_kind == b2->m_kind) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                    break;
+                }
                 case (ASR::ttypeType::Real) : {
                     ASR::Real_t *a2 = ASR::down_cast<ASR::Real_t>(&a);
                     ASR::Real_t *b2 = ASR::down_cast<ASR::Real_t>(&b);
@@ -963,7 +975,17 @@ public:
                     }
                     break;
                 }
-                default : return true;
+                case (ASR::ttypeType::Complex) : {
+                    ASR::Complex_t *a2 = ASR::down_cast<ASR::Complex_t>(&a);
+                    ASR::Complex_t *b2 = ASR::down_cast<ASR::Complex_t>(&b);
+                    if (a2->m_kind == b2->m_kind) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                    break;
+                }
+                default : return false;
             }
         }
         return false;
@@ -1527,36 +1549,13 @@ public:
                         }
                         else if (func_name == "real") {
                             if (args.n == 1) {
-                                ASR::expr_t* real_expr = args[0];
-                                int real_kind = LFortran::ASRUtils::extract_kind_from_ttype_t(func_type);
-                                if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*func_type)) {
-                                    if (real_kind == 4){
-                                        float rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(real_expr))->m_r;
-                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, func_type));
-                                    } else {
-                                        double rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(real_expr))->m_r;
-                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, func_type));
-                                    }
-                                }
-                                else if (LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*func_type)) {
-                                    if (real_kind == 4){
-                                        int64_t rv = ASR::down_cast<ASR::ConstantInteger_t>(
-                                            LFortran::ASRUtils::expr_value(real_expr))->m_n;
-                                        float rr = static_cast<float>(rv);
-                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, func_type));
-                                    } else {
-                                        int64_t rv = ASR::down_cast<ASR::ConstantInteger_t>(LFortran::ASRUtils::expr_value(real_expr))->m_n;
-                                        double rr = static_cast<double>(rv);
-                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, rr, func_type));
-                                    }
-                                }
-                                // TODO: Handle BOZ later
-                                // else if () {
-
-                                // }
+                                tmp = CommonVisitorMethods::comptime_intrinsic_real(args[0], nullptr, al, x.base.base.loc);
+                            } else if (args.n == 2) {
+                                tmp = CommonVisitorMethods::comptime_intrinsic_real(args[0], args[1], al, x.base.base.loc);
                             } else {
-                                throw SemanticError("real must have only one argument", x.base.base.loc);
+                                throw SemanticError("real(A [, kind]) requires 1 or 2 arguments", x.base.base.loc);
                             }
+                            break;
                         }
                         else if (var_name=="floor") {
                             // TODO: Implement optional kind; J3/18-007r1 --> FLOOR(A, [KIND])
