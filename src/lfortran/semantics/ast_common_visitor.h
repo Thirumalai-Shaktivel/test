@@ -27,6 +27,7 @@ public:
         {"sum", "lfortran_intrinsic_array"},
         {"abs", "lfortran_intrinsic_math2"},
         {"sin", "lfortran_intrinsic_trig"},
+        {"sign", "lfortran_intrinsic_math2"},
         {"sqrt", "lfortran_intrinsic_math2"},
         {"exp", "lfortran_intrinsic_math2"},
         {"int", "lfortran_intrinsic_array"},
