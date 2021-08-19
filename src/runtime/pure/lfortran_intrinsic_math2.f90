@@ -7,6 +7,10 @@ interface abs
     module procedure sabs, dabs, isabs, idabs !, csabs, cdabs
 end interface
 
+interface sign
+    module procedure ssign, dsign, issign, idsign
+end interface
+
 interface exp
     module procedure sexp, dexp !, csexp, cdexp
 end interface
@@ -46,6 +50,71 @@ else
     r = x-1
 end if
 end function
+
+! sign --------------------------------------------------------------------------
+! J3/18-007r1 16.9.176 (F2018)
+! TODO: Benchmark
+! TODO: Handle positive and negative zeros
+
+! 5 Result Value
+! Case (i): If B > 0, the value of the result is |A|
+! Case (ii): If B < 0, the value of the result is -|A|
+! Case (iii): If B is of type integer and B=0, the value of the result is |A|
+! Case (iv): If B is of type real and is zero, then:
+! • if the processor does not distinguish between positive and negative real zero, or if B is positive
+! real zero, the value of the result is |A|
+! • if the processor distinguishes between positive and negative real zero, and B is negative real
+! zero, the value of the result is -|A|
+! 6 Example. SIGN (−3.0, 2.0) has the value 3.0
+
+elemental integer(sp) function issign(a, b) result(r)
+integer(sp), intent(in) :: a, b
+if (b > 0) then
+    r = abs(a)
+else if (b > 0) then
+    r = -1*abs(a)
+else
+   ! TODO: Can be +ve zero or -ve zero
+   r = abs(a)
+end if
+end function
+
+elemental integer(dp) function idsign(a, b) result(r)
+integer(dp), intent(in) :: a, b
+if (b > 0) then
+    r = abs(a)
+else if (b > 0) then
+    r = -1*abs(a)
+else
+   ! TODO: Can be +ve zero or -ve zero
+   r = abs(a)
+end if
+end function
+
+elemental real(sp) function ssign(a, b) result(r)
+real(sp), intent(in) :: a, b
+if (b > 0) then
+    r = abs(a)
+else if (b > 0) then
+    r = -1*abs(a)
+else
+   ! TODO: Can be +ve zero or -ve zero
+   r = abs(a)
+end if
+end function
+
+elemental real(dp) function dsign(a, b) result(r)
+real(dp), intent(in) :: a, b
+if (b > 0) then
+    r = abs(a)
+else if (b > 0) then
+    r = -1*abs(a)
+else
+   ! TODO: Can be +ve zero or -ve zero
+   r = abs(a)
+end if
+end function
+
 
 ! exp --------------------------------------------------------------------------
 ! J3/18-007r1 16.9.74 (F2018)
