@@ -31,6 +31,7 @@ public:
         {"sin", "lfortran_intrinsic_trig"},
         {"sign", "lfortran_intrinsic_math2"},
         {"sqrt", "lfortran_intrinsic_math2"},
+        {"log", "lfortran_intrinsic_math2"},
         {"exp", "lfortran_intrinsic_math2"},
         {"int", "lfortran_intrinsic_array"},
         {"real", "lfortran_intrinsic_array"},
