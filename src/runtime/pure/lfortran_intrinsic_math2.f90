@@ -46,7 +46,7 @@ integer(sp) :: y=0
 real(sp), parameter :: e=2.71828182845904523536028747135266249775724709369995
 integer(sp) :: i=1
 real(sp) :: temp=1.0, rem=0.0
-y=a1floor(x)
+y=a1sfloor(x)
 do while (i<=y)
    temp=temp*e
 end do
@@ -60,7 +60,7 @@ real(dp), parameter :: e=2.71828182845904523536028747135266249775724709369995
 integer(dp) :: y=0
 integer(dp) :: i=1
 real(dp) :: temp=1.0, rem=0.0
-y=a1sfloor(x)
+y=a1floor(x)
 do while (i<=y)
    temp=temp*e
 end do
@@ -91,7 +91,6 @@ end function
 
 real(sp) function skexp(x) result(r)
   real(sp), intent(in) :: x
-  real(sp), intent(in) :: x
   r = 1.0000000000000000000000005083394318904510148833396_sp &
 + x * (0.99999999999999999999969919958634717810033807895144_sp &
 + x * (0.50000000000000000002911346029801314716786548728254_sp &
@@ -110,6 +109,7 @@ real(sp) function skexp(x) result(r)
 + x * (6.3302376876570951999166725931186385038150410171334e-13_sp &
 + x * 7.909030358916591735769808575928752895945283211931e-14_sp)))))))))))))))
 end function
+
 ! abs --------------------------------------------------------------------------
 ! J3/18-007r1 16.9.2 (F2018)
 ! TODO: Handle complex
