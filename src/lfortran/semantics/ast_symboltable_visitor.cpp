@@ -1,6 +1,5 @@
 #include <fstream>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <string>
 #include <cmath>
@@ -64,26 +63,6 @@ void extract_bind(T &x, ASR::abiType &abi_type, char *&bindc_name) {
 
 class SymbolTableVisitor : public AST::BaseVisitor<SymbolTableVisitor> {
 private:
-    std::map<std::string, std::string> intrinsic_procedures = {
-        {"kind", "lfortran_intrinsic_kind"},
-        {"selected_int_kind", "lfortran_intrinsic_kind"},
-        {"selected_real_kind", "lfortran_intrinsic_kind"},
-        {"size", "lfortran_intrinsic_array"},
-        {"lbound", "lfortran_intrinsic_array"},
-        {"ubound", "lfortran_intrinsic_array"},
-        {"min", "lfortran_intrinsic_array"},
-        {"max", "lfortran_intrinsic_array"},
-        {"allocated", "lfortran_intrinsic_array"},
-        {"minval", "lfortran_intrinsic_array"},
-        {"maxval", "lfortran_intrinsic_array"},
-        {"real", "lfortran_intrinsic_array"},
-        {"floor", "lfortran_intrinsic_array"},
-        {"int", "lfortran_intrinsic_array"},
-        {"sum", "lfortran_intrinsic_array"},
-        {"abs", "lfortran_intrinsic_array"},
-        {"tiny", "lfortran_intrinsic_array"}
-};
-
 public:
     ASR::asr_t *asr;
     Allocator &al;
@@ -828,9 +807,9 @@ public:
         ASR::symbol_t *v = current_scope->resolve_symbol(var_name);
         if (!v) {
             std::string remote_sym = to_lower(var_name);
-            if (intrinsic_procedures.find(remote_sym)
-                        != intrinsic_procedures.end()) {
-                std::string module_name = intrinsic_procedures[remote_sym];
+            if (CommonVisitorMethods::intrinsic_procedures.find(remote_sym)
+                        != CommonVisitorMethods::intrinsic_procedures.end()) {
+                std::string module_name = CommonVisitorMethods::intrinsic_procedures[remote_sym];
 
                 bool shift_scope = false;
                 if (current_scope->parent->parent) {
