@@ -11,5 +11,12 @@ stepsize = 0.01
 
 [[math2]]
 fname = "exp"
-range = 20
+range_low = -20
+range_high = 20
+stepsize = 0.01
+
+[[math2]]
+fname = "log"
+range_low = 0.001
+range_high = 20
 stepsize = 0.01
