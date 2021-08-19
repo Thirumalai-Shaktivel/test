@@ -4,7 +4,7 @@ use, intrinsic :: iso_fortran_env, only: sp => real32, dp => real64
 implicit none
 
 interface abs
-    module procedure sabs, dabs
+    module procedure sabs, dabs, isabs, idabs
 end interface
 
 interface sqrt
@@ -18,6 +18,8 @@ end interface
 contains
 
 ! abs --------------------------------------------------------------------------
+! J3/18-007r1 16.9.2 (F2018)
+! TODO: Handle complex
 
 elemental real(sp) function sabs(x) result(r)
 real(sp), intent(in) :: x
@@ -30,6 +32,24 @@ end function
 
 elemental real(dp) function dabs(x) result(r)
 real(dp), intent(in) :: x
+if (x >= 0) then
+    r = x
+else
+    r = -x
+end if
+end function
+
+elemental integer(sp) function isabs(x) result(r)
+integer(sp), intent(in) :: x
+if (x >= 0) then
+    r = x
+else
+    r = -x
+end if
+end function
+
+elemental integer(dp) function idabs(x) result(r)
+integer(dp), intent(in) :: x
 if (x >= 0) then
     r = x
 else
