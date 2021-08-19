@@ -120,9 +120,7 @@ real(sp), parameter :: e=2.71828182845904523536028747135266249775724709369995
 integer(sp) :: i=1
 real(sp) :: temp=1.0, rem=0.0
 y=a1sfloor(x)
-do while (i<=y)
-   temp=temp*e
-end do
+temp = e**y
 rem = x-y
 r = temp + skexp(rem)
 end function sexp
@@ -134,9 +132,7 @@ integer(dp) :: y=0
 integer(dp) :: i=1
 real(dp) :: temp=1.0, rem=0.0
 y=a1floor(x)
-do while (i<=y)
-   temp=temp*e
-end do
+temp = e**y
 rem = x-y
 r = temp + dkexp(rem)
 end function
