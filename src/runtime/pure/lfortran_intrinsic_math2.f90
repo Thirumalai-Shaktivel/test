@@ -64,9 +64,7 @@ end function
 
 real(sp) function slog(x) result(r)
 real(sp), intent(in) :: x
-real(sp), parameter :: ln2 = 0.69314718055994530943_sp
-integer(sp) :: i=1
-real(sp) :: tmp, arg, a, b
+real(sp) :: a, b
 if (x<=1e-20_sp) then
    error stop "Below threshold"
 end if
@@ -88,9 +86,7 @@ end function slog
 
 real(dp) function dlog(x) result(r)
 real(dp), intent(in) :: x
-real(dp), parameter :: ln2 = 0.69314718055994530943_dp
-integer(dp) :: i=1
-real(dp) :: tmp, arg, a, b
+real(dp) :: a, b
 if (x<=1e-20_dp) then
    error stop "Below threshold"
 end if
