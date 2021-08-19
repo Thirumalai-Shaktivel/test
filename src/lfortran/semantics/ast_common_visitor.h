@@ -30,6 +30,7 @@ public:
         {"modulo", "lfortran_intrinsic_math2"},
         {"sin", "lfortran_intrinsic_trig"},
         {"sqrt", "lfortran_intrinsic_math2"},
+        {"exp", "lfortran_intrinsic_math2"},
         {"int", "lfortran_intrinsic_array"},
         {"real", "lfortran_intrinsic_array"},
         {"tiny", "lfortran_intrinsic_array"}
