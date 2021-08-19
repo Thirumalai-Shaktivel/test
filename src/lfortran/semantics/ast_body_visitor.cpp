@@ -1,7 +1,6 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
-#include <map>
 #include <memory>
 #include <string>
 #include <cmath>
@@ -22,29 +21,6 @@ namespace LFortran {
 
 class BodyVisitor : public AST::BaseVisitor<BodyVisitor> {
 private:
-    std::map<std::string, std::string> intrinsic_procedures = {
-        {"kind", "lfortran_intrinsic_kind"},
-        {"selected_int_kind", "lfortran_intrinsic_kind"},
-        {"selected_real_kind", "lfortran_intrinsic_kind"},
-        {"size", "lfortran_intrinsic_array"},
-        {"lbound", "lfortran_intrinsic_array"},
-        {"ubound", "lfortran_intrinsic_array"},
-        {"min", "lfortran_intrinsic_array"},
-        {"max", "lfortran_intrinsic_array"},
-        {"allocated", "lfortran_intrinsic_array"},
-        {"minval", "lfortran_intrinsic_array"},
-        {"maxval", "lfortran_intrinsic_array"},
-        {"real", "lfortran_intrinsic_array"},
-        {"floor", "lfortran_intrinsic_array"},
-        {"sum", "lfortran_intrinsic_array"},
-        {"abs", "lfortran_intrinsic_math2"},
-        {"sin", "lfortran_intrinsic_trig"},
-        {"sqrt", "lfortran_intrinsic_math2"},
-        {"int", "lfortran_intrinsic_array"},
-        {"real", "lfortran_intrinsic_array"},
-        {"tiny", "lfortran_intrinsic_array"}
-};
-
 public:
     Allocator &al;
     ASR::asr_t *asr, *tmp;
@@ -1256,9 +1232,9 @@ public:
         }
         if (!v) {
             std::string remote_sym = to_lower(var_name);
-            if (intrinsic_procedures.find(remote_sym)
-                        != intrinsic_procedures.end()) {
-                std::string module_name = intrinsic_procedures[remote_sym];
+            if (CommonVisitorMethods::intrinsic_procedures.find(remote_sym)
+                        != CommonVisitorMethods::intrinsic_procedures.end()) {
+                std::string module_name = CommonVisitorMethods::intrinsic_procedures[remote_sym];
                 bool shift_scope = false;
                 if (current_scope->parent->parent) {
                     current_scope = current_scope->parent;
@@ -1461,8 +1437,8 @@ public:
                     ASR::expr_t* value = nullptr;
                     std::string func_name = x.m_func;
                     // Only populate for supported intrinsic functions
-                    if (intrinsic_procedures.find(func_name)
-                        != intrinsic_procedures.end()) { // Got an intrinsic, now try to assign value
+                    if (CommonVisitorMethods::intrinsic_procedures.find(func_name)
+                        != CommonVisitorMethods::intrinsic_procedures.end()) { // Got an intrinsic, now try to assign value
                         ASR::expr_t* func_expr = args[0];
                         ASR::ttype_t *func_type = LFortran::ASRUtils::expr_type(func_expr);
                         // TODO: This ordering is terrible; falls through in an arbitrary manner
