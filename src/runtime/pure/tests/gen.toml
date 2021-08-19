@@ -4,7 +4,12 @@ only = "dsin" # if not testing same function
 range = 20 # [-range, +range]
 stepsize = 0.01
 
-[[trig]]
-fname = "cos" # Function to generate test for
+# [[trig]]
+# fname = "cos" # Function to generate test for
+# range = 20
+# stepsize = 0.01
+
+[[math2]]
+fname = "exp"
 range = 20
 stepsize = 0.01
