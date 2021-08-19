@@ -2,12 +2,16 @@ module lfortran_intrinsic_trig
 use, intrinsic :: iso_fortran_env, only: sp => real32, dp => real64
 implicit none
 private
-public sin
+public sin, floor
 
 real(dp), parameter :: pi = 3.1415926535897932384626433832795_dp
 
 interface sin
     module procedure ssin, dsin
+end interface
+
+interface floor
+    module procedure a1floor, a1sfloor
 end interface
 
 contains
