@@ -80,7 +80,7 @@ private:
         {"floor", "lfortran_intrinsic_array"},
         {"int", "lfortran_intrinsic_array"},
         {"sum", "lfortran_intrinsic_array"},
-        {"abs", "lfortran_intrinsic_array"},
+        {"abs", "lfortran_intrinsic_math2"},
         {"tiny", "lfortran_intrinsic_array"}
 };
 
