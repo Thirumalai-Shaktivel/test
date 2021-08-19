@@ -5,8 +5,8 @@ program {{ fname }}_test
   print*, "Compiled with {{ compiler  }}"
   print*, "x           ", "gfortran_{{fname}}(x)           ", &
         "lfortran_{{fname}}(x)           ", "abs_error           "
-  ir = -{{ range }}
-  do while (ir<={{ range }})
+  ir = {{ range_low }}
+  do while (ir<={{ range_high }})
      gf = {{ fname }}(ir)
      lf = {{ fname }}2(ir)
      print*, ir, gf, lf, abs(gf-lf)
