@@ -108,17 +108,18 @@ end function
 ! J3/18-007r1 16.9.74 (F2018)
 ! TODO: Handle complex
 ! TODO: Benchmark, and use a better approximation
+! TODO: Fix for large positive values
 ! TODO: Make pure later, for elemental
 real(sp) function sexp(x) result(r)
 real(sp), intent(in) :: x
 integer(sp) :: y=0
-real(sp), parameter :: e=2.71828182845904523536028747135266249775724709369995
+real(dp), parameter :: e=2.71828182845904523536028747135266249775724709369995_dp
 integer(sp) :: i=1
 real(sp) :: temp=1.0, rem=0.0
 y=a1sfloor(x)
 temp = e**y
 rem = x-y
-r = temp + skexp(rem)
+r = temp * skexp(rem)
 end function sexp
 
 real(dp) function dexp(x) result(r)
@@ -130,7 +131,7 @@ real(dp) :: temp=1.0, rem=0.0
 y=a1floor(x)
 temp = e**y
 rem = x-y
-r = temp + dkexp(rem)
+r = temp * dkexp(rem)
 end function
 
 real(dp) function dkexp(x) result(r)
