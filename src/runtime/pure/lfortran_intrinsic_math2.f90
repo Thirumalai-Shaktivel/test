@@ -108,6 +108,7 @@ end function
 ! J3/18-007r1 16.9.74 (F2018)
 ! TODO: Handle complex
 ! TODO: Benchmark, and use a better approximation
+! TODO: Fix for large positive values
 ! TODO: Make pure later, for elemental
 real(sp) function sexp(x) result(r)
 real(sp), intent(in) :: x
@@ -118,7 +119,11 @@ real(sp) :: temp=1.0, rem=0.0
 y=a1sfloor(x)
 temp = e**y
 rem = x-y
-r = temp + skexp(rem)
+if (temp==1) then
+   r=skexp(rem)
+else
+   r = temp * skexp(rem)
+end if
 end function sexp
 
 real(dp) function dexp(x) result(r)
@@ -130,7 +135,11 @@ real(dp) :: temp=1.0, rem=0.0
 y=a1floor(x)
 temp = e**y
 rem = x-y
-r = temp + dkexp(rem)
+if (temp==1) then
+   r=dkexp(rem)
+else
+   r = temp * dkexp(rem)
+end if
 end function
 
 real(dp) function dkexp(x) result(r)
