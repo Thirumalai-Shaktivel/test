@@ -1,7 +1,6 @@
 ! Temporary module, a subset of lfortran_intrinsic_math that works
 module lfortran_intrinsic_math2
 use, intrinsic :: iso_fortran_env, only: sp => real32, dp => real64
-use lfortran_intrinsic_trig, only: floor
 implicit none
 
 interface abs
@@ -18,6 +17,24 @@ end interface
 
 contains
 
+elemental integer function a1floor(x) result(r)
+real(dp), intent(in) :: x
+if (x >= 0) then
+    r = x
+else
+    r = x-1
+end if
+end function
+
+elemental integer function a1sfloor(x) result(r)
+real(sp), intent(in) :: x
+if (x >= 0) then
+    r = x
+else
+    r = x-1
+end if
+end function
+
 ! exp --------------------------------------------------------------------------
 ! J3/18-007r1 16.9.74 (F2018)
 ! TODO: Handle complex
@@ -29,7 +46,7 @@ integer(sp) :: y=0
 real(sp), parameter :: e=2.71828182845904523536028747135266249775724709369995
 integer(sp) :: i=1
 real(sp) :: temp=1.0, rem=0.0
-y=floor(x)
+y=a1floor(x)
 do while (i<=y)
    temp=temp*e
 end do
@@ -43,7 +60,7 @@ real(dp), parameter :: e=2.71828182845904523536028747135266249775724709369995
 integer(dp) :: y=0
 integer(dp) :: i=1
 real(dp) :: temp=1.0, rem=0.0
-y=floor(x)
+y=a1sfloor(x)
 do while (i<=y)
    temp=temp*e
 end do
