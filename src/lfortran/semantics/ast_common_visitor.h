@@ -1,12 +1,40 @@
 #ifndef LFORTRAN_SEMANTICS_AST_COMMON_VISITOR_H
 #define LFORTRAN_SEMANTICS_AST_COMMON_VISITOR_H
 
+#include <map>
+#include <string>
+
 #include <lfortran/asr.h>
 #include <lfortran/ast.h>
 
 namespace LFortran {
 class CommonVisitorMethods {
 public:
+    inline static std::map<const std::string, const std::string> intrinsic_procedures = {
+        {"kind", "lfortran_intrinsic_kind"},
+        {"selected_int_kind", "lfortran_intrinsic_kind"},
+        {"selected_real_kind", "lfortran_intrinsic_kind"},
+        {"size", "lfortran_intrinsic_array"},
+        {"lbound", "lfortran_intrinsic_array"},
+        {"ubound", "lfortran_intrinsic_array"},
+        {"min", "lfortran_intrinsic_array"},
+        {"max", "lfortran_intrinsic_array"},
+        {"allocated", "lfortran_intrinsic_array"},
+        {"minval", "lfortran_intrinsic_array"},
+        {"maxval", "lfortran_intrinsic_array"},
+        {"real", "lfortran_intrinsic_array"},
+        {"sum", "lfortran_intrinsic_array"},
+        {"floor", "lfortran_intrinsic_math2"},
+        {"abs", "lfortran_intrinsic_math2"},
+        {"aimag", "lfortran_intrinsic_math2"},
+        {"modulo", "lfortran_intrinsic_math2"},
+        {"sqrt", "lfortran_intrinsic_math2"},
+        {"sin", "lfortran_intrinsic_trig"},
+        {"int", "lfortran_intrinsic_array"},
+        {"real", "lfortran_intrinsic_array"},
+        {"tiny", "lfortran_intrinsic_array"}
+};
+
   inline static void visit_BinOp(Allocator &al, const AST::BinOp_t &x,
                                  ASR::expr_t *&left, ASR::expr_t *&right,
                                  ASR::asr_t *&asr) {
