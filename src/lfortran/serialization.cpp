@@ -308,6 +308,9 @@ public:
         if (startswith(module_name, "lfortran_intrinsic_iso")) {
             module_name = module_name.substr(19);
         }
+        if (startswith(module_name, "lfortran_intrinsic_math2")) {
+            module_name = module_name.substr(19);
+        }
         if (global_symtab->scope.find(module_name) != global_symtab->scope.end()) {
             Module_t *m = down_cast<Module_t>(global_symtab->scope[module_name]);
             if (m->m_symtab->scope.find(original_name) != m->m_symtab->scope.end()) {
