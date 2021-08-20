@@ -152,6 +152,7 @@ extsrc/
 tmp/
 tmpdebug/
 gentests/
+*.empty.c
 
 ## Ninja
 build.ninja
