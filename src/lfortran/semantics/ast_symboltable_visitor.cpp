@@ -1,6 +1,5 @@
 #include <fstream>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <string>
 #include <cmath>
@@ -64,26 +63,6 @@ void extract_bind(T &x, ASR::abiType &abi_type, char *&bindc_name) {
 
 class SymbolTableVisitor : public AST::BaseVisitor<SymbolTableVisitor> {
 private:
-    std::map<std::string, std::string> intrinsic_procedures = {
-        {"kind", "lfortran_intrinsic_kind"},
-        {"selected_int_kind", "lfortran_intrinsic_kind"},
-        {"selected_real_kind", "lfortran_intrinsic_kind"},
-        {"size", "lfortran_intrinsic_array"},
-        {"lbound", "lfortran_intrinsic_array"},
-        {"ubound", "lfortran_intrinsic_array"},
-        {"min", "lfortran_intrinsic_array"},
-        {"max", "lfortran_intrinsic_array"},
-        {"allocated", "lfortran_intrinsic_array"},
-        {"minval", "lfortran_intrinsic_array"},
-        {"maxval", "lfortran_intrinsic_array"},
-        {"real", "lfortran_intrinsic_array"},
-        {"floor", "lfortran_intrinsic_array"},
-        {"int", "lfortran_intrinsic_array"},
-        {"sum", "lfortran_intrinsic_array"},
-        {"abs", "lfortran_intrinsic_array"},
-        {"tiny", "lfortran_intrinsic_array"}
-};
-
 public:
     ASR::asr_t *asr;
     Allocator &al;
@@ -828,9 +807,9 @@ public:
         ASR::symbol_t *v = current_scope->resolve_symbol(var_name);
         if (!v) {
             std::string remote_sym = to_lower(var_name);
-            if (intrinsic_procedures.find(remote_sym)
-                        != intrinsic_procedures.end()) {
-                std::string module_name = intrinsic_procedures[remote_sym];
+            if (CommonVisitorMethods::intrinsic_procedures.find(remote_sym)
+                        != CommonVisitorMethods::intrinsic_procedures.end()) {
+                std::string module_name = CommonVisitorMethods::intrinsic_procedures[remote_sym];
 
                 bool shift_scope = false;
                 if (current_scope->parent->parent) {
@@ -846,6 +825,61 @@ public:
                     throw SemanticError("The symbol '" + remote_sym
                         + "' not found in the module '" + module_name + "'",
                         x.base.base.loc);
+                }
+
+                if (ASR::is_a<ASR::GenericProcedure_t>(*t)) {
+                    ASR::GenericProcedure_t *gp = ASR::down_cast<ASR::GenericProcedure_t>(t);
+                    ASR::asr_t *fn = ASR::make_ExternalSymbol_t(
+                        al, gp->base.base.loc,
+                        /* a_symtab */ current_scope,
+                        /* a_name */ gp->m_name,
+                        (ASR::symbol_t*)gp,
+                        m->m_name, gp->m_name,
+                        ASR::accessType::Private
+                        );
+                    std::string sym = gp->m_name;
+                    current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
+                    ASR::symbol_t *v = ASR::down_cast<ASR::symbol_t>(fn);
+                    ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
+                    ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
+                    ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
+                    Vec<ASR::expr_t*> args = visit_expr_list(x.m_args, x.n_args);
+                    int idx = select_generic_procedure(args, *g, x.base.base.loc);
+                    ASR::symbol_t *final_sym;
+                    final_sym = g->m_procs[idx];
+                    if (!ASR::is_a<ASR::Function_t>(*final_sym)) {
+                        throw SemanticError("ExternalSymbol must point to a Function", x.base.base.loc);
+                    }
+                    ASR::ttype_t *return_type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+                    // Create ExternalSymbol for the final subroutine:
+                    // We mangle the new ExternalSymbol's local name as:
+                    //   generic_procedure_local_name @
+                    //     specific_procedure_remote_name
+                    std::string local_sym = std::string(p->m_name) + "@"
+                        + LFortran::ASRUtils::symbol_name(final_sym);
+                    if (current_scope->scope.find(local_sym)
+                        == current_scope->scope.end()) {
+                        Str name;
+                        name.from_str(al, local_sym);
+                        char *cname = name.c_str(al);
+                        ASR::asr_t *sub = ASR::make_ExternalSymbol_t(
+                            al, g->base.base.loc,
+                            /* a_symtab */ current_scope,
+                            /* a_name */ cname,
+                            final_sym,
+                            p->m_module_name, LFortran::ASRUtils::symbol_name(final_sym),
+                            ASR::accessType::Private
+                );
+                        final_sym = ASR::down_cast<ASR::symbol_t>(sub);
+                        current_scope->scope[local_sym] = final_sym;
+                    } else {
+                        final_sym = current_scope->scope[local_sym];
+                    }
+                    ASR::expr_t *value = nullptr;
+                    asr = ASR::make_FunctionCall_t(al, x.base.base.loc,
+                                                   final_sym, v, args.p, args.size(), nullptr, 0, return_type,
+                                                   value, nullptr);
+                    return;
                 }
 
                 ASR::Function_t *mfn = ASR::down_cast<ASR::Function_t>(t);
@@ -1534,6 +1568,86 @@ public:
         visit_expr(*x.m_operand);
     }
 
+    int select_generic_procedure(const Vec<ASR::expr_t*> &args,
+            const ASR::GenericProcedure_t &p, Location loc) {
+        for (size_t i=0; i < p.n_procs; i++) {
+            if (ASR::is_a<ASR::Subroutine_t>(*p.m_procs[i])) {
+                ASR::Subroutine_t *sub
+                    = ASR::down_cast<ASR::Subroutine_t>(p.m_procs[i]);
+                if (argument_types_match(args, *sub)) {
+                    return i;
+                }
+            } else if (ASR::is_a<ASR::Function_t>(*p.m_procs[i])) {
+                ASR::Function_t *fn
+                    = ASR::down_cast<ASR::Function_t>(p.m_procs[i]);
+                if (argument_types_match(args, *fn)) {
+                    return i;
+                }
+            } else {
+                throw SemanticError("Only Subroutine and Function supported in generic procedure", loc);
+            }
+        }
+        throw SemanticError("Arguments do not match for any generic procedure", loc);
+    }
+
+    template <typename T>
+    bool argument_types_match(const Vec<ASR::expr_t*> &args,
+            const T &sub) {
+        if (args.size() == sub.n_args) {
+            for (size_t i=0; i < args.size(); i++) {
+                ASR::Variable_t *v = LFortran::ASRUtils::EXPR2VAR(sub.m_args[i]);
+                ASR::ttype_t *arg1 = LFortran::ASRUtils::expr_type(args[i]);
+                ASR::ttype_t *arg2 = v->m_type;
+                if (!types_equal(*arg1, *arg2)) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    bool types_equal(const ASR::ttype_t &a, const ASR::ttype_t &b) {
+        if (a.type == b.type) {
+            // TODO: check dims
+            // TODO: check all types
+            switch (a.type) {
+                case (ASR::ttypeType::Integer) : {
+                    ASR::Integer_t *a2 = ASR::down_cast<ASR::Integer_t>(&a);
+                    ASR::Integer_t *b2 = ASR::down_cast<ASR::Integer_t>(&b);
+                    if (a2->m_kind == b2->m_kind) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                    break;
+                }
+                case (ASR::ttypeType::Real) : {
+                    ASR::Real_t *a2 = ASR::down_cast<ASR::Real_t>(&a);
+                    ASR::Real_t *b2 = ASR::down_cast<ASR::Real_t>(&b);
+                    if (a2->m_kind == b2->m_kind) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                    break;
+                }
+                case (ASR::ttypeType::Complex) : {
+                    ASR::Complex_t *a2 = ASR::down_cast<ASR::Complex_t>(&a);
+                    ASR::Complex_t *b2 = ASR::down_cast<ASR::Complex_t>(&b);
+                    if (a2->m_kind == b2->m_kind) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                    break;
+                }
+                default : return false;
+            }
+        }
+        return false;
+    }
 };
 
 ASR::asr_t *symbol_table_visitor(Allocator &al, AST::TranslationUnit_t &ast,
