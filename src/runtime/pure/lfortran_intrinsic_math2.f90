@@ -23,6 +23,10 @@ interface modulo
     module procedure imodulo, smodulo, dmodulo
 end interface
 
+interface sign
+    module procedure ssign, dsign, isign
+end interface
+
 interface sqrt
     module procedure ssqrt, dsqrt
 end interface
@@ -181,6 +185,58 @@ end function
 elemental real(dp) function dmodulo(x, y) result(r)
 real(dp), intent(in) :: x, y
 r = x-floor(x/y)*y
+end function
+
+! sign --------------------------------------------------------------------------
+! J3/18-007r1 16.9.176 (F2018)
+! TODO: Benchmark
+! TODO: Handle positive and negative zeros
+
+! 5 Result Value
+! Case (i): If B > 0, the value of the result is |A|
+! Case (ii): If B < 0, the value of the result is -|A|
+! Case (iii): If B is of type integer and B=0, the value of the result is |A|
+! Case (iv): If B is of type real and is zero, then:
+! • if the processor does not distinguish between positive and negative real zero, or if B is positive
+! real zero, the value of the result is |A|
+! • if the processor distinguishes between positive and negative real zero, and B is negative real
+! zero, the value of the result is -|A|
+! 6 Example. SIGN (−3.0, 2.0) has the value 3.0
+
+elemental integer function isign(a, b) result(r)
+integer, intent(in) :: a, b
+if (b > 0) then
+    r = abs(a)
+else if (b < 0) then
+    r = -1*abs(a)
+else
+   ! TODO: Can be +ve zero or -ve zero
+   r = abs(a)
+end if
+end function
+
+elemental real(sp) function ssign(a, b) result(r)
+real(sp), intent(in) :: a, b
+if (b > 0) then
+    r = abs(a)
+else if (b < 0) then
+    r = -1*abs(a)
+else
+   ! TODO: Can be +ve zero or -ve zero
+   r = abs(a)
+end if
+end function
+
+elemental real(dp) function dsign(a, b) result(r)
+real(dp), intent(in) :: a, b
+if (b > 0) then
+    r = abs(a)
+else if (b < 0) then
+    r = -1*abs(a)
+else
+   ! TODO: Can be +ve zero or -ve zero
+   r = abs(a)
+end if
 end function
 
 ! sqrt -------------------------------------------------------------------------

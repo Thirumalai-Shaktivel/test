@@ -29,8 +29,9 @@ public:
         {"abs", "lfortran_intrinsic_math2"},
         {"aimag", "lfortran_intrinsic_math2"},
         {"modulo", "lfortran_intrinsic_math2"},
-        {"sin", "lfortran_intrinsic_trig"},
+        {"sign", "lfortran_intrinsic_math2"},
         {"sqrt", "lfortran_intrinsic_math2"},
+        {"sin", "lfortran_intrinsic_trig"},
         {"int", "lfortran_intrinsic_array"},
         {"real", "lfortran_intrinsic_array"},
         {"tiny", "lfortran_intrinsic_array"}
