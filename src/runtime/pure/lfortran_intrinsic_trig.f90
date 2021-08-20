@@ -2,7 +2,7 @@ module lfortran_intrinsic_trig
 use, intrinsic :: iso_fortran_env, only: sp => real32, dp => real64
 implicit none
 private
-public sin, floor
+public sin
 
 real(dp), parameter :: pi = 3.1415926535897932384626433832795_dp
 
@@ -10,37 +10,10 @@ interface sin
     module procedure ssin, dsin
 end interface
 
-interface floor
-    module procedure a1floor, a1sfloor
-end interface
-
 contains
 
 
 ! sin --------------------
-
-real(dp) function abs(x) result(r)
-real(dp), intent(in) :: x
-if (x >= 0) then
-    r = x
-else
-    r = -x
-end if
-end function
-
-elemental integer function floor(x) result(r)
-real(dp), intent(in) :: x
-if (x >= 0) then
-    r = x
-else
-    r = x-1
-end if
-end function
-
-elemental real(dp) function modulo(x, y) result(r)
-real(dp), intent(in) :: x, y
-r = x-floor(x/y)*y
-end function
 
 elemental real(dp) function min(x, y) result(r)
 real(dp), intent(in) :: x, y
