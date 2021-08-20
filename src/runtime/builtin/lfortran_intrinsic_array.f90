@@ -53,11 +53,6 @@ interface
     integer, intent(in) :: kind
     end function
 
-    integer function floor(x, kind)
-    real, intent(in) :: x(:)
-    integer, intent(in) :: kind
-    end function
-
     integer function int(x, kind)
     real, intent(in) :: x(:)
     integer, intent(in) :: kind
