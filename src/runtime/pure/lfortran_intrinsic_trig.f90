@@ -67,20 +67,22 @@ y = a3min(y, pi - y)
 r = a5kernel_dsin(y)
 end function
 
-! Accurate on [-pi/2,pi/2] to about 1e-16
+! Accurate on [-20,20] to about 2e-16
+! Accurate on [-2E5,2E5] to about 1e-11
 elemental real(dp) function a5kernel_dsin(x) result(res)
 real(dp), intent(in) :: x
-real(dp), parameter :: S1 = 0.9999999999999990771_dp
-real(dp), parameter :: S2 = -0.16666666666664811048_dp
-real(dp), parameter :: S3 = 8.333333333226519387e-3_dp
-real(dp), parameter :: S4 = -1.9841269813888534497e-4_dp
-real(dp), parameter :: S5 = 2.7557315514280769795e-6_dp
-real(dp), parameter :: S6 = -2.5051823583393710429e-8_dp
-real(dp), parameter :: S7 = 1.6046585911173017112e-10_dp
-real(dp), parameter :: S8 = -7.3572396558796051923e-13_dp
 real(dp) :: z
+! P = fpminimax(sin(x),[|1,3,5,7,9,11,13,15,17|],[|1,DD...|],[-pi/2;pi/2], fixed, relative);
 z = x*x
-res = x * (S1+z*(S2+z*(S3+z*(S4+z*(S5+z*(S6+z*(S7+z*S8)))))))
+res = x * (1_dp + &
+z * (-0.166666666666666655306505478010174291974839958868813_dp + &
+z * (8.333333333333191210937766414395365475534605853899e-3_dp + &
+z * (-1.9841269841208314628381230132739601778520061386051e-4_dp + &
+z * (2.7557319211005925166576720607184742789307105593802e-6_dp + &
+z * (-2.5052106862292485979982282505972057331217670026862e-8_dp + &
+z * (1.6058939234229984752935062738122048262688892328934e-10_dp + &
+z * (-7.6429803568078360419013042444017287459926239780175e-13_dp + &
+z * 2.7210673684877685351017286840988936723802336895982e-15_dp))))))))
 end function
 
 elemental real(sp) function a7ssin(x) result(r)
