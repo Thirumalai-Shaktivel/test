@@ -98,22 +98,6 @@ ifcont:                                           ; preds = %else, %then
 
 define double @__module_lfortran_intrinsic_trig_a5kernel_dsin(double* %x) {
 .entry:
-  %S1 = alloca double, align 8
-  store double 0x3FEFFFFFFFFFFFF8, double* %S1, align 8
-  %S2 = alloca double, align 8
-  store double 0xBFC55555555552B9, double* %S2, align 8
-  %S3 = alloca double, align 8
-  store double 0x3F8111111110208B, double* %S3, align 8
-  %S4 = alloca double, align 8
-  store double 0xBF2A01A019677B7B, double* %S4, align 8
-  %S5 = alloca double, align 8
-  store double 0x3EC71DE371212827, double* %S5, align 8
-  %S6 = alloca double, align 8
-  store double 0xBE5AE6315D6BA572, double* %S6, align 8
-  %S7 = alloca double, align 8
-  store double 0x3DE60DE3F77343C0, double* %S7, align 8
-  %S8 = alloca double, align 8
-  store double 0xBD69E2CFF677919D, double* %S8, align 8
   %res = alloca double, align 8
   %z = alloca double, align 8
   %0 = load double, double* %x, align 8
@@ -128,24 +112,27 @@ define double @__module_lfortran_intrinsic_trig_a5kernel_dsin(double* %x) {
   %8 = load double, double* %z, align 8
   %9 = load double, double* %z, align 8
   %10 = load double, double* %z, align 8
-  %11 = fmul double %10, 0xBD69E2CFF677919D
-  %12 = fadd double 0x3DE60DE3F77343C0, %11
-  %13 = fmul double %9, %12
-  %14 = fadd double 0xBE5AE6315D6BA572, %13
-  %15 = fmul double %8, %14
-  %16 = fadd double 0x3EC71DE371212827, %15
-  %17 = fmul double %7, %16
-  %18 = fadd double 0xBF2A01A019677B7B, %17
-  %19 = fmul double %6, %18
-  %20 = fadd double 0x3F8111111110208B, %19
-  %21 = fmul double %5, %20
-  %22 = fadd double 0xBFC55555555552B9, %21
-  %23 = fmul double %4, %22
-  %24 = fadd double 0x3FEFFFFFFFFFFFF8, %23
-  %25 = fmul double %3, %24
-  store double %25, double* %res, align 8
-  %26 = load double, double* %res, align 8
-  ret double %26
+  %11 = load double, double* %z, align 8
+  %12 = fmul double %11, 0x3CE8825AAAD59F51
+  %13 = fadd double 0xBD6AE42F4853E7C2, %12
+  %14 = fmul double %10, %13
+  %15 = fadd double 0x3DE6123CA7AFB5C3, %14
+  %16 = fmul double %9, %15
+  %17 = fadd double 0xBE5AE6454C84FBAB, %16
+  %18 = fmul double %8, %17
+  %19 = fadd double 0x3EC71DE3A528034C, %18
+  %20 = fmul double %7, %19
+  %21 = fadd double 0xBF2A01A01A01476F, %20
+  %22 = fmul double %6, %21
+  %23 = fadd double 0x3F811111111110BF, %22
+  %24 = fmul double %5, %23
+  %25 = fadd double 0xBFC5555555555555, %24
+  %26 = fmul double %4, %25
+  %27 = fadd double 1.000000e+00, %26
+  %28 = fmul double %3, %27
+  store double %28, double* %res, align 8
+  %29 = load double, double* %res, align 8
+  ret double %29
 }
 
 define double @__module_lfortran_intrinsic_trig_a6dsin(double* %x) {
