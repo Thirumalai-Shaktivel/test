@@ -37,24 +37,6 @@ end interface
 
 contains
 
-elemental integer function a1floor(x) result(r)
-real(dp), intent(in) :: x
-if (x >= 0) then
-    r = x
-else
-    r = x-1
-end if
-end function
-
-elemental integer function a1sfloor(x) result(r)
-real(sp), intent(in) :: x
-if (x >= 0) then
-    r = x
-else
-    r = x-1
-end if
-end function
-
 ! log --------------------------------------------------------------------------
 ! J3/18-007r1 16.9.118 (F2018)
 ! TODO: Handle complex
@@ -263,7 +245,7 @@ integer(sp) :: y=0
 real(dp), parameter :: e=2.71828182845904523536028747135266249775724709369995_dp
 integer(sp) :: i=1
 real(sp) :: temp=1.0, rem=0.0
-y=a1sfloor(x)
+y=floor(x)
 temp = e**y
 rem = x-y
 r = temp * skexp(rem)
@@ -275,7 +257,7 @@ real(dp), parameter :: e=2.71828182845904523536028747135266249775724709369995
 integer(dp) :: y=0
 integer(dp) :: i=1
 real(dp) :: temp=1.0, rem=0.0
-y=a1floor(x)
+y=floor(x)
 temp = e**y
 rem = x-y
 r = temp * dkexp(rem)
