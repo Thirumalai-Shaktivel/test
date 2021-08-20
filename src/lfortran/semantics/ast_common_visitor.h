@@ -25,6 +25,7 @@ public:
         {"real", "lfortran_intrinsic_array"},
         {"sum", "lfortran_intrinsic_array"},
         {"floor", "lfortran_intrinsic_math2"},
+        {"exp", "lfortran_intrinsic_math2"},
         {"abs", "lfortran_intrinsic_math2"},
         {"aimag", "lfortran_intrinsic_math2"},
         {"modulo", "lfortran_intrinsic_math2"},
