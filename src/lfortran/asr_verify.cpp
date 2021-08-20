@@ -68,6 +68,7 @@ public:
                 if( ASR::is_a<ASR::ExternalSymbol_t>(*sym.second) ) {
                     ASR::ExternalSymbol_t* der_ext = ASR::down_cast<ASR::ExternalSymbol_t>(sym.second);
                     ASR::symbol_t* der_sym = der_ext->m_external;
+                    /*
                     if (check_external) {
                         LFORTRAN_ASSERT(der_sym)
                         if( ASR::is_a<DerivedType_t>(*der_sym)) {
@@ -76,6 +77,7 @@ public:
                             if(symtab_in_scope(s_loc, symtab_ID)) return true;
                         }
                     }
+                    */
                 }
             }
             s = s->parent;
@@ -236,6 +238,7 @@ public:
     }
 
     void visit_ExternalSymbol(const ExternalSymbol_t &x) {
+        /*
         if (check_external) {
             require(x.m_external != nullptr,
                 "ExternalSymbol::m_external cannot be nullptr");
@@ -246,6 +249,7 @@ public:
                 "ExternalSymbol::m_original_name must match external->m_name");
             // TODO: check that module name matches x.m_module_name
         }
+        */
     }
 
     // --------------------------------------------------------

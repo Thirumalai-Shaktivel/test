@@ -237,6 +237,8 @@ public:
     void visit_Module(const ASR::Module_t &x) {
         if (!show_intrinsic_modules &&
                     startswith(x.m_name, "lfortran_intrinsic_")) {
+            std::cout << "NPRINT1: " << show_intrinsic_modules << std::endl;
+            std::cout << "NPRINT2: " << x.m_name << std::endl;
             s.append("(");
             if (use_colors) {
                 s.append(color(style::bold));
@@ -251,6 +253,8 @@ public:
             s.append(x.m_name);
             s.append(")");
         } else {
+            std::cout << "OKPRINT1: " << show_intrinsic_modules << std::endl;
+            std::cout << "OKPRINT2: " << x.m_name << std::endl;
             LFortran::ASR::PickleBaseVisitor<ASRPickleVisitor>::visit_Module(x);
         };
     }
@@ -262,7 +266,9 @@ std::string pickle(LFortran::ASR::asr_t &asr, bool colors, bool indent,
     v.use_colors = colors;
     v.indent = indent;
     v.show_intrinsic_modules = show_intrinsic_modules;
+    std::cout << "START: " << v.show_intrinsic_modules << std::endl;
     v.visit_asr(asr);
+    std::cout << "END: " << v.show_intrinsic_modules << std::endl;
     return v.get_str();
 }
 
