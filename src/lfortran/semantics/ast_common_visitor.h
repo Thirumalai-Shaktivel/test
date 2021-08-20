@@ -28,6 +28,7 @@ public:
         {"exp", "lfortran_intrinsic_math2"},
         {"abs", "lfortran_intrinsic_math2"},
         {"aimag", "lfortran_intrinsic_math2"},
+        {"log", "lfortran_intrinsic_math2"},
         {"modulo", "lfortran_intrinsic_math2"},
         {"sign", "lfortran_intrinsic_math2"},
         {"sqrt", "lfortran_intrinsic_math2"},
