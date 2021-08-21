@@ -1,21 +1,69 @@
 ; ModuleID = 'LFortran'
 source_filename = "LFortran"
 
+%complex_4 = type { float, float }
+%complex_8 = type { double, double }
+
 @0 = private unnamed_addr constant [4 x i8] c"%f\0A\00", align 1
+
+define %complex_4 @__module_lfortran_intrinsic_math_ccos(%complex_4* %x) {
+.entry:
+  %r = alloca %complex_4, align 8
+  %0 = load %complex_4, %complex_4* %x, align 4
+  %1 = call %complex_4 @_lfortran_ccos(%complex_4 %0)
+  store %complex_4 %1, %complex_4* %r, align 4
+  %2 = load %complex_4, %complex_4* %r, align 4
+  ret %complex_4 %2
+}
+
+declare %complex_4 @_lfortran_ccos(%complex_4)
+
+define double @__module_lfortran_intrinsic_math_dcos(double* %x) {
+.entry:
+  %r = alloca double, align 8
+  %0 = load double, double* %x, align 8
+  %1 = call double @_lfortran_dcos(double %0)
+  store double %1, double* %r, align 8
+  %2 = load double, double* %r, align 8
+  ret double %2
+}
+
+declare double @_lfortran_dcos(double)
+
+define float @__module_lfortran_intrinsic_math_scos(float* %x) {
+.entry:
+  %r = alloca float, align 4
+  %0 = load float, float* %x, align 4
+  %1 = call float @_lfortran_scos(float %0)
+  store float %1, float* %r, align 4
+  %2 = load float, float* %r, align 4
+  ret float %2
+}
+
+declare float @_lfortran_scos(float)
+
+define %complex_8 @__module_lfortran_intrinsic_math_zcos(%complex_8* %x) {
+.entry:
+  %r = alloca %complex_8, align 8
+  %0 = load %complex_8, %complex_8* %x, align 8
+  %1 = call %complex_8 @_lfortran_zcos(%complex_8 %0)
+  store %complex_8 %1, %complex_8* %r, align 8
+  %2 = load %complex_8, %complex_8* %r, align 8
+  ret %complex_8 %2
+}
+
+declare %complex_8 @_lfortran_zcos(%complex_8)
 
 define i32 @main() {
 .entry:
   %x = alloca float, align 4
   %0 = alloca float, align 4
   store float 9.500000e+00, float* %0, align 4
-  %1 = alloca float, align 4
-  %2 = load float, float* %0, align 4
-  call void @_lfortran_cos(float %2, float* %1)
-  %3 = load float, float* %1, align 4
-  store float %3, float* %x, align 4
-  %4 = load float, float* %x, align 4
-  %5 = fpext float %4 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), double %5)
+  %1 = call float @__module_lfortran_intrinsic_math_scos(float* %0)
+  store float %1, float* %x, align 4
+  %2 = load float, float* %x, align 4
+  %3 = fpext float %2 to double
+  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), double %3)
   ret i32 0
 }
 

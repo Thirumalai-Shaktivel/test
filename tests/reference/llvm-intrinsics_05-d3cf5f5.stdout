@@ -1,43 +1,181 @@
 ; ModuleID = 'LFortran'
 source_filename = "LFortran"
 
+%complex_4 = type { float, float }
+%complex_8 = type { double, double }
+
 @0 = private unnamed_addr constant [4 x i8] c"%f\0A\00", align 1
 @1 = private unnamed_addr constant [4 x i8] c"%f\0A\00", align 1
 @2 = private unnamed_addr constant [4 x i8] c"%f\0A\00", align 1
+
+define %complex_4 @__module_lfortran_intrinsic_math_ccosh(%complex_4* %x) {
+.entry:
+  %r = alloca %complex_4, align 8
+  %0 = load %complex_4, %complex_4* %x, align 4
+  %1 = call %complex_4 @_lfortran_ccosh(%complex_4 %0)
+  store %complex_4 %1, %complex_4* %r, align 4
+  %2 = load %complex_4, %complex_4* %r, align 4
+  ret %complex_4 %2
+}
+
+declare %complex_4 @_lfortran_ccosh(%complex_4)
+
+define %complex_4 @__module_lfortran_intrinsic_math_csinh(%complex_4* %x) {
+.entry:
+  %r = alloca %complex_4, align 8
+  %0 = load %complex_4, %complex_4* %x, align 4
+  %1 = call %complex_4 @_lfortran_csinh(%complex_4 %0)
+  store %complex_4 %1, %complex_4* %r, align 4
+  %2 = load %complex_4, %complex_4* %r, align 4
+  ret %complex_4 %2
+}
+
+declare %complex_4 @_lfortran_csinh(%complex_4)
+
+define %complex_4 @__module_lfortran_intrinsic_math_ctanh(%complex_4* %x) {
+.entry:
+  %r = alloca %complex_4, align 8
+  %0 = load %complex_4, %complex_4* %x, align 4
+  %1 = call %complex_4 @_lfortran_ctanh(%complex_4 %0)
+  store %complex_4 %1, %complex_4* %r, align 4
+  %2 = load %complex_4, %complex_4* %r, align 4
+  ret %complex_4 %2
+}
+
+declare %complex_4 @_lfortran_ctanh(%complex_4)
+
+define double @__module_lfortran_intrinsic_math_dcosh(double* %x) {
+.entry:
+  %r = alloca double, align 8
+  %0 = load double, double* %x, align 8
+  %1 = call double @_lfortran_dcosh(double %0)
+  store double %1, double* %r, align 8
+  %2 = load double, double* %r, align 8
+  ret double %2
+}
+
+declare double @_lfortran_dcosh(double)
+
+define double @__module_lfortran_intrinsic_math_dsinh(double* %x) {
+.entry:
+  %r = alloca double, align 8
+  %0 = load double, double* %x, align 8
+  %1 = call double @_lfortran_dsinh(double %0)
+  store double %1, double* %r, align 8
+  %2 = load double, double* %r, align 8
+  ret double %2
+}
+
+declare double @_lfortran_dsinh(double)
+
+define double @__module_lfortran_intrinsic_math_dtanh(double* %x) {
+.entry:
+  %r = alloca double, align 8
+  %0 = load double, double* %x, align 8
+  %1 = call double @_lfortran_dtanh(double %0)
+  store double %1, double* %r, align 8
+  %2 = load double, double* %r, align 8
+  ret double %2
+}
+
+declare double @_lfortran_dtanh(double)
+
+define float @__module_lfortran_intrinsic_math_scosh(float* %x) {
+.entry:
+  %r = alloca float, align 4
+  %0 = load float, float* %x, align 4
+  %1 = call float @_lfortran_scosh(float %0)
+  store float %1, float* %r, align 4
+  %2 = load float, float* %r, align 4
+  ret float %2
+}
+
+declare float @_lfortran_scosh(float)
+
+define float @__module_lfortran_intrinsic_math_ssinh(float* %x) {
+.entry:
+  %r = alloca float, align 4
+  %0 = load float, float* %x, align 4
+  %1 = call float @_lfortran_ssinh(float %0)
+  store float %1, float* %r, align 4
+  %2 = load float, float* %r, align 4
+  ret float %2
+}
+
+declare float @_lfortran_ssinh(float)
+
+define float @__module_lfortran_intrinsic_math_stanh(float* %x) {
+.entry:
+  %r = alloca float, align 4
+  %0 = load float, float* %x, align 4
+  %1 = call float @_lfortran_stanh(float %0)
+  store float %1, float* %r, align 4
+  %2 = load float, float* %r, align 4
+  ret float %2
+}
+
+declare float @_lfortran_stanh(float)
+
+define %complex_8 @__module_lfortran_intrinsic_math_zcosh(%complex_8* %x) {
+.entry:
+  %r = alloca %complex_8, align 8
+  %0 = load %complex_8, %complex_8* %x, align 8
+  %1 = call %complex_8 @_lfortran_zcosh(%complex_8 %0)
+  store %complex_8 %1, %complex_8* %r, align 8
+  %2 = load %complex_8, %complex_8* %r, align 8
+  ret %complex_8 %2
+}
+
+declare %complex_8 @_lfortran_zcosh(%complex_8)
+
+define %complex_8 @__module_lfortran_intrinsic_math_zsinh(%complex_8* %x) {
+.entry:
+  %r = alloca %complex_8, align 8
+  %0 = load %complex_8, %complex_8* %x, align 8
+  %1 = call %complex_8 @_lfortran_zsinh(%complex_8 %0)
+  store %complex_8 %1, %complex_8* %r, align 8
+  %2 = load %complex_8, %complex_8* %r, align 8
+  ret %complex_8 %2
+}
+
+declare %complex_8 @_lfortran_zsinh(%complex_8)
+
+define %complex_8 @__module_lfortran_intrinsic_math_ztanh(%complex_8* %x) {
+.entry:
+  %r = alloca %complex_8, align 8
+  %0 = load %complex_8, %complex_8* %x, align 8
+  %1 = call %complex_8 @_lfortran_ztanh(%complex_8 %0)
+  store %complex_8 %1, %complex_8* %r, align 8
+  %2 = load %complex_8, %complex_8* %r, align 8
+  ret %complex_8 %2
+}
+
+declare %complex_8 @_lfortran_ztanh(%complex_8)
 
 define i32 @main() {
 .entry:
   %x = alloca float, align 4
   %0 = alloca float, align 4
   store float 1.000000e+00, float* %0, align 4
-  %1 = alloca float, align 4
-  %2 = load float, float* %0, align 4
-  call void @_lfortran_sinh(float %2, float* %1)
-  %3 = load float, float* %1, align 4
-  store float %3, float* %x, align 4
-  %4 = load float, float* %x, align 4
-  %5 = fpext float %4 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), double %5)
-  %6 = alloca float, align 4
-  store float 1.000000e+00, float* %6, align 4
-  %7 = alloca float, align 4
-  %8 = load float, float* %6, align 4
-  call void @_lfortran_cosh(float %8, float* %7)
-  %9 = load float, float* %7, align 4
+  %1 = call float @__module_lfortran_intrinsic_math_ssinh(float* %0)
+  store float %1, float* %x, align 4
+  %2 = load float, float* %x, align 4
+  %3 = fpext float %2 to double
+  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), double %3)
+  %4 = alloca float, align 4
+  store float 1.000000e+00, float* %4, align 4
+  %5 = call float @__module_lfortran_intrinsic_math_scosh(float* %4)
+  store float %5, float* %x, align 4
+  %6 = load float, float* %x, align 4
+  %7 = fpext float %6 to double
+  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), double %7)
+  %8 = alloca float, align 4
+  store float 1.000000e+00, float* %8, align 4
+  %9 = call float @__module_lfortran_intrinsic_math_stanh(float* %8)
   store float %9, float* %x, align 4
   %10 = load float, float* %x, align 4
   %11 = fpext float %10 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), double %11)
-  %12 = alloca float, align 4
-  store float 1.000000e+00, float* %12, align 4
-  %13 = alloca float, align 4
-  %14 = load float, float* %12, align 4
-  call void @_lfortran_tanh(float %14, float* %13)
-  %15 = load float, float* %13, align 4
-  store float %15, float* %x, align 4
-  %16 = load float, float* %x, align 4
-  %17 = fpext float %16 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0), double %17)
+  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0), double %11)
   ret i32 0
 }
 
