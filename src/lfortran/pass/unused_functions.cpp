@@ -120,7 +120,7 @@ public:
 
 };
 
-void pass_unused_functions(Allocator &/*al*/, ASR::TranslationUnit_t &unit) {
+void pass_unused_functions(ASR::TranslationUnit_t &unit) {
     for (int i=0; i < 4; i++)
     {
         std::map<uint64_t, std::string> fn_unused;
