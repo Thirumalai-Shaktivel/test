@@ -46,6 +46,18 @@ public:
         }
     }
 
+    void visit_GenericProcedure(const ASR::GenericProcedure_t &x) {
+        for (size_t i=0; i<x.n_procs; i++) {
+            const ASR::symbol_t *s = ASRUtils::symbol_get_past_external(x.m_procs[i]);
+            if (ASR::is_a<ASR::Function_t>(*s)) {
+                ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(s);
+                std::string name = f->m_name;
+                uint64_t h = get_hash((ASR::asr_t*)f);
+                fn_used[h] = name;
+            }
+        }
+    }
+
 };
 
 // Returns a list of unused functions by their hash.
