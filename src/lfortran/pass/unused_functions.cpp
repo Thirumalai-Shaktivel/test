@@ -56,6 +56,8 @@ public:
                 fn_used[h] = name;
             }
         }
+        uint64_t h = get_hash((ASR::asr_t*)&x);
+        fn_declarations[h] = x.m_name;
     }
 
 };
