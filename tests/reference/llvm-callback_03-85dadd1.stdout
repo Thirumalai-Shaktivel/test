@@ -19,27 +19,11 @@ define float @__module_callback_03_cb(float (float*)* %f, float* %a, float* %b) 
   ret float %7
 }
 
-define float @__module_callback_03_f(float* %x) {
-.entry:
-  %f = alloca float, align 4
-  %0 = load float, float* %x, align 4
-  %1 = fmul float 2.000000e+00, %0
-  store float %1, float* %f, align 4
-  %2 = load float, float* %f, align 4
-  ret float %2
-
-.entry1:                                          ; No predecessors!
-  %f2 = alloca float, align 4
-  %3 = load float, float* %x, align 4
-  %4 = fmul float -2.000000e+00, %3
-  store float %4, float* %f2, align 4
-  %5 = load float, float* %f2, align 4
-  ret float %5
-}
+declare float @__module_callback_03_f(float*)
 
 define void @__module_callback_03_foo1(float* %c, float* %d) {
 .entry:
-  %0 = call float @__module_callback_03_cb(float (float*)* @__module_callback_03_f, float* %c, float* %d)
+  %0 = call float @__module_callback_03_cb(<null operand!>, float* %c, float* %d)
   %1 = fpext float %0 to double
   call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), double %1)
   ret void
@@ -47,7 +31,7 @@ define void @__module_callback_03_foo1(float* %c, float* %d) {
 
 define void @__module_callback_03_foo2(float* %c, float* %d) {
 .entry:
-  %0 = call float @__module_callback_03_cb(float (float*)* @__module_callback_03_f, float* %c, float* %d)
+  %0 = call float @__module_callback_03_cb(<null operand!>, float* %c, float* %d)
   %1 = fpext float %0 to double
   call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), double %1)
   ret void
@@ -69,4 +53,3 @@ define i32 @main() {
   call void @__module_callback_03_foo2(float* %2, float* %3)
   ret i32 0
 }
-

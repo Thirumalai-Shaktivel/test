@@ -5,9 +5,9 @@
     "infile_hash": "8990c141e1a8d058f4fdbddb2501648c939fa3bb750fa3458a24f876",
     "outfile": null,
     "outfile_hash": null,
-    "stdout": "llvm-allocate_02-63ca743.stdout",
-    "stdout_hash": "25bb3f35ff0afa46998fc85d1bde5b71f9fc3a6617d21c9e472d2c08",
-    "stderr": null,
-    "stderr_hash": null,
-    "returncode": 0
+    "stdout": null,
+    "stdout_hash": null,
+    "stderr": "llvm-allocate_02-63ca743.stderr",
+    "stderr_hash": "dc64da3c653ec537e8c9eedc8544afeee9b434cb5faf465794566f7f",
+    "returncode": 1
 }
