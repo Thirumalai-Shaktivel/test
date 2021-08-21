@@ -44,6 +44,12 @@ public:
             uint64_t h = get_hash((ASR::asr_t*)f);
             fn_used[h] = name;
         }
+        if (ASR::is_a<ASR::GenericProcedure_t>(*s)) {
+            ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(s);
+            std::string name = g->m_name;
+            uint64_t h = get_hash((ASR::asr_t*)g);
+            fn_used[h] = name;
+        }
     }
 
     void visit_GenericProcedure(const ASR::GenericProcedure_t &x) {
@@ -88,7 +94,7 @@ public:
             this->visit_symbol(*it->second);
             uint64_t h = get_hash((ASR::asr_t*)it->second);
             if (fn_unused.find(h) != fn_unused.end()) {
-                std::cout << "Erasing: " << fn_unused[h] << std::endl;
+//                std::cout << "Erasing: " << fn_unused[h] << std::endl;
                 it = scope.erase(it);
             } else {
                 ++it;
@@ -115,6 +121,7 @@ public:
 };
 
 void pass_unused_functions(Allocator &/*al*/, ASR::TranslationUnit_t &unit) {
+    for (int i=0; i < 4; i++)
     {
         std::map<uint64_t, std::string> fn_unused;
         fn_unused = collect_unused_functions(unit);
@@ -127,19 +134,6 @@ void pass_unused_functions(Allocator &/*al*/, ASR::TranslationUnit_t &unit) {
         v.fn_unused = fn_unused;
         v.visit_TranslationUnit(unit);
     }
-    {
-        std::map<uint64_t, std::string> fn_unused;
-        fn_unused = collect_unused_functions(unit);
-        std::cout << "Unused functions:" << std::endl;
-        for (auto &a : fn_unused) {
-            std::cout << a.second << " ";
-        }
-        std::cout << std::endl;
-        UnusedFunctionsVisitor v;
-        v.fn_unused = fn_unused;
-        v.visit_TranslationUnit(unit);
-    }
-
 }
 
 
