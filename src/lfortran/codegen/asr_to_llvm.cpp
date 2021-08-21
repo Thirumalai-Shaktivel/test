@@ -51,6 +51,7 @@
 #include <lfortran/pass/print_arr.h>
 #include <lfortran/pass/arr_slice.h>
 #include <lfortran/pass/class_constructor.h>
+#include <lfortran/pass/unused_functions.h>
 #include <lfortran/exception.h>
 #include <lfortran/asr_utils.h>
 #include <lfortran/pickle.h>
@@ -3460,6 +3461,7 @@ std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
     ASRToLLVMVisitor v(context);
     pass_wrap_global_stmts_into_function(al, asr, run_fn);
 
+    pass_unused_functions(asr);
     // Uncomment for debugging the ASR after the transformation
     // std::cout << pickle(asr) << std::endl;
     pass_replace_class_constructor(al, asr);
