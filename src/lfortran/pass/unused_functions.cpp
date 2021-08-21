@@ -113,18 +113,31 @@ public:
 };
 
 void pass_unused_functions(Allocator &/*al*/, ASR::TranslationUnit_t &unit) {
-    std::map<uint64_t, std::string> fn_unused;
-    fn_unused = collect_unused_functions(unit);
-    /*
-    std::cout << "Unused functions:" << std::endl;
-    for (auto &a : fn_unused) {
-        std::cout << a.second << " ";
+    {
+        std::map<uint64_t, std::string> fn_unused;
+        fn_unused = collect_unused_functions(unit);
+        std::cout << "Unused functions:" << std::endl;
+        for (auto &a : fn_unused) {
+            std::cout << a.second << " ";
+        }
+        std::cout << std::endl;
+        UnusedFunctionsVisitor v;
+        v.fn_unused = fn_unused;
+        v.visit_TranslationUnit(unit);
     }
-    std::cout << std::endl;
-    */
-    UnusedFunctionsVisitor v;
-    v.fn_unused = fn_unused;
-    v.visit_TranslationUnit(unit);
+    {
+        std::map<uint64_t, std::string> fn_unused;
+        fn_unused = collect_unused_functions(unit);
+        std::cout << "Unused functions:" << std::endl;
+        for (auto &a : fn_unused) {
+            std::cout << a.second << " ";
+        }
+        std::cout << std::endl;
+        UnusedFunctionsVisitor v;
+        v.fn_unused = fn_unused;
+        v.visit_TranslationUnit(unit);
+    }
+
 }
 
 
