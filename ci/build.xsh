@@ -79,7 +79,7 @@ cp lfortran-$lfortran_version/test-bld/src/runtime/*.mod src/runtime/
 src/bin/lfortran --version
 src/bin/lfortran -c examples/expr2.f90 -o expr2.obj
 if $WIN == "1":
-    link expr2.obj -defaultlib:libcmt -libpath:src\runtime\ -defaultlib:lfortran_runtime_static
+    link expr2.obj src\runtime\lfortran_runtime_static.lib
 else:
     src/bin/lfortran -o expr2 expr2.obj
 ./expr2
