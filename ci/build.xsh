@@ -78,6 +78,10 @@ cp lfortran-$lfortran_version/test-bld/src/runtime/*.mod src/runtime/
 # Run some simple compilation tests, works everywhere:
 src/bin/lfortran --version
 src/bin/lfortran -c examples/expr2.f90 -o expr2.o
+# Does not work yet:
+# src/bin/lfortran -o expr2 expr2.o
+# ./expr2
+
 
 # Run all tests (does not work on Windows yet):
 cmake --version
