@@ -71,7 +71,10 @@ $FC="../../src/bin/lfortran"
 
 cp lfortran-$lfortran_version/test-bld/src/bin/lfortran src/bin
 cp lfortran-$lfortran_version/test-bld/src/bin/cpptranslate src/bin
-cp lfortran-$lfortran_version/test-bld/src/runtime/*lfortran_runtime* src/runtime/
+if $WIN != "1":
+    cp lfortran-$lfortran_version/test-bld/src/runtime/ src/runtime/
+else:
+    cp lfortran-$lfortran_version/test-bld/src/runtime/*lfortran_runtime* src/runtime/
 cp lfortran-$lfortran_version/test-bld/src/runtime/*.mod src/runtime/
 
 if $WIN != "1":
