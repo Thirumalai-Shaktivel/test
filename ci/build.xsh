@@ -81,7 +81,10 @@ else:
 cp lfortran-$lfortran_version/test-bld/src/runtime/*.mod src/runtime/
 
 C:\projects\lfortran-ts83e\src\bin\lfortran.exe --version
+src/bin/lfortran --version
 cmake --version
+src/bin/lfortran examples/expr2.f90
+./a.out
 
 if $WIN != "1":
     ./run_tests.py
