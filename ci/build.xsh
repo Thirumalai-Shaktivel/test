@@ -90,7 +90,7 @@ cd integration_tests
 mkdir build-lfortran-llvm
 cd build-lfortran-llvm
 if $WIN == "1":
-    cmake -G $LFORTRAN_CMAKE_GENERATOR -DCMAKE_VERBOSE_MAKEFILE=ON -DLFORTRAN_BACKEND=llvm ..
+    cmake -G $LFORTRAN_CMAKE_GENERATOR -DCMAKE_Fortran_PREPROCESS=OFF -DCMAKE_VERBOSE_MAKEFILE=ON -DLFORTRAN_BACKEND=llvm ..
 #    cmake -DLFORTRAN_BACKEND=llvm ..
 else:
     cmake -G $LFORTRAN_CMAKE_GENERATOR -DCMAKE_VERBOSE_MAKEFILE=ON -DLFORTRAN_BACKEND=llvm ..
