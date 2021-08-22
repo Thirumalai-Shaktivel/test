@@ -72,6 +72,8 @@ if $WIN == "1":
 else:
     $FC="../../src/bin/lfortran"
 
+$FC --version
+cmake --version
 cp lfortran-$lfortran_version/test-bld/src/bin/lfortran src/bin
 cp lfortran-$lfortran_version/test-bld/src/bin/cpptranslate src/bin
 if $WIN == "1":
@@ -86,7 +88,6 @@ if $WIN != "1":
 cd integration_tests
 mkdir build-lfortran-llvm
 cd build-lfortran-llvm
-cmake --version
 if $WIN == "1":
     cmake -DLFORTRAN_BACKEND=llvm ..
 #    cmake -DLFORTRAN_BACKEND=llvm ..
