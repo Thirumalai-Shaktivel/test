@@ -67,19 +67,36 @@ jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=60 --out
 cat Demo1_out.ipynb
 cd ../../..
 
-$FC="../../src/bin/lfortran"
+if $WIN == "1":
+    $FC="C:\\projects\\lfortran-ts83e\\src\\bin\\lfortran.exe"
+else:
+    $FC="../../src/bin/lfortran"
+
+cp lfortran-$lfortran_version/test-bld/src/bin/lfortran src/bin
+cp lfortran-$lfortran_version/test-bld/src/bin/cpptranslate src/bin
+if $WIN == "1":
+    cp lfortran-$lfortran_version/test-bld/src/runtime/legacy/lfortran_runtime* src/runtime/
+else:
+    cp lfortran-$lfortran_version/test-bld/src/runtime/liblfortran_runtime* src/runtime/
+cp lfortran-$lfortran_version/test-bld/src/runtime/*.mod src/runtime/
+
+C:\projects\lfortran-ts83e\src\bin\lfortran.exe --version
+src/bin/lfortran --version
+cmake --version
+src/bin/lfortran examples/expr2.f90
+./a.out
 
 if $WIN != "1":
-    cp lfortran-$lfortran_version/test-bld/src/bin/lfortran src/bin
-    cp lfortran-$lfortran_version/test-bld/src/bin/cpptranslate src/bin
-    cp lfortran-$lfortran_version/test-bld/src/runtime/liblfortran_runtime* src/runtime/
-    cp lfortran-$lfortran_version/test-bld/src/runtime/*.mod src/runtime/
     ./run_tests.py
 
-    cd integration_tests
-    mkdir build-lfortran-llvm
-    cd build-lfortran-llvm
-    cmake -DLFORTRAN_BACKEND=llvm ..
-    make
-    ctest -L llvm
-    cd ../..
+cd integration_tests
+mkdir build-lfortran-llvm
+cd build-lfortran-llvm
+if $WIN == "1":
+    cmake -G $LFORTRAN_CMAKE_GENERATOR -DCMAKE_Fortran_PREPROCESS=OFF -DCMAKE_VERBOSE_MAKEFILE=ON -DLFORTRAN_BACKEND=llvm ..
+#    cmake -DLFORTRAN_BACKEND=llvm ..
+else:
+    cmake -G $LFORTRAN_CMAKE_GENERATOR -DCMAKE_VERBOSE_MAKEFILE=ON -DLFORTRAN_BACKEND=llvm ..
+make
+ctest -L llvm
+cd ../..
