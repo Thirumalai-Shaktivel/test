@@ -80,7 +80,7 @@ else:
     cp lfortran-$lfortran_version/test-bld/src/runtime/liblfortran_runtime* src/runtime/
 cp lfortran-$lfortran_version/test-bld/src/runtime/*.mod src/runtime/
 
-$FC --version
+C:\projects\lfortran-ts83e\src\bin\lfortran.exe --version
 cmake --version
 
 if $WIN != "1":
