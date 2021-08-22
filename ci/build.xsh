@@ -69,17 +69,24 @@ cd ../../..
 
 $FC="../../src/bin/lfortran"
 
-if $WIN != "1":
-    cp lfortran-$lfortran_version/test-bld/src/bin/lfortran src/bin
-    cp lfortran-$lfortran_version/test-bld/src/bin/cpptranslate src/bin
+cp lfortran-$lfortran_version/test-bld/src/bin/lfortran src/bin
+cp lfortran-$lfortran_version/test-bld/src/bin/cpptranslate src/bin
+if $WIN == "1":
+    cp lfortran-$lfortran_version/test-bld/src/runtime/legacy/lfortran_runtime* src/runtime/
+else:
     cp lfortran-$lfortran_version/test-bld/src/runtime/liblfortran_runtime* src/runtime/
-    cp lfortran-$lfortran_version/test-bld/src/runtime/*.mod src/runtime/
+cp lfortran-$lfortran_version/test-bld/src/runtime/*.mod src/runtime/
+
+if $WIN != "1":
     ./run_tests.py
 
-    cd integration_tests
-    mkdir build-lfortran-llvm
-    cd build-lfortran-llvm
+cd integration_tests
+mkdir build-lfortran-llvm
+cd build-lfortran-llvm
+if $WIN == "1":
+    cmake -DLFORTRAN_BACKEND=llvm -DCMAKE_Fortran_COMPILER="../../src/bin/lfortran" ..
+else:
     cmake -DLFORTRAN_BACKEND=llvm ..
-    make
-    ctest -L llvm
-    cd ../..
+make
+ctest -L llvm
+cd ../..
