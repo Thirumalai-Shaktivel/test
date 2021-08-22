@@ -87,7 +87,7 @@ cd integration_tests
 mkdir build-lfortran-llvm
 cd build-lfortran-llvm
 if $WIN == "1":
-    cmake -DLFORTRAN_BACKEND=llvm -DCMAKE_Fortran_COMPILER="C:\\projects\\lfortran-ts83e\\src\\bin\\lfortran.exe" ..
+    cmake -DLFORTRAN_BACKEND=llvm ..
 #    cmake -DLFORTRAN_BACKEND=llvm ..
 else:
     cmake -DLFORTRAN_BACKEND=llvm ..
