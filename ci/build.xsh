@@ -67,7 +67,10 @@ jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=60 --out
 cat Demo1_out.ipynb
 cd ../../..
 
-$FC="../../src/bin/lfortran"
+if $WIN == "1":
+    $FC="../../src/bin/lfortran.exe"
+else:
+    $FC="../../src/bin/lfortran"
 
 cp lfortran-$lfortran_version/test-bld/src/bin/lfortran src/bin
 cp lfortran-$lfortran_version/test-bld/src/bin/cpptranslate src/bin
@@ -84,7 +87,8 @@ cd integration_tests
 mkdir build-lfortran-llvm
 cd build-lfortran-llvm
 if $WIN == "1":
-    cmake -DLFORTRAN_BACKEND=llvm -DCMAKE_Fortran_COMPILER="../../src/bin/lfortran" ..
+#    cmake -DLFORTRAN_BACKEND=llvm -DCMAKE_Fortran_COMPILER="../../src/bin/lfortran" ..
+    cmake -DLFORTRAN_BACKEND=llvm ..
 else:
     cmake -DLFORTRAN_BACKEND=llvm ..
 make
