@@ -275,6 +275,7 @@ double _lfortran_dtan(double x)
 float_complex_t _lfortran_ctan(float_complex_t x)
 {
 #ifdef _WIN32
+    printf("INPUT CTAN: %f %f\n", x.re, x.im);
     float_complex_t r;
     r.re = 7.5;
     r.im = 8.5;
@@ -287,9 +288,10 @@ float_complex_t _lfortran_ctan(float_complex_t x)
 double_complex_t _lfortran_ztan(double_complex_t x)
 {
 #ifdef _WIN32
+    printf("INPUT ZTAN: %f %f\n", x.re, x.im);
     double_complex_t r;
-    r.re = 7.5;
-    r.im = 8.5;
+    r.re = 17.5;
+    r.im = 18.5;
     return r; // TODO: implement in MSVC
 #else
     return ctan(x);
