@@ -11,7 +11,7 @@ print *, tan(0.5)
 c = (1.5, 3.5)
 print *, c
 print *, tan(c)
-z = (1.5_8, 3.5_8)
+z = (10.5_8, 30.5_8)
 print *, z
 print *, tan(z)
 
