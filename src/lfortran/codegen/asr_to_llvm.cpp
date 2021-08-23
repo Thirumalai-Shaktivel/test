@@ -1409,13 +1409,7 @@ public:
                                     type = type_fx2;
                                 } else {
                                     LFORTRAN_ASSERT(a_kind == 8)
-                                    if (platform == Platform::Windows) {
-                                        // 128 bit aggregate type is passed by reference
-                                        type = getComplexType(a_kind, true);
-                                    } else {
-                                        // Pass by value
-                                        type = getComplexType(a_kind, false);
-                                    }
+                                    type = getComplexType(a_kind, true);
                                 }
                             } else {
                                 type = getComplexType(a_kind, true);
@@ -3224,12 +3218,6 @@ public:
                                                     tmp = builder->CreateLoad(tmp);
                                                 } else {
                                                     LFORTRAN_ASSERT(c_kind == 8)
-                                                    if (platform == Platform::Windows) {
-                                                        // 128 bit aggregate type is passed by reference
-                                                    } else {
-                                                        // Pass by value
-                                                        tmp = builder->CreateLoad(tmp);
-                                                    }
                                                 }
                                             } else {
                                                 // Dereference the pointer argument
