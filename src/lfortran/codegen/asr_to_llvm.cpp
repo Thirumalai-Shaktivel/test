@@ -1408,7 +1408,13 @@ public:
                                     llvm::Type* type_fx2 = llvm::VectorType::get(llvm::Type::getFloatTy(context), 2);
                                     type = type_fx2;
                                 } else {
-                                    type = getComplexType(a_kind, false);
+                                    if (platform == Platform::Windows) {
+                                        // 128 bit aggregate type is passed by reference
+                                        type = getComplexType(a_kind, true);
+                                    } else {
+                                        // Pass by value
+                                        type = getComplexType(a_kind, false);
+                                    }
                                 }
                             } else {
                                 type = getComplexType(a_kind, true);
@@ -3216,7 +3222,8 @@ public:
                                                     // Then convert <2 x float>* -> <2 x float>
                                                     tmp = builder->CreateLoad(tmp);
                                                 } else {
-                                                    if (Windows) {
+                                                    LFORTRAN_ASSERT(c_kind == 8)
+                                                    if (platform == Platform::Windows) {
                                                         // 128 bit aggregate type is passed by reference
                                                     } else {
                                                         // Pass by value
