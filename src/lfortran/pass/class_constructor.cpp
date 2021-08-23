@@ -19,13 +19,15 @@ private:
     Allocator &al;
     Vec<ASR::stmt_t*> class_constructor_result;
     ASR::expr_t* result_var;
+    SymbolTable* current_scope;
 
 public:
 
     bool is_constructor_present;
 
     ClassConstructorVisitor(Allocator &al) : al{al},
-    result_var{nullptr}, is_constructor_present{false} {
+    result_var{nullptr}, current_scope{nullptr},
+    is_constructor_present{false} {
         class_constructor_result.reserve(al, 0);
     }
 
@@ -58,6 +60,7 @@ public:
         // FIXME: this is a hack, we need to pass in a non-const `x`,
         // which requires to generate a TransformVisitor.
         ASR::Program_t &xx = const_cast<ASR::Program_t&>(x);
+        current_scope = xx.m_symtab;
         transform_stmts(xx.m_body, xx.n_body);
 
         // Transform nested functions and subroutines
@@ -104,6 +107,24 @@ public:
             ASR::Variable_t* member_variable = down_cast<ASR::Variable_t>
                                                 (LFortran::ASRUtils::symbol_get_past_external(member));
             ASR::ttype_t* member_type = member_variable->m_type;
+            if( member_type->type == ASR::ttypeType::Derived ) {
+                ASR::Derived_t* mem_der = down_cast<ASR::Derived_t>(member_type);
+                if( mem_der->m_derived_type->type == ASR::symbolType::ExternalSymbol ) {
+                    member_type = LFortran::ASRUtils::TYPE(ASR::make_Derived_t(al, mem_der->base.base.loc,
+                                                                               mem_der->m_derived_type,
+                                                                               mem_der->m_dims,
+                                                                               mem_der->n_dims));
+                } else if( mem_der->m_derived_type->type == ASR::symbolType::DerivedType ) {
+                    ASR::DerivedType_t* mem_dertype = (ASR::DerivedType_t*)(&(
+                                                        LFortran::ASRUtils::symbol_get_past_external(
+                                                                        mem_der->m_derived_type)->base));
+                    ASR::symbol_t* mem_type_sym = current_scope->scope[std::string(mem_dertype->m_name)];
+                    member_type = LFortran::ASRUtils::TYPE(ASR::make_Derived_t(al, mem_der->base.base.loc,
+                                                                               mem_type_sym,
+                                                                               mem_der->m_dims,
+                                                                               mem_der->n_dims));
+                }
+            }
             ASR::expr_t* derived_ref = LFortran::ASRUtils::EXPR(ASR::make_DerivedRef_t(al, x.base.base.loc, result_var,
                                                                 member, member_type, nullptr));
             ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, derived_ref, x.m_args[i]));
