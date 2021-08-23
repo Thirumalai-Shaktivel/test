@@ -51,6 +51,7 @@
 #include <lfortran/pass/print_arr.h>
 #include <lfortran/pass/arr_slice.h>
 #include <lfortran/pass/class_constructor.h>
+#include <lfortran/pass/unused_functions.h>
 #include <lfortran/exception.h>
 #include <lfortran/asr_utils.h>
 #include <lfortran/pickle.h>
@@ -110,9 +111,6 @@ void exit(llvm::LLVMContext &context, llvm::Module &module,
 class ASRToLLVMVisitor : public ASR::BaseVisitor<ASRToLLVMVisitor>
 {
 private:
-  //!< A map from sin, cos, etc. to the corresponding functions
-  std::unordered_map<std::string, llvm::Function *> all_intrinsics;
-
   //! To be used by visit_DerivedRef.
   std::string der_type_name;
 
@@ -152,7 +150,6 @@ public:
     std::unordered_map<std::uint32_t, std::unordered_map<std::string, llvm::Type*>> arr_arg_type_cache;
 
     std::map<std::string, std::pair<llvm::Type*, llvm::Type*>> fname2arg_type;
-    std::vector<std::string> c_runtime_intrinsics;
 
     // Maps for containing information regarding derived types
     std::map<std::string, llvm::StructType*> name2dertype;
@@ -731,9 +728,6 @@ public:
         fname2arg_type["lbound"] = std::make_pair(bound_arg, bound_arg->getPointerTo());
         fname2arg_type["ubound"] = std::make_pair(bound_arg, bound_arg->getPointerTo());
 
-        c_runtime_intrinsics =  {"sin",  "cos",  "tan",  "sinh",  "cosh",  "tanh",
-                                 "asin", "acos", "atan", "asinh", "acosh", "atanh"};
-
         // Process Variables first:
         for (auto &item : x.m_global_scope->scope) {
             if (is_a<ASR::Variable_t>(*item.second)) {
@@ -788,6 +782,19 @@ public:
             LFORTRAN_ASSERT(llvm_symtab.find(h) != llvm_symtab.end());
             llvm::Value* x_arr = llvm_symtab[h];
             fill_malloc_array_details(x_arr, curr_arg.m_dims, curr_arg.n_dims);
+        }
+        if (x.m_stat) {
+            ASR::Variable_t *asr_target = EXPR2VAR(x.m_stat);
+            uint32_t h = get_hash((ASR::asr_t*)asr_target);
+            if (llvm_symtab.find(h) != llvm_symtab.end()) {
+                llvm::Value *target, *value;
+                target = llvm_symtab[h];
+                // Store 0 (success) in the stat variable
+                value = llvm::ConstantInt::get(context, llvm::APInt(32, 0));
+                builder->CreateStore(value, target);
+            } else {
+                throw CodeGenError("Stat variable in allocate not found in LLVM symtab");
+            }
         }
     }
 
@@ -1392,8 +1399,14 @@ public:
                             }
                         } else {
                             if (arg->m_abi == ASR::abiType::BindC
-                                && arg->m_value_attr) {
-                                type = getComplexType(a_kind, false);
+                                    && arg->m_value_attr) {
+                                if (a_kind == 4) {
+                                    // type_fx2 is <2 x float>
+                                    llvm::Type* type_fx2 = llvm::VectorType::get(llvm::Type::getFloatTy(context), 2);
+                                    type = type_fx2;
+                                } else {
+                                    type = getComplexType(a_kind, false);
+                                }
                             } else {
                                 type = getComplexType(a_kind, true);
                             }
@@ -1662,14 +1675,6 @@ public:
     }
 
     void visit_Function(const ASR::Function_t &x) {
-        if( !(x.m_abi == ASR::abiType::Source ||
-              x.m_abi == ASR::abiType::Interactive ||
-              (x.m_abi == ASR::abiType::Intrinsic && 
-               ((fname2arg_type.find(std::string(x.m_name)) != fname2arg_type.end() || x.m_deftype != ASR::deftypeType::Interface) &&  
-                std::find(c_runtime_intrinsics.begin(), c_runtime_intrinsics.end(), std::string(x.m_name)) 
-                == c_runtime_intrinsics.end()))) ) { 
-                            return;
-        }
         instantiate_function(x);
         visit_procedures(x);
         generate_function(x);
@@ -1780,6 +1785,20 @@ public:
                 F = llvm_symtab_fn[old_h];
             }
             llvm_symtab_fn[h] = F;
+
+            // Instantiate (pre-declare) all nested interfaces
+            for (auto &item : x.m_symtab->scope) {
+                if (is_a<ASR::Function_t>(*item.second)) {
+                    ASR::Function_t *v = down_cast<ASR::Function_t>(
+                            item.second);
+                    instantiate_function(*v);
+                }
+                if (is_a<ASR::Subroutine_t>(*item.second)) {
+                    ASR::Subroutine_t *v = down_cast<ASR::Subroutine_t>(
+                            item.second);
+                    instantiate_subroutine(*v);
+                }
+            }
         }
     }
 
@@ -3168,9 +3187,24 @@ public:
                                 } else {
                                     if (orig_arg->m_abi == ASR::abiType::BindC
                                         && orig_arg->m_value_attr) {
-                                            // Dereference the pointer argument
-                                            // to pass by value
-                                            tmp = builder->CreateLoad(tmp);
+                                            ASR::ttype_t* arg_type = arg->m_type;
+                                            if (is_a<ASR::Complex_t>(*arg_type) &&
+                                                    extract_kind_from_ttype_t(arg_type) == 4) {
+                                                // tmp is {float, float}*
+                                                // type_fx2p is <2 x float>*
+                                                llvm::Type* type_fx2p = llvm::VectorType::get(llvm::Type::getFloatTy(context), 2)->getPointerTo();
+                                                // Convert {float,float}* to <2 x float>* using bitcast
+                                                tmp = builder->CreateBitCast(tmp, type_fx2p);
+                                                // Then convert <2 x float>* -> <2 x float>
+                                                tmp = builder->CreateLoad(tmp);
+                                            } else {
+                                                // Dereference the pointer argument
+                                                // to pass by value
+                                                // E.g.:
+                                                // i32* -> i32
+                                                // {double,double}* -> {double,double}
+                                                tmp = builder->CreateLoad(tmp);
+                                            }
                                         }
                                 }
                             }
@@ -3353,25 +3387,10 @@ public:
             if( fname2arg_type.find(func_name) != fname2arg_type.end() ) {
                 h = get_hash((ASR::asr_t*)s);
             } else {
-                int a_kind = extract_kind_from_ttype_t(x.m_type);
-                if (all_intrinsics.empty()) {
-                    populate_intrinsics(x.m_type);
-                }
-                // We use an unordered map to get the O(n) operation time
-                std::unordered_map<std::string, llvm::Function *>::const_iterator
-                    find_intrinsic = all_intrinsics.find(s->m_name);
-                if (find_intrinsic == all_intrinsics.end()) {
-                    if( s->m_deftype == ASR::deftypeType::Interface ) {
-                        throw CodeGenError("Intrinsic not implemented yet.");
-                    } else {
-                        h = get_hash((ASR::asr_t*)s);
-                    }
+                if( s->m_deftype == ASR::deftypeType::Interface ) {
+                    throw CodeGenError("Intrinsic not implemented yet.");
                 } else {
-                    std::string m_name = std::string(((ASR::Function_t*)(&(x.m_name->base)))->m_name);
-                    std::vector<llvm::Value *> args = convert_call_args(x, m_name);
-                    LFORTRAN_ASSERT(args.size() == 1);
-                    tmp = lfortran_intrinsic(find_intrinsic->second, args[0], a_kind);
-                    return;
+                    h = get_hash((ASR::asr_t*)s);
                 }
             }
         } else if (s->m_abi == ASR::abiType::BindC) {
@@ -3400,42 +3419,6 @@ public:
         pop_nested_stack(s);
     }
 
-    //!< Meant to be called only once
-    void populate_intrinsics(ASR::ttype_t* _type) {
-
-        for (auto sv : c_runtime_intrinsics) {
-            auto fname = "_lfortran_" + sv;
-            llvm::Function *fn = module->getFunction(fname);
-            if (!fn) {
-              int a_kind = extract_kind_from_ttype_t(_type);
-              llvm::Type *func_type, *ptr_type;
-              switch( a_kind ) {
-                  case 4: {
-                    func_type = llvm::Type::getFloatTy(context);
-                    ptr_type = llvm::Type::getFloatPtrTy(context);
-                    break;
-                  }
-                  case 8: {
-                    func_type = llvm::Type::getDoubleTy(context);
-                    ptr_type = llvm::Type::getDoublePtrTy(context);
-                    break;
-                  }
-                  default: {
-                      throw CodeGenError("Kind type not supported");
-                  }
-              }
-              llvm::FunctionType *function_type =
-                  llvm::FunctionType::get(llvm::Type::getVoidTy(context),
-                                          {func_type,
-                                           ptr_type},
-                                          false);
-              fn = llvm::Function::Create(
-                  function_type, llvm::Function::ExternalLinkage, fname, *module);
-            }
-            all_intrinsics[sv] = fn;
-        }
-        return;
-    }
 };
 
 
@@ -3455,6 +3438,7 @@ std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
     pass_replace_print_arr(al, asr);
     pass_replace_do_loops(al, asr);
     pass_replace_select_case(al, asr);
+    pass_unused_functions(al, asr);
     v.nested_func_types = pass_find_nested_vars(asr, context, 
         v.nested_globals, v.nested_call_out, v.nesting_map);
     v.visit_asr((ASR::asr_t&)asr);

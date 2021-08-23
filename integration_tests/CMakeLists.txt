@@ -195,6 +195,7 @@ RUN(NAME intrinsics_13 LABELS gfortran) # kind symboltable
 RUN(NAME intrinsics_14 LABELS gfortran) # selected_real,int_kind body
 RUN(NAME intrinsics_15 LABELS gfortran llvm) # real
 RUN(NAME intrinsics_16 LABELS gfortran) # aimag
+RUN(NAME intrinsics_17 LABELS gfortran llvm) # exp, log, erf
 RUN(NAME intrinsics_open_close_read_write LABELS gfortran)
 
 RUN(NAME parameter_01 LABELS gfortran)
@@ -223,6 +224,8 @@ RUN(NAME modules_15 LABELS gfortran llvm EXTRAFILES
         modules_15b.f90 modules_15c.c)
 RUN(NAME modules_16 LABELS gfortran llvm EXTRAFILES modules_16b.f90)
 RUN(NAME modules_17 LABELS gfortran llvm EXTRAFILES modules_17b.f90)
+RUN(NAME modules_18 LABELS gfortran llvm EXTRAFILES
+        modules_18b.f90 modules_15c.c)
 
 RUN(NAME if_04 LABELS gfortran x86)
 RUN(NAME case_01 LABELS gfortran llvm)

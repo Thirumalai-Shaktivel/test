@@ -22,6 +22,7 @@
 #include <lfortran/pass/class_constructor.h>
 #include <lfortran/pass/arr_slice.h>
 #include <lfortran/pass/print_arr.h>
+#include <lfortran/pass/unused_functions.h>
 #include <lfortran/asr_utils.h>
 #include <lfortran/asr_verify.h>
 #include <lfortran/modfile.h>
@@ -48,7 +49,7 @@ enum Platform {
 
 enum ASRPass {
     do_loops, global_stmts, implied_do_loops, array_op,
-    arr_slice, print_arr, class_constructor
+    arr_slice, print_arr, class_constructor, unused_functions,
 };
 
 std::string remove_extension(const std::string& filename) {
@@ -513,6 +514,10 @@ int emit_asr(const std::string &infile, bool colors,
                 LFortran::pass_replace_print_arr(al, *asr);
                 break;
             }
+            case (ASRPass::unused_functions) : {
+                LFortran::pass_unused_functions(al, *asr);
+                break;
+            }
             default : throw LFortran::LFortranException("Pass not implemened");
         }
     }
@@ -929,33 +934,47 @@ int link_executable(const std::vector<std::string> &infiles,
 
     */
     if (backend == Backend::llvm) {
-        std::string CC;
-        if (platform == Platform::macOS) {
-            CC = "clang";
-        } else {
-            CC = "gcc";
-        }
-        std::string base_path = "\"" + runtime_library_dir + "\"";
-        std::string options;
-        std::string runtime_lib = "lfortran_runtime";
-        if (static_executable) {
-            if (platform != Platform::macOS) {
-                options += " -static ";
+        if (platform == Platform::Windows) {
+            std::string cmd = "link -out:" + outfile + " ";
+            for (auto &s : infiles) {
+                cmd += s + " ";
             }
-            runtime_lib = "lfortran_runtime_static";
+            cmd += runtime_library_dir + "\\lfortran_runtime_static.lib";
+            int err = system(cmd.c_str());
+            if (err) {
+                std::cout << "The command '" + cmd + "' failed." << std::endl;
+                return 10;
+            }
+            return 0;
+        } else {
+            std::string CC;
+            if (platform == Platform::macOS) {
+                CC = "clang";
+            } else {
+                CC = "gcc";
+            }
+            std::string base_path = "\"" + runtime_library_dir + "\"";
+            std::string options;
+            std::string runtime_lib = "lfortran_runtime";
+            if (static_executable) {
+                if (platform != Platform::macOS) {
+                    options += " -static ";
+                }
+                runtime_lib = "lfortran_runtime_static";
+            }
+            std::string cmd = CC + options + " -o " + outfile + " ";
+            for (auto &s : infiles) {
+                cmd += s + " ";
+            }
+            cmd += + " -L"
+                + base_path + " -Wl,-rpath," + base_path + " -l" + runtime_lib + " -lm";
+            int err = system(cmd.c_str());
+            if (err) {
+                std::cout << "The command '" + cmd + "' failed." << std::endl;
+                return 10;
+            }
+            return 0;
         }
-        std::string cmd = CC + options + " -o " + outfile + " ";
-        for (auto &s : infiles) {
-            cmd += s + " ";
-        }
-        cmd += + " -L"
-            + base_path + " -Wl,-rpath," + base_path + " -l" + runtime_lib + " -lm";
-        int err = system(cmd.c_str());
-        if (err) {
-            std::cout << "The command '" + cmd + "' failed." << std::endl;
-            return 10;
-        }
-        return 0;
     } else if (backend == Backend::cpp) {
         std::string CXX = "g++";
         std::string options, post_options;
@@ -1029,6 +1048,7 @@ int main(int argc, char *argv[])
         bool arg_c = false;
         bool arg_v = false;
         bool arg_E = false;
+        std::string arg_J;
         std::vector<std::string> arg_I;
         std::vector<std::string> arg_l;
         std::vector<std::string> arg_L;
@@ -1082,7 +1102,8 @@ int main(int argc, char *argv[])
         app.add_flag("-E", arg_E, "Preprocess only; do not compile, assemble or link");
         app.add_option("-l", arg_l, "Link library option");
         app.add_option("-L", arg_L, "Library path option");
-        app.add_option("-I", arg_I, "Include path");
+        app.add_option("-I", arg_I, "Include path")->allow_extra_args(false);
+        app.add_option("-J", arg_J, "Where to save mod files");
         app.add_flag("--version", arg_version, "Display compiler version information");
 
         // LFortran specific options
@@ -1103,7 +1124,7 @@ int main(int argc, char *argv[])
         app.add_flag("--show-stacktrace", show_stacktrace, "Show internal stacktrace on compiler errors");
         app.add_flag("--time-report", time_report, "Show compilation time report");
         app.add_flag("--static", static_link, "Create a static executable");
-        app.add_option("--backend", arg_backend, "Select a backend (llvm, cpp, x86)", true);
+        app.add_option("--backend", arg_backend, "Select a backend (llvm, cpp, x86)")->capture_default_str();
         app.add_flag("--openmp", openmp, "Enable openmp");
 
         /*
@@ -1114,7 +1135,7 @@ int main(int argc, char *argv[])
         CLI::App &fmt = *app.add_subcommand("fmt", "Format Fortran source files.");
         fmt.add_option("file", arg_fmt_file, "Fortran source file to format")->required();
         fmt.add_flag("-i", arg_fmt_inplace, "Modify <file> in-place (instead of writing to stdout)");
-        fmt.add_option("--spaces", arg_fmt_indent, "Number of spaces to use for indentation", true);
+        fmt.add_option("--spaces", arg_fmt_indent, "Number of spaces to use for indentation")->capture_default_str();
         fmt.add_flag("--indent-unit", arg_fmt_indent_unit, "Indent contents of sub / fn / prog / mod");
         fmt.add_flag("--no-color", arg_fmt_no_color, "Turn off color when writing to stdout");
         fmt.add_flag("--fixed-form", arg_fmt_fixed_form, "Use fixed form Fortran source parsing");
@@ -1133,7 +1154,7 @@ int main(int argc, char *argv[])
         CLI::App &pywrap = *app.add_subcommand("pywrap", "Python wrapper generator");
         pywrap.add_option("file", arg_pywrap_file, "Fortran source file (*.f90)")->required();
         pywrap.add_option("--array-order", arg_pywrap_array_order,
-                "Select array order (c, f)", true);
+                "Select array order (c, f)")->capture_default_str();
 
 
         app.get_formatter()->column_width(25);
@@ -1285,8 +1306,10 @@ int main(int argc, char *argv[])
                 passes.push_back(ASRPass::print_arr);
             } else if (arg_pass == "arr_slice") {
                 passes.push_back(ASRPass::arr_slice);
+            } else if (arg_pass == "unused_functions") {
+                passes.push_back(ASRPass::unused_functions);
             } else {
-                std::cerr << "Pass must be one of: do_loops, global_stmts" << std::endl;
+                std::cerr << "Pass must be one of: do_loops, global_stmts, implied_do_loops, array_op, class_constructor, print_arr, arr_slice, unused_functions" << std::endl;
                 return 1;
             }
             show_asr = true;

@@ -40,7 +40,22 @@ private:
         {"abs", "lfortran_intrinsic_math2"},
         {"aimag", "lfortran_intrinsic_math2"},
         {"modulo", "lfortran_intrinsic_math2"},
+        {"exp", "lfortran_intrinsic_math"},
+        {"log", "lfortran_intrinsic_math"},
+        {"erf", "lfortran_intrinsic_math"},
         {"sin", "lfortran_intrinsic_trig"},
+        {"cos", "lfortran_intrinsic_math"},
+        {"tan", "lfortran_intrinsic_math"},
+        {"sinh", "lfortran_intrinsic_math"},
+        {"cosh", "lfortran_intrinsic_math"},
+        {"tanh", "lfortran_intrinsic_math"},
+        {"asin", "lfortran_intrinsic_math"},
+        {"acos", "lfortran_intrinsic_math"},
+        {"atan", "lfortran_intrinsic_math"},
+        {"atan2", "lfortran_intrinsic_math"},
+        {"asinh", "lfortran_intrinsic_math"},
+        {"acosh", "lfortran_intrinsic_math"},
+        {"atanh", "lfortran_intrinsic_math"},
         {"sqrt", "lfortran_intrinsic_math2"},
         {"int", "lfortran_intrinsic_array"},
         {"real", "lfortran_intrinsic_array"},
@@ -423,7 +438,7 @@ public:
 
         // Only one arg should be present
         if( x.n_keywords > 1 ||
-          ( x.n_keywords == 1 && std::string(x.m_keywords[0].m_arg) != "stat") ) {
+          ( x.n_keywords == 1 && to_lower(x.m_keywords[0].m_arg) != "stat") ) {
             throw SemanticError("`allocate` statement only "
                                 "accepts one keyword argument,"
                                 "`stat`", x.base.base.loc);
@@ -1273,9 +1288,6 @@ public:
     }
 
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
-        std::vector<std::string> all_intrinsics = {
-            "cos",  "tan",  "sinh",  "cosh",  "tanh",
-            "asin", "acos", "atan", "asinh", "acosh", "atanh"};
         SymbolTable *scope = current_scope;
         std::string var_name = x.m_func;
         ASR::symbol_t *v = nullptr;
@@ -1325,6 +1337,17 @@ public:
                     current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
                     symbol_resolve_generic_procedure(
                         ASR::down_cast<ASR::symbol_t>(fn), x);
+                    if (current_module) {
+                        // Add the module `m` to current module dependencies
+                        Vec<char*> vec;
+                        vec.from_pointer_n_copy(al, current_module->m_dependencies,
+                                    current_module->n_dependencies);
+                        if (!present(vec, m->m_name)) {
+                            vec.push_back(al, m->m_name);
+                            current_module->m_dependencies = vec.p;
+                            current_module->n_dependencies = vec.size();
+                        }
+                    }
                     return;
                 }
 
@@ -1392,67 +1415,9 @@ public:
                     ASR::down_cast<ASR::symbol_t>(fn);
                 v = ASR::down_cast<ASR::symbol_t>(fn);
             } else {
-                auto find_intrinsic =
-                    std::find(all_intrinsics.begin(), all_intrinsics.end(),
-                        to_lower(var_name));
-                if (find_intrinsic == all_intrinsics.end()) {
-                    throw SemanticError("Function or array '" + var_name +
-                                        "' not declared",
-                                    x.base.base.loc);
-                } else {
-                    int intrinsic_index =
-                      std::distance(all_intrinsics.begin(), find_intrinsic);
-                    // Intrinsic function, add it to the global scope
-                    ASR::TranslationUnit_t *unit = (ASR::TranslationUnit_t *)asr;
-                    Str s;
-                    s.from_str_view(all_intrinsics[intrinsic_index]);
-                    char *fn_name = s.c_str(al);
-                    SymbolTable *fn_scope =
-                        al.make_new<SymbolTable>(unit->m_global_scope);
-                    ASR::ttype_t *type;
-
-                    // Arguments
-                    Vec<ASR::expr_t *> args;
-                    args.reserve(al, 1);
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc, 4, nullptr, 0));
-                    const char *arg0_s_orig = "x";
-                    char *arg0_s = (char *)arg0_s_orig;
-                    ASR::asr_t *arg0 = ASR::make_Variable_t(
-                        al, x.base.base.loc, fn_scope, arg0_s, LFortran::ASRUtils::intent_in, nullptr, nullptr,
-                        ASR::storage_typeType::Default, type,
-                        ASR::abiType::Source,
-                        ASR::Public, ASR::presenceType::Required, false);
-                    ASR::symbol_t *var = ASR::down_cast<ASR::symbol_t>(arg0);
-                    fn_scope->scope[std::string(arg0_s)] = var;
-                    args.push_back(al, LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, x.base.base.loc, var)));
-
-                    // Return value
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc, 4, nullptr, 0));
-                    ASR::asr_t *return_var = ASR::make_Variable_t(
-                        al, x.base.base.loc, fn_scope, fn_name, LFortran::ASRUtils::intent_return_var,
-                        nullptr, nullptr, ASR::storage_typeType::Default, type,
-                        ASR::abiType::Source,
-                        ASR::Public, ASR::presenceType::Required, false);
-                    fn_scope->scope[std::string(fn_name)] =
-                        ASR::down_cast<ASR::symbol_t>(return_var);
-                    ASR::asr_t *return_var_ref = ASR::make_Var_t(
-                        al, x.base.base.loc, ASR::down_cast<ASR::symbol_t>(return_var));
-                    ASR::asr_t *fn =
-                        ASR::make_Function_t(al, x.base.base.loc,
-                                             /* a_symtab */ fn_scope,
-                                             /* a_name */ fn_name,
-                                             /* a_args */ args.p,
-                                             /* n_args */ args.n,
-                                             /* a_body */ nullptr,
-                                             /* n_body */ 0,
-                                             /* a_return_var */ LFortran::ASRUtils::EXPR(return_var_ref),
-                                             ASR::abiType::Intrinsic,
-                                             ASR::Public, ASR::deftypeType::Implementation, nullptr);
-                    std::string sym_name = fn_name;
-                    unit->m_global_scope->scope[sym_name] =
-                        ASR::down_cast<ASR::symbol_t>(fn);
-                    v = ASR::down_cast<ASR::symbol_t>(fn);
-                }
+                throw SemanticError("Function or array '" + var_name +
+                                    "' not declared",
+                                x.base.base.loc);
             }
         }
         switch (v->type) {
