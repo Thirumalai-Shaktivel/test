@@ -83,7 +83,7 @@ src/bin/lfortran -o expr2 expr2.o
 src/bin/lfortran --show-llvm examples/expr2.f90
 src/bin/lfortran --show-asm examples/expr2.f90
 
-cl /FAs /c src\runtime\impure\lfortran_intrinsics.c
+cl /GS- /FAs /c src\runtime\impure\lfortran_intrinsics.c
 echo "ASM:"
 type lfortran_intrinsics.asm
 echo "Done."
