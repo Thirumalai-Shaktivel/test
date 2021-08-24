@@ -3,10 +3,19 @@ image: Visual Studio 2017
 # https://www.appveyor.com/docs/windows-images-software/
 
 build_script:
+- set CONDA_INSTALL_LOCN=C:\\Miniconda37-x64
+- call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
+- call conda config --set always_yes yes --set changeps1 no
+- call conda info -a
+- call conda update -q conda
+- call conda install -c conda-forge python=3.7 re2c m2-bison xonsh llvmdev=11.1.0 jupyter xeus xtl nlohmann_json cppzmq jupyter_kernel_test pytest
+- set CONDA_PREFIX=C:\\Miniconda37-x64
+- set WIN=1
+- set MACOS=0
+#- set LFORTRAN_CMAKE_GENERATOR=Visual Studio 15 2017 Win64
+- set LFORTRAN_CMAKE_GENERATOR=Ninja
 - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd" -arch=x64
-- cl /W3 /GR /EHsc /MD /O2 /Ob2  /MP /bigobj /wd4251 /wd4996 /GR- /FS /FAs conv.c
-- type conv.asm
-- conv
+- xonsh ci\build.xsh
 
 # Uncomment the following two lines to be able to login to the build worker. You
 # can use the `remmina` program in Ubuntu, use the login information that the
