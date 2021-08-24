@@ -283,14 +283,14 @@ double _lfortran_dtan(double x)
     return tan(x);
 }
 
-float_complex_t _lfortran_ctan(struct _lfortran_complex x)
+float_complex_t _lfortran_ctan(float_complex_t x)
 {
     printf("TAN32: %.15f %.15f\n", x.re, x.im);
     float_complex_t r;
     return r;
 }
 
-double_complex_t _lfortran_ztan(struct _lfortran_double_complex x)
+double_complex_t _lfortran_ztan(double_complex_t x)
 {
     printf("TAN: %.15f %.15f\n", x.re, x.im);
     double_complex_t r;
