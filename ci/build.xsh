@@ -81,7 +81,8 @@ src/bin/lfortran -c examples/expr2.f90 -o expr2.o
 src/bin/lfortran -o expr2 expr2.o
 ./expr2
 
-src/bin/lfortran examples/trig.f90
+src/bin/lfortran -c examples/trig.f90 -o trig.o
+src/bin/lfortran -o trig trig.o
 ./trig
 
 
