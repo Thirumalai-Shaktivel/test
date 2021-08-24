@@ -81,6 +81,9 @@ src/bin/lfortran -c examples/expr2.f90 -o expr2.o
 src/bin/lfortran -o expr2 expr2.o
 ./expr2
 src/bin/lfortran --show-llvm examples/expr2.f90
+if $WIN == "1":
+    cl /W3 /GL /EHsc /FAs -O2 src\runtime\impure\lfortran_intrinsics.c
+    type lfortran_intrinsics.asm
 
 
 # Run all tests (does not work on Windows yet):
