@@ -84,7 +84,7 @@ src/bin/lfortran --show-llvm examples/expr2.f90
 src/bin/lfortran -S -c examples/expr2.f90 -o expr2.asm
 type expr2.asm
 if $WIN == "1":
-    cl /W3 /GL /EHsc /FAs -O2 -c src\runtime\impure\lfortran_intrinsics.c
+    cl /FAs /c src\runtime\impure\lfortran_intrinsics.c
     type lfortran_intrinsics.asm
 
 
