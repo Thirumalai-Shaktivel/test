@@ -9,12 +9,13 @@ struct _lfortran_complex {
     float re, im;
 };
 
-struct _lfortran_double_complex {
-    double re, im;
-};
-
-typedef struct _lfortran_complex float_complex_t;
-typedef struct _lfortran_double_complex double_complex_t;
+#if _WIN32
+typedef _Fcomplex float_complex_t;
+typedef _Dcomplex double_complex_t;
+#else
+typedef float _Complex float_complex_t;
+typedef double _Complex double_complex_t;
+#endif
 
 
 double _lfortran_sum(int n, double *v)
@@ -119,8 +120,7 @@ double _lfortran_dtan(double x)
 float_complex_t _lfortran_ctan(float_complex_t x)
 {
     printf("TAN32: %.15f %.15f\n", x.re, x.im);
-    float_complex_t r;
-    return r;
+    return ctanf(x);
 }
 
 double_complex_t _lfortran_ztan(double_complex_t x)
