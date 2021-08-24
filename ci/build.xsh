@@ -81,6 +81,9 @@ src/bin/lfortran -c examples/expr2.f90 -o expr2.o
 src/bin/lfortran -o expr2 expr2.o
 ./expr2
 
+src/bin/lfortran examples/trig.f90
+./trig
+
 
 # Run all tests (does not work on Windows yet):
 cmake --version
