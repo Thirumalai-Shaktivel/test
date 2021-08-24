@@ -1,11 +1,9 @@
-program expr2
-use iso_fortran_env, only: dp=>real32
+program trig
 implicit none
 
-complex(dp) :: x
+complex :: x
 
-x = (2.5_dp, 3.5_dp)
-x = tan(x)
-print *, x
+x = (2.5, 3.5)
+print *, tan(x)
 
 end program
