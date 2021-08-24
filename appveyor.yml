@@ -13,9 +13,8 @@ build_script:
 - cl /GR- /FS /FAs conv.c
 - type conv.asm
 - conv
-- clang-cl /GR- /FS /FAs conv.c
-- type conv.asm
-- conv
+- clang -S conv.c -o -
+- clang -S -emit-llvm conv.c -o -
 
 # Uncomment the following two lines to be able to login to the build worker. You
 # can use the `remmina` program in Ubuntu, use the login information that the
