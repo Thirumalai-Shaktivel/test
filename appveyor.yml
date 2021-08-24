@@ -3,8 +3,17 @@ image: Visual Studio 2017
 # https://www.appveyor.com/docs/windows-images-software/
 
 build_script:
+- set CONDA_INSTALL_LOCN=C:\\Miniconda37-x64
+- call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
+- call conda config --set always_yes yes --set changeps1 no
+- call conda info -a
+- call conda update -q conda
+- call conda install -c conda-forge clang
 - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd" -arch=x64
-- cl /W3 /GR /EHsc /MD /O2 /Ob2  /MP /bigobj /wd4251 /wd4996 /GR- /FS /FAs conv.c
+- cl /GR- /FS /FAs conv.c
+- type conv.asm
+- conv
+- clang-cl /GR- /FS /FAs conv.c
 - type conv.asm
 - conv
 
