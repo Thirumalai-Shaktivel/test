@@ -129,7 +129,16 @@ float_complex_t _lfortran_ctan(float_complex_t x)
 
 void _lfortran_ztan(double_complex_t x)
 {
-    printf("TAN64: %.15f %.15f\n", x.re, x.im);
+    printf("TAN1 64: %.15f %.15f\n", x.re, x.im);
+}
+
+double_complex_t _lfortran_ztan2(double_complex_t x)
+{
+    printf("TAN2 64: %.15f %.15f\n", x.re, x.im);
+    double_complex_t r;
+    r.re = 8.5;
+    r.im = 9.5;
+    return r;
 }
 
 

@@ -51,9 +51,14 @@ interface
     import :: c_double
     complex(c_double), intent(in), value :: x
     end subroutine
+
+    pure complex(c_double) function c_ctan2(x) bind(c, name="_lfortran_ztan2")
+    import :: c_double
+    complex(c_double), intent(in), value :: x
+    end function
 end interface
 call c_ztan(x)
-r = (1._dp, 0._dp)
+r = c_ctan2(x)
 end function
 
 

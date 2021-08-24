@@ -6,5 +6,6 @@ complex(dp) :: x
 
 x = (2.5_dp, 3.5_dp)
 x = tan(x)
+print *, x
 
 end program
