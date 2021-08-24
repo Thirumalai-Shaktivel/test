@@ -47,24 +47,23 @@ end function
 elemental complex(dp) function ztan(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure subroutine c_ztan(x) bind(c, name="_lfortran_ztan")
-    import :: c_double
-    complex(c_double), intent(in), value :: x
-    end subroutine
-
+!    pure subroutine c_ztan(x) bind(c, name="_lfortran_ztan")
+!    import :: c_double
+!    complex(c_double), intent(in), value :: x
+!    end subroutine
+!
 !    pure complex(c_double) function c_ztan2(x) bind(c, name="_lfortran_ztan2")
 !    import :: c_double
 !    complex(c_double), intent(in), value :: x
 !    end function
 
-    pure subroutine c_ztan3(r, x) bind(c, name="_lfortran_ztan2")
+    pure subroutine c_ztan(r, x) bind(c, name="_lfortran_ztan")
     import :: c_double
     complex(c_double), intent(out) :: r
     complex(c_double), intent(in), value :: x
     end subroutine
 end interface
-call c_ztan(x)
-call c_ztan3(r, x)
+call c_ztan(r, x)
 end function
 
 

@@ -127,7 +127,7 @@ float_complex_t _lfortran_ctan(float_complex_t x)
     return ctanf(x);
 }
 
-double_complex_t _lfortran_ztan2(double_complex_t x)
+double_complex_t _lfortran_ztan(double_complex_t x)
 {
     return ctan(x);
 }
