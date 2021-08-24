@@ -4,7 +4,7 @@ image: Visual Studio 2017
 
 build_script:
 - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd" -arch=x64
-- cl /W3 /GL /EHsc /FAs -O2 conv.c
+- cl /W3 /GR /EHsc /MD /O2 /Ob2  /MP /bigobj /wd4251 /wd4996 /GR- /FS /FAs conv.c
 - type conv.asm
 - conv
 
