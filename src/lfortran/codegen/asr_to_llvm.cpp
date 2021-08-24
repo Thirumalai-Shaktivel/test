@@ -3215,13 +3215,23 @@ public:
                                             if (is_a<ASR::Complex_t>(*arg_type)) {
                                                 int c_kind = extract_kind_from_ttype_t(arg_type);
                                                 if (c_kind == 4) {
-                                                    // tmp is {float, float}*
-                                                    // type_fx2p is <2 x float>*
-                                                    llvm::Type* type_fx2p = llvm::VectorType::get(llvm::Type::getFloatTy(context), 2)->getPointerTo();
-                                                    // Convert {float,float}* to <2 x float>* using bitcast
-                                                    tmp = builder->CreateBitCast(tmp, type_fx2p);
-                                                    // Then convert <2 x float>* -> <2 x float>
-                                                    tmp = builder->CreateLoad(tmp);
+                                                    if (platform == Platform::Windows) {
+                                                        // tmp is {float, float}*
+                                                        // type_fx2p is i64*
+                                                        llvm::Type* type_fx2p = llvm::Type::getInt64PtrTy(context);
+                                                        // Convert {float,float}* to i64* using bitcast
+                                                        tmp = builder->CreateBitCast(tmp, type_fx2p);
+                                                        // Then convert i64* -> i64
+                                                        tmp = builder->CreateLoad(tmp);
+                                                    } else {
+                                                        // tmp is {float, float}*
+                                                        // type_fx2p is <2 x float>*
+                                                        llvm::Type* type_fx2p = llvm::VectorType::get(llvm::Type::getFloatTy(context), 2)->getPointerTo();
+                                                        // Convert {float,float}* to <2 x float>* using bitcast
+                                                        tmp = builder->CreateBitCast(tmp, type_fx2p);
+                                                        // Then convert <2 x float>* -> <2 x float>
+                                                        tmp = builder->CreateLoad(tmp);
+                                                    }
                                                 } else {
                                                     LFORTRAN_ASSERT(c_kind == 8)
                                                     if (platform == Platform::Windows) {
