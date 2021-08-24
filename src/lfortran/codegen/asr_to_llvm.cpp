@@ -1404,9 +1404,15 @@ public:
                             if (arg->m_abi == ASR::abiType::BindC
                                     && arg->m_value_attr) {
                                 if (a_kind == 4) {
-                                    // type_fx2 is <2 x float>
-                                    llvm::Type* type_fx2 = llvm::VectorType::get(llvm::Type::getFloatTy(context), 2);
-                                    type = type_fx2;
+                                    if (platform == Platform::Windows) {
+                                        // type_fx2 is i64
+                                        llvm::Type* type_fx2 = llvm::Type::getInt64Ty(context);
+                                        type = type_fx2;
+                                    } else {
+                                        // type_fx2 is <2 x float>
+                                        llvm::Type* type_fx2 = llvm::VectorType::get(llvm::Type::getFloatTy(context), 2);
+                                        type = type_fx2;
+                                    }
                                 } else {
                                     LFORTRAN_ASSERT(a_kind == 8)
                                     if (platform == Platform::Windows) {
