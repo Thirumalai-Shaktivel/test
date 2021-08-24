@@ -1,5 +1,5 @@
 program expr2
-use iso_fortran_env, only: dp=>real64
+use iso_fortran_env, only: dp=>real32
 implicit none
 
 complex(dp) :: x
