@@ -1427,7 +1427,7 @@ public:
                 ASR::ClassProcedure_t *v_class_proc = ASR::down_cast<ASR::ClassProcedure_t>(v);
                 type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(v_class_proc->m_proc)->m_return_var)->m_type;
                 tmp = ASR::make_FunctionCall_t(al, x.base.base.loc,
-                        v, nullptr, args.p, args.size(), nullptr, 0, type, nullptr,
+                        v_class_proc->m_proc, nullptr, args.p, args.size(), nullptr, 0, type, nullptr,
                         v_expr);
                 break;
             }
