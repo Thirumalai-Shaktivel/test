@@ -1,9 +1,11 @@
 program expr2
+use iso_fortran_env, only: dp=>real64
 implicit none
 
-integer :: x
+complex(dp) :: x
 
-x = (2+3)*5
+x = (2.5_dp, 3.5_dp)
+x = tan(x)
 print *, x
 
 end program
