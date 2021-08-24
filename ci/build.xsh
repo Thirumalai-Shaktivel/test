@@ -82,23 +82,10 @@ src/bin/lfortran -o expr2 expr2.o
 ./expr2
 src/bin/lfortran --show-llvm examples/expr2.f90
 src/bin/lfortran --show-asm examples/expr2.f90
-if $WIN == "1":
-    cl /FAs /c src\runtime\impure\lfortran_intrinsics.c
-    dir
-    dir src\runtime\impure\
-    type lfortran_intrinsics.asm
 
+cl /FAs /c src\runtime\impure\lfortran_intrinsics.c
+echo "ASM:"
+type lfortran_intrinsics.asm
+echo "Done."
 
-# Run all tests (does not work on Windows yet):
 cmake --version
-if $WIN != "1":
-    ./run_tests.py
-
-    cd integration_tests
-    mkdir build-lfortran-llvm
-    cd build-lfortran-llvm
-    $FC="../../src/bin/lfortran"
-    cmake -DLFORTRAN_BACKEND=llvm ..
-    make
-    ctest -L llvm
-    cd ../..
