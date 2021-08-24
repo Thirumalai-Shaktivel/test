@@ -81,22 +81,12 @@ src/bin/lfortran --version
 src/bin/lfortran -c examples/expr2.f90 -o expr2.o
 src/bin/lfortran -o expr2 expr2.o
 ./expr2
+src/bin/lfortran --show-llvm examples/expr2.f90
+src/bin/lfortran --show-asm examples/expr2.f90
 
-# Compile and link in one step
-src/bin/lfortran integration_tests/intrinsics_04s.f90 -o intrinsics_04s
-./intrinsics_04s
+cl /GS- /FAs /c src\runtime\impure\lfortran_intrinsics.c
+echo "ASM:"
+type lfortran_intrinsics.asm
+echo "Done."
 
-
-# Run all tests (does not work on Windows yet):
 cmake --version
-if $WIN != "1":
-    ./run_tests.py
-
-    cd integration_tests
-    mkdir build-lfortran-llvm
-    cd build-lfortran-llvm
-    $FC="../../src/bin/lfortran"
-    cmake -DLFORTRAN_BACKEND=llvm ..
-    make
-    ctest -L llvm
-    cd ../..
