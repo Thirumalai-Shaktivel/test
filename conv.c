@@ -12,14 +12,16 @@ typedef struct _lfortran_single_complex float_complex_t;
 typedef struct _lfortran_double_complex double_complex_t;
 
 
-void cf(float_complex_t x)
+float_complex_t cf(float_complex_t x)
 {
     printf("f32: %.15f %.15f\n", x.re, x.im);
+    return x;
 }
 
-void zf(double_complex_t x)
+double_complex_t zf(double_complex_t x)
 {
     printf("f64: %.15f %.15f\n", x.re, x.im);
+    return x;
 }
 
 int main() {
