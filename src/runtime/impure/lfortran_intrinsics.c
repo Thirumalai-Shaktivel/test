@@ -290,9 +290,9 @@ float_complex_t _lfortran_ctan(struct _lfortran_complex x)
     return r;
 }
 
-double_complex_t _lfortran_ztan(struct _lfortran_double_complex *x)
+double_complex_t _lfortran_ztan(struct _lfortran_double_complex x)
 {
-    printf("TAN: %.15f %.15f\n", x->re, x->im);
+    printf("TAN: %.15f %.15f\n", x.re, x.im);
     double_complex_t r;
     return r;
 }
