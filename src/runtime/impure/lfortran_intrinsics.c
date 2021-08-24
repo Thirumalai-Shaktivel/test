@@ -279,16 +279,9 @@ double _lfortran_dtan(double x)
     return tan(x);
 }
 
-float_complex_t _lfortran_ctan(float_complex_t x)
+_Fcomplex _lfortran_ctan(_Fcomplex x)
 {
-#ifdef _WIN32
-    float_complex_t r;
-    r.re = 8.5;
-    r.im = 9.5;
-    return r; // TODO: implement in MSVC
-#else
     return ctanf(x);
-#endif
 }
 
 double_complex_t _lfortran_ztan(double_complex_t x)
