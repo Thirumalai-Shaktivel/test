@@ -138,6 +138,7 @@ public:
     std::unique_ptr<llvm::Module> module;
     std::unique_ptr<llvm::IRBuilder<>> builder;
     Platform platform;
+    Allocator al;
 
     llvm::Value *tmp;
     llvm::BasicBlock *current_loophead, *current_loopend, *if_return;
@@ -204,6 +205,7 @@ public:
     context(context),
     builder(std::make_unique<llvm::IRBuilder<>>(context)),
     platform{platform},
+    al{1024},
     prototype_only(false),
     llvm_utils(std::make_unique<LLVMUtils>(context, builder.get())),
     arr_descr(LLVMArrUtils::Descriptor::get_descriptor(context,
@@ -2232,8 +2234,14 @@ public:
             }
         }
         }
-        //ASR::expr_t *rhs = x.m_value;
-        this->visit_expr_wrapper(x.m_value, true);
+        ASR::expr_t *old_rhs = x.m_value;
+        ASR::ttype_t *dest_type = expr_type(x.m_target);
+        ASR::expr_t *old_lhs = x.m_target;
+        ASR::expr_t *new_rhs = down_cast<ASR::expr_t>(
+            ASR::make_BinOp_t(al, x.base.base.loc, old_lhs, ASR::binopType::Add, old_rhs, dest_type,
+                            nullptr)
+        );
+        this->visit_expr_wrapper(new_rhs, true);
         value = tmp;
         builder->CreateStore(value, target);
         auto finder = std::find(nested_globals.begin(), 
