@@ -99,6 +99,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token TK_POW "**"
 %token TK_CONCAT "//"
 %token TK_ARROW "=>"
+%token TK_PLUS_EQUAL "+="
 
 %token TK_EQ "=="
 %token TK_NE "/="
