@@ -821,6 +821,37 @@ public:
         tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value);
     }
 
+    void visit_PlusAssignment(const AST::PlusAssignment_t &x) {
+        this->visit_expr(*x.m_target);
+        ASR::expr_t *target = LFortran::ASRUtils::EXPR(tmp);
+        ASR::ttype_t *target_type = LFortran::ASRUtils::expr_type(target);
+        if( target->type != ASR::exprType::Var &&
+            target->type != ASR::exprType::ArrayRef &&
+            target->type != ASR::exprType::DerivedRef )
+        {
+            throw SemanticError(
+                "The LHS of assignment can only be a variable or an array reference",
+                x.base.base.loc
+            );
+        }
+
+        this->visit_expr(*x.m_value);
+        ASR::expr_t *value = LFortran::ASRUtils::EXPR(tmp);
+        ASR::ttype_t *value_type = LFortran::ASRUtils::expr_type(value);
+        if( target->type == ASR::exprType::Var && !ASRUtils::is_array(target_type) &&
+            value->type == ASR::exprType::ConstantArray ) {
+            throw SemanticError("ArrayInitalizer expressions can only be assigned array references", x.base.base.loc);
+        }
+        if (target->type == ASR::exprType::Var ||
+            target->type == ASR::exprType::ArrayRef) {
+
+            ImplicitCastRules::set_converted_value(al, x.base.base.loc, &value,
+                                                    value_type, target_type);
+
+        }
+        tmp = ASR::make_PlusAssignment_t(al, x.base.base.loc, target, value);
+    }
+
     Vec<ASR::expr_t*> visit_expr_list(AST::fnarg_t *ast_list, size_t n) {
         Vec<ASR::expr_t*> asr_list;
         asr_list.reserve(al, n);
