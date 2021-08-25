@@ -909,6 +909,9 @@ public:
                     } else {
                         final_sym = current_scope->scope[local_sym];
                     }
+                } else if( ASR::is_a<ASR::ClassProcedure_t>(*final_sym) ) {
+                    final_sym=original_sym;
+                    original_sym = nullptr;
                 } else {
                     if (!ASR::is_a<ASR::Subroutine_t>(*final_sym)) {
                         throw SemanticError("ExternalSymbol must point to a Subroutine", x.base.base.loc);
@@ -1182,8 +1185,9 @@ public:
             ASR::ttype_t* v_type = v_variable->m_type;
             ASR::Derived_t* der = (ASR::Derived_t*)(&(v_type->base));
             ASR::DerivedType_t* der_type;
+            ASR::ExternalSymbol_t* der_ext = nullptr;
             if( der->m_derived_type->type == ASR::symbolType::ExternalSymbol ) {
-                ASR::ExternalSymbol_t* der_ext = (ASR::ExternalSymbol_t*)(&(der->m_derived_type->base));
+                der_ext = (ASR::ExternalSymbol_t*)(&(der->m_derived_type->base));
                 ASR::symbol_t* der_sym = der_ext->m_external;
                 if( der_sym == nullptr ) {
                     throw SemanticError("'" + std::string(der_ext->m_name) + "' isn't a Derived type.", loc);
@@ -1195,6 +1199,15 @@ public:
             }
             scope = der_type->m_symtab;
             ASR::symbol_t* member = der_type->m_symtab->resolve_symbol(var_name);
+            if( der_ext != nullptr ) {
+                char* id_nonconst = (char*) id;
+                ASR::ExternalSymbol_t* member_ext = (ASR::ExternalSymbol_t*)(ASR::make_ExternalSymbol_t(
+                                                        al, member->base.loc,
+                                                        current_scope, id_nonconst, member, der_ext->m_module_name,
+                                                        id_nonconst, der_type->m_access));
+                member = (ASR::symbol_t*)(&(member_ext->base));
+                current_scope->scope[var_name] = member;
+            }
             if( member != nullptr ) {
                 return member;
             } else {
@@ -1414,7 +1427,7 @@ public:
                 ASR::ClassProcedure_t *v_class_proc = ASR::down_cast<ASR::ClassProcedure_t>(v);
                 type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(v_class_proc->m_proc)->m_return_var)->m_type;
                 tmp = ASR::make_FunctionCall_t(al, x.base.base.loc,
-                        v, nullptr, args.p, args.size(), nullptr, 0, type, nullptr,
+                        v_class_proc->m_proc, nullptr, args.p, args.size(), nullptr, 0, type, nullptr,
                         v_expr);
                 break;
             }

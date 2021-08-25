@@ -184,6 +184,8 @@ public:
                 READ_SYMBOL_CASE(ExternalSymbol)
                 READ_SYMBOL_CASE(DerivedType)
                 READ_SYMBOL_CASE(Variable)
+                READ_SYMBOL_CASE(ClassType)
+                READ_SYMBOL_CASE(ClassProcedure)
                 default : throw LFortranException("Symbol type not supported");
             }
             symtab->scope[symbol_name] = s;
@@ -210,6 +212,8 @@ public:
                 INSERT_SYMBOL_CASE(ExternalSymbol)
                 INSERT_SYMBOL_CASE(DerivedType)
                 INSERT_SYMBOL_CASE(Variable)
+                INSERT_SYMBOL_CASE(ClassType)
+                INSERT_SYMBOL_CASE(ClassProcedure)
                 default : throw LFortranException("Symbol type not supported");
             }
         }
