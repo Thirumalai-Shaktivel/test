@@ -393,6 +393,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <ast> multi_line_statement0
 %type <ast> assign_statement
 %type <ast> assignment_statement
+%type <ast> plus_assignment_statement
 %type <ast> goto_statement
 %type <ast> associate_statement
 %type <ast> associate_block
@@ -1447,6 +1448,7 @@ single_line_statement
     : allocate_statement
     | assign_statement
     | assignment_statement
+    | plus_assignment_statement
     | associate_statement
     | close_statement
     | continue_statement
@@ -1509,6 +1511,11 @@ assign_statement
 assignment_statement
     : expr "=" expr { $$ = ASSIGNMENT($1, $3, @$); }
     ;
+
+plus_assignment_statement
+    : expr "+=" expr { $$ = PLUS_ASSIGNMENT($1, $3, @$); }
+    ;
+
 
 goto_statement
     : goto TK_INTEGER { $$ = GOTO($2, @$); }

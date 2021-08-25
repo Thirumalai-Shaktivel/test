@@ -780,6 +780,7 @@ char *str2str_null(Allocator &al, const LFortran::Str &s) {
 #define BOZ(x, l) make_BOZ_t(p.m_a, l, x.c_str(p.m_a))
 #define ASSIGN(label, variable, l) make_Assign_t(p.m_a, l, 0, label, name2char(variable), nullptr)
 #define ASSIGNMENT(x, y, l) make_Assignment_t(p.m_a, l, 0, EXPR(x), EXPR(y), nullptr)
+#define PLUS_ASSIGNMENT(x, y, l) make_PlusAssignment_t(p.m_a, l, 0, EXPR(x), EXPR(y), nullptr)
 #define ASSOCIATE(x, y, l) make_Associate_t(p.m_a, l, 0, EXPR(x), EXPR(y), nullptr)
 #define GOTO(x, l) make_GoTo_t(p.m_a, l, 0, \
         EXPR(INTEGER(x, l)), nullptr, 0, nullptr)
@@ -2010,6 +2011,7 @@ void set_m_trivia(stmt_t *s, trivia_t *trivia) {
         TRIVIA_SET(Allocate)
         TRIVIA_SET(Assign)
         TRIVIA_SET(Assignment)
+        TRIVIA_SET(PlusAssignment)
         TRIVIA_SET(Associate)
         TRIVIA_SET(Backspace)
         TRIVIA_SET(Close)
