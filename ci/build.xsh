@@ -86,6 +86,7 @@ src/bin/lfortran -o expr2 expr2.o
 src/bin/lfortran integration_tests/intrinsics_04s.f90 -o intrinsics_04s
 ./intrinsics_04s
 
+src/bin/lfortran --show-llvm integration_tests/intrinsics_04.f90
 src/bin/lfortran integration_tests/intrinsics_04.f90 -o intrinsics_04
 ./intrinsics_04
 
