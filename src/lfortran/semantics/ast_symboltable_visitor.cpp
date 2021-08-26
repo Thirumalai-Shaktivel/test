@@ -81,7 +81,10 @@ private:
         {"int", "lfortran_intrinsic_array"},
         {"sum", "lfortran_intrinsic_array"},
         {"abs", "lfortran_intrinsic_array"},
-        {"tiny", "lfortran_intrinsic_array"}
+        {"tiny", "lfortran_intrinsic_array"},
+        {"present", "lfortran_intrinsic_util"},
+        {"bit_size", "lfortran_intrinsic_util"},
+        {"not", "lfortran_intrinsic_util"}
 };
 
 public:
@@ -793,7 +796,7 @@ public:
                     LFORTRAN_ASSERT(init_expr != nullptr);
                     if (storage_type == ASR::storage_typeType::Parameter) {
                         value = ASRUtils::expr_value(init_expr);
-                        if (value == nullptr) {
+                        if (value == nullptr && init_expr->type != ASR::exprType::FunctionCall) {
                             throw SemanticError("Value of a parameter variable must evaluate to a compile time constant",
                                 x.base.base.loc);
                         }

@@ -60,7 +60,9 @@ private:
         {"int", "lfortran_intrinsic_array"},
         {"real", "lfortran_intrinsic_array"},
         {"tiny", "lfortran_intrinsic_array"},
-        {"present", "lfortran_intrinsic_util"}
+        {"present", "lfortran_intrinsic_util"},
+        {"bit_size", "lfortran_intrinsic_util"},
+        {"not", "lfortran_intrinsic_util"}
 };
 
 public:
