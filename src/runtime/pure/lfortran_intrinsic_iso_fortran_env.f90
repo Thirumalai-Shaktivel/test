@@ -8,5 +8,6 @@ integer, parameter :: int64 = 8
 integer, parameter :: real32 = 4
 integer, parameter :: real64 = 8
 integer, parameter :: real128 = -1
+integer, parameter :: error_unit = 0
 
 end module

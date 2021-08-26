@@ -1001,7 +1001,7 @@ public:
                     }
                     break;
                 }
-                default : return false;
+                default : return true;
             }
         }
         return false;
