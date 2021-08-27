@@ -222,7 +222,10 @@ float_complex_t _lfortran_csin(float_complex_t x)
 {
 #ifdef _MSC_VER
     float_complex_t r;
-    return r; // TODO: implement in MSVC
+    _Fcomplex cr = csinf(_FCOMPLEX_(x._Val[0], x._Val[1]));
+    r._Val[0] = crealf(cr);
+    r._Val[1] = cimagf(cr);
+    return r;
 #else
     return csinf(x);
 #endif
@@ -232,7 +235,10 @@ double_complex_t _lfortran_zsin(double_complex_t x)
 {
 #ifdef _MSC_VER
     double_complex_t r;
-    return r; // TODO: implement in MSVC
+    _Dcomplex cr = csin(_DCOMPLEX_(x._Val[0], x._Val[1]));
+    r._Val[0] = creal(cr);
+    r._Val[1] = cimag(cr);
+    return r;
 #else
     return csin(x);
 #endif
