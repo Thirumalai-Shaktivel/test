@@ -177,8 +177,7 @@ double _lfortran_dlog(double x)
 float_complex_t _lfortran_clog(float_complex_t x)
 {
 #ifdef _MSC_VER
-    float_complex_t r;
-    return r; // TODO: implement in MSVC
+    return clogf(_FCOMPLEX_(x._Val[0], x._Val[1]));
 #else
     return clogf(x);
 #endif
@@ -187,8 +186,7 @@ float_complex_t _lfortran_clog(float_complex_t x)
 double_complex_t _lfortran_zlog(double_complex_t x)
 {
 #ifdef _MSC_VER
-    double_complex_t r;
-    return r; // TODO: implement in MSVC
+    return clog(_DCOMPLEX_(x._Val[0], x._Val[1]));
 #else
     return clog(x);
 #endif
