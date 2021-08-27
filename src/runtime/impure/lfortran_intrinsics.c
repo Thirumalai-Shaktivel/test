@@ -113,11 +113,7 @@ void _lfortran_complex_pow(struct _lfortran_complex* a,
 float_complex_t _lfortran_csqrt(float_complex_t x)
 {
 #ifdef _MSC_VER
-    float_complex_t r;
-    _Fcomplex cr = csqrtf(_FCOMPLEX_(x._Val[0], x._Val[1]));
-    r._Val[0] = crealf(cr);
-    r._Val[1] = cimagf(cr);
-    return r;
+    return csqrtf(_FCOMPLEX_(x._Val[0], x._Val[1]));
 #else
     return csqrtf(x);
 #endif
