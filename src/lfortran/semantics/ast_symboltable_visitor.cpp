@@ -85,7 +85,9 @@ private:
         {"char", "lfortran_intrinsic_array"},
         {"present", "lfortran_intrinsic_util"},
         {"bit_size", "lfortran_intrinsic_util"},
-        {"not", "lfortran_intrinsic_util"}
+        {"not", "lfortran_intrinsic_util"},
+        {"iachar", "lfortran_intrinsic_util"},
+        {"achar", "lfortran_intrinsic_util"}
 };
 
 public:
@@ -483,6 +485,27 @@ public:
         asr = ASR::make_ConstantString_t(al, x.base.base.loc, x.m_s, type);
     }
 
+    void visit_BOZ(const AST::BOZ_t& x) {
+        LFortran::Str boz_content;
+        std::string s = x.m_s; 
+        boz_content.from_str(al, s.substr(1));
+        ASR::bozType boz_type;
+        if( s[0] == 'b' || s[0] == 'B' ) {
+            boz_type = ASR::bozType::Binary;
+        } else if( s[0] == 'z' || s[0] == 'Z' ) {
+            boz_type = ASR::bozType::Hex;
+        } else if( s[0] == 'o' || s[0] == 'O' ) {
+            boz_type = ASR::bozType::Octal;
+        } else {
+            throw SemanticError(R"""(Only 'b', 'o' and 'z' 
+                                are accepted as prefixes of 
+                                BOZ literal constants.)""", 
+                                x.base.base.loc);
+        }
+        asr = ASR::make_BOZ_t(al, x.base.base.loc, boz_content.c_str(al),
+                                boz_type, nullptr);
+    }
+
     void visit_Logical(const AST::Logical_t &x) {
         ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Logical_t(al, x.base.base.loc,
                 4, nullptr, 0));
@@ -802,8 +825,13 @@ public:
                     if (storage_type == ASR::storage_typeType::Parameter) {
                         value = ASRUtils::expr_value(init_expr);
                         if (value == nullptr && init_expr->type != ASR::exprType::FunctionCall) {
-                            throw SemanticError("Value of a parameter variable must evaluate to a compile time constant",
-                                x.base.base.loc);
+                            if( init_expr->type == ASR::exprType::ImplicitCast ) {
+                                ASR::ImplicitCast_t *impl_cast = ASR::down_cast<ASR::ImplicitCast_t>(init_expr);
+                                if( impl_cast->m_arg->type != ASR::exprType::FunctionCall ) {
+                                    throw SemanticError("Value of a parameter variable must evaluate to a compile time constant",
+                                                            x.base.base.loc);
+                                }
+                            }
                         }
                     }
                 }
@@ -998,33 +1026,30 @@ public:
                     ASR::expr_t* int_expr = args[0];
                     ASR::ttype_t* int_type = LFortran::ASRUtils::expr_type(int_expr);
                     int int_kind = ASRUtils::extract_kind_from_ttype_t(int_type);
-                    if (LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*int_type)) {
-                        if (int_kind == 4){
-                            int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(LFortran::ASRUtils::expr_value(int_expr))->m_n;
-                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, int_type));
-                        } else {
-                            int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(LFortran::ASRUtils::expr_value(int_expr))->m_n;
-                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, int_type));
+                    if( int_type != nullptr ) {
+                        if (LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*int_type)) {
+                            if (int_kind == 4){
+                                int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(LFortran::ASRUtils::expr_value(int_expr))->m_n;
+                                value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, int_type));
+                            } else {
+                                int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(LFortran::ASRUtils::expr_value(int_expr))->m_n;
+                                value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, int_type));
+                            }
                         }
-                    }
-                    else if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*int_type)) {
-                        if (int_kind == 4){
-                            float rv = ASR::down_cast<ASR::ConstantReal_t>(
-                                LFortran::ASRUtils::expr_value(int_expr))->m_r;
-                            int64_t ival = static_cast<int64_t>(rv);
-                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, int_type));
+                        else if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*int_type)) {
+                            if (int_kind == 4){
+                                float rv = ASR::down_cast<ASR::ConstantReal_t>(
+                                    LFortran::ASRUtils::expr_value(int_expr))->m_r;
+                                int64_t ival = static_cast<int64_t>(rv);
+                                value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, int_type));
+                            } else {
+                                double rv = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(int_expr))->m_r;
+                                int64_t ival = static_cast<int64_t>(rv);
+                                value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, int_type));
+                            }
                         } else {
-                            double rv = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(int_expr))->m_r;
-                            int64_t ival = static_cast<int64_t>(rv);
-                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, int_type));
+                            throw SemanticError("int must have only one argument", x.base.base.loc);
                         }
-                    }
-                    // TODO: Handle BOZ later
-                    // else if () {
-
-                    // }
-                    else {
-                        throw SemanticError("int must have only one argument", x.base.base.loc);
                     }
                 }
                 else if (var_name=="char") {

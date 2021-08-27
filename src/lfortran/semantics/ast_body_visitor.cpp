@@ -62,7 +62,9 @@ private:
         {"tiny", "lfortran_intrinsic_array"},
         {"present", "lfortran_intrinsic_util"},
         {"bit_size", "lfortran_intrinsic_util"},
-        {"not", "lfortran_intrinsic_util"}
+        {"not", "lfortran_intrinsic_util"},
+        {"iachar", "lfortran_intrinsic_util"},
+        {"achar", "lfortran_intrinsic_util"}
 };
 
 public:

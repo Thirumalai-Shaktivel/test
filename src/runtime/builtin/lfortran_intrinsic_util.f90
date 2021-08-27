@@ -13,6 +13,16 @@ interface
     integer function not(x)
     integer, intent(in) :: x
     end function
+
+    integer function iachar(c, kind)
+    character(len=1), intent(in) :: c
+    integer, optional :: kind
+    end function
+
+    character(len=1) function achar(i, kind)
+    integer, intent(in) :: i
+    integer, optional :: kind
+    end function
 end interface
 
 end module
