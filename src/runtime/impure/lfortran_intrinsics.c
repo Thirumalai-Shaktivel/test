@@ -177,11 +177,7 @@ double _lfortran_dlog(double x)
 float_complex_t _lfortran_clog(float_complex_t x)
 {
 #ifdef _MSC_VER
-    float_complex_t r;
-    _Fcomplex cr = clogf(_FCOMPLEX_(x._Val[0], x._Val[1]));
-    r._Val[0] = crealf(cr);
-    r._Val[1] = cimagf(cr);
-    return r;
+    return clogf(_FCOMPLEX_(x._Val[0], x._Val[1]));
 #else
     return clogf(x);
 #endif
@@ -190,11 +186,7 @@ float_complex_t _lfortran_clog(float_complex_t x)
 double_complex_t _lfortran_zlog(double_complex_t x)
 {
 #ifdef _MSC_VER
-    double_complex_t r;
-    _Dcomplex cr = clog(_DCOMPLEX_(x._Val[0], x._Val[1]));
-    r._Val[0] = creal(cr);
-    r._Val[1] = cimag(cr);
-    return r;
+    return clog(_DCOMPLEX_(x._Val[0], x._Val[1]));
 #else
     return clog(x);
 #endif
