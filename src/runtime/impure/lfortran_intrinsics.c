@@ -122,11 +122,7 @@ float_complex_t _lfortran_csqrt(float_complex_t x)
 double_complex_t _lfortran_zsqrt(double_complex_t x)
 {
 #ifdef _MSC_VER
-    double_complex_t r;
-    _Dcomplex cr = csqrt(_DCOMPLEX_(x._Val[0], x._Val[1]));
-    r._Val[0] = creal(cr);
-    r._Val[1] = cimag(cr);
-    return r;
+    return csqrt(_DCOMPLEX_(x._Val[0], x._Val[1]));
 #else
     return csqrt(x);
 #endif
