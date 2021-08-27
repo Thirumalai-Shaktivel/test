@@ -1455,7 +1455,7 @@ public:
                         break;
                     }
                     case (ASR::ttypeType::Character) :
-                        throw CodeGenError("Character argument type not implemented yet in conversion");
+                        type = llvm::Type::getInt8Ty(context);
                         break;
                     case (ASR::ttypeType::Logical) : {
                         ASR::Logical_t* v_type = down_cast<ASR::Logical_t>(arg->m_type);
@@ -2122,6 +2122,8 @@ public:
                 builder->CreateStore(res, llvm_ret_ptr);
 
                 define_function_exit(x);
+            } else if( m_name == "len" ) {
+                throw CodeGenError("TODO: len(x) not implemented yet");
             }
         }
     }
