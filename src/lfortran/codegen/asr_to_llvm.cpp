@@ -613,6 +613,22 @@ public:
         return builder->CreateLoad(presult);
     }
 
+    llvm::Value* lfortran_str_len(llvm::Value* str)
+    {
+        std::string runtime_func_name = "_lfortran_str_len";
+        // TODO: call "int _lfortran_str_len(char *s)"
+        llvm::Function *fn = module->getFunction(runtime_func_name);
+        if (!fn) {
+            llvm::FunctionType *function_type = llvm::FunctionType::get(
+                    llvm::Type::getInt64Ty(context), {
+                        character_type->getPointerTo()
+                    }, false);
+            fn = llvm::Function::Create(function_type,
+                    llvm::Function::ExternalLinkage, runtime_func_name, *module);
+        }
+        return builder->CreateCall(fn, {str});
+    }
+
 
     // This function is called as:
     // float complex_re(complex a)
@@ -2123,7 +2139,16 @@ public:
 
                 define_function_exit(x);
             } else if( m_name == "len" ) {
-                throw CodeGenError("TODO: len(x) not implemented yet");
+                ASR::Variable_t *arg = EXPR2VAR(x.m_args[0]);
+                uint32_t h = get_hash((ASR::asr_t*)arg);
+                llvm::Value* llvm_arg1 = llvm_symtab[h];
+
+                ASR::Variable_t *ret = EXPR2VAR(x.m_return_var);
+                h = get_hash((ASR::asr_t*)ret);
+                llvm::Value* llvm_ret_ptr = llvm_symtab[h];
+
+                llvm::Value* result = lfortran_str_len(llvm_arg1);
+                builder->CreateStore(result, llvm_ret_ptr);
             }
         }
     }
