@@ -1257,7 +1257,7 @@ public:
                             break;
                         }
                         case (ASR::ttypeType::CharacterPointer) : {
-                            type = llvm::Type::getInt8PtrTy(context);
+                            type = character_type;
                             break;
                         }
                         case (ASR::ttypeType::DerivedPointer) : {
