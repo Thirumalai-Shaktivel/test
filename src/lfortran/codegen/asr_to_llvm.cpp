@@ -746,6 +746,7 @@ public:
         llvm::Type* bound_arg = static_cast<llvm::Type*>(arr_descr->get_dimension_descriptor_type(true));
         fname2arg_type["lbound"] = std::make_pair(bound_arg, bound_arg->getPointerTo());
         fname2arg_type["ubound"] = std::make_pair(bound_arg, bound_arg->getPointerTo());
+        fname2arg_type["len"] = std::make_pair(character_type, character_type->getPointerTo());
 
         // Process Variables first:
         for (auto &item : x.m_global_scope->scope) {
@@ -2147,8 +2148,9 @@ public:
                 h = get_hash((ASR::asr_t*)ret);
                 llvm::Value* llvm_ret_ptr = llvm_symtab[h];
 
-                llvm::Value* result = lfortran_str_len(llvm_arg1);
-                builder->CreateStore(result, llvm_ret_ptr);
+                //llvm::Value* result = lfortran_str_len(llvm_arg1);
+                llvm::Value* result = llvm_arg1;
+                //builder->CreateStore(result, llvm_ret_ptr);
             }
         }
     }
