@@ -517,6 +517,7 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
             "**" { RET(TK_POW) }
             "//" { RET(TK_CONCAT) }
             "=>" { RET(TK_ARROW) }
+            "+=" { RET(TK_PLUS_EQUAL) }
 
             // Relational operators
             '.eq.' | "==" { RET(TK_EQ) }

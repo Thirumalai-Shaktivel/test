@@ -369,6 +369,7 @@ std::string token2text(const int token)
         T(TK_POW, "**")
         T(TK_CONCAT, "//")
         T(TK_ARROW, "=>")
+        T(TK_PLUS_EQUAL, "+=")
 
         T(TK_EQ, "==")
         T(TK_NE, "!=")

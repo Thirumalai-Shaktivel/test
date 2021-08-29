@@ -138,6 +138,7 @@ public:
     std::unique_ptr<llvm::Module> module;
     std::unique_ptr<llvm::IRBuilder<>> builder;
     Platform platform;
+    Allocator al;
 
     llvm::Value *tmp;
     llvm::BasicBlock *current_loophead, *current_loopend, *if_return;
@@ -204,6 +205,7 @@ public:
     context(context),
     builder(std::make_unique<llvm::IRBuilder<>>(context)),
     platform{platform},
+    al{1024},
     prototype_only(false),
     llvm_utils(std::make_unique<LLVMUtils>(context, builder.get())),
     arr_descr(LLVMArrUtils::Descriptor::get_descriptor(context,
@@ -2196,6 +2198,75 @@ public:
         }
         }
         this->visit_expr_wrapper(x.m_value, true);
+        value = tmp;
+        builder->CreateStore(value, target);
+        auto finder = std::find(nested_globals.begin(), 
+                nested_globals.end(), h);
+        if (finder != nested_globals.end()) {
+            /* Target for assignment could be in the symbol table - and we are
+            assigning to a variable needed in a nested function - see 
+            nested_04.f90 */
+            llvm::Value* ptr = module->getOrInsertGlobal(nested_desc_name, 
+                    nested_global_struct);
+            int idx = std::distance(nested_globals.begin(), finder);
+            builder->CreateStore(target, llvm_utils->create_gep(ptr, idx));
+        }
+    }
+
+    void visit_PlusAssignment(const ASR::PlusAssignment_t &x) {
+        llvm::Value *target, *value;
+        uint32_t h;
+        if( x.m_target->type == ASR::exprType::ArrayRef || 
+            x.m_target->type == ASR::exprType::DerivedRef ) {
+            this->visit_expr(*x.m_target);
+            target = tmp;   
+        } else {
+            ASR::Variable_t *asr_target = EXPR2VAR(x.m_target);
+            h = get_hash((ASR::asr_t*)asr_target);
+            if (llvm_symtab.find(h) != llvm_symtab.end()) {
+                switch( asr_target->m_type->type ) {
+                    case ASR::ttypeType::IntegerPointer:
+                    case ASR::ttypeType::RealPointer:
+                    case ASR::ttypeType::ComplexPointer:
+                    case ASR::ttypeType::CharacterPointer:
+                    case ASR::ttypeType::LogicalPointer:
+                    case ASR::ttypeType::DerivedPointer: {
+                        target = builder->CreateLoad(llvm_symtab[h]);
+                        break;
+                    }
+                    default: {
+                        target = llvm_symtab[h];
+                        break;
+                    }
+                }
+                
+            } else {
+                /* Target for assignment not in the symbol table - must be
+                assigning to an outer scope from a nested function - see 
+                nested_05.f90 */
+                auto finder = std::find(nested_globals.begin(), 
+                        nested_globals.end(), h);
+                LFORTRAN_ASSERT(finder != nested_globals.end());
+                llvm::Value* ptr = module->getOrInsertGlobal(nested_desc_name,
+                    nested_global_struct);
+                int idx = std::distance(nested_globals.begin(), finder);
+                target = builder->CreateLoad(llvm_utils->create_gep(ptr, idx));
+            }
+            if( arr_descr->is_array(target) ) {
+                if( asr_target->m_type->type == 
+                    ASR::ttypeType::Character ) {
+                    target = arr_descr->get_pointer_to_data(target);
+            }
+        }
+        }
+        ASR::expr_t *old_rhs = x.m_value;
+        ASR::ttype_t *dest_type = expr_type(x.m_target);
+        ASR::expr_t *old_lhs = x.m_target;
+        ASR::expr_t *new_rhs = down_cast<ASR::expr_t>(
+            ASR::make_BinOp_t(al, x.base.base.loc, old_lhs, ASR::binopType::Add, old_rhs, dest_type,
+                            nullptr)
+        );
+        this->visit_expr_wrapper(new_rhs, true);
         value = tmp;
         builder->CreateStore(value, target);
         auto finder = std::find(nested_globals.begin(), 
