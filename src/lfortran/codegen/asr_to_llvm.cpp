@@ -1351,7 +1351,7 @@ public:
                     } else {
                         if (is_a<ASR::Character_t>(*v->m_type) && !is_array_type) {
                             target_var = ptr;
-                            int strlen = 1000; // FIXME
+                            int strlen = 8; // FIXME
                             std::string empty(strlen, ' ');
                             Str str;
                             str.from_str_view(empty);
