@@ -1350,8 +1350,13 @@ public:
                         if (is_a<ASR::Character_t>(*v->m_type)) {
                             target_var = ptr;
                             int strlen = 1000; // FIXME
+                            char *s = (char*)malloc(strlen+1);
+                            for (int i = 0; i < strlen; i++) {
+                                s[i] = ' ';
+                            }
+                            s[strlen] = '\0';
                             //std::string empty(" ", strlen);
-                            llvm::Value *init_value = builder->CreateGlobalStringPtr("    "); // FIXME " " -> empty
+                            llvm::Value *init_value = builder->CreateGlobalStringPtr(s); // FIXME " " -> empty
                             builder->CreateStore(init_value, target_var);
                         }
                     }
