@@ -1346,6 +1346,14 @@ public:
                             builder->CreateStore(target_var, llvm_utils->create_gep(ptr,
                                         idx));
                         }
+                    } else {
+                        if (is_a<ASR::Character_t>(*v->m_type)) {
+                            target_var = ptr;
+                            int strlen = 1000; // FIXME
+                            //std::string empty(" ", strlen);
+                            llvm::Value *init_value = builder->CreateGlobalStringPtr("    "); // FIXME " " -> empty
+                            builder->CreateStore(init_value, target_var);
+                        }
                     }
                 }
             }
