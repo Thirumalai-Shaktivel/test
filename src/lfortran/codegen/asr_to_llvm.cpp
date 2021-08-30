@@ -746,7 +746,6 @@ public:
         llvm::Type* bound_arg = static_cast<llvm::Type*>(arr_descr->get_dimension_descriptor_type(true));
         fname2arg_type["lbound"] = std::make_pair(bound_arg, bound_arg->getPointerTo());
         fname2arg_type["ubound"] = std::make_pair(bound_arg, bound_arg->getPointerTo());
-        fname2arg_type["len"] = std::make_pair(character_type, character_type->getPointerTo());
 
         // Process Variables first:
         for (auto &item : x.m_global_scope->scope) {
@@ -3523,7 +3522,14 @@ public:
                 h = get_hash((ASR::asr_t*)s);
             } else {
                 if( s->m_deftype == ASR::deftypeType::Interface ) {
-                    throw CodeGenError("Intrinsic not implemented yet.");
+                    if (func_name == "len") {
+                        std::vector<llvm::Value *> args = convert_call_args(x, "len");
+                        LFORTRAN_ASSERT(args.size() == 1)
+                        tmp = lfortran_str_len(args[0]);
+                        return;
+                    } else {
+                        throw CodeGenError("Intrinsic not implemented yet.");
+                    }
                 } else {
                     h = get_hash((ASR::asr_t*)s);
                 }
