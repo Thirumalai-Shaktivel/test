@@ -2139,6 +2139,7 @@ public:
                 builder->CreateStore(res, llvm_ret_ptr);
 
                 define_function_exit(x);
+/*
             } else if( m_name == "len" ) {
                 ASR::Variable_t *arg = EXPR2VAR(x.m_args[0]);
                 uint32_t h = get_hash((ASR::asr_t*)arg);
@@ -2151,6 +2152,7 @@ public:
                 //llvm::Value* result = lfortran_str_len(llvm_arg1);
                 llvm::Value* result = llvm_arg1;
                 //builder->CreateStore(result, llvm_ret_ptr);
+*/
             }
         }
     }
