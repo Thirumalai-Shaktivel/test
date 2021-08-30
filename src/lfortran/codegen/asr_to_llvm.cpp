@@ -1349,7 +1349,7 @@ public:
                                         idx));
                         }
                     } else {
-                        if (is_a<ASR::Character_t>(*v->m_type)) {
+                        if (is_a<ASR::Character_t>(*v->m_type) && !is_array_type) {
                             target_var = ptr;
                             int strlen = 1000; // FIXME
                             std::string empty(strlen, ' ');
