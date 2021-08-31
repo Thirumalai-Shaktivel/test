@@ -37,6 +37,7 @@ private:
         {"real", "lfortran_intrinsic_array"},
         {"floor", "lfortran_intrinsic_array"},
         {"sum", "lfortran_intrinsic_array"},
+        {"len", "lfortran_intrinsic_array"},
         {"abs", "lfortran_intrinsic_math2"},
         {"aimag", "lfortran_intrinsic_math2"},
         {"modulo", "lfortran_intrinsic_math2"},
@@ -1759,8 +1760,9 @@ public:
     }
 
     void visit_String(const AST::String_t &x) {
+        int s_len = strlen(x.m_s);
         ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Character_t(al, x.base.base.loc,
-                1, nullptr, 0));
+                1, s_len, nullptr, 0));
         tmp = ASR::make_ConstantString_t(al, x.base.base.loc, x.m_s, type);
     }
 
