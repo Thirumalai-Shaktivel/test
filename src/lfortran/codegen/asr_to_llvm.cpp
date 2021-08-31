@@ -622,7 +622,7 @@ public:
         llvm::Function *fn = module->getFunction(runtime_func_name);
         if (!fn) {
             llvm::FunctionType *function_type = llvm::FunctionType::get(
-                    llvm::Type::getInt64Ty(context), {
+                    llvm::Type::getInt32Ty(context), {
                         character_type->getPointerTo()
                     }, false);
             fn = llvm::Function::Create(function_type,
