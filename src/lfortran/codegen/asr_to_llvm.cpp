@@ -1350,8 +1350,9 @@ public:
                         }
                     } else {
                         if (is_a<ASR::Character_t>(*v->m_type) && !is_array_type) {
+                            ASR::Character_t *t = down_cast<ASR::Character_t>(v->m_type);
                             target_var = ptr;
-                            int strlen = 8; // FIXME
+                            int strlen = t->m_len;
                             std::string empty(strlen, ' ');
                             Str str;
                             str.from_str_view(empty);
