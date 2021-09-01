@@ -226,6 +226,8 @@ RUN(NAME modules_15 LABELS gfortran llvm EXTRAFILES
 RUN(NAME modules_16 LABELS gfortran llvm EXTRAFILES modules_16b.f90)
 RUN(NAME modules_18 LABELS gfortran llvm EXTRAFILES
         modules_18b.f90 modules_15c.c)
+RUN(NAME modules_19 LABELS gfortran llvm EXTRAFILES
+        modules_19b.f90)
 
 RUN(NAME if_04 LABELS gfortran x86)
 RUN(NAME case_01 LABELS gfortran llvm)
@@ -324,6 +326,7 @@ RUN(NAME string_05 LABELS gfortran llvm)
 RUN(NAME string_06 LABELS gfortran llvm)
 RUN(NAME string_07 LABELS gfortran llvm)
 RUN(NAME string_08 LABELS gfortran llvm)
+RUN(NAME string_09 LABELS gfortran llvm)
 
 RUN(NAME nested_01 LABELS gfortran llvm)
 RUN(NAME nested_02 LABELS gfortran llvm)
