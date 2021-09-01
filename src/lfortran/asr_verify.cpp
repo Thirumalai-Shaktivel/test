@@ -293,7 +293,8 @@ public:
         for (size_t i=0; i<x.n_keywords; i++) {
             visit_keyword(x.m_keywords[i]);
         }
-        visit_ttype(*x.m_type);
+// This is visited separately
+//        visit_ttype(*x.m_type);
     }
 
     void visit_Derived(const Derived_t &x) {
