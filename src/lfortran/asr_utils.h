@@ -222,6 +222,19 @@ static inline SymbolTable *symbol_symtab(const ASR::symbol_t *f)
     }
 }
 
+// Returns the name of scopes in reverse order (local scope first, function second, module last)
+static inline Vec<char*> get_scope_names(Allocator &al, const SymbolTable *symtab) {
+    Vec<char*> scope_names;
+    scope_names.reserve(al, 4);
+    const SymbolTable *s = symtab;
+    while (s->parent != nullptr) {
+        char *owner_name = symbol_name(ASR::down_cast<ASR::symbol_t>(s->asr_owner));
+        scope_names.push_back(al, owner_name);
+        s = s->parent;
+    }
+    return scope_names;
+}
+
 const ASR::intentType intent_local=ASR::intentType::Local; // local variable (not a dummy argument)
 const ASR::intentType intent_in   =ASR::intentType::In; // dummy argument, intent(in)
 const ASR::intentType intent_out  =ASR::intentType::Out; // dummy argument, intent(out)
