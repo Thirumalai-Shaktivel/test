@@ -495,13 +495,16 @@ public:
                                         "can be deallocated.",
                                         tmp_expr->base.loc);
                 } else {
+                    /*
                     ASR::Variable_t* tmp_v = ASR::down_cast<ASR::Variable_t>(tmp_sym);
                     if( tmp_v->m_storage != ASR::storage_typeType::Allocatable ) {
                         throw SemanticError("Only an allocatable variable symbol "
                                             "can be deallocated.",
                                             tmp_expr->base.loc);
                     }
-                    arg_vec.push_back(al, tmp_sym);
+                    */
+                    std::cout << "Warning: Var in deallocate() is ignored for now" << std::endl;
+                    //arg_vec.push_back(al, tmp_sym);
                 }
             } else if( tmp_expr->type == ASR::exprType::DerivedRef ) {
                 // FIXME
