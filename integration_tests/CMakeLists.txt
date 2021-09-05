@@ -287,7 +287,7 @@ RUN(NAME logical4 LABELS gfortran llvm)
 # `reduce` is not supported by GFortran yet:
 # RUN(NAME doconcurrentloop_02 LABELS gfortran)
 
-RUN(NAME derived_types_01 LABELS gfortran llvm)
+RUN(NAME derived_types_01 LABELS gfortran)
 RUN(NAME derived_types_02 LABELS gfortran)
 RUN(NAME derived_types_03 LABELS gfortran)
 
@@ -356,7 +356,7 @@ RUN(NAME return_02 LABELS gfortran llvm)
 RUN(NAME return_03 LABELS gfortran llvm)
 
 RUN(NAME class_01 LABELS gfortran)
-RUN(NAME class_02 LABELS gfortran llvm)
+RUN(NAME class_02 LABELS gfortran)
 RUN(NAME class_03 LABELS gfortran)
 RUN(NAME class_04 LABELS gfortran)
 

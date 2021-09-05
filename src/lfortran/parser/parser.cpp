@@ -600,8 +600,8 @@ std::string highlight_line(const std::string &line,
         out << line.substr(0, first_column-1);
         if (last_column <= line.size()) {
             if(use_colors) out << redon;
-            out << line.substr(first_column-1,
-                    last_column-first_column+1);
+            //out << line.substr(first_column-1,
+            //        last_column-first_column+1);
             if(use_colors) out << redoff;
             out << line.substr(last_column);
         }
