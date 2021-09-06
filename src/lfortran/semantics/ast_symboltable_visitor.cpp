@@ -863,16 +863,7 @@ public:
                     LFORTRAN_ASSERT(init_expr != nullptr);
                     if (storage_type == ASR::storage_typeType::Parameter) {
                         value = ASRUtils::expr_value(init_expr);
-                        if (value == nullptr && init_expr->type != ASR::exprType::FunctionCall) {
-                            if( init_expr->type == ASR::exprType::ImplicitCast ) {
-                                ASR::ImplicitCast_t *impl_cast = ASR::down_cast<ASR::ImplicitCast_t>(init_expr);
-                                if( impl_cast->m_arg->type != ASR::exprType::FunctionCall ) {
-                                    throw SemanticError("Value of a parameter variable must evaluate to a compile time constant",
-                                                            x.base.base.loc);
-                                }
-                            }
-                        }
-                        if (sym_type->m_type == AST::decl_typeType::TypeCharacter) {
+                        if (sym_type->m_type == AST::decl_typeType::TypeCharacter && value != nullptr) {
                             ASR::Character_t *lhs_type = ASR::down_cast<ASR::Character_t>(type);
                             ASR::Character_t *rhs_type = ASR::down_cast<ASR::Character_t>(ASRUtils::expr_type(value));
                             int lhs_len = lhs_type->m_len;
@@ -922,9 +913,13 @@ public:
     Vec<ASR::expr_t*> visit_expr_list(AST::fnarg_t *ast_list, size_t n) {
         Vec<ASR::expr_t*> asr_list;
         asr_list.reserve(al, n);
+        ASR::expr_t *expr = nullptr;
         for (size_t i=0; i<n; i++) {
-            visit_expr(*ast_list[i].m_end);
-            ASR::expr_t *expr = LFortran::ASRUtils::EXPR(asr);
+            expr = nullptr;
+            if( ast_list[i].m_end != nullptr ) {
+                visit_expr(*ast_list[i].m_end);
+                expr = LFortran::ASRUtils::EXPR(asr);
+            }
             asr_list.push_back(al, expr);
         }
         return asr_list;
