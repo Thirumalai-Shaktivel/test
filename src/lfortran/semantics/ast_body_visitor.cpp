@@ -66,6 +66,7 @@ private:
         {"not", "lfortran_intrinsic_util"},
         {"iachar", "lfortran_intrinsic_util"},
         {"achar", "lfortran_intrinsic_util"},
+        {"len", "lfortran_intrinsic_util"},
         {"len_trim", "lfortran_intrinsic_string"},
         {"trim", "lfortran_intrinsic_string"},
 };

@@ -23,6 +23,11 @@ interface
     integer, intent(in) :: i
     integer, optional :: kind
     end function
+
+    integer function len(str, kind)
+    character(len=*), intent(in) :: str
+    integer, optional :: kind
+    end function
 end interface
 
 end module
