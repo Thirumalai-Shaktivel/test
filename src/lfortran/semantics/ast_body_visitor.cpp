@@ -69,6 +69,7 @@ private:
         {"len", "lfortran_intrinsic_util"},
         {"len_trim", "lfortran_intrinsic_string"},
         {"trim", "lfortran_intrinsic_string"},
+        {"index", "lfortran_intrinsic_string"}
 };
 
 public:
@@ -774,7 +775,14 @@ public:
     void visit_Function(const AST::Function_t &x) {
         SymbolTable *old_scope = current_scope;
         ASR::symbol_t *t = current_scope->scope[to_lower(x.m_name)];
+        if( t->type == ASR::symbolType::GenericProcedure ) {
+            ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(t);
+            if( g->n_procs == 1 ) {
+                t = g->m_procs[0];
+            }
+        }
         ASR::Function_t *v = ASR::down_cast<ASR::Function_t>(t);
+        LFORTRAN_ASSERT(to_lower(x.m_name) == to_lower(v->m_name));
         current_scope = v->m_symtab;
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
@@ -819,7 +827,6 @@ public:
                 x.base.base.loc
             );
         }
-
         this->visit_expr(*x.m_value);
         ASR::expr_t *value = LFortran::ASRUtils::EXPR(tmp);
         ASR::ttype_t *value_type = LFortran::ASRUtils::expr_type(value);
@@ -1053,6 +1060,27 @@ public:
         this->visit_expr(*x.m_right);
         ASR::expr_t *right = LFortran::ASRUtils::EXPR(tmp);
         CommonVisitorMethods::visit_StrOp(al, x, left, right, tmp);
+    }
+
+    void visit_BOZ(const AST::BOZ_t& x) {
+        LFortran::Str boz_content;
+        std::string s = x.m_s; 
+        boz_content.from_str(al, s.substr(1));
+        ASR::bozType boz_type;
+        if( s[0] == 'b' || s[0] == 'B' ) {
+            boz_type = ASR::bozType::Binary;
+        } else if( s[0] == 'z' || s[0] == 'Z' ) {
+            boz_type = ASR::bozType::Hex;
+        } else if( s[0] == 'o' || s[0] == 'O' ) {
+            boz_type = ASR::bozType::Octal;
+        } else {
+            throw SemanticError(R"""(Only 'b', 'o' and 'z' 
+                                are accepted as prefixes of 
+                                BOZ literal constants.)""", 
+                                x.base.base.loc);
+        }
+        tmp = ASR::make_BOZ_t(al, x.base.base.loc, boz_content.c_str(al),
+                                boz_type, nullptr);
     }
 
     void visit_UnaryOp(const AST::UnaryOp_t &x) {
@@ -1308,6 +1336,7 @@ public:
         } else {
             v = current_scope->resolve_symbol(var_name);
         }
+        // std::cout<<var_name<<" "<<v<<std::endl;
         if (!v) {
             std::string remote_sym = var_name;
             if (intrinsic_procedures.find(remote_sym)
@@ -1328,6 +1357,7 @@ public:
                         + "' not found in the module '" + module_name + "'",
                         x.base.base.loc);
                 }
+                // std::cout<<var_name<<" "<<t->type<<std::endl;
                 if (ASR::is_a<ASR::GenericProcedure_t>(*t)) {
                     ASR::GenericProcedure_t *gp = ASR::down_cast<ASR::GenericProcedure_t>(t);
                     ASR::asr_t *fn = ASR::make_ExternalSymbol_t(
@@ -1543,32 +1573,30 @@ public:
                             if (args.n == 1) {
                                 ASR::expr_t* func_expr = args[0];
                                 int func_kind = LFortran::ASRUtils::extract_kind_from_ttype_t(func_type);
-                                if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*func_type)) {
-                                    if (func_kind == 4){
-                                        float rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(func_expr))->m_r;
-                                        int64_t ival = static_cast<int64_t>(rr);
-                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
-                                    } else {
-                                        double rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(func_expr))->m_r;
-                                        int64_t ival = static_cast<int64_t>(rr);
-                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
+                                if( func_kind > 0 ) {
+                                    if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*func_type)) {
+                                        if (func_kind == 4){
+                                            float rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(func_expr))->m_r;
+                                            int64_t ival = static_cast<int64_t>(rr);
+                                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
+                                        } else {
+                                            double rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(func_expr))->m_r;
+                                            int64_t ival = static_cast<int64_t>(rr);
+                                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
+                                        }
+                                    }
+                                    else if (LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*func_type)) {
+                                        if (func_kind == 4){
+                                            int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(
+                                                LFortran::ASRUtils::expr_value(func_expr))->m_n;
+                                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
+                                        } else {
+                                            int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(
+                                                LFortran::ASRUtils::expr_value(func_expr))->m_n;
+                                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, ival, func_type));
+                                        }
                                     }
                                 }
-                                else if (LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*func_type)) {
-                                    if (func_kind == 4){
-                                        int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(
-                                            LFortran::ASRUtils::expr_value(func_expr))->m_n;
-                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
-                                    } else {
-                                        int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(
-                                            LFortran::ASRUtils::expr_value(func_expr))->m_n;
-                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, ival, func_type));
-                                    }
-                                }
-                                // TODO: Handle BOZ later
-                                // else if () {
-
-                                // }
                             } else {
                                 throw SemanticError("int must have only one argument", x.base.base.loc);
                             }

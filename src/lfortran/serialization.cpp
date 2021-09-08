@@ -299,6 +299,7 @@ public:
     void visit_TranslationUnit(const TranslationUnit_t &x) {
         global_symtab = x.m_global_scope;
         for (auto &a : x.m_global_scope->scope) {
+            // std::cout<<a.second->type<<std::endl;
             this->visit_symbol(*a.second);
         }
     }
