@@ -1336,7 +1336,6 @@ public:
         } else {
             v = current_scope->resolve_symbol(var_name);
         }
-        // std::cout<<var_name<<" "<<v<<std::endl;
         if (!v) {
             std::string remote_sym = var_name;
             if (intrinsic_procedures.find(remote_sym)
@@ -1357,7 +1356,6 @@ public:
                         + "' not found in the module '" + module_name + "'",
                         x.base.base.loc);
                 }
-                // std::cout<<var_name<<" "<<t->type<<std::endl;
                 if (ASR::is_a<ASR::GenericProcedure_t>(*t)) {
                     ASR::GenericProcedure_t *gp = ASR::down_cast<ASR::GenericProcedure_t>(t);
                     ASR::asr_t *fn = ASR::make_ExternalSymbol_t(
