@@ -127,7 +127,10 @@ public:
       std::string dest_type_str = type_names[dest_type->type][0];
       std::string error_msg =
           "Only " + allowed_types_str + " can be assigned to " + dest_type_str;
-      throw SemanticError(error_msg, a_loc);
+      std::cout << "Warning: " << error_msg << std::endl;
+      // FIXME:
+      return;
+      //throw SemanticError(error_msg, a_loc);
     } else if (cast_kind != default_case) {
         ASR::expr_t *value=nullptr;
         if ((ASR::cast_kindType)cast_kind == ASR::cast_kindType::RealToInteger) {
