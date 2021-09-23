@@ -71,6 +71,7 @@ public:
     llvm::LLVMContext &get_context();
     static void print_targets();
     static std::string get_default_target_triple();
+    static void load_runtime_library_dll();
 };
 
 

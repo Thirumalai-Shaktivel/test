@@ -48,6 +48,22 @@ std::string get_runtime_library_dir()
     }
 }
 
+std::string get_runtime_library_dll()
+{
+    if (get_platform() == Platform::Windows) {
+        std::string path;
+        int dirname_length;
+        get_executable_path(path, dirname_length);
+#ifdef __MINGW64__
+        return path.substr(0, dirname_length) + "\\liblfortran_runtime.dll";
+#else
+        return path.substr(0, dirname_length) + "\\lfortran_runtime.dll";
+#endif
+    } else {
+        return get_runtime_library_dir() + "/liblfortran_runtime.so";
+    }
+}
+
 std::string read_file(const std::string &filename)
 {
     std::ifstream ifs(filename.c_str(), std::ios::in | std::ios::binary

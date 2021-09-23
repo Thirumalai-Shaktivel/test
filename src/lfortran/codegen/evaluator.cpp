@@ -418,4 +418,9 @@ std::string LLVMEvaluator::get_default_target_triple()
     return llvm::sys::getDefaultTargetTriple();
 }
 
+void LLVMEvaluator::load_runtime_library_dll()
+{
+    llvm::sys::DynamicLibrary::getPermanentLibrary(LFortran::get_runtime_library_dll().c_str());
+}
+
 } // namespace LFortran
