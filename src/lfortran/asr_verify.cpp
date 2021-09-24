@@ -122,9 +122,21 @@ public:
                     "Symbol name `" + symbol_name
                     + "` differs from SymbolTable's key `" + symtab_key + "`");
             if (symbol_name.size() >= 1 && symbol_name[0] == '~') {
-                // TODO: check exactly the allowed options for ~
-                require(valid_name2(symbol_name.substr(1).c_str()),
-                    "Symbol name `" + symbol_name + "` is invalid");
+                std::string name = symbol_name.substr(1);
+                if (name == "add") {
+                    // Operator +
+                } else if (name == "sub") {
+                    // Operator -
+                } else if (name == "mul") {
+                    // Operator *
+                } else if (name == "div") {
+                    // Operator /
+                } else if (name == "pow") {
+                    // Operator **
+                } else {
+                    require(false,
+                        "Symbol name `" + symbol_name + "` is invalid");
+                }
             } else {
                 require(valid_name2(symbol_name.c_str()),
                     "Symbol name `" + symbol_name + "` is invalid");
