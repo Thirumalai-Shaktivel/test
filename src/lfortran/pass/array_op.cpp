@@ -285,7 +285,7 @@ public:
         ASR::expr_t* idx_var = nullptr;
         ASR::ttype_t* var_type = get_matching_type(sibling);
         Str str_name;
-        str_name.from_str(al, "~" + std::to_string(counter) + suffix);
+        str_name.from_str(al, "%" + std::to_string(counter) + suffix);
         const char* const_idx_var_name = str_name.c_str(al);
         char* idx_var_name = (char*)const_idx_var_name;
 
@@ -518,7 +518,8 @@ public:
                         case ASR::exprType::BinOp:
                             op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(
                                                 al, x.base.base.loc, 
-                                                ref_1, (ASR::binopType)x.m_op, ref_2, x.m_type, nullptr));
+                                                ref_1, (ASR::binopType)x.m_op, ref_2,
+                                                x.m_type, nullptr, nullptr));
                             break;
                         case ASR::exprType::Compare:
                             op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_Compare_t(
@@ -541,7 +542,9 @@ public:
                     doloop_body.push_back(al, set_to_one);
                     doloop_body.push_back(al, doloop);
                 }
-                ASR::expr_t* inc_expr = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(al, x.base.base.loc, idx_vars_value[i], ASR::binopType::Add, const_1, int32_type, nullptr));
+                ASR::expr_t* inc_expr = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(al, x.base.base.loc, idx_vars_value[i],
+                                                                                   ASR::binopType::Add, const_1, int32_type,
+                                                                                   nullptr, nullptr));
                 ASR::stmt_t* assign_stmt = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[i], inc_expr));
                 doloop_body.push_back(al, assign_stmt);
                 doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
@@ -599,7 +602,8 @@ public:
                         case ASR::exprType::BinOp:
                             op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(
                                                     al, x.base.base.loc, 
-                                                    ref, (ASR::binopType)x.m_op, other_expr, x.m_type, nullptr));
+                                                    ref, (ASR::binopType)x.m_op, other_expr,
+                                                    x.m_type, nullptr, nullptr));
                             break;
                         case ASR::exprType::Compare:
                             op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_Compare_t(
@@ -622,7 +626,7 @@ public:
                     doloop_body.push_back(al, set_to_one);
                     doloop_body.push_back(al, doloop);
                 }
-                ASR::expr_t* inc_expr = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(al, x.base.base.loc, idx_vars_value[i], ASR::binopType::Add, const_1, int32_type, nullptr));
+                ASR::expr_t* inc_expr = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(al, x.base.base.loc, idx_vars_value[i], ASR::binopType::Add, const_1, int32_type, nullptr, nullptr));
                 ASR::stmt_t* assign_stmt = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[i], inc_expr));
                 doloop_body.push_back(al, assign_stmt);
                 doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
