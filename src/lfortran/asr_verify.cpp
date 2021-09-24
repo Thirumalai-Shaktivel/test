@@ -29,6 +29,22 @@ bool valid_name(const char *s) {
     return true;
 }
 
+bool valid_name2(const char *s) {
+    if (s == nullptr) return false;
+    std::string name = s;
+    if (name.size() == 0) return false;
+    int number_of_at = 0;
+    for (size_t i=0; i<name.size(); i++) {
+        if (s[i] == '@') {
+            number_of_at += 1;
+            if (number_of_at >= 2) return false;
+        } else {
+            if (!valid_char(s[i])) return false;
+        }
+    }
+    return true;
+}
+
 class VerifyVisitor : public BaseWalkVisitor<VerifyVisitor>
 {
 private:
@@ -105,6 +121,14 @@ public:
             require(symbol_name == symtab_key,
                     "Symbol name `" + symbol_name
                     + "` differs from SymbolTable's key `" + symtab_key + "`");
+            if (symbol_name.size() >= 1 && symbol_name[0] == '~') {
+                // TODO: check exactly the allowed options for ~
+                require(valid_name2(symbol_name.substr(1).c_str()),
+                    "Symbol name `" + symbol_name + "` is invalid");
+            } else {
+                require(valid_name2(symbol_name.c_str()),
+                    "Symbol name `" + symbol_name + "` is invalid");
+            }
             this->visit_symbol(*a.second);
         }
     }
