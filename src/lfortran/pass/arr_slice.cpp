@@ -233,7 +233,7 @@ public:
         if( PassUtils::is_slice_present(x) && create_slice_var ) {
             ASR::expr_t* x_arr_var = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, x.base.base.loc, x.m_v));
             Str new_name_str;
-            new_name_str.from_str(al, "~" + std::to_string(slice_counter) + "_slice");
+            new_name_str.from_str(al, "%" + std::to_string(slice_counter) + "_slice");
             slice_counter += 1;
             char* new_var_name = (char*)new_name_str.c_str(al);
             ASR::asr_t* slice_asr = ASR::make_Variable_t(al, x.base.base.loc, current_scope, new_var_name, 
