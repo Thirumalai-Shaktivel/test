@@ -137,6 +137,15 @@ public:
                     require(false,
                         "Symbol name `" + symbol_name + "` is invalid");
                 }
+            } else if (symbol_name.size() >= 1 && symbol_name[0] == '%') {
+                // Temporary variable name
+                // Check that it is a variable
+                require(ASR::is_a<ASR::Variable_t>(*a.second),
+                    "Symbol `" + symbol_name + "` is not a variable");
+                // Now check that the name is valid
+                std::string name = symbol_name.substr(1);
+                require(valid_name2(name.c_str()),
+                    "Symbol name `" + symbol_name + "` is invalid");
             } else {
                 require(valid_name2(symbol_name.c_str()),
                     "Symbol name `" + symbol_name + "` is invalid");
