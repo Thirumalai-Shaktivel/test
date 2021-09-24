@@ -2,6 +2,7 @@
 #include <lfortran/exception.h>
 #include <lfortran/asr_utils.h>
 #include <lfortran/asr_verify.h>
+#include <lfortran/string_utils.h>
 
 
 namespace LFortran {
@@ -38,7 +39,7 @@ private:
     // We first walk all symtabs, and then we check that everything else
     // points to them (i.e., that nothing points to some symbol table that
     // is not part of this ASR).
-    std::map<uint64_t,SymbolTable*> id_symtab_map;
+    std::map<uint64_t,const SymbolTable*> id_symtab_map;
     bool check_external;
 public:
     VerifyVisitor(bool check_external) : check_external{check_external} {}
@@ -90,6 +91,24 @@ public:
         return false;
     }
 
+    void visit_symbol_table(const SymbolTable *symtab) {
+        id_symtab_map[symtab->counter] = symtab;
+        for (auto &a : symtab->scope) {
+            std::string symbol_name = a.first;
+            std::string symtab_key = ASRUtils::symbol_name(a.second);
+            // An exception for intrinsic modules
+            if (symbol_name != symtab_key) {
+                if (startswith(symtab_key, "lfortran_intrinsic_")) {
+                    symtab_key = symtab_key.substr(19);
+                }
+            }
+            require(symbol_name == symtab_key,
+                    "Symbol name `" + symbol_name
+                    + "` differs from SymbolTable's key `" + symtab_key + "`");
+            this->visit_symbol(*a.second);
+        }
+    }
+
     void visit_TranslationUnit(const TranslationUnit_t &x) {
         current_symtab = x.m_global_scope;
         require(x.m_global_scope != nullptr,
@@ -102,10 +121,7 @@ public:
             "The TranslationUnit::m_global_scope::asr_owner must point to itself");
         require(down_cast2<TranslationUnit_t>(current_symtab->asr_owner)->m_global_scope == current_symtab,
             "The asr_owner invariant failed");
-        id_symtab_map[x.m_global_scope->counter] = x.m_global_scope;
-        for (auto &a : x.m_global_scope->scope) {
-            this->visit_symbol(*a.second);
-        }
+        visit_symbol_table(x.m_global_scope);
         for (size_t i=0; i<x.n_items; i++) {
             asr_t *item = x.m_items[i];
             require(is_a<stmt_t>(*item) || is_a<expr_t>(*item),
@@ -132,10 +148,7 @@ public:
             "The X::m_symtab::asr_owner must point to X");
         require(ASRUtils::symbol_symtab(down_cast<symbol_t>(current_symtab->asr_owner)) == current_symtab,
             "The asr_owner invariant failed");
-        id_symtab_map[x.m_symtab->counter] = x.m_symtab;
-        for (auto &a : x.m_symtab->scope) {
-            this->visit_symbol(*a.second);
-        }
+        visit_symbol_table(x.m_symtab);
         for (size_t i=0; i<x.n_body; i++) {
             visit_stmt(*x.m_body[i]);
         }
@@ -157,10 +170,7 @@ public:
             "The X::m_symtab::asr_owner must point to X");
         require(ASRUtils::symbol_symtab(down_cast<symbol_t>(current_symtab->asr_owner)) == current_symtab,
             "The asr_owner invariant failed");
-        id_symtab_map[x.m_symtab->counter] = x.m_symtab;
-        for (auto &a : x.m_symtab->scope) {
-            this->visit_symbol(*a.second);
-        }
+        visit_symbol_table(x.m_symtab);
         for (size_t i=0; i < x.n_dependencies; i++) {
             require(x.m_dependencies[i] != nullptr,
                 "A module dependency must not be a nullptr",
@@ -188,10 +198,7 @@ public:
             "Subroutine::m_symtab->counter must be unique");
         require(ASRUtils::symbol_symtab(down_cast<symbol_t>(current_symtab->asr_owner)) == current_symtab,
             "The asr_owner invariant failed");
-        id_symtab_map[x.m_symtab->counter] = x.m_symtab;
-        for (auto &a : x.m_symtab->scope) {
-            this->visit_symbol(*a.second);
-        }
+        visit_symbol_table(x.m_symtab);
         for (size_t i=0; i<x.n_args; i++) {
             visit_expr(*x.m_args[i]);
         }
@@ -214,10 +221,7 @@ public:
             "Function::m_symtab->counter must be unique");
         require(ASRUtils::symbol_symtab(down_cast<symbol_t>(current_symtab->asr_owner)) == current_symtab,
             "The asr_owner invariant failed");
-        id_symtab_map[x.m_symtab->counter] = x.m_symtab;
-        for (auto &a : x.m_symtab->scope) {
-            this->visit_symbol(*a.second);
-        }
+        visit_symbol_table(x.m_symtab);
         for (size_t i=0; i<x.n_args; i++) {
             visit_expr(*x.m_args[i]);
         }
@@ -241,10 +245,7 @@ public:
             "Derivedtype::m_symtab->counter must be unique");
         require(ASRUtils::symbol_symtab(down_cast<symbol_t>(current_symtab->asr_owner)) == current_symtab,
             "The asr_owner invariant failed");
-        id_symtab_map[x.m_symtab->counter] = x.m_symtab;
-        for (auto &a : x.m_symtab->scope) {
-            this->visit_symbol(*a.second);
-        }
+        visit_symbol_table(x.m_symtab);
         current_symtab = parent_symtab;
     }
 
