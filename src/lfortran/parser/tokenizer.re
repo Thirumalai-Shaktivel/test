@@ -205,7 +205,7 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
             digit = [0-9];
             char =  [a-zA-Z_];
             name = char (char | digit)*;
-            defop = "."[a-zA-Z]+".";
+            defop = "." whitespace? [a-zA-Z]+ whitespace? ".";
             kind = digit+ | name;
             significand = (digit+"."digit*) | ("."digit+);
             exp = [edED][-+]? digit+;
