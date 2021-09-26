@@ -1248,6 +1248,7 @@ int main(int argc, char *argv[])
 
         if (kernel) {
 #ifdef HAVE_LFORTRAN_XEUS
+            LFortran::LLVMEvaluator::load_runtime_library_dll();
             return LFortran::run_kernel(arg_kernel_f);
 #else
             std::cerr << "The kernel subcommand requires LFortran to be compiled with XEUS support. Recompile with `WITH_XEUS=yes`." << std::endl;
@@ -1283,6 +1284,7 @@ int main(int argc, char *argv[])
 
         if (arg_files.size() == 0) {
 #ifdef HAVE_LFORTRAN_LLVM
+            LFortran::LLVMEvaluator::load_runtime_library_dll();
             return prompt(arg_v);
 #else
             std::cerr << "Interactive prompt requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
