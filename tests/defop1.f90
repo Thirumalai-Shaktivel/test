@@ -8,4 +8,7 @@ e = (a+b).x.y**x
 e = x**x.x.x**x
 E = X**X.X.X**X
 e = ((x.x.x).in.3)**4
+e = a. in .b
+e = a .in . b
+e = a. in.b
 end program

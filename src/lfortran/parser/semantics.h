@@ -857,8 +857,15 @@ char* def_op_to_str(Allocator &al, const LFortran::Str &s) {
     LFORTRAN_ASSERT(s.p[s.size()-1] == '.');
     std::string s0 = s.str();
     s0 = s0.substr(1, s.size()-2);
+    std::string s1;
+    for (int i = 0; s0[i]; i++) {
+        if (s0[i] == ' ') {
+            continue;
+        }
+        s1 += s0[i];
+    }
     LFortran::Str s2;
-    s2.from_str_view(s0);
+    s2.from_str_view(s1);
     return s2.c_str(al);
 }
 
