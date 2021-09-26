@@ -285,7 +285,7 @@ public:
         ASR::expr_t* idx_var = nullptr;
         ASR::ttype_t* var_type = get_matching_type(sibling);
         Str str_name;
-        str_name.from_str(al, "~" + std::to_string(counter) + suffix);
+        str_name.from_str(al, "%" + std::to_string(counter) + suffix);
         const char* const_idx_var_name = str_name.c_str(al);
         char* idx_var_name = (char*)const_idx_var_name;
 
