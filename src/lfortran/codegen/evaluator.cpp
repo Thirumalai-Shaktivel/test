@@ -4,6 +4,8 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/Analysis/Passes.h>
+#include <llvm/Analysis/TargetTransformInfo.h>
+#include <llvm/Analysis/TargetLibraryInfo.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/MCJIT.h>
@@ -30,7 +32,14 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
+#include <llvm/Transforms/Scalar/InstSimplifyPass.h>
 #include <llvm/Transforms/Vectorize.h>
+#include <llvm/Transforms/IPO.h>
+#include <llvm/Transforms/IPO/AlwaysInliner.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
+#include <llvm/Transforms/Instrumentation/AddressSanitizer.h>
+#include <llvm/Transforms/Instrumentation/ThreadSanitizer.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
 #include <llvm/ExecutionEngine/ObjectCache.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
@@ -40,7 +49,7 @@
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/Support/TargetRegistry.h>
-
+#include <llvm/Support/Host.h>
 #include <lfortran/codegen/KaleidoscopeJIT.h>
 
 #include <lfortran/codegen/evaluator.h>
@@ -53,6 +62,7 @@
 #include <lfortran/semantics/ast_to_asr.h>
 #include <lfortran/parser/parser.h>
 #include <lfortran/pickle.h>
+#include <lfortran/string_utils.h>
 
 
 namespace LFortran {
@@ -90,19 +100,39 @@ std::string LLVMModule::get_return_type(const std::string &fn_name)
     }
     llvm::Type *type = fn->getReturnType();
     if (type->isFloatTy()) {
-        return "real";
-    } else if (type->isIntegerTy()) {
-        return "integer";
+        return "real4";
+    } else if (type->isDoubleTy()) {
+        return "real8";
+    } else if (type->isIntegerTy(32)) {
+        return "integer4";
+    } else if (type->isIntegerTy(64)) {
+        return "integer8";
+    } else if (type->isStructTy()) {
+        llvm::StructType *st = llvm::cast<llvm::StructType>(type);
+        if (st->hasName()) {
+            if (startswith(std::string(st->getName()), "complex_4")) {
+                return "complex4";
+            } else if (startswith(std::string(st->getName()), "complex_8")) {
+                return "complex8";
+            } else {
+                throw LFortranException("LLVMModule::get_return_type(): Struct return type `" + std::string(st->getName()) + "` not supported");
+            }
+        } else {
+            throw LFortranException("LLVMModule::get_return_type(): Noname struct return type not supported");
+        }
+    } else if (type->isVectorTy()) {
+        // Used for passing complex_4 on some platforms
+        return "complex4";
     } else if (type->isVoidTy()) {
         return "void";
     } else {
-        throw LFortranException("Return type not supported");
+        throw LFortranException("LLVMModule::get_return_type(): Return type not supported");
     }
 }
 
 extern "C" {
 
-void _lfortran_printf(const char* format, ...);
+float _lfortran_stan(float x);
 
 }
 
@@ -111,6 +141,21 @@ LLVMEvaluator::LLVMEvaluator(const std::string &t)
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
+
+#ifdef HAVE_TARGET_AARCH64
+    LLVMInitializeAArch64Target();
+    LLVMInitializeAArch64TargetInfo();
+    LLVMInitializeAArch64TargetMC();
+    LLVMInitializeAArch64AsmPrinter();
+    LLVMInitializeAArch64AsmParser();
+#endif
+#ifdef HAVE_TARGET_X86
+    LLVMInitializeX86Target();
+    LLVMInitializeX86TargetInfo();
+    LLVMInitializeX86TargetMC();
+    LLVMInitializeX86AsmPrinter();
+    LLVMInitializeX86AsmParser();
+#endif
 
     context = std::make_unique<llvm::LLVMContext>();
 
@@ -134,9 +179,7 @@ LLVMEvaluator::LLVMEvaluator(const std::string &t)
     llvm::TargetMachine *TM2 = llvm::EngineBuilder().selectTarget();
     jit = std::make_unique<llvm::orc::KaleidoscopeJIT>(TM2);
 
-    llvm::sys::DynamicLibrary::AddSymbol("_lfortran_printf",
-        (void*)
-        reinterpret_cast<std::uintptr_t>(_lfortran_printf));
+    _lfortran_stan(0.5);
 }
 
 LLVMEvaluator::~LLVMEvaluator()
@@ -207,7 +250,13 @@ intptr_t LLVMEvaluator::get_symbol_address(const std::string &name) {
     return (intptr_t)cantFail(std::move(addr0));
 }
 
-int64_t LLVMEvaluator::intfn(const std::string &name) {
+int32_t LLVMEvaluator::int32fn(const std::string &name) {
+    intptr_t addr = get_symbol_address(name);
+    int32_t (*f)() = (int32_t (*)())addr;
+    return f();
+}
+
+int64_t LLVMEvaluator::int64fn(const std::string &name) {
     intptr_t addr = get_symbol_address(name);
     int64_t (*f)() = (int64_t (*)())addr;
     return f();
@@ -222,6 +271,24 @@ bool LLVMEvaluator::boolfn(const std::string &name) {
 float LLVMEvaluator::floatfn(const std::string &name) {
     intptr_t addr = get_symbol_address(name);
     float (*f)() = (float (*)())addr;
+    return f();
+}
+
+double LLVMEvaluator::doublefn(const std::string &name) {
+    intptr_t addr = get_symbol_address(name);
+    double (*f)() = (double (*)())addr;
+    return f();
+}
+
+std::complex<float> LLVMEvaluator::complex4fn(const std::string &name) {
+    intptr_t addr = get_symbol_address(name);
+    std::complex<float> (*f)() = (std::complex<float> (*)())addr;
+    return f();
+}
+
+std::complex<double> LLVMEvaluator::complex8fn(const std::string &name) {
+    intptr_t addr = get_symbol_address(name);
+    std::complex<double> (*f)() = (std::complex<double> (*)())addr;
     return f();
 }
 
@@ -280,6 +347,39 @@ void LLVMEvaluator::create_empty_object_file(const std::string &filename) {
     save_object_file(*module, filename);
 }
 
+void LLVMEvaluator::opt(llvm::Module &m) {
+    m.setTargetTriple(target_triple);
+    m.setDataLayout(TM->createDataLayout());
+
+    llvm::legacy::PassManager mpm;
+    mpm.add(new llvm::TargetLibraryInfoWrapperPass(TM->getTargetTriple()));
+    mpm.add(llvm::createTargetTransformInfoWrapperPass(TM->getTargetIRAnalysis()));
+    llvm::legacy::FunctionPassManager fpm(&m);
+    fpm.add(llvm::createTargetTransformInfoWrapperPass(TM->getTargetIRAnalysis()));
+
+    int optLevel = 3;
+    int sizeLevel = 0;
+    llvm::PassManagerBuilder builder;
+    builder.OptLevel = optLevel;
+    builder.SizeLevel = sizeLevel;
+    builder.Inliner = llvm::createFunctionInliningPass(optLevel, sizeLevel,
+        false);
+    builder.DisableUnrollLoops = false;
+    builder.LoopVectorize = true;
+    builder.SLPVectorize = true;
+    builder.populateFunctionPassManager(fpm);
+    builder.populateModulePassManager(mpm);
+
+    fpm.doInitialization();
+    for (llvm::Function &func : m) {
+        fpm.run(func);
+    }
+    fpm.doFinalization();
+
+    mpm.add(llvm::createVerifierPass());
+    mpm.run(m);
+}
+
 std::string LLVMEvaluator::module_to_string(llvm::Module &m) {
     std::string buf;
     llvm::raw_string_ostream os(buf);
@@ -298,5 +398,22 @@ llvm::LLVMContext &LLVMEvaluator::get_context()
     return *context;
 }
 
+void LLVMEvaluator::print_targets()
+{
+    llvm::InitializeNativeTarget();
+#ifdef HAVE_TARGET_AARCH64
+    LLVMInitializeAArch64TargetInfo();
+#endif
+#ifdef HAVE_TARGET_X86
+    LLVMInitializeX86TargetInfo();
+#endif
+    llvm::raw_ostream &os = llvm::outs();
+    llvm::TargetRegistry::printRegisteredTargetsForVersion(os);
+}
+
+std::string LLVMEvaluator::get_default_target_triple()
+{
+    return llvm::sys::getDefaultTargetTriple();
+}
 
 } // namespace LFortran

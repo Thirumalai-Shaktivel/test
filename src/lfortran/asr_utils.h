@@ -32,6 +32,17 @@ static inline ASR::ttype_t* TYPE(const ASR::asr_t *f)
     return ASR::down_cast<ASR::ttype_t>(f);
 }
 
+static inline ASR::symbol_t *symbol_get_past_external(ASR::symbol_t *f)
+{
+    if (f->type == ASR::symbolType::ExternalSymbol) {
+        ASR::ExternalSymbol_t *e = ASR::down_cast<ASR::ExternalSymbol_t>(f);
+        LFORTRAN_ASSERT(!ASR::is_a<ASR::ExternalSymbol_t>(*e->m_external));
+        return e->m_external;
+    } else {
+        return f;
+    }
+}
+
 static inline const ASR::symbol_t *symbol_get_past_external(const ASR::symbol_t *f)
 {
     if (f->type == ASR::symbolType::ExternalSymbol) {
@@ -146,6 +157,9 @@ static inline char *symbol_name(const ASR::symbol_t *f)
         case ASR::symbolType::ClassProcedure: {
             return ASR::down_cast<ASR::ClassProcedure_t>(f)->m_name;
         }
+        case ASR::symbolType::CustomOperator: {
+            return ASR::down_cast<ASR::CustomOperator_t>(f)->m_name;
+        }
         default : throw LFortranException("Not implemented");
     }
 }
@@ -179,6 +193,9 @@ static inline SymbolTable *symbol_parent_symtab(const ASR::symbol_t *f)
         }
         case ASR::symbolType::ClassProcedure: {
             return ASR::down_cast<ASR::ClassProcedure_t>(f)->m_parent_symtab;
+        }
+        case ASR::symbolType::CustomOperator: {
+            return ASR::down_cast<ASR::CustomOperator_t>(f)->m_parent_symtab;
         }
         default : throw LFortranException("Not implemented");
     }
@@ -236,6 +253,16 @@ static inline ASR::Module_t *get_sym_module(const ASR::symbol_t *sym) {
     return nullptr;
 }
 
+// Returns the TranslationUnit_t's symbol table by going via parents
+static inline SymbolTable *get_tu_symtab(SymbolTable *symtab) {
+    SymbolTable *s = symtab;
+    while (s->parent != nullptr) {
+        s = s->parent;
+    }
+    LFORTRAN_ASSERT(ASR::is_a<ASR::unit_t>(*s->asr_owner))
+    return s;
+}
+
 // Returns the name of scopes in reverse order (local scope first, function second, module last)
 static inline Vec<char*> get_scope_names(Allocator &al, const SymbolTable *symtab) {
     Vec<char*> scope_names;
@@ -289,6 +316,18 @@ ASR::TranslationUnit_t* find_and_load_module(Allocator &al, const std::string &m
                                                 SymbolTable &symtab, bool intrinsic);
 
 void set_intrinsic(ASR::TranslationUnit_t* trans_unit);
+
+ASR::asr_t* getDerivedRef_t(Allocator& al, const Location& loc,
+                            ASR::asr_t* v_var, ASR::symbol_t* member,
+                            SymbolTable* current_scope);
+
+bool use_overloaded(ASR::expr_t* left, ASR::expr_t* right,
+                    ASR::binopType op, std::string& intrinsic_op_name,
+                    SymbolTable* curr_scope, ASR::asr_t*& asr,
+                    Allocator &al, const Location& loc);
+
+bool is_op_overloaded(ASR::binopType op, std::string& intrinsic_op_name,
+                      SymbolTable* curr_scope);
 
 void set_intrinsic(ASR::symbol_t* sym);
 

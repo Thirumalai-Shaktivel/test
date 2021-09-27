@@ -24,11 +24,15 @@ public:
 
     struct EvalResult {
         enum {
-            integer, real, statement, none
+            integer4, integer8, real4, real8, complex4, complex8, statement, none
         } type;
         union {
-            int64_t i;
-            float f;
+            int32_t i32;
+            int64_t i64;
+            float f32;
+            double f64;
+            struct {float re, im;} c32;
+            struct {double re, im;} c64;
         };
         std::string ast;
         std::string asr;
@@ -98,9 +102,12 @@ public:
     Result<std::string> get_asr(const std::string &code);
     Result<ASR::TranslationUnit_t*> get_asr2(const std::string &code,
             bool fixed_form);
-    Result<std::string> get_llvm(const std::string &code);
-    Result<std::unique_ptr<LLVMModule>> get_llvm2(const std::string &code);
-    Result<std::string> get_asm(const std::string &code);
+    Result<std::string> get_llvm(const std::string &code,
+        bool fast);
+    Result<std::unique_ptr<LLVMModule>> get_llvm2(const std::string &code,
+        bool fast);
+    Result<std::string> get_asm(const std::string &code,
+        bool fast);
     Result<std::string> get_cpp(const std::string &code);
     Result<std::string> get_fmt(const std::string &code);
 

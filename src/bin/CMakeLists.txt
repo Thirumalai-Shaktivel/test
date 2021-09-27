@@ -1,10 +1,6 @@
 add_executable(lfortran lfortran.cpp)
 target_include_directories(lfortran PRIVATE "tpl")
 target_link_libraries(lfortran lfortran_lib)
-if (UNIX AND NOT APPLE)
-    # This is sometimes needed to fix link errors for CLI11
-    target_link_libraries(lfortran stdc++fs)
-endif()
 if (LFORTRAN_STATIC_BIN)
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         # Link statically on Linux with gcc or clang
@@ -14,6 +10,11 @@ if (LFORTRAN_STATIC_BIN)
         endif()
     endif()
 endif()
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_options(lfortran PRIVATE "LINKER:--export-dynamic")
+endif()
+
 if (WITH_STACKTRACE AND APPLE AND CMAKE_CXX_COMPILER_ID MATCHES Clang)
     # On macOS we have to call dsymutil to create the dSYM bundle so that the
     # stacktrace can find debugging information corresponding to the lfortran
@@ -81,6 +82,9 @@ if (WITH_RUNTIME_LIBRARY)
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_math2.mod
     )
+    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_bit impure
+      ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
+    )
 
     add_custom_target(lfortran2
         ALL
@@ -95,6 +99,7 @@ if (WITH_RUNTIME_LIBRARY)
             ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_trig.mod
             ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_sin.mod
             ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_string.mod
+            ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_bit.mod
     )
 
     install(
@@ -108,6 +113,7 @@ if (WITH_RUNTIME_LIBRARY)
               ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_trig.mod
               ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_sin.mod
               ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_string.mod
+              ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_bit.mod
         DESTINATION share/lfortran/lib
     )
 endif()
@@ -140,7 +146,3 @@ endif()
 
 add_executable(cpptranslate cpptranslate.cpp)
 target_link_libraries(cpptranslate lfortran_lib)
-if (UNIX AND NOT APPLE)
-    # This is sometimes needed to fix link errors for CLI11
-    target_link_libraries(cpptranslate stdc++fs)
-endif()

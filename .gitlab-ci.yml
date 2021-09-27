@@ -123,7 +123,7 @@ cxx_binary_tests:
     - cd src/runtime/tests
     - CXXFLAGS="-Werror" cmake .
     - make
-    - ctest
+    - ctest --output-on-failure
     - cd ../../..
 
     - cd integration_tests
@@ -132,21 +132,21 @@ cxx_binary_tests:
     - cd build-gfortran
     - FC=gfortran cmake ..
     - make
-    - ctest -L gfortran
+    - ctest -L gfortran --output-on-failure
     - cd ..
 
     - mkdir build-lfortran-llvm
     - cd build-lfortran-llvm
     - FC=../../src/bin/lfortran cmake -DLFORTRAN_BACKEND=llvm ..
     - make
-    - ctest -L llvm
+    - ctest -L llvm --output-on-failure
     - cd ..
 
     - mkdir build-lfortran-x86
     - cd build-lfortran-x86
     - FC=../../src/bin/lfortran cmake -DLFORTRAN_BACKEND=x86 ..
     - make
-    - ctest -L x86
+    - ctest -L x86 --output-on-failure
     - cd ..
 
     - mkdir build-lfortran-cpp
@@ -164,7 +164,7 @@ cxx_binary_tests:
     - cd ..
     - FC=../../src/bin/lfortran FFLAGS="--openmp" cmake -DLFORTRAN_BACKEND=cpp ..
     - make
-    - ctest -L cpp
+    - ctest -L cpp --output-on-failure
     - cd ../..
 
     - cd examples/project1
@@ -187,7 +187,7 @@ cxx_binary_tests:
 # Test Jupyter Kernel
 jupyter_kernel:
   stage: build
-  image: registry.gitlab.com/lfortran/ci-images:full3-1.10.0
+  image: registry.gitlab.com/lfortran/ci-images:full3-1.11.0
   script:
     - export CONDA_PREFIX="$HOME/conda_root"
     - export PATH="$HOME/conda_root/bin:$PATH"
@@ -201,7 +201,7 @@ jupyter_kernel:
          .
     - make
     - make install
-    - ctest
+    - ctest --output-on-failure
     - cd ..
     - jupyter kernelspec list --json
     - python ci/test_fortran_kernel.py -v
@@ -257,7 +257,7 @@ build.xsh:
     - export PATH="$HOME/conda_root/bin:$PATH"
     - sudo apt-get update
     - sudo apt-get install -yq --no-install-recommends zlib1g-dev git
-    - conda install -c conda-forge llvmdev=11.0.1 toml pytest jupyter xeus xtl nlohmann_json cppzmq jupyter_kernel_test
+    - conda install -c conda-forge llvmdev=11.0.1 toml pytest jupyter xeus=1.0.1 xtl nlohmann_json cppzmq jupyter_kernel_test
     - export LFORTRAN_CMAKE_GENERATOR="Unix Makefiles"
     - export WIN=0
     - export MACOS=0
@@ -267,13 +267,14 @@ build.xsh:
 # Build and upload documentation
 documentation:
   stage: build
-  image: registry.gitlab.com/lfortran/ci-images:full3-1.10.0
+  image: registry.gitlab.com/lfortran/ci-images:full3-1.11.0
   script:
     - sudo apt-get update
     - sudo apt-get install -yq --no-install-recommends openssh-client git
     - export CONDA_PREFIX="$HOME/conda_root"
     - export PATH="$HOME/conda_root/bin:$PATH"
     - conda install -c conda-forge nbconvert=5.6.0 mkdocs
+    - pip install mkdocs-material
     - tar xzf dist/lfortran-*.tar.gz
     - cd lfortran-*
     - CXXFLAGS="-Werror" cmake
@@ -285,7 +286,7 @@ documentation:
          .
     - make
     - make install
-    - ctest
+    - ctest --output-on-failure
     - cd ..
     - jupyter kernelspec list --json
     - rm -r lfortran-*
