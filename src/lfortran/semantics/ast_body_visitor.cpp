@@ -78,6 +78,15 @@ private:
         {AST::operatorType::Add, "~add"},
     };
 
+    std::map<AST::cmpopType, std::string> cmpop2str = {
+        {AST::cmpopType::Eq, "~eq"},
+        {AST::cmpopType::NotEq, "~noteq"},
+        {AST::cmpopType::Lt, "~lt"},
+        {AST::cmpopType::LtE, "~lte"},
+        {AST::cmpopType::Gt, "~gt"},
+        {AST::cmpopType::GtE, "~gte"}
+    };
+
 public:
     Allocator &al;
     ASR::asr_t *asr, *tmp;
@@ -824,6 +833,18 @@ public:
     void visit_Assignment(const AST::Assignment_t &x) {
         this->visit_expr(*x.m_target);
         ASR::expr_t *target = LFortran::ASRUtils::EXPR(tmp);
+        this->visit_expr(*x.m_value);
+        ASR::expr_t *value = LFortran::ASRUtils::EXPR(tmp);
+        ASR::expr_t *overloaded_expr = nullptr;
+        ASR::stmt_t *overloaded_stmt = nullptr;
+        if( LFortran::ASRUtils::use_overloaded_assignment(target, value,
+            current_scope, asr, al, x.base.base.loc) ) {
+            if( asr->type == ASR::asrType::expr ) {
+                overloaded_expr = LFortran::ASRUtils::EXPR(asr);
+            } else if( asr->type == ASR::asrType::stmt ) {
+                overloaded_stmt = LFortran::ASRUtils::STMT(asr);
+            }
+        }
         ASR::ttype_t *target_type = LFortran::ASRUtils::expr_type(target);
         if( target->type != ASR::exprType::Var &&
             target->type != ASR::exprType::ArrayRef &&
@@ -834,8 +855,6 @@ public:
                 x.base.base.loc
             );
         }
-        this->visit_expr(*x.m_value);
-        ASR::expr_t *value = LFortran::ASRUtils::EXPR(tmp);
         ASR::ttype_t *value_type = LFortran::ASRUtils::expr_type(value);
         if( target->type == ASR::exprType::Var && !ASRUtils::is_array(target_type) &&
             value->type == ASR::exprType::ConstantArray ) {
@@ -848,7 +867,7 @@ public:
                                                     value_type, target_type);
 
         }
-        tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value);
+        tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value, overloaded_expr, overloaded_stmt);
     }
 
     Vec<ASR::expr_t*> visit_expr_list(AST::fnarg_t *ast_list, size_t n) {
@@ -1042,7 +1061,7 @@ public:
         ASR::expr_t *left = LFortran::ASRUtils::EXPR(tmp);
         this->visit_expr(*x.m_right);
         ASR::expr_t *right = LFortran::ASRUtils::EXPR(tmp);
-        CommonVisitorMethods::visit_Compare(al, x, left, right, tmp);
+        CommonVisitorMethods::visit_Compare(al, x, left, right, tmp, cmpop2str[x.m_op], current_scope);
     }
 
     void visit_BoolOp(const AST::BoolOp_t &x) {

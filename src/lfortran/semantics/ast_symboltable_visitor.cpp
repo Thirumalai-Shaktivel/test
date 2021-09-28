@@ -99,6 +99,7 @@ public:
     SymbolTable *global_scope;
     std::map<std::string, std::vector<std::string>> generic_procedures;
     std::map<AST::intrinsicopType, std::vector<std::string>> overloaded_op_procs;
+    std::vector<std::string> assgn_proc_names;
     std::map<std::string, std::map<std::string, std::string>> class_procedures;
     std::string dt_name;
     ASR::accessType dflt_access = ASR::Public;
@@ -113,10 +114,26 @@ public:
     std::vector<std::string> current_procedure_args;
     ASR::abiType current_procedure_abi_type = ASR::abiType::Source;
     std::map<SymbolTable*, std::map<AST::decl_attribute_t*, AST::simple_attributeType>> overloaded_ops;
+    std::map<SymbolTable*, std::map<AST::decl_attribute_t*, AST::simple_attributeType>> assgn;
 
     std::map<AST::intrinsicopType, std::string> intrinsic2str = {
         {AST::intrinsicopType::STAR, "~mul"},
         {AST::intrinsicopType::PLUS, "~add"},
+        {AST::intrinsicopType::EQ, "~eq"},
+        {AST::intrinsicopType::NOTEQ, "~noteq"},
+        {AST::intrinsicopType::LT, "~lt"},
+        {AST::intrinsicopType::LTE, "~lte"},
+        {AST::intrinsicopType::GT, "~gt"},
+        {AST::intrinsicopType::GTE, "~gte"}
+    };
+
+    std::map<AST::cmpopType, std::string> cmpop2str = {
+        {AST::cmpopType::Eq, "~eq"},
+        {AST::cmpopType::NotEq, "~noteq"},
+        {AST::cmpopType::Lt, "~lt"},
+        {AST::cmpopType::LtE, "~lte"},
+        {AST::cmpopType::Gt, "~gt"},
+        {AST::cmpopType::GtE, "~gte"}
     };
 
     std::map<AST::operatorType, std::string> binop2str = {
@@ -172,6 +189,7 @@ public:
         add_generic_procedures();
         add_overloaded_procedures();
         add_class_procedures();
+        add_assignment_procedures();
         asr = ASR::make_Module_t(
             al, x.base.base.loc,
             /* a_symtab */ current_scope,
@@ -491,7 +509,7 @@ public:
         ASR::expr_t *left = LFortran::ASRUtils::EXPR(asr);
         this->visit_expr(*x.m_right);
         ASR::expr_t *right = LFortran::ASRUtils::EXPR(asr);
-        CommonVisitorMethods::visit_Compare(al, x, left, right, asr);
+        CommonVisitorMethods::visit_Compare(al, x, left, right, asr, cmpop2str[x.m_op], current_scope);
     }
 
     void visit_BinOp(const AST::BinOp_t &x) {
@@ -639,6 +657,15 @@ public:
                                 } else {
                                     overloaded_ops[current_scope][s.m_spec] = sa->m_attr;
                                 }
+                        } else if( s.m_name == nullptr &&
+                                   s.m_spec->type == AST::decl_attributeType::AttrAssignment ) {
+                            // Assignment Overloading Encountered
+                            if( sa->m_attr != AST::simple_attributeType::AttrPublic &&
+                                sa->m_attr != AST::simple_attributeType::AttrPrivate ) {
+                                assgn[current_scope][s.m_spec] = AST::simple_attributeType::AttrPublic;
+                            } else {
+                                assgn[current_scope][s.m_spec] = sa->m_attr;
+                            }
                         } else {
                             std::string sym = to_lower(s.m_name);
                             if (sa->m_attr == AST::simple_attributeType
@@ -1352,6 +1379,8 @@ public:
             std::vector<std::string> proc_names;
             fill_interface_proc_names(x, proc_names);
             overloaded_op_procs[opType] = proc_names;
+        } else if (AST::is_a<AST::InterfaceHeaderAssignment_t>(*x.m_header)) {
+            fill_interface_proc_names(x, assgn_proc_names);
         } else {
             throw SemanticError("Interface type not imlemented yet", x.base.base.loc);
         }
@@ -1381,6 +1410,29 @@ public:
                                 generic_name, symbols.p, symbols.size(), ASR::Public);
             current_scope->scope[intrinsic2str[proc.first]] = ASR::down_cast<ASR::symbol_t>(v);
         }
+        overloaded_op_procs.clear();
+    }
+
+    void add_assignment_procedures() {
+        Location loc;
+        loc.first_line = 1;
+        loc.last_line = 1;
+        loc.first_column = 1;
+        loc.last_column = 1;
+        std::string str_name = "=";
+        Vec<ASR::symbol_t*> symbols;
+        symbols.reserve(al, assgn_proc_names.size());
+        for (auto &pname : assgn_proc_names) {
+            ASR::symbol_t *x;
+            Str s;
+            s.from_str_view(pname);
+            char *name = s.c_str(al);
+            x = resolve_symbol(loc, name);
+            symbols.push_back(al, x);
+        }
+        ASR::asr_t *v = ASR::make_CustomAssignment_t(al, loc, current_scope,
+                            symbols.p, symbols.size(), ASR::Public);
+        current_scope->scope[str_name] = ASR::down_cast<ASR::symbol_t>(v);
         overloaded_op_procs.clear();
     }
 
@@ -1507,6 +1559,19 @@ public:
                         dflt_access
                         );
                     std::string sym = to_lower(gp->m_name);
+                    current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(ep);
+                } else if (ASR::is_a<ASR::CustomAssignment_t>(*item.second)) {
+                    ASR::CustomAssignment_t *ca = ASR::down_cast<
+                        ASR::CustomAssignment_t>(item.second);
+                    ASR::asr_t *ep = ASR::make_ExternalSymbol_t(
+                        al, ca->base.base.loc,
+                        current_scope,
+                        /* a_name */ (char*) "=",
+                        (ASR::symbol_t*)ca,
+                        m->m_name, nullptr, 0, (char*) "=",
+                        dflt_access
+                        );
+                    std::string sym = "=";
                     current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(ep);
                 } else if (ASR::is_a<ASR::Variable_t>(*item.second)) {
                     ASR::Variable_t *mvar = ASR::down_cast<ASR::Variable_t>(item.second);
