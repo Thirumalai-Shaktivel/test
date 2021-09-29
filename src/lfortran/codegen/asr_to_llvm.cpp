@@ -2608,6 +2608,7 @@ public:
         }
         llvm::BasicBlock *target = llvm_goto_targets[x.m_target_id];
         builder->CreateBr(target);
+        // TODO: if there are statements that follow this one, we have to start a new block
     }
 
     void visit_GoToTarget(const ASR::GoToTarget_t &x) {
