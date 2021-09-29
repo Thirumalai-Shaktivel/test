@@ -2,7 +2,7 @@
 module test_m
     implicit none
 
-    type A_t
+    type :: A_t
     contains
         procedure :: f_int
         procedure :: f_real
@@ -26,7 +26,7 @@ contains
 end module
 
 program main
-    use test_m
+    use test_m, only: A_t
     implicit none
     type(A_t) :: A
 
