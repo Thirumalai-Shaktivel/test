@@ -35,7 +35,6 @@ FortranEvaluator::FortranEvaluator(CompilerOptions compiler_options)
     al{1024*1024},
 #ifdef HAVE_LFORTRAN_LLVM
     e{std::make_unique<LLVMEvaluator>()},
-    platform{compiler_options.platform},
     eval_count{0},
 #endif
     compiler_options{compiler_options},
@@ -88,7 +87,7 @@ Result<FortranEvaluator::EvalResult> FortranEvaluator::evaluate(
 
         // ASR -> LLVM
         std::unique_ptr<LFortran::LLVMModule> m;
-        m = LFortran::asr_to_llvm(*asr, e->get_context(), al, platform, run_fn);
+        m = LFortran::asr_to_llvm(*asr, e->get_context(), al, compiler_options.platform, run_fn);
 
         if (verbose) {
             result.llvm_ir = m->str();
@@ -215,7 +214,7 @@ Result<AST::TranslationUnit_t*> FortranEvaluator::get_ast2(
 
 Result<std::string> FortranEvaluator::get_asr(const std::string &code)
 {
-    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, false);
+    Result<ASR::TranslationUnit_t*> asr = get_asr2(code);
     if (asr.ok) {
         return LFortran::pickle(*asr.result, true);
     } else {
@@ -224,7 +223,7 @@ Result<std::string> FortranEvaluator::get_asr(const std::string &code)
 }
 
 Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr2(
-            const std::string &code_orig, bool fixed_form)
+            const std::string &code_orig)
 {
     ASR::TranslationUnit_t* asr;
     try {
@@ -232,7 +231,7 @@ Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr2(
         AST::TranslationUnit_t* ast;
         LFortran::LocationManager lm;
         std::string code = LFortran::fix_continuation(code_orig, lm,
-                fixed_form);
+            compiler_options.fixed_form);
         ast = parse(al, code);
 
         // AST -> ASR
@@ -314,7 +313,7 @@ Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm2(
     )
 {
 #ifdef HAVE_LFORTRAN_LLVM
-    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, false);
+    Result<ASR::TranslationUnit_t*> asr = get_asr2(code);
     if (!asr.ok) {
         return asr.error;
     }
@@ -325,7 +324,7 @@ Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm2(
     // ASR -> LLVM
     std::unique_ptr<LFortran::LLVMModule> m;
     try {
-        m = LFortran::asr_to_llvm(*asr.result, e->get_context(), al, platform,
+        m = LFortran::asr_to_llvm(*asr.result, e->get_context(), al, compiler_options.platform,
             run_fn);
     } catch (const CodeGenError &e) {
         FortranEvaluator::Error error;
@@ -370,7 +369,7 @@ Result<std::string> FortranEvaluator::get_cpp(const std::string &code)
     // Src -> AST -> ASR
     SymbolTable *old_symbol_table = symbol_table;
     symbol_table = nullptr;
-    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, false);
+    Result<ASR::TranslationUnit_t*> asr = get_asr2(code);
     symbol_table = old_symbol_table;
     if (asr.ok) {
         // ASR -> C++
