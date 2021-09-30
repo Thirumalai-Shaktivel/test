@@ -449,28 +449,26 @@ int format(const std::string &file, bool inplace, bool color, int indent,
     return 0;
 }
 
-int python_wrapper(const std::string &infile, std::string array_order)
+int python_wrapper(const std::string &infile, std::string array_order,
+    CompilerOptions &compiler_options)
 {
 
     bool c_order = (0==array_order.compare("c"));
 
     std::string input = read_file(infile);
 
-    // Src -> AST
-    Allocator al(64*1024*1024);
-    LFortran::AST::TranslationUnit_t* ast;
-    try {
-        ast = LFortran::parse2(al, input);
-    } catch (const LFortran::TokenizerError &e) {
-        std::cerr << "Tokenizing error: " << e.msg() << std::endl;
-        return 1;
-    } catch (const LFortran::ParserError &e) {
-        std::cerr << "Parsing error: " << e.msg() << std::endl;
-        return 2;
-    }
+    LFortran::FortranEvaluator fe(compiler_options);
+    LFortran::ASR::TranslationUnit_t* asr;
 
-    // AST -> ASR
-    LFortran::ASR::TranslationUnit_t* asr = LFortran::ast_to_asr(al, *ast);
+    // Src -> AST -> ASR
+    LFortran::FortranEvaluator::Result<LFortran::ASR::TranslationUnit_t*>
+        result = fe.get_asr2(input, compiler_options.fixed_form);
+    if (result.ok) {
+        asr = result.result;
+    } else {
+        std::cerr << fe.format_error(result.error, input);
+        return 1;
+    }
 
     // figure out pyx and pxd filenames
     auto prefix = infile.substr(0,infile.rfind('.'));
@@ -621,13 +619,13 @@ int save_mod_files(const LFortran::ASR::TranslationUnit_t &u)
 
 #ifdef HAVE_LFORTRAN_LLVM
 
-int emit_llvm(const std::string &infile, bool fast, CompilerOptions &compiler_options)
+int emit_llvm(const std::string &infile, CompilerOptions &compiler_options)
 {
     std::string input = read_file(infile);
 
     LFortran::FortranEvaluator fe(compiler_options);
     LFortran::FortranEvaluator::Result<std::string> llvm
-        = fe.get_llvm(input, fast);
+        = fe.get_llvm(input);
     if (llvm.ok) {
         std::cout << llvm.result;
         return 0;
@@ -637,12 +635,12 @@ int emit_llvm(const std::string &infile, bool fast, CompilerOptions &compiler_op
     }
 }
 
-int emit_asm(const std::string &infile, bool fast, CompilerOptions &compiler_options)
+int emit_asm(const std::string &infile, CompilerOptions &compiler_options)
 {
     std::string input = read_file(infile);
 
     LFortran::FortranEvaluator fe(compiler_options);
-    LFortran::FortranEvaluator::Result<std::string> r = fe.get_asm(input, fast);
+    LFortran::FortranEvaluator::Result<std::string> r = fe.get_asm(input);
     if (r.ok) {
         std::cout << r.result;
         return 0;
@@ -656,8 +654,7 @@ int compile_to_object_file(const std::string &infile,
         const std::string &outfile,
         LFortran::Platform platform,
         bool assembly,
-        CompilerOptions &compiler_options, const std::string &target,
-        bool fast)
+        CompilerOptions &compiler_options, const std::string &target)
 {
     std::string input = read_file(infile);
 
@@ -708,7 +705,7 @@ int compile_to_object_file(const std::string &infile,
         return 5;
     }
 
-    if (fast) {
+    if (compiler_options.fast) {
         e.opt(*m->m_m);
     }
 
@@ -723,11 +720,10 @@ int compile_to_object_file(const std::string &infile,
 }
 
 int compile_to_assembly_file(const std::string &infile,
-    const std::string &outfile, LFortran::Platform platform, CompilerOptions &compiler_options,
-    bool fast)
+    const std::string &outfile, LFortran::Platform platform, CompilerOptions &compiler_options)
 {
     return compile_to_object_file(infile, outfile, platform, true,
-        compiler_options, "", fast);
+        compiler_options, "");
 }
 #endif
 
@@ -808,25 +804,22 @@ int compile_to_object_file_cpp(const std::string &infile,
         const std::string &outfile,
         bool assembly, bool kokkos, bool openmp,
         LFortran::Platform platform,
-        CompilerOptions &/*compiler_options*/)
+        CompilerOptions &compiler_options)
 {
     std::string input = read_file(infile);
 
-    // Src -> AST
-    Allocator al(64*1024*1024);
-    LFortran::AST::TranslationUnit_t* ast;
-    try {
-        ast = LFortran::parse2(al, input);
-    } catch (const LFortran::TokenizerError &e) {
-        std::cerr << "Tokenizing error: " << e.msg() << std::endl;
-        return 1;
-    } catch (const LFortran::ParserError &e) {
-        std::cerr << "Parsing error: " << e.msg() << std::endl;
-        return 2;
-    }
+    LFortran::FortranEvaluator fe(compiler_options);
+    LFortran::ASR::TranslationUnit_t* asr;
 
-    // AST -> ASR
-    LFortran::ASR::TranslationUnit_t* asr = LFortran::ast_to_asr(al, *ast);
+    // Src -> AST -> ASR
+    LFortran::FortranEvaluator::Result<LFortran::ASR::TranslationUnit_t*>
+        result = fe.get_asr2(input, compiler_options.fixed_form);
+    if (result.ok) {
+        asr = result.result;
+    } else {
+        std::cerr << fe.format_error(result.error, input);
+        return 1;
+    }
 
     // Save .mod files
     {
@@ -1115,7 +1108,6 @@ int main(int argc, char *argv[])
         std::string arg_pywrap_array_order="f";
 
         bool openmp = false;
-        bool fast = false;
 
         CompilerOptions compiler_options;
 
@@ -1155,7 +1147,7 @@ int main(int argc, char *argv[])
         app.add_flag("--static", static_link, "Create a static executable");
         app.add_option("--backend", arg_backend, "Select a backend (llvm, cpp, x86)")->capture_default_str();
         app.add_flag("--openmp", openmp, "Enable openmp");
-        app.add_flag("--fast", fast, "Best performance (disable strict standard compliance)");
+        app.add_flag("--fast", compiler_options.fast, "Best performance (disable strict standard compliance)");
         app.add_option("--target", arg_target, "Generate code for the given target")->capture_default_str();
         app.add_flag("--print-targets", print_targets, "Print the registered targets");
 
@@ -1247,7 +1239,8 @@ int main(int argc, char *argv[])
         }
 
         if (pywrap) {
-            return python_wrapper(arg_pywrap_file, arg_pywrap_array_order);
+            return python_wrapper(arg_pywrap_file, arg_pywrap_array_order,
+                compiler_options);
         }
 
         if (arg_backend == "llvm") {
@@ -1366,7 +1359,7 @@ int main(int argc, char *argv[])
         }
         if (show_llvm) {
 #ifdef HAVE_LFORTRAN_LLVM
-            return emit_llvm(arg_file, fast, compiler_options);
+            return emit_llvm(arg_file, compiler_options);
 #else
             std::cerr << "The --show-llvm option requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
             return 1;
@@ -1374,7 +1367,7 @@ int main(int argc, char *argv[])
         }
         if (show_asm) {
 #ifdef HAVE_LFORTRAN_LLVM
-            return emit_asm(arg_file, fast, compiler_options);
+            return emit_asm(arg_file, compiler_options);
 #else
             std::cerr << "The --show-asm option requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
             return 1;
@@ -1387,7 +1380,7 @@ int main(int argc, char *argv[])
             if (backend == Backend::llvm) {
 #ifdef HAVE_LFORTRAN_LLVM
                 return compile_to_assembly_file(arg_file, outfile, platform,
-                        compiler_options, fast);
+                        compiler_options);
 #else
                 std::cerr << "The -S option requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
                 return 1;
@@ -1403,7 +1396,7 @@ int main(int argc, char *argv[])
             if (backend == Backend::llvm) {
 #ifdef HAVE_LFORTRAN_LLVM
                 return compile_to_object_file(arg_file, outfile, platform, false,
-                    compiler_options, arg_target, fast);
+                    compiler_options, arg_target);
 #else
                 std::cerr << "The -c option requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
                 return 1;
@@ -1428,7 +1421,7 @@ int main(int argc, char *argv[])
             if (backend == Backend::llvm) {
 #ifdef HAVE_LFORTRAN_LLVM
                 err = compile_to_object_file(arg_file, tmp_o, platform, false,
-                    compiler_options, arg_target, fast);
+                    compiler_options, arg_target);
 #else
                 std::cerr << "Compiling Fortran files to object files requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
                 return 1;
