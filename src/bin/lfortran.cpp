@@ -449,28 +449,26 @@ int format(const std::string &file, bool inplace, bool color, int indent,
     return 0;
 }
 
-int python_wrapper(const std::string &infile, std::string array_order)
+int python_wrapper(const std::string &infile, std::string array_order,
+    CompilerOptions &compiler_options)
 {
 
     bool c_order = (0==array_order.compare("c"));
 
     std::string input = read_file(infile);
 
-    // Src -> AST
-    Allocator al(64*1024*1024);
-    LFortran::AST::TranslationUnit_t* ast;
-    try {
-        ast = LFortran::parse2(al, input);
-    } catch (const LFortran::TokenizerError &e) {
-        std::cerr << "Tokenizing error: " << e.msg() << std::endl;
-        return 1;
-    } catch (const LFortran::ParserError &e) {
-        std::cerr << "Parsing error: " << e.msg() << std::endl;
-        return 2;
-    }
+    LFortran::FortranEvaluator fe(compiler_options);
+    LFortran::ASR::TranslationUnit_t* asr;
 
-    // AST -> ASR
-    LFortran::ASR::TranslationUnit_t* asr = LFortran::ast_to_asr(al, *ast);
+    // Src -> AST -> ASR
+    LFortran::FortranEvaluator::Result<LFortran::ASR::TranslationUnit_t*>
+        result = fe.get_asr2(input, compiler_options.fixed_form);
+    if (result.ok) {
+        asr = result.result;
+    } else {
+        std::cerr << fe.format_error(result.error, input);
+        return 1;
+    }
 
     // figure out pyx and pxd filenames
     auto prefix = infile.substr(0,infile.rfind('.'));
@@ -654,9 +652,8 @@ int emit_asm(const std::string &infile, CompilerOptions &compiler_options)
 
 int compile_to_object_file(const std::string &infile,
         const std::string &outfile,
-        LFortran::Platform platform,
         bool assembly,
-        CompilerOptions &compiler_options, const std::string &target)
+        CompilerOptions &compiler_options)
 {
     std::string input = read_file(infile);
 
@@ -681,7 +678,7 @@ int compile_to_object_file(const std::string &infile,
     }
 
     // ASR -> LLVM
-    LFortran::LLVMEvaluator e(target);
+    LFortran::LLVMEvaluator e(compiler_options.target);
 
     if (!LFortran::ASRUtils::main_program_present(*asr)) {
         // Create an empty object file (things will be actually
@@ -695,7 +692,7 @@ int compile_to_object_file(const std::string &infile,
     std::unique_ptr<LFortran::LLVMModule> m;
     Allocator al(64*1024*1024);
     try {
-        m = LFortran::asr_to_llvm(*asr, e.get_context(), al, platform);
+        m = LFortran::asr_to_llvm(*asr, e.get_context(), al, compiler_options.platform);
     } catch (const LFortran::CodeGenError &e) {
         if (compiler_options.show_stacktrace) {
             std::vector<LFortran::StacktraceItem> d = e.stacktrace_addresses();
@@ -722,10 +719,9 @@ int compile_to_object_file(const std::string &infile,
 }
 
 int compile_to_assembly_file(const std::string &infile,
-    const std::string &outfile, LFortran::Platform platform, CompilerOptions &compiler_options)
+    const std::string &outfile, CompilerOptions &compiler_options)
 {
-    return compile_to_object_file(infile, outfile, platform, true,
-        compiler_options, "");
+    return compile_to_object_file(infile, outfile, true, compiler_options);
 }
 #endif
 
@@ -804,27 +800,23 @@ int compile_to_binary_x86(const std::string &infile, const std::string &outfile,
 
 int compile_to_object_file_cpp(const std::string &infile,
         const std::string &outfile,
-        bool assembly, bool kokkos, bool openmp,
-        LFortran::Platform platform,
-        CompilerOptions &/*compiler_options*/)
+        bool assembly, bool kokkos,
+        CompilerOptions &compiler_options)
 {
     std::string input = read_file(infile);
 
-    // Src -> AST
-    Allocator al(64*1024*1024);
-    LFortran::AST::TranslationUnit_t* ast;
-    try {
-        ast = LFortran::parse2(al, input);
-    } catch (const LFortran::TokenizerError &e) {
-        std::cerr << "Tokenizing error: " << e.msg() << std::endl;
-        return 1;
-    } catch (const LFortran::ParserError &e) {
-        std::cerr << "Parsing error: " << e.msg() << std::endl;
-        return 2;
-    }
+    LFortran::FortranEvaluator fe(compiler_options);
+    LFortran::ASR::TranslationUnit_t* asr;
 
-    // AST -> ASR
-    LFortran::ASR::TranslationUnit_t* asr = LFortran::ast_to_asr(al, *ast);
+    // Src -> AST -> ASR
+    LFortran::FortranEvaluator::Result<LFortran::ASR::TranslationUnit_t*>
+        result = fe.get_asr2(input, compiler_options.fixed_form);
+    if (result.ok) {
+        asr = result.result;
+    } else {
+        std::cerr << fe.format_error(result.error, input);
+        return 1;
+    }
 
     // Save .mod files
     {
@@ -835,7 +827,7 @@ int compile_to_object_file_cpp(const std::string &infile,
     if (!LFortran::ASRUtils::main_program_present(*asr)) {
         // Create an empty object file (things will be actually
         // compiled and linked when the main program is present):
-        if (platform == LFortran::Platform::Windows) {
+        if (compiler_options.platform == LFortran::Platform::Windows) {
             {
                 std::ofstream out;
                 out.open(outfile);
@@ -883,7 +875,7 @@ int compile_to_object_file_cpp(const std::string &infile,
 
         std::string CXX = "g++";
         std::string options;
-        if (openmp) {
+        if (compiler_options.openmp) {
             options += "-fopenmp ";
         }
         if (kokkos) {
@@ -906,7 +898,8 @@ int compile_to_object_file_cpp(const std::string &infile,
 int link_executable(const std::vector<std::string> &infiles,
     const std::string &outfile,
     const std::string &runtime_library_dir, Backend backend,
-    bool static_executable, bool kokkos, bool openmp, LFortran::Platform platform, const std::string &target)
+    bool static_executable, bool kokkos,
+    CompilerOptions &compiler_options)
 {
     /*
     The `gcc` line for dynamic linking that is constructed below:
@@ -964,9 +957,9 @@ int link_executable(const std::vector<std::string> &infiles,
     */
 
 #ifdef HAVE_LFORTRAN_LLVM
-    std::string t = (target == "") ? LFortran::LLVMEvaluator::get_default_target_triple() : target;
+    std::string t = (compiler_options.target == "") ? LFortran::LLVMEvaluator::get_default_target_triple() : compiler_options.target;
 #else
-    std::string t = (platform == LFortran::Platform::Windows) ? "x86_64-pc-windows-msvc" : target;
+    std::string t = (compiler_options.platform == LFortran::Platform::Windows) ? "x86_64-pc-windows-msvc" : compiler_options.target;
 #endif
 
     if (backend == Backend::llvm) {
@@ -983,7 +976,7 @@ int link_executable(const std::vector<std::string> &infiles,
             }
         } else {
             std::string CC;
-            if (platform == LFortran::Platform::macOS) {
+            if (compiler_options.platform == LFortran::Platform::macOS) {
                 CC = "clang";
             } else {
                 CC = "gcc";
@@ -994,7 +987,7 @@ int link_executable(const std::vector<std::string> &infiles,
             std::string options;
             std::string runtime_lib = "lfortran_runtime";
             if (static_executable) {
-                if (platform != LFortran::Platform::macOS) {
+                if (compiler_options.platform != LFortran::Platform::macOS) {
                     options += " -static ";
                 }
                 runtime_lib = "lfortran_runtime_static";
@@ -1018,7 +1011,7 @@ int link_executable(const std::vector<std::string> &infiles,
         if (static_executable) {
             options += " -static ";
         }
-        if (openmp) {
+        if (compiler_options.openmp) {
             options += " -fopenmp ";
         }
         if (kokkos) {
@@ -1065,7 +1058,6 @@ int main(int argc, char *argv[])
 
         std::string runtime_library_dir = LFortran::get_runtime_library_dir();
         Backend backend;
-        LFortran::Platform platform = LFortran::get_platform();
 
         bool arg_S = false;
         bool arg_c = false;
@@ -1095,7 +1087,6 @@ int main(int argc, char *argv[])
         bool static_link = false;
         std::string arg_backend = "llvm";
         std::string arg_kernel_f;
-        std::string arg_target = "";
         bool print_targets = false;
 
         std::string arg_fmt_file;
@@ -1111,8 +1102,6 @@ int main(int argc, char *argv[])
 
         std::string arg_pywrap_file;
         std::string arg_pywrap_array_order="f";
-
-        bool openmp = false;
 
         CompilerOptions compiler_options;
 
@@ -1151,9 +1140,9 @@ int main(int argc, char *argv[])
         app.add_flag("--time-report", time_report, "Show compilation time report");
         app.add_flag("--static", static_link, "Create a static executable");
         app.add_option("--backend", arg_backend, "Select a backend (llvm, cpp, x86)")->capture_default_str();
-        app.add_flag("--openmp", openmp, "Enable openmp");
+        app.add_flag("--openmp", compiler_options.openmp, "Enable openmp");
         app.add_flag("--fast", compiler_options.fast, "Best performance (disable strict standard compliance)");
-        app.add_option("--target", arg_target, "Generate code for the given target")->capture_default_str();
+        app.add_option("--target", compiler_options.target, "Generate code for the given target")->capture_default_str();
         app.add_flag("--print-targets", print_targets, "Print the registered targets");
 
         /*
@@ -1194,7 +1183,7 @@ int main(int argc, char *argv[])
             std::string version = LFORTRAN_VERSION;
             std::cout << "LFortran version: " << version << std::endl;
             std::cout << "Platform: ";
-            switch (platform) {
+            switch (compiler_options.platform) {
                 case (LFortran::Platform::Linux) : std::cout << "Linux"; break;
                 case (LFortran::Platform::macOS) : std::cout << "macOS"; break;
                 case (LFortran::Platform::Windows) : std::cout << "Windows"; break;
@@ -1244,7 +1233,8 @@ int main(int argc, char *argv[])
         }
 
         if (pywrap) {
-            return python_wrapper(arg_pywrap_file, arg_pywrap_array_order);
+            return python_wrapper(arg_pywrap_file, arg_pywrap_array_order,
+                compiler_options);
         }
 
         if (arg_backend == "llvm") {
@@ -1383,8 +1373,7 @@ int main(int argc, char *argv[])
         if (arg_S) {
             if (backend == Backend::llvm) {
 #ifdef HAVE_LFORTRAN_LLVM
-                return compile_to_assembly_file(arg_file, outfile, platform,
-                        compiler_options);
+                return compile_to_assembly_file(arg_file, outfile, compiler_options);
 #else
                 std::cerr << "The -S option requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
                 return 1;
@@ -1399,15 +1388,15 @@ int main(int argc, char *argv[])
         if (arg_c) {
             if (backend == Backend::llvm) {
 #ifdef HAVE_LFORTRAN_LLVM
-                return compile_to_object_file(arg_file, outfile, platform, false,
-                    compiler_options, arg_target);
+                return compile_to_object_file(arg_file, outfile, false,
+                    compiler_options);
 #else
                 std::cerr << "The -c option requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
                 return 1;
 #endif
             } else if (backend == Backend::cpp) {
                 return compile_to_object_file_cpp(arg_file, outfile, false,
-                        true, openmp, platform, compiler_options);
+                        true, compiler_options);
             } else if (backend == Backend::x86) {
                 return compile_to_binary_x86(arg_file, outfile, time_report, compiler_options);
             } else {
@@ -1424,24 +1413,24 @@ int main(int argc, char *argv[])
             int err;
             if (backend == Backend::llvm) {
 #ifdef HAVE_LFORTRAN_LLVM
-                err = compile_to_object_file(arg_file, tmp_o, platform, false,
-                    compiler_options, arg_target);
+                err = compile_to_object_file(arg_file, tmp_o, false,
+                    compiler_options);
 #else
                 std::cerr << "Compiling Fortran files to object files requires the LLVM backend to be enabled. Recompile with `WITH_LLVM=yes`." << std::endl;
                 return 1;
 #endif
             } else if (backend == Backend::cpp) {
                 err = compile_to_object_file_cpp(arg_file, tmp_o, false,
-                        true, openmp, platform, compiler_options);
+                        true, compiler_options);
             } else {
                 throw LFortran::LFortranException("Backend not supported");
             }
             if (err) return err;
             return link_executable({tmp_o}, outfile, runtime_library_dir,
-                    backend, static_link, true, openmp, platform, arg_target);
+                    backend, static_link, true, compiler_options);
         } else {
             return link_executable(arg_files, outfile, runtime_library_dir,
-                    backend, static_link, true, openmp, platform, arg_target);
+                    backend, static_link, true, compiler_options);
         }
     } catch(const LFortran::LFortranException &e) {
         std::vector<LFortran::StacktraceItem> d = e.stacktrace_addresses();
