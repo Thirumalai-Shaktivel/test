@@ -428,6 +428,10 @@ public:
             }
             std::map<std::string, ASR::symbol_t*> scope = der_type->m_symtab->scope;
             for( auto itr = scope.begin(); itr != scope.end(); itr++ ) {
+                if( itr->second->type != ASR::symbolType::Variable ) {
+                    // LLVM structure will only contain data members inside structure
+                    continue;
+                }
                 ASR::Variable_t* member = (ASR::Variable_t*)(&(itr->second->base));
                 llvm::Type* mem_type = nullptr;
                 switch( member->m_type->type ) {
@@ -3405,6 +3409,16 @@ public:
     }
 
     template <typename T>
+    inline void set_func_subrout_params(T* func_subrout, ASR::abiType& x_abi,
+                                        std::uint32_t& m_h, ASR::Variable_t*& orig_arg,
+                                        std::string& orig_arg_name, size_t arg_idx) {
+        m_h = get_hash((ASR::asr_t*)func_subrout);
+        orig_arg = EXPR2VAR(func_subrout->m_args[arg_idx]);
+        orig_arg_name = orig_arg->m_name;
+        x_abi = func_subrout->m_abi;
+    }
+
+    template <typename T>
     std::vector<llvm::Value*> convert_call_args(const T &x, std::string name) {
         std::vector<llvm::Value *> args;
         const ASR::symbol_t* func_subrout = symbol_get_past_external(x.m_name);
@@ -3415,6 +3429,9 @@ public:
         } else if( is_a<ASR::Subroutine_t>(*func_subrout) ) {
             ASR::Subroutine_t* sub = down_cast<ASR::Subroutine_t>(func_subrout);
             x_abi = sub->m_abi;
+        } else if( is_a<ASR::ClassProcedure_t>(*func_subrout) ) {
+            ASR::ClassProcedure_t* clss_proc = ASR::down_cast<ASR::ClassProcedure_t>(func_subrout);
+            x_abi = clss_proc->m_abi;
         }
         if( x_abi == ASR::abiType::Intrinsic ) {
             if( name == "size" ) {
@@ -3459,6 +3476,7 @@ public:
         }
         if( args.size() == 0 ) {
             for (size_t i=0; i<x.n_args; i++) {
+                // TODO: Extend the following logic for Constants as well.
                 if (x.m_args[i]->type == ASR::exprType::Var) {
                     if (is_a<ASR::Variable_t>(*symbol_get_past_external(
                             ASR::down_cast<ASR::Var_t>(x.m_args[i])->m_v))) {
@@ -3473,16 +3491,19 @@ public:
                             std::string orig_arg_name = "";
                             if( func_subrout->type == ASR::symbolType::Function ) {
                                 ASR::Function_t* func = down_cast<ASR::Function_t>(func_subrout);
-                                m_h = get_hash((ASR::asr_t*)func);
-                                orig_arg = EXPR2VAR(func->m_args[i]);
-                                orig_arg_name = orig_arg->m_name;
-                                x_abi = func->m_abi;
+                                set_func_subrout_params(func, x_abi, m_h, orig_arg, orig_arg_name, i);
                             } else if( func_subrout->type == ASR::symbolType::Subroutine ) {
                                 ASR::Subroutine_t* sub = down_cast<ASR::Subroutine_t>(func_subrout);
-                                m_h = get_hash((ASR::asr_t*)sub);
-                                orig_arg = EXPR2VAR(sub->m_args[i]);
-                                orig_arg_name = orig_arg->m_name;
-                                x_abi = sub->m_abi;
+                                set_func_subrout_params(sub, x_abi, m_h, orig_arg, orig_arg_name, i);
+                            } else if( func_subrout->type == ASR::symbolType::ClassProcedure ) {
+                                ASR::ClassProcedure_t* clss_proc = ASR::down_cast<ASR::ClassProcedure_t>(func_subrout);
+                                if( clss_proc->m_proc->type == ASR::symbolType::Subroutine ) {
+                                    ASR::Subroutine_t* sub = down_cast<ASR::Subroutine_t>(clss_proc->m_proc);
+                                    set_func_subrout_params(sub, x_abi, m_h, orig_arg, orig_arg_name, i);
+                                } else if( clss_proc->m_proc->type == ASR::symbolType::Function ) {
+                                    ASR::Function_t* func = down_cast<ASR::Function_t>(clss_proc->m_proc);
+                                    set_func_subrout_params(func, x_abi, m_h, orig_arg, orig_arg_name, i);
+                                }
                             } else {
                                 LFORTRAN_ASSERT(false)
                             }

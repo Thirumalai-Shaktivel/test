@@ -12,13 +12,13 @@ module test_m
 contains
 
     subroutine f_int( me, n )
-        class(A_t) :: me
+        type(A_t) :: me
         integer :: n
         print *, "f_int  : ", n
     end subroutine
 
     subroutine f_real( me, x )
-        class(A_t) :: me
+        type(A_t) :: me
         real :: x
         print *, "f_real :", x
     end subroutine
@@ -29,8 +29,10 @@ program main
     use test_m, only: A_t
     implicit none
     type(A_t) :: A
+    integer :: A_x = 100
+    real :: A_r = 1.23
 
-    call A % f( 100 )
-    call A % f( 1.23 )
+    call A % f( A_x )
+    call A % f( A_r )
 
 end
