@@ -621,6 +621,7 @@ public:
         {"len_trim", "lfortran_intrinsic_string"},
         {"trim", "lfortran_intrinsic_string"},
         {"iand", "lfortran_intrinsic_bit"},
+        {"ior", "lfortran_intrinsic_bit"},
     };
 
     std::map<AST::operatorType, std::string> binop2str = {
