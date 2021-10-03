@@ -48,8 +48,11 @@ struct IntrinsicProcedures {
             {"nint", {m_math2, &eval_nint, true}},
             {"mod", {m_math2, &eval_mod, true}},
             {"modulo", {m_math2, &eval_modulo, true}},
+            {"min", {m_math2, &eval_min, true}},
+            {"max", {m_math2, &eval_max, true}},
             {"selected_int_kind", {m_kind, &eval_selected_int_kind, true}},
             {"selected_real_kind", {m_kind, &eval_selected_real_kind, true}},
+            {"selected_char_kind", {m_kind, &eval_selected_char_kind, true}},
             {"exp", {m_math, &eval_exp, true}},
             {"log", {m_math, &eval_log, true}},
             {"erf", {m_math, &eval_erf, true}},
@@ -88,8 +91,6 @@ struct IntrinsicProcedures {
             {"len", {m_array, &not_implemented, false}},
             {"size", {m_array, &not_implemented, false}},
             {"present", {m_array, &not_implemented, false}},
-            {"min", {m_array, &not_implemented, false}},
-            {"max", {m_array, &not_implemented, false}},
             {"lbound", {m_array, &not_implemented, false}},
             {"ubound", {m_array, &not_implemented, false}},
             {"allocated", {"m_array", &not_implemented, false}},
@@ -424,6 +425,34 @@ struct IntrinsicProcedures {
             &IntrinsicProcedures::lfortran_mod_i);
     }
 
+    static double lfortran_min(double x, double y) {
+        return std::fmin(x, y);
+    }
+
+    static int64_t lfortran_min_i(int64_t x, int64_t y) {
+        return std::fmin(x, y);
+    }
+
+    static ASR::expr_t *eval_min(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        return eval_2args_ri(al, loc, args,
+            &IntrinsicProcedures::lfortran_min,
+            &IntrinsicProcedures::lfortran_min_i);
+    }
+
+    static double lfortran_max(double x, double y) {
+        return std::fmax(x, y);
+    }
+
+    static int64_t lfortran_max_i(int64_t x, int64_t y) {
+        return std::fmax(x, y);
+    }
+
+    static ASR::expr_t *eval_max(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        return eval_2args_ri(al, loc, args,
+            &IntrinsicProcedures::lfortran_max,
+            &IntrinsicProcedures::lfortran_max_i);
+    }
+
     static ASR::expr_t *eval_abs(Allocator &al, const Location &loc,
             Vec<ASR::expr_t*> &args
             ) {
@@ -520,9 +549,12 @@ struct IntrinsicProcedures {
             } else {
                 a_kind = 8;
             }
+            ASR::ttype_t *type = LFortran::ASRUtils::TYPE(
+                    ASR::make_Integer_t(al, loc,
+                        4, nullptr, 0));
             return ASR::down_cast<ASR::expr_t>(
                 ASR::make_ConstantInteger_t(al, loc,
-                a_kind, real_type));
+                a_kind, type));
         } else {
             throw SemanticError("integer_int_kind() must have one integer argument", loc);
         }
@@ -542,11 +574,28 @@ struct IntrinsicProcedures {
             } else {
                 a_kind = 8;
             }
+            ASR::ttype_t *type = LFortran::ASRUtils::TYPE(
+                    ASR::make_Integer_t(al, loc,
+                        4, nullptr, 0));
             return ASR::down_cast<ASR::expr_t>(
                 ASR::make_ConstantInteger_t(al, loc,
-                a_kind, real_type));
+                a_kind, type));
         } else {
             throw SemanticError("integer_real_kind() must have one integer argument", loc);
+        }
+    }
+    static ASR::expr_t *eval_selected_char_kind(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        LFORTRAN_ASSERT(ASRUtils::all_args_evaluated(args));
+        ASR::expr_t* real_expr = args[0];
+        ASR::ttype_t* real_type = LFortran::ASRUtils::expr_type(real_expr);
+        if (LFortran::ASR::is_a<LFortran::ASR::Character_t>(*real_type)) {
+            ASR::ttype_t *type = LFortran::ASRUtils::TYPE(
+                    ASR::make_Integer_t(al, loc,
+                        4, nullptr, 0));
+            return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, loc,
+                    1, type));
+        } else {
+            throw SemanticError("integer_char_kind() must have one character argument", loc);
         }
     }
 
