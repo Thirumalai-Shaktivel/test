@@ -1,9 +1,10 @@
 program expr2
 implicit none
 
-integer :: x
+integer :: x, y
 
-x = (2+3)*5
+y = 7
+x = (y+1)^(3+1)
 print *, x
 
 end program

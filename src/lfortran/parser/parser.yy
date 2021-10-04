@@ -77,6 +77,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %token TK_PLUS "+"
 %token TK_MINUS "-"
 %token TK_STAR "*"
+%token TK_CARET "^"
 %token TK_SLASH "/"
 %token TK_COLON ":"
 %token TK_SEMICOLON ";"
@@ -527,6 +528,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %left "//"
 %left "-" "+"
 %left "*" "/"
+%left "^"
 %precedence UMINUS
 %right "**"
 
@@ -2132,6 +2134,7 @@ expr
     | "-" expr %prec UMINUS { $$ = UNARY_MINUS($2, @$); }
     | "+" expr %prec UMINUS { $$ = UNARY_PLUS ($2, @$); }
     | expr "**" expr { $$ = POW($1, $3, @$); }
+    | expr "^" expr { $$ = CARET($1, $3, @$); }
 
 // ### level-3
     | expr "//" expr { $$ = STRCONCAT($1, $3, @$); }

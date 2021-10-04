@@ -651,6 +651,7 @@ static inline reduce_opType convert_id_to_reduce_type(
 #define UNARY_PLUS(x, l) make_UnaryOp_t(p.m_a, l, unaryopType::UAdd, EXPR(x))
 #define TRUE(l) make_Logical_t(p.m_a, l, true)
 #define FALSE(l) make_Logical_t(p.m_a, l, false)
+#define CARET(x, y, l) make_BinOp_t(p.m_a, l, EXPR(x), operatorType::Caret, EXPR(y))
 
 ast_t* parenthesis(Allocator &al, Location &loc, expr_t *op) {
     switch (op->type) {
