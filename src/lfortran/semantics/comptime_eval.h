@@ -45,6 +45,7 @@ struct IntrinsicProcedures {
             {"real", {m_array, &not_implemented, false}}, // Implemented separately
 
             // Require evaluated arguments
+            {"aimag", {m_math2, &eval_aimag, true}},
             {"char", {m_array, &eval_char, true}},
             {"floor", {m_math2, &eval_floor, true}},
             {"nint", {m_math2, &eval_nint, true}},
@@ -100,7 +101,6 @@ struct IntrinsicProcedures {
             {"minval", {m_array, &not_implemented, false}},
             {"maxval", {m_array, &not_implemented, false}},
             {"sum", {m_array, &not_implemented, false}},
-            {"aimag", {m_math2, &not_implemented, false}},
         };
     }
 
@@ -354,20 +354,15 @@ TRIG(asinh)
 TRIG(acosh)
 TRIG(atanh)
 
-    static ASR::expr_t *eval_exp(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
-        return eval_trig(al, loc, args, &exp, nullptr);
-    }
-    static ASR::expr_t *eval_log(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
-        return eval_trig(al, loc, args, &log, nullptr);
-    }
+TRIG(exp)
+TRIG(log)
+TRIG(sqrt)
+
     static ASR::expr_t *eval_erf(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
         return eval_trig(al, loc, args, &erf, nullptr);
     }
     static ASR::expr_t *eval_erfc(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
         return eval_trig(al, loc, args, &erfc, nullptr);
-    }
-    static ASR::expr_t *eval_sqrt(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
-        return eval_trig(al, loc, args, &sqrt, nullptr);
     }
     static ASR::expr_t *eval_gamma(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
         return eval_trig(al, loc, args, &tgamma, nullptr);
@@ -468,9 +463,34 @@ TRIG(atanh)
             int64_t val = abs(rv);
             return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, loc, val, t));
         } else if (LFortran::ASR::is_a<LFortran::ASR::Complex_t>(*t)) {
-            return nullptr;
+            ASR::expr_t *e_re = ASR::down_cast<ASR::ConstantComplex_t>(trig_arg)->m_re;
+            ASR::expr_t *e_im = ASR::down_cast<ASR::ConstantComplex_t>(trig_arg)->m_im;
+            double re = ASR::down_cast<ASR::ConstantReal_t>(e_re)->m_r;
+            double im = ASR::down_cast<ASR::ConstantReal_t>(e_im)->m_r;
+            std::complex<double> x(re, im);
+            double result = std::abs(x);
+            return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, loc, result, t));
         } else {
             throw SemanticError("Argument of the abs function must be Integer, Real or Complex", loc);
+        }
+    }
+
+    static ASR::expr_t *eval_aimag(Allocator &al, const Location &loc,
+            Vec<ASR::expr_t*> &args
+            ) {
+        LFORTRAN_ASSERT(ASRUtils::all_args_evaluated(args));
+        if (args.size() != 1) {
+            throw SemanticError("Intrinsic trig function accepts exactly 1 argument", loc);
+        }
+        ASR::expr_t* trig_arg = args[0];
+        ASR::ttype_t* t = LFortran::ASRUtils::expr_type(args[0]);
+        if (LFortran::ASR::is_a<LFortran::ASR::Complex_t>(*t)) {
+            ASR::expr_t *e_im = ASR::down_cast<ASR::ConstantComplex_t>(trig_arg)->m_im;
+            double im = ASR::down_cast<ASR::ConstantReal_t>(e_im)->m_r;
+            double result = im;
+            return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, loc, result, t));
+        } else {
+            throw SemanticError("Argument of the aimag() function must be Complex", loc);
         }
     }
 

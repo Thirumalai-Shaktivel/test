@@ -4,7 +4,7 @@ use, intrinsic :: iso_fortran_env, only: sp => real32, dp => real64
 implicit none
 
 interface abs
-    module procedure iabs, sabs, dabs
+    module procedure iabs, sabs, dabs, cabs, zabs
 end interface
 
 interface sqrt
@@ -70,6 +70,16 @@ else
 end if
 end function
 
+elemental real(sp) function cabs(x) result(r)
+complex(sp), intent(in) :: x
+r = 1.0
+end function
+
+elemental real(dp) function zabs(x) result(r)
+complex(dp), intent(in) :: x
+r = 1.0
+end function
+
 ! sqrt -------------------------------------------------------------------------
 
 elemental real(sp) function ssqrt(x) result(r)
@@ -94,16 +104,18 @@ end function
 
 elemental real(sp) function saimag(x) result(r)
 complex(sp), intent(in) :: x
+r = 3
 ! Uncomment once it is implemented
 !r = x%im
-error stop "aimag not implemented yet"
+!error stop "aimag not implemented yet"
 end function
 
 elemental real(dp) function daimag(x) result(r)
 complex(dp), intent(in) :: x
+r = 3
 ! Uncomment once it is implemented
 !r = x%im
-error stop "aimag not implemented yet"
+!error stop "aimag not implemented yet"
 end function
 
 ! floor ------------------------------------------------------------------------
