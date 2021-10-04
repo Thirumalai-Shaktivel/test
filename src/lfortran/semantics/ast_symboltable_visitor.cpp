@@ -192,6 +192,10 @@ public:
         add_class_procedures();
         add_assignment_procedures();
         add_generic_class_procedures();
+        generic_procedures.clear();
+        overloaded_op_procs.clear();
+        class_procedures.clear();
+        generic_class_procedures.clear();
         asr = ASR::make_Module_t(
             al, x.base.base.loc,
             /* a_symtab */ current_scope,
@@ -1412,10 +1416,12 @@ public:
                                 generic_name, symbols.p, symbols.size(), ASR::Public);
             current_scope->scope[intrinsic2str[proc.first]] = ASR::down_cast<ASR::symbol_t>(v);
         }
-        overloaded_op_procs.clear();
     }
 
     void add_assignment_procedures() {
+        if( assgn_proc_names.empty() ) {
+            return ;
+        }
         Location loc;
         loc.first_line = 1;
         loc.last_line = 1;
@@ -1435,10 +1441,12 @@ public:
         ASR::asr_t *v = ASR::make_CustomAssignment_t(al, loc, current_scope,
                             symbols.p, symbols.size(), ASR::Public);
         current_scope->scope[str_name] = ASR::down_cast<ASR::symbol_t>(v);
-        overloaded_op_procs.clear();
     }
 
     void add_generic_procedures() {
+        if( generic_procedures.empty() ) {
+            return ;
+        }
         for (auto &proc : generic_procedures) {
             Location loc;
             loc.first_line = 1;
@@ -1463,11 +1471,12 @@ public:
                 generic_name, symbols.p, symbols.size(), ASR::Public);
             current_scope->scope[proc.first] = ASR::down_cast<ASR::symbol_t>(v);
         }
-        generic_procedures.clear();
     }
 
     void add_generic_class_procedures() {
-        // std::map<std::string, std::map<std::string, std::vector<std::string>>>
+        if( generic_class_procedures.empty() ) {
+            return ;
+        }
         for (auto &proc : generic_class_procedures) {
             Location loc;
             loc.first_line = 1;
@@ -1496,10 +1505,12 @@ public:
                 clss->m_symtab->scope[pname.first] = cls_proc_sym;
             }
         }
-        generic_class_procedures.clear();
     }
 
     void add_class_procedures() {
+        if( class_procedures.empty() ) {
+            return ;
+        }
         for (auto &proc : class_procedures) {
             Location loc;
             loc.first_line = 1;
@@ -1522,7 +1533,6 @@ public:
                 clss->m_symtab->scope[pname.first] = cls_proc_sym;
             }
         }
-        class_procedures.clear();
     }
 
     void visit_Use(const AST::Use_t &x) {
