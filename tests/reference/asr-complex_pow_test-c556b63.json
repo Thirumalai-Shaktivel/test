@@ -6,7 +6,11 @@
     "outfile": null,
     "outfile_hash": null,
     "stdout": "asr-complex_pow_test-c556b63.stdout",
+<<<<<<< HEAD
     "stdout_hash": "f80927ca15e1b6dc20f0965a0d21d765705253ec6368bd1003c22848",
+=======
+    "stdout_hash": "c6b41aaf1b97cf1be65c676d5de9cdb4c9bb5f1e7c855cf3ca62a1d6",
+>>>>>>> master
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0

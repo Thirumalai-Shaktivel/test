@@ -6,7 +6,11 @@
     "outfile": null,
     "outfile_hash": null,
     "stdout": "asr-complex_div_test-21dab13.stdout",
+<<<<<<< HEAD
     "stdout_hash": "e5ebef4d0e3c74fb5dda1ead7656576229d41b0310ed8645d0091d05",
+=======
+    "stdout_hash": "15d01bf303b36d9bc6e18ae8cb694b7be2a7394a252f695c01a76110",
+>>>>>>> master
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0

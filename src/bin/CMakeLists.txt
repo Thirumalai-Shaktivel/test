@@ -80,7 +80,7 @@ if (WITH_RUNTIME_LIBRARY)
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_array.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_util.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
-      ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_math2.mod
+      ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_math.mod
     )
     LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_bit impure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
