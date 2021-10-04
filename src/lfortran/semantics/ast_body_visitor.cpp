@@ -981,65 +981,6 @@ public:
         return false;
     }
 
-    void visit_Compare(const AST::Compare_t &x) {
-        this->visit_expr(*x.m_left);
-        ASR::expr_t *left = LFortran::ASRUtils::EXPR(tmp);
-        this->visit_expr(*x.m_right);
-        ASR::expr_t *right = LFortran::ASRUtils::EXPR(tmp);
-        CommonVisitorMethods::visit_Compare(al, x, left, right, tmp, cmpop2str[x.m_op], current_scope);
-    }
-
-    void visit_BoolOp(const AST::BoolOp_t &x) {
-        this->visit_expr(*x.m_left);
-        ASR::expr_t *left = LFortran::ASRUtils::EXPR(tmp);
-        this->visit_expr(*x.m_right);
-        ASR::expr_t *right = LFortran::ASRUtils::EXPR(tmp);
-        CommonVisitorMethods::visit_BoolOp(al, x, left, right, tmp);
-    }
-
-    void visit_BinOp(const AST::BinOp_t &x) {
-        this->visit_expr(*x.m_left);
-        ASR::expr_t *left = LFortran::ASRUtils::EXPR(tmp);
-        this->visit_expr(*x.m_right);
-        ASR::expr_t *right = LFortran::ASRUtils::EXPR(tmp);
-        CommonVisitorMethods::visit_BinOp(al, x, left, right, tmp, binop2str[x.m_op], current_scope);
-    }
-
-    void visit_StrOp(const AST::StrOp_t &x) {
-        this->visit_expr(*x.m_left);
-        ASR::expr_t *left = LFortran::ASRUtils::EXPR(tmp);
-        this->visit_expr(*x.m_right);
-        ASR::expr_t *right = LFortran::ASRUtils::EXPR(tmp);
-        CommonVisitorMethods::visit_StrOp(al, x, left, right, tmp);
-    }
-
-    void visit_BOZ(const AST::BOZ_t& x) {
-        LFortran::Str boz_content;
-        std::string s = x.m_s; 
-        boz_content.from_str(al, s.substr(1));
-        ASR::bozType boz_type;
-        if( s[0] == 'b' || s[0] == 'B' ) {
-            boz_type = ASR::bozType::Binary;
-        } else if( s[0] == 'z' || s[0] == 'Z' ) {
-            boz_type = ASR::bozType::Hex;
-        } else if( s[0] == 'o' || s[0] == 'O' ) {
-            boz_type = ASR::bozType::Octal;
-        } else {
-            throw SemanticError(R"""(Only 'b', 'o' and 'z' 
-                                are accepted as prefixes of 
-                                BOZ literal constants.)""", 
-                                x.base.base.loc);
-        }
-        tmp = ASR::make_BOZ_t(al, x.base.base.loc, boz_content.c_str(al),
-                                boz_type, nullptr);
-    }
-
-    void visit_UnaryOp(const AST::UnaryOp_t &x) {
-        this->visit_expr(*x.m_operand);
-        ASR::expr_t *operand = LFortran::ASRUtils::EXPR(tmp);
-        CommonVisitorMethods::visit_UnaryOp(al, x, operand, tmp);
-    }
-
     ASR::asr_t* resolve_variable(const Location &loc, const std::string &var_name) {
         SymbolTable *scope = current_scope;
         ASR::symbol_t *v = scope->resolve_symbol(var_name);

@@ -96,15 +96,6 @@ public:
         {AST::intrinsicopType::GTE, "~gte"}
     };
 
-    std::map<AST::cmpopType, std::string> cmpop2str = {
-        {AST::cmpopType::Eq, "~eq"},
-        {AST::cmpopType::NotEq, "~noteq"},
-        {AST::cmpopType::Lt, "~lt"},
-        {AST::cmpopType::LtE, "~lte"},
-        {AST::cmpopType::Gt, "~gt"},
-        {AST::cmpopType::GtE, "~gte"}
-    };
-
     SymbolTableVisitor(Allocator &al, SymbolTable *symbol_table)
       : CommonVisitor(al, symbol_table), is_derived_type{false} {}
 
@@ -461,91 +452,6 @@ public:
         current_scope = parent_scope;
         current_procedure_args.clear();
         current_procedure_abi_type = ASR::abiType::Source;
-    }
-
-    void visit_StrOp(const AST::StrOp_t &x) {
-        this->visit_expr(*x.m_left);
-        ASR::expr_t *left = LFortran::ASRUtils::EXPR(asr);
-        this->visit_expr(*x.m_right);
-        ASR::expr_t *right = LFortran::ASRUtils::EXPR(asr);
-        CommonVisitorMethods::visit_StrOp(al, x, left, right, asr);
-    }
-
-    void visit_UnaryOp(const AST::UnaryOp_t &x) {
-        this->visit_expr(*x.m_operand);
-        ASR::expr_t *operand = LFortran::ASRUtils::EXPR(asr);
-        CommonVisitorMethods::visit_UnaryOp(al, x, operand, asr);
-    }
-
-    void visit_BoolOp(const AST::BoolOp_t &x) {
-        this->visit_expr(*x.m_left);
-        ASR::expr_t *left = LFortran::ASRUtils::EXPR(asr);
-        this->visit_expr(*x.m_right);
-        ASR::expr_t *right = LFortran::ASRUtils::EXPR(asr);
-        CommonVisitorMethods::visit_BoolOp(al, x, left, right, asr);
-    }
-
-    void visit_Compare(const AST::Compare_t &x) {
-        this->visit_expr(*x.m_left);
-        ASR::expr_t *left = LFortran::ASRUtils::EXPR(asr);
-        this->visit_expr(*x.m_right);
-        ASR::expr_t *right = LFortran::ASRUtils::EXPR(asr);
-        CommonVisitorMethods::visit_Compare(al, x, left, right, asr, cmpop2str[x.m_op], current_scope);
-    }
-
-    void visit_BinOp(const AST::BinOp_t &x) {
-        this->visit_expr(*x.m_left);
-        ASR::expr_t *left = LFortran::ASRUtils::EXPR(asr);
-        this->visit_expr(*x.m_right);
-        ASR::expr_t *right = LFortran::ASRUtils::EXPR(asr);
-        CommonVisitorMethods::visit_BinOp(al, x, left, right, asr, binop2str[x.m_op], current_scope);
-    }
-
-    void visit_String(const AST::String_t &x) {
-        int s_len = strlen(x.m_s);
-        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Character_t(al, x.base.base.loc,
-                1, s_len, nullptr, nullptr, 0));
-        asr = ASR::make_ConstantString_t(al, x.base.base.loc, x.m_s, type);
-    }
-
-    void visit_BOZ(const AST::BOZ_t& x) {
-        LFortran::Str boz_content;
-        std::string s = x.m_s; 
-        boz_content.from_str(al, s.substr(1));
-        ASR::bozType boz_type;
-        if( s[0] == 'b' || s[0] == 'B' ) {
-            boz_type = ASR::bozType::Binary;
-        } else if( s[0] == 'z' || s[0] == 'Z' ) {
-            boz_type = ASR::bozType::Hex;
-        } else if( s[0] == 'o' || s[0] == 'O' ) {
-            boz_type = ASR::bozType::Octal;
-        } else {
-            throw SemanticError(R"""(Only 'b', 'o' and 'z' 
-                                are accepted as prefixes of 
-                                BOZ literal constants.)""", 
-                                x.base.base.loc);
-        }
-        asr = ASR::make_BOZ_t(al, x.base.base.loc, boz_content.c_str(al),
-                                boz_type, nullptr);
-    }
-
-    void visit_Logical(const AST::Logical_t &x) {
-        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Logical_t(al, x.base.base.loc,
-                4, nullptr, 0));
-        asr = ASR::make_ConstantLogical_t(al, x.base.base.loc, x.m_value, type);
-    }
-
-    void visit_Complex(const AST::Complex_t &x) {
-        this->visit_expr(*x.m_re);
-        ASR::expr_t *re = LFortran::ASRUtils::EXPR(asr);
-        this->visit_expr(*x.m_im);
-        ASR::expr_t *im = LFortran::ASRUtils::EXPR(asr);
-        int re_kind = LFortran::ASRUtils::extract_kind_from_ttype_t(LFortran::ASRUtils::expr_type(re));
-        int im_kind = LFortran::ASRUtils::extract_kind_from_ttype_t(LFortran::ASRUtils::expr_type(im));
-        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc,
-                std::max(re_kind, im_kind), nullptr, 0));
-        asr = ASR::make_ConstantComplex_t(al, x.base.base.loc,
-                re, im, type);
     }
 
     void process_dims(Allocator &al, Vec<ASR::dimension_t> &dims,
@@ -1569,42 +1475,6 @@ public:
         }
     }
 
-    void visit_Real(const AST::Real_t &x) {
-        double r = ASRUtils::extract_real(x.m_n);
-        char* s_kind;
-        int r_kind = ASRUtils::extract_kind_str(x.m_n, s_kind);
-        if (r_kind == 0) {
-            std::string var_name = to_lower(s_kind);
-            ASR::symbol_t *v = current_scope->resolve_symbol(var_name);
-            if (v) {
-                const ASR::symbol_t *v3 = LFortran::ASRUtils::symbol_get_past_external(v);
-                if (ASR::is_a<ASR::Variable_t>(*v3)) {
-                    ASR::Variable_t *v2 = ASR::down_cast<ASR::Variable_t>(v3);
-                    if (v2->m_value) {
-                        if (ASR::is_a<ASR::ConstantInteger_t>(*v2->m_value)) {
-                            r_kind = ASR::down_cast<ASR::ConstantInteger_t>(v2->m_value)->m_n;
-                        } else {
-                            throw SemanticError("Variable '" + var_name + "' is constant but not an integer",
-                                x.base.base.loc);
-                        }
-                    } else {
-                        throw SemanticError("Variable '" + var_name + "' is not constant",
-                            x.base.base.loc);
-                    }
-                } else {
-                    throw SemanticError("Symbol '" + var_name + "' is not a variable",
-                        x.base.base.loc);
-                }
-            } else {
-                throw SemanticError("Variable '" + var_name + "' not declared",
-                    x.base.base.loc);
-            }
-        }
-        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc,
-                r_kind, nullptr, 0));
-        asr = ASR::make_ConstantReal_t(al, x.base.base.loc, r, type);
-    }
-
     ASR::asr_t* resolve_variable(const Location &loc, const std::string &var_name) {
         SymbolTable *scope = current_scope;
         ASR::symbol_t *v = scope->resolve_symbol(var_name);
@@ -1612,52 +1482,6 @@ public:
             throw SemanticError("Variable '" + var_name + "' not declared", loc);
         }
         return ASR::make_Var_t(al, loc, v);
-    }
-
-    void visit_Name(const AST::Name_t &x) {
-        asr = resolve_variable(x.base.base.loc, to_lower(x.m_id));
-    }
-
-    void visit_Num(const AST::Num_t &x) {
-        int ikind = 4;
-        if (x.m_kind) {
-            ikind = std::atoi(x.m_kind);
-            if (ikind == 0) {
-                std::string var_name = to_lower(x.m_kind);
-                ASR::symbol_t *v = current_scope->resolve_symbol(var_name);
-                if (v) {
-                    const ASR::symbol_t *v3 = LFortran::ASRUtils::symbol_get_past_external(v);
-                    if (ASR::is_a<ASR::Variable_t>(*v3)) {
-                        ASR::Variable_t *v2 = ASR::down_cast<ASR::Variable_t>(v3);
-                        if (v2->m_value) {
-                            if (ASR::is_a<ASR::ConstantInteger_t>(*v2->m_value)) {
-                                ikind = ASR::down_cast<ASR::ConstantInteger_t>(v2->m_value)->m_n;
-                            } else {
-                                throw SemanticError("Variable '" + var_name + "' is constant but not an integer",
-                                    x.base.base.loc);
-                            }
-                        } else {
-                            throw SemanticError("Variable '" + var_name + "' is not constant",
-                                x.base.base.loc);
-                        }
-                    } else {
-                        throw SemanticError("Symbol '" + var_name + "' is not a variable",
-                            x.base.base.loc);
-                    }
-                } else {
-                    throw SemanticError("Variable '" + var_name + "' not declared",
-                        x.base.base.loc);
-                }
-            }
-        }
-        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
-                ikind, nullptr, 0));
-        if (BigInt::is_int_ptr(x.m_n)) {
-            throw SemanticError("Integer constants larger than 2^62-1 are not implemented yet", x.base.base.loc);
-        } else {
-            LFORTRAN_ASSERT(!BigInt::is_int_ptr(x.m_n));
-            asr = ASR::make_ConstantInteger_t(al, x.base.base.loc, x.m_n, type);
-        }
     }
 
     void visit_Parenthesis(const AST::Parenthesis_t &x) {
