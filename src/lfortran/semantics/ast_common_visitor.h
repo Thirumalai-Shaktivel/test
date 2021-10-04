@@ -968,23 +968,41 @@ public:
         }
     }
 
+    bool select_func_subrout(const ASR::symbol_t* proc, const Vec<ASR::expr_t*> &args,
+                             Location& loc) {
+        bool result = false;
+        if (ASR::is_a<ASR::Subroutine_t>(*proc)) {
+            ASR::Subroutine_t *sub
+                = ASR::down_cast<ASR::Subroutine_t>(proc);
+            if (argument_types_match(args, *sub)) {
+                result = true;
+            }
+        } else if (ASR::is_a<ASR::Function_t>(*proc)) {
+            ASR::Function_t *fn
+                = ASR::down_cast<ASR::Function_t>(proc);
+            if (argument_types_match(args, *fn)) {
+                result = true;
+            }
+        } else {
+            throw SemanticError("Only Subroutine and Function supported in generic procedure", loc);
+        }
+        return result;
+    }
+
     int select_generic_procedure(const Vec<ASR::expr_t*> &args,
             const ASR::GenericProcedure_t &p, Location loc) {
         for (size_t i=0; i < p.n_procs; i++) {
-            if (ASR::is_a<ASR::Subroutine_t>(*p.m_procs[i])) {
-                ASR::Subroutine_t *sub
-                    = ASR::down_cast<ASR::Subroutine_t>(p.m_procs[i]);
-                if (argument_types_match(args, *sub)) {
-                    return i;
-                }
-            } else if (ASR::is_a<ASR::Function_t>(*p.m_procs[i])) {
-                ASR::Function_t *fn
-                    = ASR::down_cast<ASR::Function_t>(p.m_procs[i]);
-                if (argument_types_match(args, *fn)) {
+            if( ASR::is_a<ASR::ClassProcedure_t>(*p.m_procs[i]) ) {
+                ASR::ClassProcedure_t *clss_fn 
+                    = ASR::down_cast<ASR::ClassProcedure_t>(p.m_procs[i]);
+                const ASR::symbol_t *proc = ASRUtils::symbol_get_past_external(clss_fn->m_proc);
+                if( select_func_subrout(proc, args, loc) ) {
                     return i;
                 }
             } else {
-                throw SemanticError("Only Subroutine and Function supported in generic procedure", loc);
+                if( select_func_subrout(p.m_procs[i], args, loc) ) {
+                    return i;
+                }
             }
         }
         throw SemanticError("Arguments do not match for any generic procedure", loc);

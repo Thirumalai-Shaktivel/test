@@ -814,6 +814,10 @@ public:
                     LFORTRAN_ASSERT(init_expr != nullptr);
                     if (storage_type == ASR::storage_typeType::Parameter) {
                         value = ASRUtils::expr_value(init_expr);
+                        if (value == nullptr) {
+                            throw SemanticError("Value of a parameter variable must evaluate to a compile time constant",
+                                x.base.base.loc);
+                        }
                         if (sym_type->m_type == AST::decl_typeType::TypeCharacter && value != nullptr) {
                             ASR::Character_t *lhs_type = ASR::down_cast<ASR::Character_t>(type);
                             ASR::Character_t *rhs_type = ASR::down_cast<ASR::Character_t>(ASRUtils::expr_type(value));
@@ -1473,19 +1477,6 @@ public:
             std::string x_m_name = std::string(x.m_names[i]);
             generic_class_procedures[dt_name][generic_name].push_back(to_lower(x_m_name));
         }
-    }
-
-    ASR::asr_t* resolve_variable(const Location &loc, const std::string &var_name) {
-        SymbolTable *scope = current_scope;
-        ASR::symbol_t *v = scope->resolve_symbol(var_name);
-        if (!v) {
-            throw SemanticError("Variable '" + var_name + "' not declared", loc);
-        }
-        return ASR::make_Var_t(al, loc, v);
-    }
-
-    void visit_Parenthesis(const AST::Parenthesis_t &x) {
-        visit_expr(*x.m_operand);
     }
 
 };
