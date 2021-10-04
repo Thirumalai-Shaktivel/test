@@ -173,13 +173,6 @@ public:
         class_procedures.clear();
         generic_class_procedures.clear();
         defined_op_procs.clear();
-        asr = ASR::make_Module_t(
-            al, x.base.base.loc,
-            /* a_symtab */ current_scope,
-            /* a_name */ s2c(al, to_lower(x.m_name)),
-            current_module_dependencies.p,
-            current_module_dependencies.n,
-            false);
         tmp = tmp0;
         // Add module dependencies
         ASR::Module_t *m = ASR::down_cast2<ASR::Module_t>(tmp);
