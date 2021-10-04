@@ -40,21 +40,12 @@ interface
     integer, intent(in) :: x(:)
     end function
 
-    integer function abs(x)
-    integer, intent(in) :: x(:)
-    end function
-
     real function tiny(x)
     integer, intent(in) :: x(:)
     end function
 
     real function real(x, kind)
     integer, intent(in) :: x(:)
-    integer, intent(in) :: kind
-    end function
-
-    integer function floor(x, kind)
-    real, intent(in) :: x(:)
     integer, intent(in) :: kind
     end function
 
@@ -69,6 +60,10 @@ interface
 
     integer function len(x)
     character(len=*), intent(in) :: x
+    end function
+
+    logical function present(x)
+    integer, optional, intent(in) :: x
     end function
 end interface
 

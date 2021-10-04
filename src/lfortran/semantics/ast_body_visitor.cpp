@@ -20,85 +20,49 @@
 
 namespace LFortran {
 
-class BodyVisitor : public AST::BaseVisitor<BodyVisitor> {
+class BodyVisitor : public CommonVisitor<BodyVisitor> {
 private:
-    std::map<std::string, std::string> intrinsic_procedures = {
-        {"kind", "lfortran_intrinsic_kind"},
-        {"selected_int_kind", "lfortran_intrinsic_kind"},
-        {"selected_real_kind", "lfortran_intrinsic_kind"},
-        {"size", "lfortran_intrinsic_array"},
-        {"lbound", "lfortran_intrinsic_array"},
-        {"ubound", "lfortran_intrinsic_array"},
-        {"min", "lfortran_intrinsic_array"},
-        {"max", "lfortran_intrinsic_array"},
-        {"allocated", "lfortran_intrinsic_array"},
-        {"minval", "lfortran_intrinsic_array"},
-        {"maxval", "lfortran_intrinsic_array"},
-        {"real", "lfortran_intrinsic_array"},
-        {"floor", "lfortran_intrinsic_array"},
-        {"sum", "lfortran_intrinsic_array"},
-        {"len", "lfortran_intrinsic_array"},
-        {"abs", "lfortran_intrinsic_math2"},
-        {"aimag", "lfortran_intrinsic_math2"},
-        {"modulo", "lfortran_intrinsic_math2"},
-        {"exp", "lfortran_intrinsic_math"},
-        {"log", "lfortran_intrinsic_math"},
-        {"erf", "lfortran_intrinsic_math"},
-        {"sin", "lfortran_intrinsic_trig"},
-        {"cos", "lfortran_intrinsic_math"},
-        {"tan", "lfortran_intrinsic_math"},
-        {"sinh", "lfortran_intrinsic_math"},
-        {"cosh", "lfortran_intrinsic_math"},
-        {"tanh", "lfortran_intrinsic_math"},
-        {"asin", "lfortran_intrinsic_math"},
-        {"acos", "lfortran_intrinsic_math"},
-        {"atan", "lfortran_intrinsic_math"},
-        {"atan2", "lfortran_intrinsic_math"},
-        {"asinh", "lfortran_intrinsic_math"},
-        {"acosh", "lfortran_intrinsic_math"},
-        {"atanh", "lfortran_intrinsic_math"},
-        {"sqrt", "lfortran_intrinsic_math2"},
-        {"int", "lfortran_intrinsic_array"},
-        {"real", "lfortran_intrinsic_array"},
-        {"tiny", "lfortran_intrinsic_array"},
-        {"present", "lfortran_intrinsic_util"},
-        {"bit_size", "lfortran_intrinsic_util"},
-        {"not", "lfortran_intrinsic_util"},
-        {"iachar", "lfortran_intrinsic_util"},
-        {"achar", "lfortran_intrinsic_util"},
-        {"len", "lfortran_intrinsic_util"},
-        {"len_trim", "lfortran_intrinsic_string"},
-        {"trim", "lfortran_intrinsic_string"},
-        {"index", "lfortran_intrinsic_string"},
-        {"iand", "lfortran_intrinsic_bit"}
-};
-
-    std::map<AST::operatorType, std::string> binop2str = {
-        {AST::operatorType::Mul, "~mul"},
-        {AST::operatorType::Add, "~add"},
-    };
-
-    std::map<AST::cmpopType, std::string> cmpop2str = {
-        {AST::cmpopType::Eq, "~eq"},
-        {AST::cmpopType::NotEq, "~noteq"},
-        {AST::cmpopType::Lt, "~lt"},
-        {AST::cmpopType::LtE, "~lte"},
-        {AST::cmpopType::Gt, "~gt"},
-        {AST::cmpopType::GtE, "~gte"}
-    };
 
 public:
-    Allocator &al;
-    ASR::asr_t *asr, *tmp;
-    SymbolTable *current_scope;
+    ASR::asr_t *asr;
     Vec<ASR::stmt_t*> *current_body;
-    ASR::Module_t *current_module = nullptr;
 
-    BodyVisitor(Allocator &al, ASR::asr_t *unit) : al{al}, asr{unit} {}
+    BodyVisitor(Allocator &al, ASR::asr_t *unit) : CommonVisitor(al, nullptr), asr{unit} {}
 
     void visit_Declaration(const AST::Declaration_t & /* x */){
         // Already visited this AST node in the SymbolTableVisitor
     };
+
+    // Transforms statements to a list of ASR statements
+    // In addition, it also inserts the following nodes if needed:
+    //   * ImplicitDeallocate
+    //   * GoToTarget
+    // The `body` Vec must already be reserved
+    void transform_stmts(Vec<ASR::stmt_t*> &body, size_t n_body, AST::stmt_t **m_body) {
+        tmp = nullptr;
+        for (size_t i=0; i<n_body; i++) {
+            // If there is a label, create a GoToTarget node first
+            int64_t label = stmt_label(m_body[i]);
+            if (label != 0) {
+                ASR::asr_t *l = ASR::make_GoToTarget_t(al, m_body[i]->base.loc, label);
+                body.push_back(al, ASR::down_cast<ASR::stmt_t>(l));
+            }
+            // Visit the statement
+            this->visit_stmt(*m_body[i]);
+            if (tmp != nullptr) {
+                ASR::stmt_t* tmp_stmt = LFortran::ASRUtils::STMT(tmp);
+                if (tmp_stmt->type == ASR::stmtType::SubroutineCall) {
+                    ASR::stmt_t* impl_decl = create_implicit_deallocate_subrout_call(tmp_stmt);
+                    if (impl_decl != nullptr) {
+                        body.push_back(al, impl_decl);
+                    }
+                }
+                body.push_back(al, tmp_stmt);
+            }
+            // To avoid last statement to be entered twice once we exit this node
+            tmp = nullptr;
+        }
+    }
 
     void visit_TranslationUnit(const AST::TranslationUnit_t &x) {
         ASR::TranslationUnit_t *unit = ASR::down_cast2<ASR::TranslationUnit_t>(asr);
@@ -417,14 +381,7 @@ public:
         }
         SymbolTable* current_scope_copy = current_scope;
         current_scope = new_scope;
-        for( size_t i = 0; i < x.n_body; i++ ) {
-            this->visit_stmt(*x.m_body[i]);
-            if( tmp != nullptr ) {
-                current_body->push_back(al, LFortran::ASRUtils::STMT(tmp));
-            }
-            // To avoid last statement to be entered twice once we exit this node
-            tmp = nullptr;
-        }
+        transform_stmts(*current_body, x.n_body, x.m_body);
         current_scope->scope.clear();
         current_scope = current_scope_copy;
     }
@@ -574,12 +531,7 @@ public:
                     }
                     Vec<ASR::stmt_t*> case_body_vec;
                     case_body_vec.reserve(al, Case_Stmt->n_body);
-                    for( std::uint32_t i = 0; i < Case_Stmt->n_body; i++ ) {
-                        this->visit_stmt(*(Case_Stmt->m_body[i]));
-                        if (tmp != nullptr) {
-                            case_body_vec.push_back(al, LFortran::ASRUtils::STMT(tmp));
-                        }
-                    }
+                    transform_stmts(case_body_vec, Case_Stmt->n_body, Case_Stmt->m_body);
                     tmp = ASR::make_CaseStmt_t(al, x.base.loc, a_test_vec.p, a_test_vec.size(),
                                         case_body_vec.p, case_body_vec.size());
                     break;
@@ -610,12 +562,7 @@ public:
                     }
                     Vec<ASR::stmt_t*> case_body_vec;
                     case_body_vec.reserve(al, Case_Stmt->n_body);
-                    for( std::uint32_t i = 0; i < Case_Stmt->n_body; i++ ) {
-                        this->visit_stmt(*(Case_Stmt->m_body[i]));
-                        if (tmp != nullptr) {
-                            case_body_vec.push_back(al, LFortran::ASRUtils::STMT(tmp));
-                        }
-                    }
+                    transform_stmts(case_body_vec, Case_Stmt->n_body, Case_Stmt->m_body);
                     tmp = ASR::make_CaseStmt_Range_t(al, x.base.loc, m_start, m_end,
                                         case_body_vec.p, case_body_vec.size());
                     break;
@@ -648,13 +595,7 @@ public:
                 }
                 AST::CaseStmt_Default_t *d =
                         AST::down_cast<AST::CaseStmt_Default_t>(body);
-                for( std::uint32_t j = 0; j < d->n_body; j++ ) {
-                    this->visit_stmt(*(d->m_body[j]));
-                    if (tmp != nullptr) {
-                        def_body.push_back(al,
-                            ASR::down_cast<ASR::stmt_t>(tmp));
-                    }
-                }
+                transform_stmts(def_body, d->n_body, d->m_body);
             } else {
                 this->visit_case_stmt(*body);
                 a_body_vec.push_back(al, ASR::down_cast<ASR::case_stmt_t>(tmp));
@@ -689,19 +630,7 @@ public:
         Vec<ASR::stmt_t*> body;
         current_body = &body;
         body.reserve(al, x.n_body);
-        for (size_t i=0; i<x.n_body; i++) {
-            this->visit_stmt(*x.m_body[i]);
-            if (tmp != nullptr) {
-                ASR::stmt_t* tmp_stmt = LFortran::ASRUtils::STMT(tmp);
-                if( tmp_stmt->type == ASR::stmtType::SubroutineCall ) {
-                    ASR::stmt_t* impl_decl = create_implicit_deallocate_subrout_call(tmp_stmt);
-                    if( impl_decl != nullptr ) {
-                        body.push_back(al, impl_decl);
-                    }
-                }
-                body.push_back(al, tmp_stmt);
-            }
-        }
+        transform_stmts(body, x.n_body, x.m_body);
         ASR::stmt_t* impl_del = create_implicit_deallocate(x.base.base.loc);
         if( impl_del != nullptr ) {
             body.push_back(al, impl_del);
@@ -760,19 +689,7 @@ public:
         current_scope = v->m_symtab;
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
-        for (size_t i=0; i<x.n_body; i++) {
-            this->visit_stmt(*x.m_body[i]);
-            if (tmp != nullptr) {
-                ASR::stmt_t* tmp_stmt = LFortran::ASRUtils::STMT(tmp);
-                if( tmp_stmt->type == ASR::stmtType::SubroutineCall ) {
-                    ASR::stmt_t* impl_decl = create_implicit_deallocate_subrout_call(tmp_stmt);
-                    if( impl_decl != nullptr ) {
-                        body.push_back(al, impl_decl);
-                    }
-                }
-                body.push_back(al, tmp_stmt);
-            }
-        }
+        transform_stmts(body, x.n_body, x.m_body);
         ASR::stmt_t* impl_del = create_implicit_deallocate(x.base.base.loc);
         if( impl_del != nullptr ) {
             body.push_back(al, impl_del);
@@ -802,19 +719,7 @@ public:
         current_scope = v->m_symtab;
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
-        for (size_t i=0; i<x.n_body; i++) {
-            this->visit_stmt(*x.m_body[i]);
-            if (tmp != nullptr) {
-                ASR::stmt_t* tmp_stmt = LFortran::ASRUtils::STMT(tmp);
-                if( tmp_stmt->type == ASR::stmtType::SubroutineCall ) {
-                    ASR::stmt_t* impl_decl = create_implicit_deallocate_subrout_call(tmp_stmt);
-                    if( impl_decl != nullptr ) {
-                        body.push_back(al, impl_decl);
-                    }
-                }
-                body.push_back(al, tmp_stmt);
-            }
-        }
+        transform_stmts(body, x.n_body, x.m_body);
         ASR::stmt_t* impl_del = create_implicit_deallocate(x.base.base.loc);
         if( impl_del != nullptr ) {
             body.push_back(al, impl_del);
@@ -868,18 +773,6 @@ public:
 
         }
         tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value, overloaded_expr, overloaded_stmt);
-    }
-
-    Vec<ASR::expr_t*> visit_expr_list(AST::fnarg_t *ast_list, size_t n) {
-        Vec<ASR::expr_t*> asr_list;
-        asr_list.reserve(al, n);
-        for (size_t i=0; i<n; i++) {
-            LFORTRAN_ASSERT(ast_list[i].m_end != nullptr);
-            visit_expr(*ast_list[i].m_end);
-            ASR::expr_t *expr = LFortran::ASRUtils::EXPR(tmp);
-            asr_list.push_back(al, expr);
-        }
-        return asr_list;
     }
 
     void visit_SubroutineCall(const AST::SubroutineCall_t &x) {
@@ -1248,36 +1141,6 @@ public:
     }
 
 
-    void visit_Name(const AST::Name_t &x) {
-        if (x.n_member == 0) {
-            tmp = resolve_variable(x.base.base.loc, to_lower(x.m_id));
-        } else if (x.n_member == 1) {
-            if (x.m_member[0].n_args == 0) {
-                SymbolTable* scope = current_scope;
-                tmp = resolve_variable2(x.base.base.loc, to_lower(x.m_id),
-                    to_lower(x.m_member[0].m_name), scope);
-            } else {
-                // TODO: incorporate m_args
-                SymbolTable* scope = current_scope;
-                tmp = resolve_variable2(x.base.base.loc, to_lower(x.m_id),
-                    to_lower(x.m_member[0].m_name), scope);
-            }
-        } else {
-            SymbolTable* scope = current_scope;
-            tmp = resolve_variable2(x.base.base.loc, to_lower(x.m_member[1].m_name), to_lower(x.m_member[0].m_name), scope);
-            ASR::DerivedRef_t* tmp2;
-            std::uint32_t i;
-            for( i = 2; i < x.n_member; i++ ) {
-                tmp2 = (ASR::DerivedRef_t*)resolve_variable2(x.base.base.loc,
-                                            to_lower(x.m_member[i].m_name), to_lower(x.m_member[i - 1].m_name), scope);
-                tmp = ASR::make_DerivedRef_t(al, x.base.base.loc, LFortran::ASRUtils::EXPR(tmp), tmp2->m_m, tmp2->m_type, nullptr);
-            }
-            i = x.n_member - 1;
-            tmp2 = (ASR::DerivedRef_t*)resolve_variable2(x.base.base.loc, to_lower(x.m_id), to_lower(x.m_member[i].m_name), scope);
-            tmp = ASR::make_DerivedRef_t(al, x.base.base.loc, LFortran::ASRUtils::EXPR(tmp), tmp2->m_m, tmp2->m_type, nullptr);
-        }
-    }
-
     void symbol_resolve_generic_procedure(
             ASR::symbol_t *v,
             const AST::FuncCallOrArray_t &x
@@ -1318,6 +1181,19 @@ public:
             final_sym = current_scope->scope[local_sym];
         }
         ASR::expr_t *value = nullptr;
+        ASR::symbol_t* final_sym2 = LFortran::ASRUtils::symbol_get_past_external(final_sym);
+        if (ASR::is_a<ASR::Function_t>(*final_sym2)) {
+            ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(final_sym2);
+            if (ASRUtils::is_intrinsic_function(f)) {
+                ASR::symbol_t* v2 = LFortran::ASRUtils::symbol_get_past_external(v);
+                ASR::GenericProcedure_t *gp = ASR::down_cast<ASR::GenericProcedure_t>(v2);
+                if (intrinsic_function_transformation(al, x.base.base.loc, gp->m_name, args)) {
+                    return;
+                } else {
+                    value = intrinsic_procedures.comptime_eval(gp->m_name, al, x.base.base.loc, args);
+                }
+            }
+        }
         tmp = ASR::make_FunctionCall_t(al, x.base.base.loc,
             final_sym, v, args.p, args.size(), nullptr, 0, return_type,
             value, nullptr);
@@ -1340,84 +1216,7 @@ public:
             v = current_scope->resolve_symbol(var_name);
         }
         if (!v) {
-            std::string remote_sym = var_name;
-            if (intrinsic_procedures.find(remote_sym)
-                        != intrinsic_procedures.end()) {
-                std::string module_name = intrinsic_procedures[remote_sym];
-
-                SymbolTable *tu_symtab = ASRUtils::get_tu_symtab(current_scope);
-                ASR::Module_t *m = ASRUtils::load_module(al, tu_symtab, module_name,
-                        x.base.base.loc, true);
-
-                ASR::symbol_t *t = m->m_symtab->resolve_symbol(remote_sym);
-                if (!t) {
-                    throw SemanticError("The symbol '" + remote_sym
-                        + "' not found in the module '" + module_name + "'",
-                        x.base.base.loc);
-                }
-                if (ASR::is_a<ASR::GenericProcedure_t>(*t)) {
-                    ASR::GenericProcedure_t *gp = ASR::down_cast<ASR::GenericProcedure_t>(t);
-                    ASR::asr_t *fn = ASR::make_ExternalSymbol_t(
-                        al, gp->base.base.loc,
-                        /* a_symtab */ current_scope,
-                        /* a_name */ gp->m_name,
-                        (ASR::symbol_t*)gp,
-                        m->m_name, nullptr, 0, gp->m_name,
-                        ASR::accessType::Private
-                        );
-                    std::string sym = gp->m_name;
-                    current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
-                    symbol_resolve_generic_procedure(
-                        ASR::down_cast<ASR::symbol_t>(fn), x);
-                    if (current_module) {
-                        // Add the module `m` to current module dependencies
-                        Vec<char*> vec;
-                        vec.from_pointer_n_copy(al, current_module->m_dependencies,
-                                    current_module->n_dependencies);
-                        if (!present(vec, m->m_name)) {
-                            vec.push_back(al, m->m_name);
-                            current_module->m_dependencies = vec.p;
-                            current_module->n_dependencies = vec.size();
-                        }
-                    }
-                    return;
-                }
-
-                if (!ASR::is_a<ASR::Function_t>(*t)) {
-                    throw SemanticError("The symbol '" + remote_sym
-                        + "' found in the module '" + module_name + "', "
-                        + "but it is not a function.",
-                        x.base.base.loc);
-                }
-
-                ASR::Function_t *mfn = ASR::down_cast<ASR::Function_t>(t);
-                ASR::asr_t *fn = ASR::make_ExternalSymbol_t(
-                    al, mfn->base.base.loc,
-                    /* a_symtab */ current_scope,
-                    /* a_name */ mfn->m_name,
-                    (ASR::symbol_t*)mfn,
-                    m->m_name, nullptr, 0, mfn->m_name,
-                    ASR::accessType::Private
-                    );
-                std::string sym = mfn->m_name;
-                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
-                v = ASR::down_cast<ASR::symbol_t>(fn);
-                if (current_module) {
-                    // Add the module `m` to current module dependencies
-                    Vec<char*> vec;
-                    vec.from_pointer_n_copy(al, current_module->m_dependencies,
-                                current_module->n_dependencies);
-                    if (!present(vec, m->m_name)) {
-                        vec.push_back(al, m->m_name);
-                        current_module->m_dependencies = vec.p;
-                        current_module->n_dependencies = vec.size();
-                    }
-                }
-            } else {
-                throw SemanticError("Function or array '" + var_name +
-                                    "' not declared",
-                                x.base.base.loc);
-            }
+            v = resolve_intrinsic_function(x.base.base.loc, var_name);
         }
         switch (v->type) {
             case ASR::symbolType::ClassProcedure : {
@@ -1535,167 +1334,12 @@ public:
 
                     // Populate value
                     ASR::expr_t* value = nullptr;
-                    std::string func_name = var_name;
-                    // Only populate for supported intrinsic functions
-                    if (intrinsic_procedures.find(func_name)
-                        != intrinsic_procedures.end()) { // Got an intrinsic, now try to assign value
-                        ASR::expr_t* func_expr = args[0];
-                        ASR::ttype_t *func_type = LFortran::ASRUtils::expr_type(func_expr);
-                        // TODO: This ordering is terrible; falls through in an arbitrary manner
-                        // Should be in a hash table or something
-                        if (func_name == "tiny") {
-                            if (args.n == 1) {
-                                if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*func_type)) {
-                                    if (LFortran::ASRUtils::is_array(func_type)){
-                                        throw SemanticError("Array values not implemented yet",
-                                                            x.base.base.loc);
-                                    }
-                                    int tiny_kind = LFortran::ASRUtils::extract_kind_from_ttype_t(func_type);
-                                    if (tiny_kind == 4){
-                                        float low_val = std::numeric_limits<float>::min();
-                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, low_val, func_type));
-                                    } else {
-                                        double low_val = std::numeric_limits<float>::min();
-                                        value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, low_val, func_type));
-                                    }
-                                }
-                                else {
-                                    throw SemanticError("Argument for tiny must be Real", x.base.base.loc);
-                                }
-                            } else {
-                                throw SemanticError("tiny must have only one argument", x.base.base.loc);
-                            }
-                        }
-                        else if (func_name == "int") {
-                            if (args.n == 1) {
-                                ASR::expr_t* func_expr = args[0];
-                                int func_kind = LFortran::ASRUtils::extract_kind_from_ttype_t(func_type);
-                                if( func_kind > 0 ) {
-                                    if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*func_type)) {
-                                        if (func_kind == 4){
-                                            float rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(func_expr))->m_r;
-                                            int64_t ival = static_cast<int64_t>(rr);
-                                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
-                                        } else {
-                                            double rr = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(func_expr))->m_r;
-                                            int64_t ival = static_cast<int64_t>(rr);
-                                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
-                                        }
-                                    }
-                                    else if (LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*func_type)) {
-                                        if (func_kind == 4){
-                                            int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(
-                                                LFortran::ASRUtils::expr_value(func_expr))->m_n;
-                                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival, func_type));
-                                        } else {
-                                            int64_t ival = ASR::down_cast<ASR::ConstantInteger_t>(
-                                                LFortran::ASRUtils::expr_value(func_expr))->m_n;
-                                            value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantReal_t(al, x.base.base.loc, ival, func_type));
-                                        }
-                                    }
-                                }
-                            } else {
-                                throw SemanticError("int must have only one argument", x.base.base.loc);
-                            }
-                        }
-                        else if (func_name == "real") {
-                            if (args.n == 1) {
-                                tmp = CommonVisitorMethods::comptime_intrinsic_real(args[0], nullptr, al, x.base.base.loc);
-                            } else if (args.n == 2) {
-                                tmp = CommonVisitorMethods::comptime_intrinsic_real(args[0], args[1], al, x.base.base.loc);
-                            } else {
-                                throw SemanticError("real(A [, kind]) requires 1 or 2 arguments", x.base.base.loc);
-                            }
-                            break;
-                        }
-                        else if (var_name=="floor") {
-                            // TODO: Implement optional kind; J3/18-007r1 --> FLOOR(A, [KIND])
-                            if (args.n==1) {
-                            ASR::expr_t* func_expr = args[0];
-                            ASR::ttype_t* func_type = LFortran::ASRUtils::expr_type(func_expr);
-                            int func_kind = ASRUtils::extract_kind_from_ttype_t(func_type);
-                            int64_t ival {0};
-                            if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*func_type)) {
-                                if (func_kind == 4){
-                                    float rv = ASR::down_cast<ASR::ConstantReal_t>(
-                                        LFortran::ASRUtils::expr_value(func_expr))->m_r;
-                                    if (rv<0) {
-                                        // negative number
-                                        // floor -> integer(|x|+1)
-                                        ival = static_cast<int64_t>(rv-1);
-                                    } else {
-                                        // positive, floor -> integer(x)
-                                        ival = static_cast<int64_t>(rv);
-                                    }
-                                    value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival,func_type));
-                                } else {
-                                    double rv = ASR::down_cast<ASR::ConstantReal_t>(LFortran::ASRUtils::expr_value(func_expr))->m_r;
-                                    int64_t ival = static_cast<int64_t>(rv);
-                                    if (rv<0) {
-                                        // negative number
-                                        // floor -> integer(x+1)
-                                        ival = static_cast<int64_t>(rv+1);
-                                    } else {
-                                        // positive, floor -> integer(x)
-                                        ival = static_cast<int64_t>(rv);
-                                    }
-                                    value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, ival,func_type));
-                                }
-                            } else {
-                                throw SemanticError("floor must have one real argument", x.base.base.loc);
-                            }
-                            } else {
-                                throw SemanticError("floor with optional kind not yet implemented;\n will only work with one real argument", x.base.base.loc);
-                            }
-                        }
-                        else if (func_name == "kind") {
-                            if (args.n == 1) {
-                                int64_t kind_val {4};
-                                if (ASR::is_a<ASR::ConstantLogical_t>(*func_expr)){
-                                    kind_val = ASR::down_cast<ASR::Logical_t>(ASR::down_cast<ASR::ConstantLogical_t>(func_expr)->m_type)->m_kind;
-                                }
-                                else if (ASR::is_a<ASR::ConstantReal_t>(*func_expr)){
-                                    kind_val = ASR::down_cast<ASR::Real_t>(ASR::down_cast<ASR::ConstantReal_t>(func_expr)->m_type)->m_kind;
-                                }
-                                else if (ASR::is_a<ASR::ConstantInteger_t>(*func_expr)){
-                                    kind_val = ASR::down_cast<ASR::Integer_t>(ASR::down_cast<ASR::ConstantInteger_t>(func_expr)->m_type)->m_kind;
-                                }
-                                else if (ASR::is_a<ASR::Var_t>(*func_expr)) {
-                                    kind_val = ASRUtils::extract_kind(func_expr, x.base.base.loc);
-                                }
-                                else {
-                                    throw SemanticError("kind supports Real, Integer, Logical and things which reduce to the same", x.base.base.loc);
-                                }
-                                value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, kind_val, func_type));
-                            } else {
-                                throw SemanticError("kind must have only one argument", x.base.base.loc);
-                            }
-                        }
-                        else if (func_name == "selected_int_kind") {
-                            if (args.n == 1 && ASR::is_a<ASR::Integer_t>(*func_type)) {
-                                int64_t kind_val {4}, R {4};
-                                R = ASR::down_cast<ASR::ConstantInteger_t>(ASRUtils::expr_value(func_expr))->m_n;
-                                if (R >= 10) { // > ?
-                                   kind_val = 8;
-                                }
-                                value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, kind_val, func_type));
-                            } else {
-                                throw SemanticError(func_name + " must have only one integer argument", x.base.base.loc);
-                            }
-                        }
-                        else if (func_name == "selected_real_kind") {
-                            // TODO: Be more standards compliant 16.9.170
-                            // e.g. selected_real_kind(6, 70)
-                            if (args.n == 1 && ASR::is_a<ASR::Integer_t>(*func_type)) {
-                                int64_t kind_val {4}, R {4};
-                                R = ASR::down_cast<ASR::ConstantInteger_t>(ASRUtils::expr_value(func_expr))->m_n;
-                                if (R >= 7) { // > ?
-                                   kind_val = 8;
-                                }
-                                value = ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, x.base.base.loc, kind_val, func_type));
-                            } else {
-                                throw SemanticError(func_name + " must have only one integer argument", x.base.base.loc);
-                            }
+                    ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(f2);
+                    if (ASRUtils::is_intrinsic_function(f)) {
+                        if (intrinsic_function_transformation(al, x.base.base.loc, f->m_name, args)) {
+                            return;
+                        } else {
+                            value = intrinsic_procedures.comptime_eval(f->m_name, al, x.base.base.loc, args);
                         }
                     }
                     tmp = ASR::make_FunctionCall_t(al, x.base.base.loc,
@@ -1800,114 +1444,6 @@ public:
         }
     }
 
-    void visit_Num(const AST::Num_t &x) {
-        int ikind = 4;
-        if (x.m_kind) {
-            ikind = std::atoi(x.m_kind);
-            if (ikind == 0) {
-                std::string var_name = x.m_kind;
-                ASR::symbol_t *v = current_scope->resolve_symbol(var_name);
-                if (v) {
-                    const ASR::symbol_t *v3 = LFortran::ASRUtils::symbol_get_past_external(v);
-                    if (ASR::is_a<ASR::Variable_t>(*v3)) {
-                        ASR::Variable_t *v2 = ASR::down_cast<ASR::Variable_t>(v3);
-                        if (v2->m_value) {
-                            if (ASR::is_a<ASR::ConstantInteger_t>(*v2->m_value)) {
-                                ikind = ASR::down_cast<ASR::ConstantInteger_t>(v2->m_value)->m_n;
-                            } else {
-                                throw SemanticError("Variable '" + var_name + "' is constant but not an integer",
-                                    x.base.base.loc);
-                            }
-                        } else {
-                            throw SemanticError("Variable '" + var_name + "' is not constant",
-                                x.base.base.loc);
-                        }
-                    } else {
-                        throw SemanticError("Symbol '" + var_name + "' is not a variable",
-                            x.base.base.loc);
-                    }
-                } else {
-                    throw SemanticError("Variable '" + var_name + "' not declared",
-                        x.base.base.loc);
-                }
-            }
-        }
-        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al,
-                x.base.base.loc, ikind, nullptr, 0));
-        if (BigInt::is_int_ptr(x.m_n)) {
-            throw SemanticError("Integer constants larger than 2^62-1 are not implemented yet", x.base.base.loc);
-        } else {
-            LFORTRAN_ASSERT(!BigInt::is_int_ptr(x.m_n));
-            tmp = ASR::make_ConstantInteger_t(al, x.base.base.loc, x.m_n, type);
-        }
-    }
-
-    void visit_Parenthesis(const AST::Parenthesis_t &x) {
-        visit_expr(*x.m_operand);
-    }
-
-    void visit_Logical(const AST::Logical_t &x) {
-        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Logical_t(al, x.base.base.loc,
-                4, nullptr, 0));
-        tmp = ASR::make_ConstantLogical_t(al, x.base.base.loc, x.m_value, type);
-    }
-
-    void visit_String(const AST::String_t &x) {
-        int s_len = strlen(x.m_s);
-        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Character_t(al, x.base.base.loc,
-                1, s_len, nullptr, nullptr, 0));
-        tmp = ASR::make_ConstantString_t(al, x.base.base.loc, x.m_s, type);
-    }
-
-    void visit_Real(const AST::Real_t &x) {
-        double r = ASRUtils::extract_real(x.m_n);
-        char* s_kind;
-        int r_kind = ASRUtils::extract_kind_str(x.m_n, s_kind);
-        if (r_kind == 0) {
-            std::string var_name = s_kind;
-            ASR::symbol_t *v = current_scope->resolve_symbol(var_name);
-            if (v) {
-                const ASR::symbol_t *v3 = LFortran::ASRUtils::symbol_get_past_external(v);
-                if (ASR::is_a<ASR::Variable_t>(*v3)) {
-                    ASR::Variable_t *v2 = ASR::down_cast<ASR::Variable_t>(v3);
-                    if (v2->m_value) {
-                        if (ASR::is_a<ASR::ConstantInteger_t>(*v2->m_value)) {
-                            r_kind = ASR::down_cast<ASR::ConstantInteger_t>(v2->m_value)->m_n;
-                        } else {
-                            throw SemanticError("Variable '" + var_name + "' is constant but not an integer",
-                                x.base.base.loc);
-                        }
-                    } else {
-                        throw SemanticError("Variable '" + var_name + "' is not constant",
-                            x.base.base.loc);
-                    }
-                } else {
-                    throw SemanticError("Symbol '" + var_name + "' is not a variable",
-                        x.base.base.loc);
-                }
-            } else {
-                throw SemanticError("Variable '" + var_name + "' not declared",
-                    x.base.base.loc);
-            }
-        }
-        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc,
-                r_kind, nullptr, 0));
-        tmp = ASR::make_ConstantReal_t(al, x.base.base.loc, r, type);
-    }
-
-    void visit_Complex(const AST::Complex_t &x) {
-        this->visit_expr(*x.m_re);
-        ASR::expr_t *re = LFortran::ASRUtils::EXPR(tmp);
-        int a_kind_r = LFortran::ASRUtils::extract_kind_from_ttype_t(LFortran::ASRUtils::expr_type(re));
-        this->visit_expr(*x.m_im);
-        ASR::expr_t *im = LFortran::ASRUtils::EXPR(tmp);
-        int a_kind_i = LFortran::ASRUtils::extract_kind_from_ttype_t(LFortran::ASRUtils::expr_type(im));
-        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc,
-                std::max(a_kind_r, a_kind_i), nullptr, 0));
-        tmp = ASR::make_ConstantComplex_t(al, x.base.base.loc,
-                re, im, type);
-    }
-
     void visit_ArrayInitializer(const AST::ArrayInitializer_t &x) {
         Vec<ASR::expr_t*> body;
         body.reserve(al, x.n_args);
@@ -1946,20 +1482,10 @@ public:
         ASR::expr_t *test = LFortran::ASRUtils::EXPR(tmp);
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
-        for (size_t i=0; i<x.n_body; i++) {
-            visit_stmt(*x.m_body[i]);
-            if (tmp != nullptr) {
-                body.push_back(al, LFortran::ASRUtils::STMT(tmp));
-            }
-        }
+        transform_stmts(body, x.n_body, x.m_body);
         Vec<ASR::stmt_t*> orelse;
         orelse.reserve(al, x.n_orelse);
-        for (size_t i=0; i<x.n_orelse; i++) {
-            visit_stmt(*x.m_orelse[i]);
-            if (tmp != nullptr) {
-                orelse.push_back(al, LFortran::ASRUtils::STMT(tmp));
-            }
-        }
+        transform_stmts(orelse, x.n_orelse, x.m_orelse);
         tmp = ASR::make_If_t(al, x.base.base.loc, test, body.p,
                 body.size(), orelse.p, orelse.size());
     }
@@ -1969,12 +1495,7 @@ public:
         ASR::expr_t *test = LFortran::ASRUtils::EXPR(tmp);
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
-        for (size_t i=0; i<x.n_body; i++) {
-            visit_stmt(*x.m_body[i]);
-            if (tmp != nullptr) {
-                body.push_back(al, LFortran::ASRUtils::STMT(tmp));
-            }
-        }
+        transform_stmts(body, x.n_body, x.m_body);
         tmp = ASR::make_WhileLoop_t(al, x.base.base.loc, test, body.p,
                 body.size());
     }
@@ -2048,12 +1569,7 @@ public:
 
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
-        for (size_t i=0; i<x.n_body; i++) {
-            visit_stmt(*x.m_body[i]);
-            if (tmp != nullptr) {
-                body.push_back(al, LFortran::ASRUtils::STMT(tmp));
-            }
-        }
+        transform_stmts(body, x.n_body, x.m_body);
         ASR::do_loop_head_t head;
         head.m_v = var;
         head.m_start = start;
@@ -2097,12 +1613,7 @@ public:
 
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
-        for (size_t i=0; i<x.n_body; i++) {
-            visit_stmt(*x.m_body[i]);
-            if (tmp != nullptr) {
-                body.push_back(al, LFortran::ASRUtils::STMT(tmp));
-            }
-        }
+        transform_stmts(body, x.n_body, x.m_body);
         ASR::do_loop_head_t head;
         head.m_v = var;
         head.m_start = start;
@@ -2127,6 +1638,21 @@ public:
         // TODO: add a check here that we are inside a While loop
         // Nothing to generate, we return a null pointer
         tmp = nullptr;
+    }
+
+    void visit_GoTo(const AST::GoTo_t &x) {
+        if (x.m_goto_label) {
+            if (AST::is_a<AST::Num_t>(*x.m_goto_label)) {
+                int goto_label = AST::down_cast<AST::Num_t>(x.m_goto_label)->m_n;
+                tmp = ASR::make_GoTo_t(al, x.base.base.loc, goto_label);
+            } else {
+                throw SemanticError("A goto label must be an integer",
+                    x.base.base.loc);
+            }
+        } else {
+            throw SemanticError("Currently only 'goto INTEGER' is supported",
+                x.base.base.loc);
+        }
     }
 
     void visit_Stop(const AST::Stop_t &x) {

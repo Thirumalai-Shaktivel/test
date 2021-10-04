@@ -334,6 +334,7 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         } else if ((
                 std::string(x.m_name) == "int" ||
                 std::string(x.m_name) == "char" ||
+                std::string(x.m_name) == "present" ||
                 std::string(x.m_name) == "len"
                 ) && intrinsic_module) {
             // Intrinsic function `int`
@@ -826,6 +827,11 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
     void visit_Return(const ASR::Return_t & /* x */) {
         std::string indent(indentation_level*indentation_spaces, ' ');
         src = indent + "return;\n";
+    }
+
+    void visit_GoToTarget(const ASR::GoToTarget_t & /* x */) {
+        // Ignore for now
+        src = "";
     }
 
     void visit_Stop(const ASR::Stop_t & /* x */) {

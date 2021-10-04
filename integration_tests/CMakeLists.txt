@@ -112,8 +112,8 @@ RUN(NAME doloop_03 LABELS gfortran llvm cpp)
 RUN(NAME doloop_04 LABELS gfortran)
 RUN(NAME doloop_05 LABELS gfortran llvm cpp)
 
-RUN(NAME goto_01 LABELS gfortran)
-RUN(NAME goto_02 LABELS gfortran)
+RUN(NAME goto_01 LABELS gfortran llvm)
+RUN(NAME goto_02 LABELS gfortran llvm)
 RUN(NAME goto_03 LABELS gfortran)
 
 RUN(NAME subroutines_01 LABELS gfortran llvm cpp x86)
@@ -172,7 +172,7 @@ RUN(NAME format_02 LABELS gfortran)
 RUN(NAME submodule_01 LABELS gfortran)
 
 RUN(NAME floor_01 LABELS gfortran llvm) # floor body
-RUN(NAME floor_02 LABELS gfortran) # floor symboltable
+RUN(NAME floor_02 LABELS gfortran llvm) # floor symboltable
 RUN(NAME floor_03 LABELS gfortran)
 
 RUN(NAME modulo_01 LABELS gfortran llvm)
@@ -191,13 +191,20 @@ RUN(NAME intrinsics_07 LABELS gfortran) # kind
 RUN(NAME intrinsics_08 LABELS gfortran) # tiny symboltable
 RUN(NAME intrinsics_09 LABELS gfortran) # tiny body
 RUN(NAME intrinsics_10 LABELS gfortran llvm) # real body
-RUN(NAME intrinsics_11 LABELS gfortran) # real symboltable
+RUN(NAME intrinsics_11 LABELS gfortran llvm) # real symboltable
 RUN(NAME intrinsics_12 LABELS gfortran llvm) # kind body
 RUN(NAME intrinsics_13 LABELS gfortran) # kind symboltable
-RUN(NAME intrinsics_14 LABELS gfortran) # selected_real,int_kind body
+RUN(NAME intrinsics_14 LABELS gfortran llvm) # selected_real,int_kind body
 RUN(NAME intrinsics_15 LABELS gfortran llvm) # real
 RUN(NAME intrinsics_16 LABELS gfortran) # aimag
 RUN(NAME intrinsics_17 LABELS gfortran llvm) # exp, log, erf
+RUN(NAME intrinsics_18 LABELS gfortran llvm)
+RUN(NAME intrinsics_18c LABELS gfortran llvm)
+RUN(NAME intrinsics_19 LABELS gfortran llvm)
+RUN(NAME intrinsics_19c LABELS gfortran llvm)
+RUN(NAME intrinsics_20 LABELS gfortran llvm)
+RUN(NAME intrinsics_21 LABELS gfortran llvm)
+RUN(NAME intrinsics_22 LABELS gfortran llvm)
 RUN(NAME intrinsics_open_close_read_write LABELS gfortran)
 
 RUN(NAME parameter_01 LABELS gfortran)
@@ -358,6 +365,7 @@ RUN(NAME recursion_03 LABELS gfortran llvm)
 RUN(NAME return_01 LABELS gfortran llvm)
 RUN(NAME return_02 LABELS gfortran llvm)
 RUN(NAME return_03 LABELS gfortran llvm)
+RUN(NAME return_04 LABELS gfortran llvm)
 
 RUN(NAME class_01 LABELS gfortran)
 RUN(NAME class_02 LABELS gfortran llvm)
@@ -375,3 +383,4 @@ RUN(NAME sqrt_02 LABELS gfortran llvm)
 RUN(NAME sin_01 LABELS gfortran llvm)
 RUN(NAME sin_02 LABELS gfortran llvm)
 RUN(NAME sin_03 LABELS gfortran llvm)
+RUN(NAME sin_04 LABELS gfortran llvm)

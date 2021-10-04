@@ -4,7 +4,11 @@ use, intrinsic :: iso_c_binding, only: c_float, c_double
 implicit none
 
 interface abs
-    module procedure sabs, dabs, cabs, zabs
+    module procedure iabs, sabs, dabs, cabs, zabs
+end interface
+
+interface aimag
+    module procedure caimag, zaimag
 end interface
 
 interface sqrt
@@ -21,6 +25,22 @@ end interface
 
 interface erf
     module procedure serf, derf
+end interface
+
+interface erfc
+    module procedure serfc, derfc
+end interface
+
+interface gamma
+    module procedure sgamma, dgamma
+end interface
+
+interface log_gamma
+    module procedure slog_gamma, dlog_gamma
+end interface
+
+interface log10
+    module procedure slog10, dlog10
 end interface
 
 interface sin
@@ -79,6 +99,15 @@ contains
 
 ! abs --------------------------------------------------------------------------
 
+elemental integer function iabs(x) result(r)
+integer, intent(in) :: x
+if (x >= 0) then
+    r = x
+else
+    r = -x
+end if
+end function
+
 elemental real(sp) function sabs(x) result(r)
 real(sp), intent(in) :: x
 if (x >= 0) then
@@ -105,6 +134,30 @@ end function
 elemental real(dp) function zabs(x) result(r)
 complex(dp), intent(in) :: x
 r = sqrt(real(x,dp)**2 + aimag(x)**2)
+end function
+
+! aimag ------------------------------------------------------------------------
+
+elemental real(sp) function caimag(x) result(r)
+complex(sp), intent(in) :: x
+interface
+    pure complex(c_float) function c_caimag(x) bind(c, name="_lfortran_caimag")
+    import :: c_float
+    complex(c_float), intent(in), value :: x
+    end function
+end interface
+r = c_caimag(x)
+end function
+
+elemental real(dp) function zaimag(x) result(r)
+complex(dp), intent(in) :: x
+interface
+    pure complex(c_double) function c_zaimag(x) bind(c, name="_lfortran_zaimag")
+    import :: c_double
+    complex(c_double), intent(in), value :: x
+    end function
+end interface
+r = c_zaimag(x)
 end function
 
 ! sqrt -------------------------------------------------------------------------
@@ -263,6 +316,102 @@ interface
     end function
 end interface
 r = c_derf(x)
+end function
+
+! erfc -------------------------------------------------------------------------
+
+elemental real(sp) function serfc(x) result(r)
+real(sp), intent(in) :: x
+interface
+    pure real(c_float) function c_serfc(x) bind(c, name="_lfortran_serfc")
+    import :: c_float
+    real(c_float), intent(in), value :: x
+    end function
+end interface
+r = c_serfc(x)
+end function
+
+elemental real(dp) function derfc(x) result(r)
+real(dp), intent(in) :: x
+interface
+    pure real(c_double) function c_derfc(x) bind(c, name="_lfortran_derfc")
+    import :: c_double
+    real(c_double), intent(in), value :: x
+    end function
+end interface
+r = c_derfc(x)
+end function
+
+! gamma ------------------------------------------------------------------------
+
+elemental real(sp) function sgamma(x) result(r)
+real(sp), intent(in) :: x
+interface
+    pure real(c_float) function c_sgamma(x) bind(c, name="_lfortran_sgamma")
+    import :: c_float
+    real(c_float), intent(in), value :: x
+    end function
+end interface
+r = c_sgamma(x)
+end function
+
+elemental real(dp) function dgamma(x) result(r)
+real(dp), intent(in) :: x
+interface
+    pure real(c_double) function c_dgamma(x) bind(c, name="_lfortran_dgamma")
+    import :: c_double
+    real(c_double), intent(in), value :: x
+    end function
+end interface
+r = c_dgamma(x)
+end function
+
+! log_gamma --------------------------------------------------------------------
+
+elemental real(sp) function slog_gamma(x) result(r)
+real(sp), intent(in) :: x
+interface
+    pure real(c_float) function c_slog_gamma(x) bind(c, name="_lfortran_slog_gamma")
+    import :: c_float
+    real(c_float), intent(in), value :: x
+    end function
+end interface
+r = c_slog_gamma(x)
+end function
+
+elemental real(dp) function dlog_gamma(x) result(r)
+real(dp), intent(in) :: x
+interface
+    pure real(c_double) function c_dlog_gamma(x) bind(c, name="_lfortran_dlog_gamma")
+    import :: c_double
+    real(c_double), intent(in), value :: x
+    end function
+end interface
+r = c_dlog_gamma(x)
+end function
+
+! log10 ------------------------------------------------------------------------
+
+elemental real(sp) function slog10(x) result(r)
+real(sp), intent(in) :: x
+interface
+    pure real(c_float) function c_slog10(x) bind(c, name="_lfortran_slog10")
+    import :: c_float
+    real(c_float), intent(in), value :: x
+    end function
+end interface
+r = c_slog10(x)
+end function
+
+elemental real(dp) function dlog10(x) result(r)
+real(dp), intent(in) :: x
+interface
+    pure real(c_double) function c_dlog10(x) bind(c, name="_lfortran_dlog10")
+    import :: c_double
+    real(c_double), intent(in), value :: x
+    end function
+end interface
+r = c_dlog10(x)
 end function
 
 ! sin --------------------------------------------------------------------------

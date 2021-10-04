@@ -1,6 +1,7 @@
 ; ModuleID = 'LFortran'
 source_filename = "LFortran"
 
+%c_ptr = type { i32 }
 %complex_8 = type { double, double }
 
 @0 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
@@ -11,7 +12,9 @@ source_filename = "LFortran"
 
 declare i8* @__module_lfortran_intrinsic_array_char(i32*)
 
-define double @__module_lfortran_intrinsic_math2_dabs(double* %x) {
+declare void @__module_lfortran_intrinsic_iso_c_binding_c_f_pointer(%c_ptr*, i32*)
+
+define double @__module_lfortran_intrinsic_math_dabs(double* %x) {
 .entry:
   %r = alloca double, align 8
   %0 = load double, double* %x, align 8
@@ -30,7 +33,9 @@ else:                                             ; preds = %.entry
   br label %ifcont
 
 ifcont:                                           ; preds = %else, %then
-  %iftmp = phi i32 [ 1, %then ], [ 2, %else ]
+  br label %return
+
+return:                                           ; preds = %ifcont
   %5 = load double, double* %r, align 8
   ret double %5
 }
@@ -41,6 +46,9 @@ define double @__module_lfortran_intrinsic_math_dtan(double* %x) {
   %0 = load double, double* %x, align 8
   %1 = call double @_lfortran_dtan(double %0)
   store double %1, double* %r, align 8
+  br label %return
+
+return:                                           ; preds = %.entry
   %2 = load double, double* %r, align 8
   ret double %2
 }
@@ -53,6 +61,9 @@ define %complex_8 @__module_lfortran_intrinsic_math_ztan(%complex_8* %x) {
   %0 = load %complex_8, %complex_8* %x, align 8
   %1 = call %complex_8 @_lfortran_ztan(%complex_8 %0)
   store %complex_8 %1, %complex_8* %r, align 8
+  br label %return
+
+return:                                           ; preds = %.entry
   %2 = load %complex_8, %complex_8* %r, align 8
   ret %complex_8 %2
 }
@@ -72,7 +83,7 @@ define i32 @main() {
   %3 = fsub double %2, 0x402C33ED50B88778
   %4 = alloca double, align 8
   store double %3, double* %4, align 8
-  %5 = call double @__module_lfortran_intrinsic_math2_dabs(double* %4)
+  %5 = call double @__module_lfortran_intrinsic_math_dabs(double* %4)
   %6 = fcmp ugt double %5, 1.000000e-10
   br i1 %6, label %then, label %else
 
@@ -85,7 +96,6 @@ else:                                             ; preds = %.entry
   br label %ifcont
 
 ifcont:                                           ; preds = %else, %then
-  %iftmp = phi i32 [ 1, %then ], [ 2, %else ]
   %7 = alloca %complex_8, align 8
   %8 = getelementptr %complex_8, %complex_8* %7, i32 0, i32 0
   %9 = getelementptr %complex_8, %complex_8* %7, i32 0, i32 1
@@ -113,7 +123,7 @@ ifcont:                                           ; preds = %else, %then
   %23 = fsub double %22, 0x3F30E5C06C0C177D
   %24 = alloca double, align 8
   store double %23, double* %24, align 8
-  %25 = call double @__module_lfortran_intrinsic_math2_dabs(double* %24)
+  %25 = call double @__module_lfortran_intrinsic_math_dabs(double* %24)
   %26 = fcmp ugt double %25, 1.000000e-10
   br i1 %26, label %then1, label %else2
 
@@ -126,7 +136,6 @@ else2:                                            ; preds = %ifcont
   br label %ifcont3
 
 ifcont3:                                          ; preds = %else2, %then1
-  %iftmp4 = phi i32 [ 1, %then1 ], [ 2, %else2 ]
   ret i32 0
 }
 

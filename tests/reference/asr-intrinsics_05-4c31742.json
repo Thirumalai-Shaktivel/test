@@ -6,7 +6,11 @@
     "outfile": null,
     "outfile_hash": null,
     "stdout": "asr-intrinsics_05-4c31742.stdout",
+<<<<<<< HEAD
     "stdout_hash": "a7637952f5a6cfa687740edc45c832cdd12142acb73fdd6e87ede0d7",
+=======
+    "stdout_hash": "753e627f0fa4a841a744cd3639245111297f4eb9d3ee0806f51fde97",
+>>>>>>> master
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0

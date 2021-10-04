@@ -128,6 +128,18 @@ LFORTRAN_API double_complex_t _lfortran_zsqrt(double_complex_t x)
     return csqrt(x);
 }
 
+// aimag -----------------------------------------------------------------------
+
+LFORTRAN_API float _lfortran_caimag(float_complex_t x)
+{
+    return cimagf(x);
+}
+
+LFORTRAN_API double _lfortran_zaimag(double_complex_t x)
+{
+    return cimag(x);
+}
+
 // exp -------------------------------------------------------------------------
 
 LFORTRAN_API float _lfortran_sexp(float x)
@@ -182,6 +194,54 @@ LFORTRAN_API float _lfortran_serf(float x)
 LFORTRAN_API double _lfortran_derf(double x)
 {
     return erf(x);
+}
+
+// erfc ------------------------------------------------------------------------
+
+LFORTRAN_API float _lfortran_serfc(float x)
+{
+    return erfcf(x);
+}
+
+LFORTRAN_API double _lfortran_derfc(double x)
+{
+    return erfc(x);
+}
+
+// log10 -----------------------------------------------------------------------
+
+LFORTRAN_API float _lfortran_slog10(float x)
+{
+    return log10f(x);
+}
+
+LFORTRAN_API double _lfortran_dlog10(double x)
+{
+    return log10(x);
+}
+
+// gamma -----------------------------------------------------------------------
+
+LFORTRAN_API float _lfortran_sgamma(float x)
+{
+    return tgammaf(x);
+}
+
+LFORTRAN_API double _lfortran_dgamma(double x)
+{
+    return tgamma(x);
+}
+
+// gamma -----------------------------------------------------------------------
+
+LFORTRAN_API float _lfortran_slog_gamma(float x)
+{
+    return lgammaf(x);
+}
+
+LFORTRAN_API double _lfortran_dlog_gamma(double x)
+{
+    return lgamma(x);
 }
 
 // sin -------------------------------------------------------------------------
@@ -512,4 +572,12 @@ LFORTRAN_API int32_t _lfortran_iand32(int32_t x, int32_t y) {
 
 LFORTRAN_API int64_t _lfortran_iand64(int64_t x, int64_t y) {
     return x & y;
+}
+
+LFORTRAN_API int32_t _lfortran_ior32(int32_t x, int32_t y) {
+    return x | y;
+}
+
+LFORTRAN_API int64_t _lfortran_ior64(int64_t x, int64_t y) {
+    return x | y;
 }
