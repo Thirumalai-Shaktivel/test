@@ -28,8 +28,8 @@ end function
 integer elemental function index(string_, substring_, back_, kind_) result(idx)
 character(len=*), intent(in) :: string_
 character(len=*), intent(in) :: substring_
-logical, optional :: back_
-integer, optional :: kind_
+logical, optional, intent(in) :: back_
+integer, optional, intent(in) :: kind_
 integer :: i, j, k
 logical :: found
 idx = -1
@@ -37,7 +37,7 @@ do i = 1, len(string_)
     k = 0
     found = .true.
     do j = 1, len(substring_)
-        if( string_(i + k:i + k) .neqv. substring_(j:j) ) then
+        if( string_(i + k:i + k) /= substring_(j:j) ) then
             found = .false.
             exit
         end if
