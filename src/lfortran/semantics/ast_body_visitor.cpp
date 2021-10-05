@@ -708,7 +708,14 @@ public:
     void visit_Function(const AST::Function_t &x) {
         SymbolTable *old_scope = current_scope;
         ASR::symbol_t *t = current_scope->scope[to_lower(x.m_name)];
+        if( t->type == ASR::symbolType::GenericProcedure ) {
+            ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(t);
+            if( g->n_procs == 1 ) {
+                t = g->m_procs[0];
+            }
+        }
         ASR::Function_t *v = ASR::down_cast<ASR::Function_t>(t);
+        LFORTRAN_ASSERT(to_lower(x.m_name) == to_lower(v->m_name));
         current_scope = v->m_symtab;
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
@@ -731,6 +738,18 @@ public:
     void visit_Assignment(const AST::Assignment_t &x) {
         this->visit_expr(*x.m_target);
         ASR::expr_t *target = LFortran::ASRUtils::EXPR(tmp);
+        this->visit_expr(*x.m_value);
+        ASR::expr_t *value = LFortran::ASRUtils::EXPR(tmp);
+        ASR::expr_t *overloaded_expr = nullptr;
+        ASR::stmt_t *overloaded_stmt = nullptr;
+        if( LFortran::ASRUtils::use_overloaded_assignment(target, value,
+            current_scope, asr, al, x.base.base.loc) ) {
+            if( asr->type == ASR::asrType::expr ) {
+                overloaded_expr = LFortran::ASRUtils::EXPR(asr);
+            } else if( asr->type == ASR::asrType::stmt ) {
+                overloaded_stmt = LFortran::ASRUtils::STMT(asr);
+            }
+        }
         ASR::ttype_t *target_type = LFortran::ASRUtils::expr_type(target);
         if( target->type != ASR::exprType::Var &&
             target->type != ASR::exprType::ArrayRef &&
@@ -741,9 +760,6 @@ public:
                 x.base.base.loc
             );
         }
-
-        this->visit_expr(*x.m_value);
-        ASR::expr_t *value = LFortran::ASRUtils::EXPR(tmp);
         ASR::ttype_t *value_type = LFortran::ASRUtils::expr_type(value);
         if( target->type == ASR::exprType::Var && !ASRUtils::is_array(target_type) &&
             value->type == ASR::exprType::ConstantArray ) {
@@ -756,7 +772,7 @@ public:
                                                     value_type, target_type);
 
         }
-        tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value);
+        tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value, overloaded_expr, overloaded_stmt);
     }
 
     void visit_SubroutineCall(const AST::SubroutineCall_t &x) {
@@ -779,6 +795,14 @@ public:
             throw SemanticError("Subroutine '" + sub_name + "' not declared", x.base.base.loc);
         }
         Vec<ASR::expr_t*> args = visit_expr_list(x.m_args, x.n_args);
+        Vec<ASR::expr_t*> args_with_mdt;
+        if( x.n_member == 1 ) {
+            args_with_mdt.reserve(al, x.n_args + 1);
+            args_with_mdt.push_back(al, v_expr);
+            for( size_t i = 0; i < args.size(); i++ ) {
+                args_with_mdt.push_back(al, args[i]);
+            }
+        }
         ASR::symbol_t *final_sym=nullptr;
         switch (original_sym->type) {
             case (ASR::symbolType::Subroutine) : {
@@ -788,7 +812,13 @@ public:
             }
             case (ASR::symbolType::GenericProcedure) : {
                 ASR::GenericProcedure_t *p = ASR::down_cast<ASR::GenericProcedure_t>(original_sym);
-                int idx = select_generic_procedure(args, *p, x.base.base.loc);
+                int idx;
+                if( x.n_member == 1 ) {
+                    idx = select_generic_procedure(args_with_mdt, *p, x.base.base.loc);
+                } else {
+                    idx = select_generic_procedure(args, *p, x.base.base.loc);
+                }
+                // Create ExternalSymbol for procedures in different modules.
                 final_sym = p->m_procs[idx];
                 break;
             }

@@ -93,6 +93,8 @@ symbol
         symbol* procs, access access)
     | CustomOperator(symbol_table parent_symtab, identifier name,
         symbol* procs, access access)
+    | CustomAssignment(symbol_table parent_symtab, symbol* procs,
+        access access)
     | ExternalSymbol(symbol_table parent_symtab, identifier name,
         symbol external, identifier module_name, identifier* scope_names,
         identifier original_name, access access)
@@ -153,7 +155,7 @@ abi                   -- External     ABI
 stmt
     = Allocate(alloc_arg* args, expr? stat)
     | Assign(int label, identifier variable)
-    | Assignment(expr target, expr value)
+    | Assignment(expr target, expr value, expr? overloaded_expr, stmt? overloaded_stmt)
     | Associate(expr target, expr value)
     | Cycle()
     -- deallocates if allocated otherwise throws a runtime error
@@ -191,9 +193,9 @@ expr
     | BinOp(expr left, binop op, expr right, ttype type, expr? value, expr? overloaded)
     | StrOp(expr left, strop op, expr right, ttype type, expr? value)
     | UnaryOp(unaryop op, expr operand, ttype type, expr? value)
+    | Compare(expr left, cmpop op, expr right, ttype type, expr? value, expr? overloaded)
         -- Such as: (x, y+z), (3.0, 2.0) generally not known at compile time
     | ComplexConstructor(expr re, expr im, ttype type, expr? value)
-    | Compare(expr left, cmpop op, expr right, ttype type, expr? value)
     | FunctionCall(symbol name, symbol? original_name, expr* args,
             keyword* keywords, ttype type, expr? value, expr? dt)
     | DerivedTypeConstructor(symbol dt_sym, expr* args, ttype type)
@@ -205,6 +207,7 @@ expr
     | ConstantComplex(float re, float im, ttype type)
     | ConstantLogical(bool value, ttype type)
     | ConstantString(string s, ttype type)
+    | BOZ(string s, boz boz_type, ttype? type)
     | Var(symbol v)
     | ArrayRef(symbol v, array_index* args, ttype type, expr? value)
     | DerivedRef(expr v, symbol m, ttype type, expr? value)
@@ -241,6 +244,8 @@ unaryop = Invert | Not | UAdd | USub
 strop = Concat
 
 cmpop = Eq | NotEq | Lt | LtE | Gt | GtE
+
+boz = Binary | Hex | Octal
 
 cast_kind
     = RealToInteger

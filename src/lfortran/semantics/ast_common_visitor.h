@@ -234,17 +234,60 @@ inline static void visit_BinOp(Allocator &al, const AST::BinOp_t &x,
 
   inline static void visit_Compare(Allocator &al, const AST::Compare_t &x,
                                    ASR::expr_t *&left, ASR::expr_t *&right,
-                                   ASR::asr_t *&asr) {
+                                   ASR::asr_t *&asr, std::string& intrinsic_op_name,
+                                   SymbolTable* curr_scope) {
+    ASR::cmpopType asr_op;
+    switch (x.m_op) {
+        case (AST::cmpopType::Eq): {
+        asr_op = ASR::cmpopType::Eq;
+        break;
+        }
+        case (AST::cmpopType::Gt): {
+        asr_op = ASR::cmpopType::Gt;
+        break;
+        }
+        case (AST::cmpopType::GtE): {
+        asr_op = ASR::cmpopType::GtE;
+        break;
+        }
+        case (AST::cmpopType::Lt): {
+        asr_op = ASR::cmpopType::Lt;
+        break;
+        }
+        case (AST::cmpopType::LtE): {
+        asr_op = ASR::cmpopType::LtE;
+        break;
+        }
+        case (AST::cmpopType::NotEq): {
+        asr_op = ASR::cmpopType::NotEq;
+        break;
+        }
+        default: {
+        throw SemanticError("Comparison operator not implemented",
+                            x.base.base.loc);
+        }
+    }
+
     // Cast LHS or RHS if necessary
     ASR::ttype_t *left_type = LFortran::ASRUtils::expr_type(left);
     ASR::ttype_t *right_type = LFortran::ASRUtils::expr_type(right);
+
+    ASR::expr_t *overloaded = nullptr;
+    if( LFortran::ASRUtils::use_overloaded(left, right, asr_op,
+        intrinsic_op_name, curr_scope, asr, al,
+        x.base.base.loc) ) {
+        overloaded = LFortran::ASRUtils::EXPR(asr);
+    }
+
     if ((left_type->type != ASR::ttypeType::Real &&
          left_type->type != ASR::ttypeType::Integer) &&
         (right_type->type != ASR::ttypeType::Real &&
          right_type->type != ASR::ttypeType::Integer) &&
         ((left_type->type != ASR::ttypeType::Complex ||
           right_type->type != ASR::ttypeType::Complex) &&
-         x.m_op != AST::cmpopType::Eq && x.m_op != AST::cmpopType::NotEq)) {
+         x.m_op != AST::cmpopType::Eq && x.m_op != AST::cmpopType::NotEq) && 
+         (left_type->type != ASR::ttypeType::Character ||
+          right_type->type != ASR::ttypeType::Character)) {
       throw SemanticError(
           "Compare: only Integer or Real can be on the LHS and RHS. "
           "If operator is .eq. or .neq. then Complex type is also acceptable",
@@ -266,38 +309,7 @@ inline static void visit_BinOp(Allocator &al, const AST::BinOp_t &x,
                                    LFortran::ASRUtils::expr_type(right)));
     ASR::ttype_t *type = LFortran::ASRUtils::TYPE(
         ASR::make_Logical_t(al, x.base.base.loc, 4, nullptr, 0));
-    ASR::cmpopType asr_op;
-    switch (x.m_op) {
-    case (AST::cmpopType::Eq): {
-      asr_op = ASR::cmpopType::Eq;
-      break;
-    }
-    case (AST::cmpopType::Gt): {
-      asr_op = ASR::cmpopType::Gt;
-      break;
-    }
-    case (AST::cmpopType::GtE): {
-      asr_op = ASR::cmpopType::GtE;
-      break;
-    }
-    case (AST::cmpopType::Lt): {
-      asr_op = ASR::cmpopType::Lt;
-      break;
-    }
-    case (AST::cmpopType::LtE): {
-      asr_op = ASR::cmpopType::LtE;
-      break;
-    }
-    case (AST::cmpopType::NotEq): {
-      asr_op = ASR::cmpopType::NotEq;
-      break;
-    }
-    default: {
-      throw SemanticError("Comparison operator not implemented",
-                          x.base.base.loc);
-    }
-    }
-
+    
     ASR::expr_t *value = nullptr;
     ASR::ttype_t *source_type = left_type;
     // Assign evaluation to `value` if possible, otherwise leave nullptr
@@ -386,7 +398,7 @@ inline static void visit_BinOp(Allocator &al, const AST::BinOp_t &x,
       }
     }
     asr = ASR::make_Compare_t(al, x.base.base.loc, left, asr_op, right, type,
-                              value);
+                              value, overloaded);
   }
 
   inline static void visit_BoolOp(Allocator &al, const AST::BoolOp_t &x,
@@ -615,6 +627,15 @@ public:
     std::map<AST::operatorType, std::string> binop2str = {
         {AST::operatorType::Mul, "~mul"},
         {AST::operatorType::Add, "~add"},
+    };
+
+    std::map<AST::cmpopType, std::string> cmpop2str = {
+        {AST::cmpopType::Eq, "~eq"},
+        {AST::cmpopType::NotEq, "~noteq"},
+        {AST::cmpopType::Lt, "~lt"},
+        {AST::cmpopType::LtE, "~lte"},
+        {AST::cmpopType::Gt, "~gt"},
+        {AST::cmpopType::GtE, "~gte"}
     };
 
     ASR::asr_t *tmp;
@@ -935,7 +956,7 @@ public:
         ASR::expr_t *left = LFortran::ASRUtils::EXPR(tmp);
         this->visit_expr(*x.m_right);
         ASR::expr_t *right = LFortran::ASRUtils::EXPR(tmp);
-        CommonVisitorMethods::visit_Compare(al, x, left, right, tmp);
+        CommonVisitorMethods::visit_Compare(al, x, left, right, tmp, cmpop2str[x.m_op], current_scope);
     }
 
     void visit_Parenthesis(const AST::Parenthesis_t &x) {
@@ -953,6 +974,27 @@ public:
         ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Character_t(al, x.base.base.loc,
                 1, s_len, nullptr, nullptr, 0));
         tmp = ASR::make_ConstantString_t(al, x.base.base.loc, x.m_s, type);
+    }
+
+    void visit_BOZ(const AST::BOZ_t& x) {
+        LFortran::Str boz_content;
+        std::string s = x.m_s; 
+        boz_content.from_str(al, s.substr(1));
+        ASR::bozType boz_type;
+        if( s[0] == 'b' || s[0] == 'B' ) {
+            boz_type = ASR::bozType::Binary;
+        } else if( s[0] == 'z' || s[0] == 'Z' ) {
+            boz_type = ASR::bozType::Hex;
+        } else if( s[0] == 'o' || s[0] == 'O' ) {
+            boz_type = ASR::bozType::Octal;
+        } else {
+            throw SemanticError(R"""(Only 'b', 'o' and 'z' 
+                                are accepted as prefixes of 
+                                BOZ literal constants.)""", 
+                                x.base.base.loc);
+        }
+        tmp = ASR::make_BOZ_t(al, x.base.base.loc, boz_content.c_str(al),
+                                boz_type, nullptr);
     }
 
     void visit_Num(const AST::Num_t &x) {
@@ -1134,23 +1176,41 @@ public:
         }
     }
 
+    bool select_func_subrout(const ASR::symbol_t* proc, const Vec<ASR::expr_t*> &args,
+                             Location& loc) {
+        bool result = false;
+        if (ASR::is_a<ASR::Subroutine_t>(*proc)) {
+            ASR::Subroutine_t *sub
+                = ASR::down_cast<ASR::Subroutine_t>(proc);
+            if (argument_types_match(args, *sub)) {
+                result = true;
+            }
+        } else if (ASR::is_a<ASR::Function_t>(*proc)) {
+            ASR::Function_t *fn
+                = ASR::down_cast<ASR::Function_t>(proc);
+            if (argument_types_match(args, *fn)) {
+                result = true;
+            }
+        } else {
+            throw SemanticError("Only Subroutine and Function supported in generic procedure", loc);
+        }
+        return result;
+    }
+
     int select_generic_procedure(const Vec<ASR::expr_t*> &args,
             const ASR::GenericProcedure_t &p, Location loc) {
         for (size_t i=0; i < p.n_procs; i++) {
-            if (ASR::is_a<ASR::Subroutine_t>(*p.m_procs[i])) {
-                ASR::Subroutine_t *sub
-                    = ASR::down_cast<ASR::Subroutine_t>(p.m_procs[i]);
-                if (argument_types_match(args, *sub)) {
-                    return i;
-                }
-            } else if (ASR::is_a<ASR::Function_t>(*p.m_procs[i])) {
-                ASR::Function_t *fn
-                    = ASR::down_cast<ASR::Function_t>(p.m_procs[i]);
-                if (argument_types_match(args, *fn)) {
+            if( ASR::is_a<ASR::ClassProcedure_t>(*p.m_procs[i]) ) {
+                ASR::ClassProcedure_t *clss_fn 
+                    = ASR::down_cast<ASR::ClassProcedure_t>(p.m_procs[i]);
+                const ASR::symbol_t *proc = ASRUtils::symbol_get_past_external(clss_fn->m_proc);
+                if( select_func_subrout(proc, args, loc) ) {
                     return i;
                 }
             } else {
-                throw SemanticError("Only Subroutine and Function supported in generic procedure", loc);
+                if( select_func_subrout(p.m_procs[i], args, loc) ) {
+                    return i;
+                }
             }
         }
         throw SemanticError("Arguments do not match for any generic procedure", loc);

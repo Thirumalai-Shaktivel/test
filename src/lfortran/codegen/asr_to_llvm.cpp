@@ -441,6 +441,10 @@ public:
             }
             std::map<std::string, ASR::symbol_t*> scope = der_type->m_symtab->scope;
             for( auto itr = scope.begin(); itr != scope.end(); itr++ ) {
+                if( itr->second->type != ASR::symbolType::Variable ) {
+                    // LLVM structure will only contain data members inside structure
+                    continue;
+                }
                 ASR::Variable_t* member = (ASR::Variable_t*)(&(itr->second->base));
                 llvm::Type* mem_type = nullptr;
                 switch( member->m_type->type ) {
@@ -2280,6 +2284,13 @@ public:
     }
 
     void visit_Assignment(const ASR::Assignment_t &x) {
+        if( x.m_overloaded_expr ) {
+            this->visit_expr(*x.m_overloaded_expr);
+            return ;
+        } else if( x.m_overloaded_stmt ) {
+            this->visit_stmt(*x.m_overloaded_stmt);
+            return ;
+        }
         llvm::Value *target, *value;
         uint32_t h;
         bool lhs_is_string_arrayref = false;
@@ -2374,6 +2385,10 @@ public:
     }
 
     void visit_Compare(const ASR::Compare_t &x) {
+        if( x.m_overloaded ) {
+            this->visit_expr(*x.m_overloaded);
+            return ;
+        }
         if (x.m_value) {
             this->visit_expr_wrapper(x.m_value, true);
             return;
@@ -2470,22 +2485,35 @@ public:
             }
             tmp = builder->CreateAnd(real_res, img_res);
         } else if (optype == ASR::ttypeType::Character) {
-            // TODO: For now we only compare the first character of the strings
+            left = builder->CreateLoad(left);
+            right = builder->CreateLoad(right);
             switch (x.m_op) {
                 case (ASR::cmpopType::Eq) : {
-                    left = builder->CreateLoad(left);
-                    right = builder->CreateLoad(right);
                     tmp = builder->CreateICmpEQ(left, right);
                     break;
                 }
                 case (ASR::cmpopType::NotEq) : {
-                    left = builder->CreateLoad(left);
-                    right = builder->CreateLoad(right);
                     tmp = builder->CreateICmpNE(left, right);
                     break;
                 }
+                case (ASR::cmpopType::Gt) : {
+                    tmp = builder->CreateICmpUGT(left, right);
+                    break;
+                }
+                case (ASR::cmpopType::GtE) : {
+                    tmp = builder->CreateICmpUGE(left, right);
+                    break;
+                }
+                case (ASR::cmpopType::Lt) : {
+                    tmp = builder->CreateICmpULT(left, right);
+                    break;
+                }
+                case (ASR::cmpopType::LtE) : {
+                    tmp = builder->CreateICmpULE(left, right);
+                    break;
+                }
                 default : {
-                    throw SemanticError("Comparison operator not implemented for strings",
+                    throw SemanticError("Comparison operator not implemented",
                             x.base.base.loc);
                 }
             }
@@ -3368,6 +3396,16 @@ public:
     }
 
     template <typename T>
+    inline void set_func_subrout_params(T* func_subrout, ASR::abiType& x_abi,
+                                        std::uint32_t& m_h, ASR::Variable_t*& orig_arg,
+                                        std::string& orig_arg_name, size_t arg_idx) {
+        m_h = get_hash((ASR::asr_t*)func_subrout);
+        orig_arg = EXPR2VAR(func_subrout->m_args[arg_idx]);
+        orig_arg_name = orig_arg->m_name;
+        x_abi = func_subrout->m_abi;
+    }
+
+    template <typename T>
     std::vector<llvm::Value*> convert_call_args(const T &x, std::string name) {
         std::vector<llvm::Value *> args;
         const ASR::symbol_t* func_subrout = symbol_get_past_external(x.m_name);
@@ -3378,6 +3416,9 @@ public:
         } else if( is_a<ASR::Subroutine_t>(*func_subrout) ) {
             ASR::Subroutine_t* sub = down_cast<ASR::Subroutine_t>(func_subrout);
             x_abi = sub->m_abi;
+        } else if( is_a<ASR::ClassProcedure_t>(*func_subrout) ) {
+            ASR::ClassProcedure_t* clss_proc = ASR::down_cast<ASR::ClassProcedure_t>(func_subrout);
+            x_abi = clss_proc->m_abi;
         }
         if( x_abi == ASR::abiType::Intrinsic ) {
             if( name == "size" ) {
@@ -3422,6 +3463,7 @@ public:
         }
         if( args.size() == 0 ) {
             for (size_t i=0; i<x.n_args; i++) {
+                // TODO: Extend the following logic for Constants as well.
                 if (x.m_args[i]->type == ASR::exprType::Var) {
                     if (is_a<ASR::Variable_t>(*symbol_get_past_external(
                             ASR::down_cast<ASR::Var_t>(x.m_args[i])->m_v))) {
@@ -3436,16 +3478,19 @@ public:
                             std::string orig_arg_name = "";
                             if( func_subrout->type == ASR::symbolType::Function ) {
                                 ASR::Function_t* func = down_cast<ASR::Function_t>(func_subrout);
-                                m_h = get_hash((ASR::asr_t*)func);
-                                orig_arg = EXPR2VAR(func->m_args[i]);
-                                orig_arg_name = orig_arg->m_name;
-                                x_abi = func->m_abi;
+                                set_func_subrout_params(func, x_abi, m_h, orig_arg, orig_arg_name, i);
                             } else if( func_subrout->type == ASR::symbolType::Subroutine ) {
                                 ASR::Subroutine_t* sub = down_cast<ASR::Subroutine_t>(func_subrout);
-                                m_h = get_hash((ASR::asr_t*)sub);
-                                orig_arg = EXPR2VAR(sub->m_args[i]);
-                                orig_arg_name = orig_arg->m_name;
-                                x_abi = sub->m_abi;
+                                set_func_subrout_params(sub, x_abi, m_h, orig_arg, orig_arg_name, i);
+                            } else if( func_subrout->type == ASR::symbolType::ClassProcedure ) {
+                                ASR::ClassProcedure_t* clss_proc = ASR::down_cast<ASR::ClassProcedure_t>(func_subrout);
+                                if( clss_proc->m_proc->type == ASR::symbolType::Subroutine ) {
+                                    ASR::Subroutine_t* sub = down_cast<ASR::Subroutine_t>(clss_proc->m_proc);
+                                    set_func_subrout_params(sub, x_abi, m_h, orig_arg, orig_arg_name, i);
+                                } else if( clss_proc->m_proc->type == ASR::symbolType::Function ) {
+                                    ASR::Function_t* func = down_cast<ASR::Function_t>(clss_proc->m_proc);
+                                    set_func_subrout_params(func, x_abi, m_h, orig_arg, orig_arg_name, i);
+                                }
                             } else {
                                 LFORTRAN_ASSERT(false)
                             }
