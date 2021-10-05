@@ -2308,6 +2308,11 @@ public:
         r += syn(gr::Repeat);
         r += "do";
         r += syn();
+        if (x.m_do_label) {
+            r.append(" ");
+            r += std::to_string(x.m_do_label);
+            r.append(",");
+        }
         if (x.m_var) {
             r.append(" ");
             r.append(x.m_var);
