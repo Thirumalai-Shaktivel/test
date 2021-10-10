@@ -111,7 +111,8 @@ std::string CPreprocessor::run(const std::string &input, LocationManager &lm,
                     throw LFortranException("C preprocessor: include file '" + filename + "' cannot be opened");
                 }
 
-                include = run(include, lm, macro_definitions);
+                LocationManager lm_tmp = lm; // Make a copy
+                include = run(include, lm_tmp, macro_definitions);
 
                 // Prepare the start of the interval
                 lm.out_start0.push_back(output.size());
@@ -144,12 +145,14 @@ std::string CPreprocessor::run(const std::string &input, LocationManager &lm,
                     lm.in_size0.push_back(lm.out_start0[N+1]-lm.out_start0[N]);
                     lm.interval_type0.push_back(0);
 
-                    // Expand the macro
-                    // TODO: extend this to a full c processing of expansion
+                    // Expand the macro recursively
                     std::string expansion = macro_definitions[t];
+                    std::string expansion2;
                     int i = 0;
-                    while (macro_definitions.find(expansion) != macro_definitions.end()) {
-                        expansion = macro_definitions[expansion];
+                    while (expansion2 != expansion) {
+                        expansion2 = expansion;
+                        LocationManager lm_tmp = lm; // Make a copy
+                        expansion = run(expansion2, lm_tmp, macro_definitions);
                         i++;
                         if (i == 40) {
                             throw LFortranException("C preprocessor: maximum recursion limit reached");
