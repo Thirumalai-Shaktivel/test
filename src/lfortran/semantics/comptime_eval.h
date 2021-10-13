@@ -20,6 +20,7 @@ struct IntrinsicProcedures {
     const std::string m_math2 = "lfortran_intrinsic_math2";
     const std::string m_string = "lfortran_intrinsic_string";
     const std::string m_bit = "lfortran_intrinsic_bit";
+    const std::string m_util = "lfortran_intrinsic_util";
 
     /*
         The last parameter is true if the callback accepts evaluated arguments.
@@ -107,6 +108,11 @@ struct IntrinsicProcedures {
 
             // Subroutines
             {"cpu_time", {m_math, &not_implemented, false}},
+            {"bit_size", {m_util, &not_implemented, false}},
+            {"not", {m_util, &not_implemented, false}},
+            {"iachar",  {m_util, &not_implemented, false}},
+            {"achar", {m_util, &not_implemented, false}},
+            {"index", {m_string, &not_implemented, false}},
         };
     }
 
