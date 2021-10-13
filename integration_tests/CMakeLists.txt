@@ -354,6 +354,7 @@ RUN(NAME string_07 LABELS gfortran llvm)
 RUN(NAME string_08 LABELS gfortran llvm)
 RUN(NAME string_09 LABELS gfortran llvm)
 RUN(NAME string_10 LABELS gfortran llvm)
+RUN(NAME string_11 LABELS gfortran llvm)
 
 RUN(NAME nested_01 LABELS gfortran llvm)
 RUN(NAME nested_02 LABELS gfortran llvm)
@@ -383,6 +384,8 @@ RUN(NAME class_01 LABELS gfortran)
 RUN(NAME class_02 LABELS gfortran llvm)
 RUN(NAME class_03 LABELS gfortran)
 RUN(NAME class_04 LABELS gfortran)
+
+RUN(NAME kwargs_01 LABELS gfortran llvm)
 
 RUN(NAME test_iso_c_binding LABELS gfortran llvm)
 RUN(NAME test_iso_fortran_env LABELS gfortran llvm)
