@@ -1,5 +1,5 @@
-program preprocessor6
-! Nested macros
+program cpp7
+! Nested macros, tests location information
 implicit none
 #define X 5
 #define Y
@@ -113,7 +113,7 @@ print *, "10"
 # ifdef Y
   print *, "1a0"
 #   ifdef X
-    print *, "1aa"
+    print *, "1aa", z12, 5
 #   else
     print *, "1ab"
 #   endif
