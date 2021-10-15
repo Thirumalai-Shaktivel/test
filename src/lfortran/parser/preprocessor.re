@@ -20,6 +20,17 @@ CPreprocessor::CPreprocessor(CompilerOptions &compiler_options)
         md.expansion = "1";
         macro_definitions["_WIN32"] = md;
     }
+    for (auto &d : compiler_options.c_preprocessor_defines) {
+        std::size_t idx = d.find("=");
+        if (idx != std::string::npos) {
+            md.expansion = d.substr(idx+1);
+            d = d.substr(0, idx);
+        } else {
+            md.expansion = "1";
+        }
+        macro_definitions[d] = md;
+    }
+
     md.expansion = "\"\"";
     macro_definitions["__FILE__"] = md;
     md.expansion = "0";
@@ -50,21 +61,60 @@ void handle_continuation_lines(std::string &s, unsigned char *&cur) {
     }
 }
 
+// Parse a macro declaration argument, e.g. in:
+// f(a,b, c,  d  )
 std::string parse_argument(unsigned char *&cur) {
     std::string arg;
-    while (*cur == ' ') cur++;
+    while (*cur == ' ' && *cur != '\0') cur++;
     while (*cur != ')' && *cur != ',' && *cur != ' ') {
+        if (*cur == '\0') {
+            throw LFortranException("C preprocessor: runaway argument");
+        }
         arg += *cur;
         cur++;
     }
-    while (*cur == ' ') cur++;
+    while (*cur == ' ' && *cur != '\0') cur++;
+    if (*cur == '\0') {
+        throw LFortranException("C preprocessor: runaway argument");
+    }
     return arg;
 }
 
+std::string match_parentheses(unsigned char *&cur) {
+    LFORTRAN_ASSERT(*cur == '(')
+    std::string arg;
+    arg += *cur;
+    cur++;
+    while (*cur != ')') {
+        if (*cur == '\0') {
+            throw LFortranException("C preprocessor: unmatched parentheses");
+        }
+        if (*cur == '(') {
+            arg += match_parentheses(cur);
+            LFORTRAN_ASSERT(*cur == ')')
+        } else {
+            arg += *cur;
+        }
+        cur++;
+    }
+    arg += *cur;
+    return arg;
+}
+
+// Parse a macro call argument, e.g. in:
+// ASSERT(fn(3, 5))
 std::string parse_argument2(unsigned char *&cur) {
     std::string arg;
     while (*cur != ')' && *cur != ',') {
-        arg += *cur;
+        if (*cur == '\0') {
+            throw LFortranException("C preprocessor: runaway argument");
+        }
+        if (*cur == '(') {
+            arg += match_parentheses(cur);
+            LFORTRAN_ASSERT(*cur == ')')
+        } else {
+            arg += *cur;
+        }
         cur++;
     }
     return arg;
