@@ -30,6 +30,27 @@ std::string CPreprocessor::token(unsigned char *tok, unsigned char* cur) const
     return std::string((char *)tok, cur - tok);
 }
 
+std::string parse_continuation_lines(unsigned char *&cur) {
+    std::string output;
+    while (*cur != '\n') {
+        output += *cur;
+        cur++;
+    }
+    cur++;
+    if (output.size() > 0 && output[output.size()-1] == '\\') {
+        output = output.substr(0, output.size()-1);
+        output += parse_continuation_lines(cur);
+    }
+    return output;
+}
+
+void handle_continuation_lines(std::string &s, unsigned char *&cur) {
+    if (s.size() > 0 && s[s.size()-1] == '\\') {
+        s = s.substr(0, s.size()-1);
+        s += parse_continuation_lines(cur);
+    }
+}
+
 std::string parse_argument(unsigned char *&cur) {
     std::string arg;
     while (*cur == ' ') cur++;
@@ -126,6 +147,7 @@ std::string CPreprocessor::run(const std::string &input, LocationManager &lm,
                 if (t3 != nullptr) {
                     LFORTRAN_ASSERT(t4 != nullptr);
                     macro_subs = token(t3, t4);
+                    handle_continuation_lines(macro_subs, cur);
                 }
                 CPPMacro fn;
                 fn.expansion = macro_subs;
@@ -138,6 +160,7 @@ std::string CPreprocessor::run(const std::string &input, LocationManager &lm,
                 if (!branch_enabled) continue;
                 std::string macro_name = token(t1, t2),
                         macro_subs = token(t3, t4);
+                handle_continuation_lines(macro_subs, cur);
                 std::vector<std::string> args = parse_arguments(t2);
                 CPPMacro fn;
                 fn.function_like = true;
