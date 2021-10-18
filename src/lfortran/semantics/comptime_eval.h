@@ -109,6 +109,8 @@ struct IntrinsicProcedures {
             {"iachar",  {m_builtin, &not_implemented, false}},
             {"achar", {m_builtin, &not_implemented, false}},
             {"index", {m_string, &not_implemented, false}},
+            // Subroutines
+            {"cpu_time", {m_math, &not_implemented, false}},
         };
     }
 

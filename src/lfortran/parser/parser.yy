@@ -373,6 +373,7 @@ void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 %type <vec_ast> sub_args
 %type <ast> function
 %type <ast> use_statement
+%type <ast> use_statement1
 %type <vec_ast> use_statement_star
 %type <ast> use_symbol
 %type <vec_ast> use_symbol_list
@@ -1085,13 +1086,17 @@ use_statement_star
     ;
 
 use_statement
-    : KW_USE use_modifiers id sep { $$ = USE1($2, $3, TRIVIA_AFTER($4, @$), @$); }
-    | KW_USE use_modifiers id "," KW_ONLY ":" use_symbol_list sep {
-            $$ = USE2($2, $3, $7, TRIVIA_AFTER($8, @$), @$); }
-    | KW_USE use_modifiers id "," KW_ONLY ":" sep {
-            $$ = USE3($2, $3, TRIVIA_AFTER($7, @$), @$); }
-    | KW_USE use_modifiers id "," use_symbol_list sep {
-            $$ = USE4($2, $3, $5, TRIVIA_AFTER($6, @$), @$); }
+    : use_statement1 sep { $$ = $1; TRIVIA2_($$, TRIVIA_AFTER($2, @$)); }
+    ;
+
+use_statement1
+    : KW_USE use_modifiers id { $$ = USE1($2, $3, nullptr, @$); }
+    | KW_USE use_modifiers id "," KW_ONLY ":" use_symbol_list {
+            $$ = USE2($2, $3, $7, nullptr, @$); }
+    | KW_USE use_modifiers id "," KW_ONLY ":" {
+            $$ = USE3($2, $3, nullptr, @$); }
+    | KW_USE use_modifiers id "," use_symbol_list {
+            $$ = USE4($2, $3, $5, nullptr, @$); }
     ;
 
 import_statement_star
@@ -1150,23 +1155,23 @@ var_decl_star
 
 var_decl
     : var_type var_modifiers var_sym_decl_list sep {
-            $$ = VAR_DECL1($1, $2, $3, TRIVIA_AFTER($4, @$), @$); }
+        LLOC(@$, @3); $$ = VAR_DECL1($1, $2, $3, TRIVIA_AFTER($4, @$), @$); }
     | var_modifier sep {
-            $$ = VAR_DECL2($1, TRIVIA_AFTER($2, @$), @$); }
+        LLOC(@$, @1); $$ = VAR_DECL2($1, TRIVIA_AFTER($2, @$), @$); }
     | var_modifier var_sym_decl_list sep {
-            $$ = VAR_DECL3($1, $2, TRIVIA_AFTER($3, @$), @$); }
+        LLOC(@$, @2); $$ = VAR_DECL3($1, $2, TRIVIA_AFTER($3, @$), @$); }
     | var_modifier "::" var_sym_decl_list sep {
-            $$ = VAR_DECL3($1, $3, TRIVIA_AFTER($4, @$), @$); }
+        LLOC(@$, @3); $$ = VAR_DECL3($1, $3, TRIVIA_AFTER($4, @$), @$); }
     | KW_PARAMETER "(" named_constant_def_list ")" sep {
-            $$ = VAR_DECL_PARAMETER($3, TRIVIA_AFTER($5, @$), @$); }
+        LLOC(@$, @4); $$ = VAR_DECL_PARAMETER($3, TRIVIA_AFTER($5, @$), @$); }
     | KW_NAMELIST "/" id "/" id_list sep {
-            $$ = VAR_DECL_NAMELIST($3, $5, TRIVIA_AFTER($6, @$), @$); }
+        LLOC(@$, @5); $$ = VAR_DECL_NAMELIST($3, $5, TRIVIA_AFTER($6, @$), @$);}
     | KW_COMMON common_block_list sep {
-            $$ = VAR_DECL_COMMON($2, TRIVIA_AFTER($3, @$), @$); }
+        LLOC(@$, @2); $$ = VAR_DECL_COMMON($2, TRIVIA_AFTER($3, @$), @$); }
     | KW_DATA data_set_list sep {
-            $$ = VAR_DECL_DATA($2, TRIVIA_AFTER($3, @$), @$); }
+        LLOC(@$, @2); $$ = VAR_DECL_DATA($2, TRIVIA_AFTER($3, @$), @$); }
     | KW_EQUIVALENCE equivalence_set_list sep {
-        $$ = VAR_DECL_EQUIVALENCE($2, TRIVIA_AFTER($3, @$), @$); }
+        LLOC(@$, @2); $$ = VAR_DECL_EQUIVALENCE($2, TRIVIA_AFTER($3, @$), @$);}
     ;
 
 equivalence_set_list

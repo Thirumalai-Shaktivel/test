@@ -6,6 +6,7 @@
 #include <memory>
 
 #include <lfortran/containers.h>
+#include <lfortran/diagnostics.h>
 #include <lfortran/parser/tokenizer.h>
 
 namespace LFortran
@@ -122,6 +123,7 @@ struct LocationManager {
     // has these mappings for each file
     bool preprocessor = false;
     std::string in_filename;
+    uint32_t current_line=0;
     std::vector<uint32_t> out_start0; // consecutive intervals in the output code
     std::vector<uint32_t> in_start0; // start + size in the original code
     std::vector<uint32_t> in_size0; // Size of the `in` interval
@@ -209,6 +211,9 @@ std::string format_semantic_error(const std::string &filename,
         const std::string &input, const Location &loc,
         const std::string msg, bool use_colors,
         const LocationManager &lm);
+
+void populate_spans(diag::Diagnostic &d, const LocationManager &lm,
+        const std::string &input);
 
 // Tokenizes the `input` and return a list of tokens
 std::vector<int> tokens(Allocator &al, const std::string &input,

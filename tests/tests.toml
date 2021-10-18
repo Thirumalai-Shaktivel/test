@@ -52,16 +52,6 @@ filename = "do6.f90"
 ast = true
 
 [[test]]
-filename = "errors/esub1.f90"
-tokens = true
-ast = true
-
-[[test]]
-filename = "errors/esub2.f90"
-tokens = true
-ast = true
-
-[[test]]
 filename = "subroutine4.f90"
 ast = true
 ast_f90 = true
@@ -104,7 +94,25 @@ ast = true
 asr = true
 
 [[test]]
+filename = "errors/esub1.f90"
+tokens = true
+ast = true
+
+[[test]]
+filename = "errors/esub2.f90"
+tokens = true
+ast = true
+
+[[test]]
 filename = "errors/subroutine5.f90"
+asr = true
+
+[[test]]
+filename = "errors/dim_assgn_test.f90"
+asr = true
+
+[[test]]
+filename = "errors/redeclaration1.f90"
 asr = true
 
 [[test]]
@@ -132,6 +140,10 @@ filename = "errors/cpp6.f90"
 asr_preprocess = true
 
 [[test]]
+filename = "errors/cpp7.f90"
+asr_preprocess = true
+
+[[test]]
 filename = "preprocessor1.f90"
 asr_preprocess = true
 
@@ -141,6 +153,42 @@ asr_preprocess = true
 
 [[test]]
 filename = "preprocessor3.f90"
+asr_preprocess = true
+
+[[test]]
+filename = "preprocessor4.f90"
+asr_preprocess = true
+
+[[test]]
+filename = "preprocessor5.f90"
+asr_preprocess = true
+
+[[test]]
+filename = "preprocessor6.f90"
+asr_preprocess = true
+
+[[test]]
+filename = "preprocessor7.f90"
+asr_preprocess = true
+
+[[test]]
+filename = "preprocessor8.f90"
+asr_preprocess = true
+
+[[test]]
+filename = "preprocessor9.f90"
+asr_preprocess = true
+
+[[test]]
+filename = "preprocessor10.f90"
+asr_preprocess = true
+
+[[test]]
+filename = "preprocessor11.f90"
+asr_preprocess = true
+
+[[test]]
+filename = "preprocessor12.f90"
 asr_preprocess = true
 
 [[test]]
@@ -1196,10 +1244,6 @@ filename = "../integration_tests/intrinsics_open_close_read_write.f90"
 asr = true
 
 [[test]]
-filename = "errors/dim_assgn_test.f90"
-asr = true
-
-[[test]]
 filename = "modules_03.f90"
 asr = true
 
@@ -1553,6 +1597,11 @@ filename = "../integration_tests/const_kind_02.f90"
 asr = true
 
 [[test]]
+filename = "../integration_tests/generic_name_01.f90"
+asr = true
+llvm = true
+
+[[test]]
 filename = "../integration_tests/operator_overloading_01.f90"
 asr = true
 llvm = true
@@ -1586,3 +1635,7 @@ ast_f90 = true
 filename = "issue532.f90"
 asr = true
 llvm = true
+
+[[test]]
+filename = "../integration_tests/bits_01.f90"
+asr = true
