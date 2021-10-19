@@ -29,7 +29,8 @@ integer elemental function index(string_, substring_) result(idx)
 character(len=*), intent(in) :: string_
 character(len=*), intent(in) :: substring_
 integer :: i, j, k, pos
-logical :: found = .true.
+logical :: found
+found = .true.
 idx = 0
 i = 1
 do while (i < len(string_) .and. found)
