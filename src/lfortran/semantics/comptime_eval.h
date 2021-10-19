@@ -98,10 +98,10 @@ struct IntrinsicProcedures {
 
             // Subroutines
             {"cpu_time", {m_math, &not_implemented, false}},
-            {"bit_size", {m_util, &not_implemented, false}},
-            {"not", {m_util, &not_implemented, false}},
-            {"iachar",  {m_util, &not_implemented, false}},
-            {"achar", {m_util, &not_implemented, false}},
+            {"bit_size", {m_builtin, &not_implemented, false}},
+            {"not", {m_builtin, &not_implemented, false}},
+            {"iachar",  {m_builtin, &not_implemented, false}},
+            {"achar", {m_builtin, &not_implemented, false}},
             {"len", {m_builtin, &not_implemented, false}},
             {"size", {m_builtin, &not_implemented, false}},
             {"present", {m_builtin, &not_implemented, false}},

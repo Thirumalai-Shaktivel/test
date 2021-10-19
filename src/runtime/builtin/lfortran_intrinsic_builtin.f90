@@ -58,7 +58,7 @@ interface
     integer, intent(in) :: x
     end function
 
-    integer function len(x)
+    integer function len(x, kind)
     character(len=*), intent(in) :: x
     integer, optional :: kind
     end function
