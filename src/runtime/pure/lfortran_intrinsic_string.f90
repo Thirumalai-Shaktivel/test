@@ -25,33 +25,31 @@ do i = 1, len(r)
 end do
 end function
 
-integer elemental function index(string_, substring_, back_, kind_) result(idx)
+integer elemental function index(string_, substring_) result(idx)
 character(len=*), intent(in) :: string_
 character(len=*), intent(in) :: substring_
-logical, optional, intent(in) :: back_
-integer, optional, intent(in) :: kind_
-integer :: i, j, k
-logical :: found
-idx = -1
-do i = 1, len(string_)
+integer :: i, j, k, pos
+logical :: found = .true.
+idx = 0
+i = 1
+do while (i < len(string_) .and. found)
     k = 0
-    found = .true.
-    do j = 1, len(substring_)
-        if( string_(i + k:i + k) /= substring_(j:j) ) then
+    j = 1
+    do while (j < len(substring_) .and. found)
+        pos = i + k
+        if( string_(pos:pos) /= substring_(j:j) ) then
             found = .false.
-            exit
         end if
+        k = k + 1
+        j = j + 1
     end do
     if( found ) then
-        if( back_ ) then
-            if( idx .lt. i ) then
-                idx = i
-            end if
-        else
-            idx = i
-        end if
+        idx = i
+        found = .false.
+    else
+        found = .true.
     end if
-    if( .not. back_ .and. found ) exit
+    i = i + 1
 end do
 end function
 
