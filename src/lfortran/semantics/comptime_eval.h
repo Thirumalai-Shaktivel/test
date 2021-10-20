@@ -95,13 +95,6 @@ struct IntrinsicProcedures {
             // left unevaluated in body visitor
             {"trim", {m_string, &not_implemented, false}},
             {"len_trim", {m_string, &not_implemented, false}},
-
-            // Subroutines
-            {"cpu_time", {m_math, &not_implemented, false}},
-            {"bit_size", {m_builtin, &not_implemented, false}},
-            {"not", {m_builtin, &not_implemented, false}},
-            {"iachar",  {m_builtin, &not_implemented, false}},
-            {"achar", {m_builtin, &eval_achar, false}},
             {"len", {m_builtin, &not_implemented, false}},
             {"size", {m_builtin, &not_implemented, false}},
             {"present", {m_builtin, &not_implemented, false}},
@@ -111,6 +104,11 @@ struct IntrinsicProcedures {
             {"minval", {m_builtin, &not_implemented, false}},
             {"maxval", {m_builtin, &not_implemented, false}},
             {"sum", {m_builtin, &not_implemented, false}},
+
+            // Subroutines
+            {"cpu_time", {m_math, &not_implemented, false}},
+            {"iachar",  {m_builtin, &not_implemented, false}},
+            {"achar", {m_builtin, &eval_achar, false}},
             {"bit_size", {m_builtin, &not_implemented, false}},
             {"not", {m_builtin, &not_implemented, false}},
             {"index", {m_string, &not_implemented, false}},
