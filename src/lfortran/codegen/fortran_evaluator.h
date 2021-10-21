@@ -99,6 +99,7 @@ public:
         LocationManager &lm);
     Result<AST::TranslationUnit_t*> get_ast2(const std::string &code,
         LocationManager &lm);
+    Result<ASR::TranslationUnit_t*> get_asr3(AST::TranslationUnit_t &ast);
     Result<std::string> get_asr(const std::string &code,
         LocationManager &lm);
     Result<ASR::TranslationUnit_t*> get_asr2(const std::string &code,
@@ -107,8 +108,10 @@ public:
         LocationManager &lm);
     Result<std::unique_ptr<LLVMModule>> get_llvm2(const std::string &code,
         LocationManager &lm);
+    Result<std::unique_ptr<LLVMModule>> get_llvm3(ASR::TranslationUnit_t &asr);
     Result<std::string> get_asm(const std::string &code, LocationManager &lm);
     Result<std::string> get_cpp(const std::string &code, LocationManager &lm);
+    Result<std::string> get_cpp2(ASR::TranslationUnit_t &asr);
     Result<std::string> get_fmt(const std::string &code, LocationManager &lm);
 
     std::string format_error(const Error &e, const std::string &input,

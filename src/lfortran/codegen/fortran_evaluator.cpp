@@ -194,10 +194,12 @@ Result<AST::TranslationUnit_t*> FortranEvaluator::get_ast2(
     } catch (const TokenizerError &e) {
         FortranEvaluator::Error error;
         error.d = e.d;
+        error.stacktrace_addresses = e.stacktrace_addresses();
         return error;
     } catch (const ParserError &e) {
         FortranEvaluator::Error error;
         error.d = e.d;
+        error.stacktrace_addresses = e.stacktrace_addresses();
         return error;
     }
 }
@@ -216,17 +218,29 @@ Result<std::string> FortranEvaluator::get_asr(const std::string &code,
 Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr2(
             const std::string &code_orig, LocationManager &lm)
 {
+    // Src -> AST
+    Result<AST::TranslationUnit_t*> res = get_ast2(code_orig, lm);
+    AST::TranslationUnit_t* ast;
+    if (res.ok) {
+        ast = res.result;
+    } else {
+        return res.error;
+    }
+
+    // AST -> ASR
+    Result<ASR::TranslationUnit_t*> res2 = get_asr3(*ast);
+    if (res2.ok) {
+        return res2.result;
+    } else {
+        return res2.error;
+    }
+}
+
+Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr3(
+            AST::TranslationUnit_t &ast)
+{
     ASR::TranslationUnit_t* asr;
     try {
-        // Src -> AST
-        Result<AST::TranslationUnit_t*> res = get_ast2(code_orig, lm);
-        AST::TranslationUnit_t* ast;
-        if (res.ok) {
-            ast = res.result;
-        } else {
-            return res.error;
-        }
-
         // AST -> ASR
         // Remove the old execution function if it exists
         if (symbol_table) {
@@ -235,7 +249,7 @@ Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr2(
             }
             symbol_table->mark_all_variables_external(al);
         }
-        asr = ast_to_asr(al, *ast, symbol_table, compiler_options.symtab_only);
+        asr = ast_to_asr(al, ast, symbol_table, compiler_options.symtab_only);
         if (!symbol_table) symbol_table = asr->m_global_scope;
     } catch (const SemanticError &e) {
         FortranEvaluator::Error error;
@@ -253,46 +267,57 @@ Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr2(
 }
 
 Result<std::string> FortranEvaluator::get_llvm(
-#ifdef HAVE_LFORTRAN_LLVM
     const std::string &code, LocationManager &lm
-#else
-    const std::string &/*code*/, LocationManager &/*lm*/
-#endif
     )
 {
-#ifdef HAVE_LFORTRAN_LLVM
     Result<std::unique_ptr<LLVMModule>> res = get_llvm2(code, lm);
     if (res.ok) {
+#ifdef HAVE_LFORTRAN_LLVM
         return res.result->str();
+#else
+        throw LFortranException("LLVM is not enabled");
+#endif
     } else {
         return res.error;
     }
-#else
-    throw LFortranException("LLVM is not enabled");
-#endif
 }
 
 Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm2(
-#ifdef HAVE_LFORTRAN_LLVM
-    const std::string &code, LocationManager &lm
-#else
-    const std::string &/*code*/, LocationManager &/*lm*/
-#endif
-    )
+    const std::string &code, LocationManager &lm)
 {
-#ifdef HAVE_LFORTRAN_LLVM
     Result<ASR::TranslationUnit_t*> asr = get_asr2(code, lm);
     if (!asr.ok) {
         return asr.error;
     }
+    Result<std::unique_ptr<LLVMModule>> res = get_llvm3(*asr.result);
+    if (res.ok) {
+#ifdef HAVE_LFORTRAN_LLVM
+        std::unique_ptr<LLVMModule> m = std::move(res.result);
+        return m;
+#else
+        throw LFortranException("LLVM is not enabled");
+#endif
+    } else {
+        return res.error;
+    }
+}
 
+Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm3(
+#ifdef HAVE_LFORTRAN_LLVM
+    ASR::TranslationUnit_t &asr
+#else
+    ASR::TranslationUnit_t &/*asr*/
+#endif
+    )
+{
+#ifdef HAVE_LFORTRAN_LLVM
     eval_count++;
     run_fn = "__lfortran_evaluate_" + std::to_string(eval_count);
 
     // ASR -> LLVM
     std::unique_ptr<LFortran::LLVMModule> m;
     try {
-        m = LFortran::asr_to_llvm(*asr.result, e->get_context(), al, compiler_options.platform,
+        m = LFortran::asr_to_llvm(asr, e->get_context(), al, compiler_options.platform,
             run_fn);
     } catch (const CodeGenError &e) {
         FortranEvaluator::Error error;
@@ -340,26 +365,31 @@ Result<std::string> FortranEvaluator::get_cpp(const std::string &code,
     Result<ASR::TranslationUnit_t*> asr = get_asr2(code, lm);
     symbol_table = old_symbol_table;
     if (asr.ok) {
-        // ASR -> C++
-        try {
-            return LFortran::asr_to_cpp(*asr.result);
-        } catch (const SemanticError &e) {
-            // Note: the asr_to_cpp should only throw CodeGenError
-            // but we currently do not have location information for
-            // CodeGenError. We need to add it. Until then we can raise
-            // SemanticError to get the location information.
-            FortranEvaluator::Error error;
-            error.d = e.d;
-            error.stacktrace_addresses = e.stacktrace_addresses();
-            return error;
-        } catch (const CodeGenError &e) {
-            FortranEvaluator::Error error;
-            error.d = e.d;
-            error.stacktrace_addresses = e.stacktrace_addresses();
-            return error;
-        }
+        return get_cpp2(*asr.result);
     } else {
         return asr.error;
+    }
+}
+
+Result<std::string> FortranEvaluator::get_cpp2(ASR::TranslationUnit_t &asr)
+{
+    // ASR -> C++
+    try {
+        return LFortran::asr_to_cpp(asr);
+    } catch (const SemanticError &e) {
+        // Note: the asr_to_cpp should only throw CodeGenError
+        // but we currently do not have location information for
+        // CodeGenError. We need to add it. Until then we can raise
+        // SemanticError to get the location information.
+        FortranEvaluator::Error error;
+        error.d = e.d;
+        error.stacktrace_addresses = e.stacktrace_addresses();
+        return error;
+    } catch (const CodeGenError &e) {
+        FortranEvaluator::Error error;
+        error.d = e.d;
+        error.stacktrace_addresses = e.stacktrace_addresses();
+        return error;
     }
 }
 
