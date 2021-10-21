@@ -7,8 +7,8 @@ module m
     end interface
 end module
 
-program main
-    use m
+program interface_08
+    use m, only : sub
     procedure (sub) sub1
     procedure (sub), pointer :: p
     p => sub1
