@@ -831,6 +831,19 @@ public:
                     }
                     type = LFortran::ASRUtils::TYPE(ASR::make_Class_t(al,
                         x.base.base.loc, v, dims.p, dims.size()));
+                } else if (sym_type->m_type == AST::decl_typeType::TypeProcedure) {
+                    LFORTRAN_ASSERT(sym_type->m_name);
+                    std::string proc_type_name = to_lower(sym_type->m_name);
+                    ASR::symbol_t *v = current_scope->resolve_symbol(proc_type_name);
+                    if (!v) {
+                        throw SemanticError("Procedure type '"
+                            + proc_type_name + "' not declared", x.base.base.loc);
+                    }
+                    if( is_pointer ) {
+                        type = LFortran::ASRUtils::TYPE(ASR::make_ProcedurePointer_t(al, x.base.base.loc, v));
+                    } else {
+                        type = LFortran::ASRUtils::TYPE(ASR::make_Procedure_t(al, x.base.base.loc, v));
+                    }
                 } else {
                     throw SemanticError("Type not implemented yet.",
                          x.base.base.loc);
@@ -989,7 +1002,8 @@ public:
             std::vector<std::string> proc_names;
             fill_interface_proc_names(x, proc_names);
             generic_procedures[std::string(generic_name)] = proc_names;
-        } else if (AST::is_a<AST::InterfaceHeader_t>(*x.m_header)) {
+        } else if (AST::is_a<AST::InterfaceHeader_t>(*x.m_header) || 
+                   AST::is_a<AST::AbstractInterfaceHeader_t>(*x.m_header)) {
             std::vector<std::string> proc_names;
             for (size_t i = 0; i < x.n_items; i++) {
                 visit_interface_item(*x.m_items[i]);
