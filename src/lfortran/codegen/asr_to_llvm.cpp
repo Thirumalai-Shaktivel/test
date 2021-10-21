@@ -423,6 +423,14 @@ public:
         return nullptr;
     }
 
+    llvm::Type* getProcedureType(ASR::ttype_t* m_type) {
+        if( m_type->ttypeType == ASR::ttypeType::Procedure ) {
+            ASR::Procedure_t *proc_type = ASR::down_cast<ASR::Procedure_t>(m_type);
+            ASR::symbol_t *m_proc_type = proc_type->m_proc_type;
+            m_proc_type = LFortran::ASRUtils::symbol_get_past_external(m_proc_type);
+        }
+    }
+
     llvm::Type* getDerivedType(ASR::DerivedType_t* der_type, bool is_pointer=false) {
         std::string der_type_name = std::string(der_type->m_name);
         llvm::StructType* der_type_llvm;
@@ -1326,6 +1334,14 @@ public:
                         }
                         case (ASR::ttypeType::CharacterPointer) : {
                             type = character_type;
+                            break;
+                        }
+                        case (ASR::ttypeType::Procedure) : {
+                            type = getProcedureType(v->m_type);
+                            break;
+                        }
+                        case (ASR::ttypeType::ProcedurePointer) : {
+                            type = getProcedureType(v->m_type, true);
                             break;
                         }
                         case (ASR::ttypeType::DerivedPointer) : {
