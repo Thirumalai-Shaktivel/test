@@ -839,6 +839,13 @@ public:
                 original_sym = nullptr;
                 break;
             }
+            case (ASR::symbolType::Variable) : {
+                // TODO: Add check to verify that
+                // the variable is actually a subroutine
+                final_sym=original_sym;
+                original_sym = nullptr;
+                break;
+            }
             case (ASR::symbolType::ExternalSymbol) : {
                 ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(original_sym);
                 final_sym = p->m_external;
