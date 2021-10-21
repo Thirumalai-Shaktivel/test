@@ -449,6 +449,7 @@ static inline int extract_kind_from_ttype_t(const ASR::ttype_t* curr_type) {
                     case ASR::ttypeType::CharacterPointer:
                     case ASR::ttypeType::LogicalPointer:
                     case ASR::ttypeType::DerivedPointer:
+                    case ASR::ttypeType::ProcedurePointer:
                         return true;
                         break;
                     default:
@@ -527,6 +528,8 @@ static inline int extract_kind_from_ttype_t(const ASR::ttype_t* curr_type) {
                     case ASR::ttypeType::DerivedPointer:
                         res = source->type == ASR::ttypeType::Derived;
                         break;
+                    case ASR::ttypeType::ProcedurePointer:
+                        res = source->type == ASR::ttypeType::Procedure;
                     default:
                         break;
                 }

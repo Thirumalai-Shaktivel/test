@@ -231,6 +231,8 @@ ttype
     | LogicalPointer(int kind, dimension* dims)
     | DerivedPointer(symbol derived_type, dimension* dims)
     | Class(symbol class_type, dimension* dims)
+    | Procedure(symbol proc_type)
+    | ProcedurePointer(symbol proc_type)
 
 boolop = And | Or | NEqv | Eqv
 

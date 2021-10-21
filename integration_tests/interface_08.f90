@@ -9,7 +9,7 @@ end module
 
 program interface_08
     use m, only : sub
-    procedure (sub) sub1
+    procedure (sub) :: sub1
     procedure (sub), pointer :: p
     p => sub1
     call p(5, 10)

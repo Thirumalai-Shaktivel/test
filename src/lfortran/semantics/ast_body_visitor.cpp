@@ -50,6 +50,7 @@ public:
             // Visit the statement
             this->visit_stmt(*m_body[i]);
             if (tmp != nullptr) {
+                std::cout<<"Debug: tmp "<<tmp->type<<std::endl;
                 ASR::stmt_t* tmp_stmt = LFortran::ASRUtils::STMT(tmp);
                 if (tmp_stmt->type == ASR::stmtType::SubroutineCall) {
                     ASR::stmt_t* impl_decl = create_implicit_deallocate_subrout_call(tmp_stmt);
