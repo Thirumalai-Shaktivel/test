@@ -10,9 +10,9 @@ end module
 program interface_08
     use m, only : sub
     procedure (sub) :: sub1
-    procedure (sub), pointer :: p
-    p => sub1
-    call p(5, 10)
+    procedure (sub), pointer :: t
+    t => sub1
+    call t(5, 10)
 end program
 
 subroutine sub1 (x, y)

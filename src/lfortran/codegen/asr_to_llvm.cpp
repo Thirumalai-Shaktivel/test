@@ -424,11 +424,39 @@ public:
     }
 
     llvm::Type* getProcedureType(ASR::ttype_t* m_type) {
-        if( m_type->ttypeType == ASR::ttypeType::Procedure ) {
+        llvm::Type* llvm_proc_type = nullptr;
+        ASR::symbol_t *m_proc_type = nullptr;
+        bool is_pointer = false;
+        if( m_type->type == ASR::ttypeType::Procedure ) {
+            is_pointer = false;
             ASR::Procedure_t *proc_type = ASR::down_cast<ASR::Procedure_t>(m_type);
-            ASR::symbol_t *m_proc_type = proc_type->m_proc_type;
-            m_proc_type = LFortran::ASRUtils::symbol_get_past_external(m_proc_type);
+            m_proc_type = proc_type->m_proc_type;
+        } else if( m_type->type == ASR::ttypeType::ProcedurePointer ) {
+            is_pointer = true;
+            ASR::ProcedurePointer_t *proc_type = ASR::down_cast<ASR::ProcedurePointer_t>(m_type);
+            m_proc_type = proc_type->m_proc_type;
         }
+        LFORTRAN_ASSERT(m_proc_type);
+        m_proc_type = LFortran::ASRUtils::symbol_get_past_external(m_proc_type);
+        switch( m_proc_type->type ) {
+            case ASR::symbolType::Subroutine: {
+                ASR::Subroutine_t *subrout = ASR::down_cast<ASR::Subroutine_t>(m_proc_type);
+                llvm_proc_type = get_subroutine_type(*subrout);
+                break;
+            }
+            case ASR::symbolType::Function: {
+                ASR::Function_t *func = ASR::down_cast<ASR::Function_t>(m_proc_type);
+                llvm_proc_type = get_function_type(*func);
+                break;
+            }
+            default: {
+                throw SemanticError("Only Functions and Subroutines are "
+                                    "accepted as of now for procedure variables",
+                                    m_proc_type->base.loc);
+            }
+        }
+        llvm_proc_type = llvm_proc_type->getPointerTo();
+        return llvm_proc_type;
     }
 
     llvm::Type* getDerivedType(ASR::DerivedType_t* der_type, bool is_pointer=false) {
@@ -1187,6 +1215,9 @@ public:
         for (auto &item : x.m_symtab->scope) {
             if (is_a<ASR::Variable_t>(*item.second)) {
                 ASR::Variable_t *v = down_cast<ASR::Variable_t>(item.second);
+                if( v->m_type->type == ASR::ttypeType::Procedure ) {
+                    continue;
+                }
                 uint32_t h = get_hash((ASR::asr_t*)v);
                 llvm::Type *type;
                 ASR::ttype_t* m_type_;
@@ -1336,12 +1367,8 @@ public:
                             type = character_type;
                             break;
                         }
-                        case (ASR::ttypeType::Procedure) : {
-                            type = getProcedureType(v->m_type);
-                            break;
-                        }
                         case (ASR::ttypeType::ProcedurePointer) : {
-                            type = getProcedureType(v->m_type, true);
+                            type = getProcedureType(v->m_type);
                             break;
                         }
                         case (ASR::ttypeType::DerivedPointer) : {
@@ -2294,7 +2321,16 @@ public:
         ASR::Variable_t *asr_value = EXPR2VAR(x.m_value);
         uint32_t value_h = get_hash((ASR::asr_t*)asr_value);
         uint32_t target_h = get_hash((ASR::asr_t*)asr_target);
-        builder->CreateStore(llvm_symtab[value_h], llvm_symtab[target_h]);
+        std::cout<<"Inside map: "<<(llvm_symtab.find(target_h) == llvm_symtab.end())<<std::endl;
+        if( llvm_symtab.find(value_h) == llvm_symtab.end() ) {
+            std::string func_name = std::string(asr_value->m_name);
+            if( llvm_symtab_fn_names.find(func_name) != llvm_symtab_fn_names.end() ) {
+                uint64_t h = llvm_symtab_fn_names[func_name];
+                builder->CreateStore(llvm_symtab_fn[h], llvm_symtab[target_h]);
+            }
+        } else {
+            builder->CreateStore(llvm_symtab[value_h], llvm_symtab[target_h]);
+        }
     }
 
     void visit_Assignment(const ASR::Assignment_t &x) {
@@ -3654,6 +3690,15 @@ public:
                                 } else if( func_subrout->type == ASR::symbolType::Subroutine ) {
                                     ASR::Subroutine_t* sub = down_cast<ASR::Subroutine_t>(func_subrout);
                                     orig_arg = EXPR2VAR(sub->m_args[i]);
+                                } else if( func_subrout->type == ASR::symbolType::Variable ) {
+                                    ASR::Variable_t* v = down_cast<ASR::Variable_t>(func_subrout);
+                                    ASR::ttype_t* v_m_type = v->m_type;
+                                    if( v_m_type->type == ASR::ttypeType::ProcedurePointer ) {
+                                        ASR::ProcedurePointer_t *proc_ptr = ASR::down_cast<ASR::ProcedurePointer_t>(v_m_type);
+                                        func_subrout = symbol_get_past_external(proc_ptr->m_proc_type);
+                                        ASR::Subroutine_t* sub = down_cast<ASR::Subroutine_t>(func_subrout);
+                                        orig_arg = EXPR2VAR(sub->m_args[i]);
+                                    }
                                 } else {
                                     LFORTRAN_ASSERT(false)
                                 }
@@ -3693,7 +3738,21 @@ public:
             std::uint32_t h = get_hash((ASR::asr_t*)caller);
             args.push_back(llvm_symtab[h]);
         }
-        if (ASR::is_a<ASR::Subroutine_t>(*proc_sym)) {
+        if (ASR::is_a<ASR::Variable_t>(*proc_sym)) {
+            uint32_t h;
+            ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(proc_sym);
+            ASR::ttype_t* v_m_type = v->m_type;
+            if( v_m_type->type == ASR::ttypeType::ProcedurePointer ) {
+                ASR::ProcedurePointer_t *proc_ptr = ASR::down_cast<ASR::ProcedurePointer_t>(v_m_type);
+                ASR::symbol_t* subrout = symbol_get_past_external(proc_ptr->m_proc_type);
+                s = down_cast<ASR::Subroutine_t>(subrout);
+            }
+            h = get_hash((ASR::asr_t*)v);
+            llvm::Function* fn = (llvm::Function*)(builder->CreateLoad(llvm_symtab[h]));
+            // llvm::FunctionType* fntype = (llvm::FunctionType*)(static_cast<llvm::PointerType*>(fn->getType())->getElementType());
+            std::vector<llvm::Value *> args = convert_call_args(x, std::string(v->m_name));
+            tmp = builder->CreateCall(fn, args);
+        } else if (ASR::is_a<ASR::Subroutine_t>(*proc_sym)) {
             s = ASR::down_cast<ASR::Subroutine_t>(proc_sym);
         } else {
             ASR::ClassProcedure_t *clss_proc = ASR::down_cast<
