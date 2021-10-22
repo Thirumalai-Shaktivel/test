@@ -1,0 +1,17 @@
+warning: Style suggestion: write 'end do' instead of 'enddo'
+ --> tests/do2.f90:5:1
+  |
+5 | enddo
+  | ^^^^^ help: write it as 'end do' to silence this warning
+
+warning: Style suggestion: write 'end do' instead of 'enddo'
+ --> tests/do2.f90:9:5
+  |
+9 |     enddo = 3
+  |     ^^^^^ help: write it as 'end do' to silence this warning
+
+warning: Style suggestion: write 'end do' instead of 'enddo'
+  --> tests/do2.f90:10:1
+   |
+10 | enddo
+   | ^^^^^ help: write it as 'end do' to silence this warning

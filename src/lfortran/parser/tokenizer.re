@@ -113,8 +113,27 @@ uint64_t parse_int(const unsigned char *s)
 
 #define KW(x) token(yylval.string); RET(KW_##x);
 #define RET(x) token_loc(loc); last_token=yytokentype::x; return yytokentype::x;
+#define WARN_WS(x) add_ws_warning(diagnostics, yytokentype::KW_##x);
 
-int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
+void Tokenizer::add_ws_warning(diag::Diagnostics &diagnostics, int end_token) {
+    if (end_token == yytokentype::KW_ENDIF) {
+        Location loc;
+        token_loc(loc);
+        diagnostics.tokenizer_warning_label(
+            "Style suggestion: write 'end if' instead of 'endif'",
+            {loc},
+            "help: write it as 'end if' to silence this warning");
+    } else if (end_token == yytokentype::KW_ENDDO) {
+        Location loc;
+        token_loc(loc);
+        diagnostics.tokenizer_warning_label(
+            "Style suggestion: write 'end do' instead of 'enddo'",
+            {loc},
+            "help: write it as 'end do' to silence this warning");
+    }
+}
+
+int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc, diag::Diagnostics &diagnostics)
 {
     if (enddo_state == 1) {
         enddo_state = 2;
@@ -325,7 +344,7 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
             'endforall' { KW(ENDFORALL) }
 
             'end' whitespace 'if' { KW(END_IF) }
-            'endif' { KW(ENDIF) }
+            'endif' { WARN_WS(ENDIF) KW(ENDIF) }
 
             'end' whitespace 'interface' { KW(END_INTERFACE) }
             'endinterface' { KW(ENDINTERFACE) }
@@ -344,6 +363,7 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
                 if (enddo_newline_process) {
                     KW(CONTINUE)
                 } else {
+                    WARN_WS(ENDDO) 
                     KW(ENDDO)
                 }
             }
