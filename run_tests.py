@@ -61,7 +61,7 @@ def main():
         print(color(style.bold)+"TEST:"+color(style.reset), filename)
 
         if tokens:
-            run_test("tokens", "lfortran --show-tokens {infile} -o {outfile}",
+            run_test("tokens", "lfortran --show-tokens --no-color {infile} -o {outfile}",
                     filename, update_reference)
 
         if ast:
