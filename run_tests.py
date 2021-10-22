@@ -119,11 +119,11 @@ def main():
             if no_llvm:
                 print("    * llvm   SKIPPED as requested")
             else:
-                run_test("llvm", "lfortran --show-llvm {infile} -o {outfile}",
+                run_test("llvm", "lfortran --no-color --show-llvm {infile} -o {outfile}",
                         filename, update_reference)
 
         if cpp:
-            run_test("cpp", "lfortran --show-cpp {infile}",
+            run_test("cpp", "lfortran --no-color --show-cpp {infile}",
                     filename, update_reference)
 
         if obj:
