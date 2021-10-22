@@ -1,0 +1,5 @@
+warning: Style suggestion: write 'end do' instead of 'enddo'
+ --> tests/do5.f90:3:21
+  |
+3 | integer :: i, j, k, enddo
+  |                     ^^^^^ help: write it as 'end do' to silence this warning
