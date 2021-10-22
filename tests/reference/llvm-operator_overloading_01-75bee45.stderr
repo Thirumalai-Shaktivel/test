@@ -1,5 +1,0 @@
-[0;33;1mwarning[0;00m[0;1m: Style suggestion: write 'end if' instead of 'endif'[0;00m
-  [0;34;1m-->[0;00m tests/../integration_tests/operator_overloading_01.f90:28:9
-   [0;34;1m|[0;00m
-[0;34;1m28 |[0;00m         endif
-   [0;34;1m|[0;00m         [0;33;1m^^^^^ help: write it as 'end if' to silence this warning[0;00m
