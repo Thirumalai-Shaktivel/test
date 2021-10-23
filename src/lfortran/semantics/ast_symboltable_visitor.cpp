@@ -133,19 +133,34 @@ public:
         tmp = tmp0;
     }
 
-    void visit_Module(const AST::Module_t &x) {
+    template <typename T, typename R>
+    void visit_ModuleSubmoduleCommon(const T &x) {
         SymbolTable *parent_scope = current_scope;
         current_scope = al.make_new<SymbolTable>(parent_scope);
         current_module_dependencies.reserve(al, 4);
         generic_procedures.clear();
         in_module = true;
-        ASR::asr_t *tmp0 = ASR::make_Module_t(
-            al, x.base.base.loc,
-            /* a_symtab */ current_scope,
-            /* a_name */ s2c(al, to_lower(x.m_name)),
-            nullptr,
-            0,
-            false);
+        ASR::asr_t *tmp0 = nullptr;
+        if( x.class_type == AST::modType::Module ) {
+            tmp0 = ASR::make_Module_t(
+                al, x.base.base.loc,
+                /* a_symtab */ current_scope,
+                /* a_name */ s2c(al, to_lower(x.m_name)),
+                nullptr,
+                0,
+                false);
+        } else if( x.class_type == AST::modType::Submodule ) {
+            tmp0 = ASR::make_Submodule_t(
+                al, x.base.base.loc,
+                /* a_symtab */ current_scope,
+                /* a_name */ s2c(al, to_lower(x.m_name)),
+                nullptr,
+                nullptr,
+                0,
+                false);
+        } else {
+            LFORTRAN_ASSERT(false);
+        }
         for (size_t i=0; i<x.n_use; i++) {
             visit_unit_decl1(*x.m_use[i]);
         }
@@ -162,7 +177,7 @@ public:
         add_assignment_procedures();
         tmp = tmp0;
         // Add module dependencies
-        ASR::Module_t *m = ASR::down_cast2<ASR::Module_t>(tmp);
+        R *m = ASR::down_cast2<R>(tmp);
         m->m_dependencies = current_module_dependencies.p;
         m->n_dependencies = current_module_dependencies.n;
         std::string sym_name = to_lower(x.m_name);
@@ -172,6 +187,14 @@ public:
         parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(tmp);
         current_scope = parent_scope;
         in_module = false;
+    }
+
+    void visit_Module(const AST::Module_t &x) {
+        visit_ModuleSubmoduleCommon<AST::Module_t, ASR::Module_t>(x);
+    }
+
+    void visit_Submodule(const AST::Submodule_t &x) {
+        visit_ModuleSubmoduleCommon<AST::Submodule_t, ASR::Submodule_t>(x);
     }
 
     void visit_Program(const AST::Program_t &x) {
