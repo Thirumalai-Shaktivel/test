@@ -13,11 +13,12 @@ program interface_09
     procedure (add) :: add_def
     procedure (add), pointer :: p
     p => add_def
-    call p(5, 10)
+    call p(5, 10, 15)
 end program
 
-subroutine add_def(x, y)
-        integer ,intent(in) :: x
-        integer ,intent(in) :: y
-        print *, "the sum of x and y is: ", x + y
+subroutine add_def(x, y, z)
+        integer, intent(in) :: x
+        integer, intent(in) :: y
+        integer, intent(in) :: z
+        print *, "sum: ", x + y + z
 end subroutine
