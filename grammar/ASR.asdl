@@ -84,6 +84,8 @@ symbol
         stmt* body)
     | Module(symbol_table symtab, identifier name, identifier* dependencies,
         bool loaded_from_mod)
+    | Submodule(symbol_table symtab, identifier name, symbol parent,
+                identifier* dependencies, bool loaded_from_mod)
     | Subroutine(symbol_table symtab, identifier name, expr* args, stmt* body,
         abi abi, access access, deftype deftype, string? bindc_name)
     | Function(symbol_table symtab, identifier name, expr* args, stmt* body,
