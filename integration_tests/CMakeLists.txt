@@ -88,6 +88,7 @@ RUN(NAME program_cmake_02 LABELS gfortran llvm cpp x86)
 RUN(NAME abort_01 FAIL LABELS gfortran llvm cpp x86)
 
 RUN(NAME print_01 LABELS gfortran llvm cpp)
+RUN(NAME print_02 LABELS gfortran llvm)
 
 RUN(NAME cond_01 LABELS gfortran llvm cpp x86)
 
@@ -355,6 +356,7 @@ RUN(NAME string_07 LABELS gfortran llvm)
 RUN(NAME string_08 LABELS gfortran llvm)
 RUN(NAME string_09 LABELS gfortran llvm)
 RUN(NAME string_10 LABELS gfortran llvm)
+RUN(NAME string_11 LABELS gfortran llvm)
 
 RUN(NAME nested_01 LABELS gfortran llvm)
 RUN(NAME nested_02 LABELS gfortran llvm)
@@ -401,3 +403,4 @@ RUN(NAME sin_03 LABELS gfortran llvm)
 RUN(NAME sin_04 LABELS gfortran llvm)
 RUN(NAME bits_01 LABELS gfortran llvm)
 RUN(NAME cpu_time_01 LABELS gfortran llvm)
+RUN(NAME boz_01 LABELS gfortran llvm)

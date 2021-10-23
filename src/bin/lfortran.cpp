@@ -107,10 +107,17 @@ int emit_tokens(const std::string &input, std::vector<std::string>
     Allocator al(64*1024*1024);
     //std::vector<int> toks;
     //std::vector<LFortran::YYSTYPE> stypes;
-    try {
-        toks = LFortran::tokens(al, input, &stypes);
-    } catch (const LFortran::TokenizerError &e) {
-        std::cerr << "Tokenizing error: " << e.msg() << std::endl;
+    LFortran::diag::Diagnostics diagnostics;
+    auto res = LFortran::tokens(al, input, diagnostics, &stypes);
+    LFortran::LocationManager lm;
+    lm.in_filename = "input";
+    lm.init_simple(input);
+    LFortran::CompilerOptions cu;
+    std::cerr << diagnostics.render(input, lm, cu);
+    if (res.ok) {
+        toks = res.result;
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 1;
     }
 
@@ -259,15 +266,18 @@ int prompt(bool verbose)
         }
 
         LFortran::FortranEvaluator::EvalResult r;
+        LFortran::diag::Diagnostics diagnostics;
 
         try {
             LFortran::LocationManager lm;
-            LFortran::FortranEvaluator::Result<LFortran::FortranEvaluator::EvalResult>
-            res = e.evaluate(input, verbose, lm);
+            lm.in_filename = "input";
+            LFortran::Result<LFortran::FortranEvaluator::EvalResult>
+            res = e.evaluate(input, verbose, lm, diagnostics);
+            std::cerr << diagnostics.render(input, lm, cu);
             if (res.ok) {
                 r = res.result;
             } else {
-                std::cerr << e.format_error(res.error, input, lm);
+                LFORTRAN_ASSERT(diagnostics.has_error())
                 continue;
             }
         } catch (const LFortran::LFortranException &e) {
@@ -355,7 +365,7 @@ int emit_prescan(const std::string &infile, CompilerOptions &compiler_options)
     return 0;
 }
 
-int emit_tokens(const std::string &infile, bool line_numbers=false)
+int emit_tokens(const std::string &infile, bool line_numbers, const CompilerOptions &compiler_options)
 {
     std::string input = read_file(infile);
     // Src -> Tokens
@@ -363,10 +373,16 @@ int emit_tokens(const std::string &infile, bool line_numbers=false)
     std::vector<int> toks;
     std::vector<LFortran::YYSTYPE> stypes;
     std::vector<LFortran::Location> locations;
-    try {
-        toks = LFortran::tokens(al, input, &stypes, &locations);
-    } catch (const LFortran::TokenizerError &e) {
-        std::cerr << "Tokenizing error: " << e.msg() << std::endl;
+    LFortran::diag::Diagnostics diagnostics;
+    auto res = LFortran::tokens(al, input, diagnostics, &stypes, &locations);
+    LFortran::LocationManager lm;
+    lm.in_filename = infile;
+    lm.init_simple(input);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
+    if (res.ok) {
+        toks = res.result;
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 1;
     }
 
@@ -386,13 +402,15 @@ int emit_ast(const std::string &infile, CompilerOptions &compiler_options)
 
     LFortran::FortranEvaluator fe(compiler_options);
     LFortran::LocationManager lm;
+    LFortran::diag::Diagnostics diagnostics;
     lm.in_filename = infile;
-    LFortran::FortranEvaluator::Result<std::string> r = fe.get_ast(input, lm);
+    LFortran::Result<std::string> r = fe.get_ast(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
     if (r.ok) {
         std::cout << r.result << std::endl;
         return 0;
     } else {
-        std::cerr << fe.format_error(r.error, input, lm);
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 2;
     }
 }
@@ -400,24 +418,21 @@ int emit_ast(const std::string &infile, CompilerOptions &compiler_options)
 int emit_ast_f90(const std::string &infile, CompilerOptions &compiler_options)
 {
     std::string input = read_file(infile);
-    // Src -> AST
-    Allocator al(64*1024*1024);
-    LFortran::AST::TranslationUnit_t* ast;
-    try {
-        ast = LFortran::parse2(al, input, compiler_options.use_colors, compiler_options.fixed_form);
-    } catch (const LFortran::TokenizerError &e) {
-        std::cerr << "Tokenizing error: " << e.msg() << std::endl;
-        return 1;
-    } catch (const LFortran::ParserError &e) {
-        std::cerr << "Parsing error: " << e.msg() << std::endl;
+    LFortran::FortranEvaluator fe(compiler_options);
+    LFortran::LocationManager lm;
+    LFortran::diag::Diagnostics diagnostics;
+    lm.in_filename = infile;
+    LFortran::Result<LFortran::AST::TranslationUnit_t*> r
+            = fe.get_ast2(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
+    if (r.ok) {
+        std::cout << LFortran::ast_to_src(*r.result,
+            compiler_options.use_colors);
+        return 0;
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 2;
     }
-
-    // AST -> Source
-    std::string source = LFortran::ast_to_src(*ast, compiler_options.use_colors);
-
-    std::cout << source;
-    return 0;
 }
 
 int format(const std::string &infile, bool inplace, bool color, int indent,
@@ -427,11 +442,13 @@ int format(const std::string &infile, bool inplace, bool color, int indent,
 
     LFortran::FortranEvaluator fe(compiler_options);
     LFortran::LocationManager lm;
+    LFortran::diag::Diagnostics diagnostics;
     lm.in_filename = infile;
-    LFortran::FortranEvaluator::Result<LFortran::AST::TranslationUnit_t*>
-        r = fe.get_ast2(input, lm);
+    LFortran::Result<LFortran::AST::TranslationUnit_t*>
+        r = fe.get_ast2(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
     if (!r.ok) {
-        std::cerr << fe.format_error(r.error, input, lm);
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 2;
     }
     LFortran::AST::TranslationUnit_t* ast = r.result;
@@ -466,12 +483,14 @@ int python_wrapper(const std::string &infile, std::string array_order,
     // Src -> AST -> ASR
     LFortran::LocationManager lm;
     lm.in_filename = infile;
-    LFortran::FortranEvaluator::Result<LFortran::ASR::TranslationUnit_t*>
-        result = fe.get_asr2(input, lm);
+    LFortran::diag::Diagnostics diagnostics;
+    LFortran::Result<LFortran::ASR::TranslationUnit_t*>
+        result = fe.get_asr2(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
     if (result.ok) {
         asr = result.result;
     } else {
-        std::cerr << fe.format_error(result.error, input, lm);
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 1;
     }
 
@@ -515,10 +534,12 @@ int emit_asr(const std::string &infile,
     LFortran::FortranEvaluator fe(compiler_options);
     LFortran::LocationManager lm;
     lm.in_filename = infile;
-    LFortran::FortranEvaluator::Result<LFortran::ASR::TranslationUnit_t*>
-        r = fe.get_asr2(input, lm);
+    LFortran::diag::Diagnostics diagnostics;
+    LFortran::Result<LFortran::ASR::TranslationUnit_t*>
+        r = fe.get_asr2(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
     if (!r.ok) {
-        std::cerr << fe.format_error(r.error, input, lm);
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 2;
     }
     LFortran::ASR::TranslationUnit_t* asr = r.result;
@@ -572,13 +593,15 @@ int emit_cpp(const std::string &infile, CompilerOptions &compiler_options)
 
     LFortran::FortranEvaluator fe(compiler_options);
     LFortran::LocationManager lm;
+    LFortran::diag::Diagnostics diagnostics;
     lm.in_filename = infile;
-    LFortran::FortranEvaluator::Result<std::string> cpp = fe.get_cpp(input, lm);
+    LFortran::Result<std::string> cpp = fe.get_cpp(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
     if (cpp.ok) {
         std::cout << cpp.result;
         return 0;
     } else {
-        std::cerr << fe.format_error(cpp.error, input, lm);
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 1;
     }
 }
@@ -635,13 +658,15 @@ int emit_llvm(const std::string &infile, CompilerOptions &compiler_options)
     LFortran::FortranEvaluator fe(compiler_options);
     LFortran::LocationManager lm;
     lm.in_filename = infile;
-    LFortran::FortranEvaluator::Result<std::string> llvm
-        = fe.get_llvm(input, lm);
+    LFortran::diag::Diagnostics diagnostics;
+    LFortran::Result<std::string> llvm
+        = fe.get_llvm(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
     if (llvm.ok) {
         std::cout << llvm.result;
         return 0;
     } else {
-        std::cerr << fe.format_error(llvm.error, input, lm);
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 1;
     }
 }
@@ -652,13 +677,15 @@ int emit_asm(const std::string &infile, CompilerOptions &compiler_options)
 
     LFortran::FortranEvaluator fe(compiler_options);
     LFortran::LocationManager lm;
+    LFortran::diag::Diagnostics diagnostics;
     lm.in_filename = infile;
-    LFortran::FortranEvaluator::Result<std::string> r = fe.get_asm(input, lm);
+    LFortran::Result<std::string> r = fe.get_asm(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
     if (r.ok) {
         std::cout << r.result;
         return 0;
     } else {
-        std::cerr << fe.format_error(r.error, input, lm);
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 1;
     }
 }
@@ -677,12 +704,14 @@ int compile_to_object_file(const std::string &infile,
     // Src -> AST -> ASR
     LFortran::LocationManager lm;
     lm.in_filename = infile;
-    LFortran::FortranEvaluator::Result<LFortran::ASR::TranslationUnit_t*>
-    result = fe.get_asr2(input, lm);
+    LFortran::diag::Diagnostics diagnostics;
+    LFortran::Result<LFortran::ASR::TranslationUnit_t*>
+        result = fe.get_asr2(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
     if (result.ok) {
         asr = result.result;
     } else {
-        std::cerr << fe.format_error(result.error, input, lm);
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 1;
     }
 
@@ -705,17 +734,14 @@ int compile_to_object_file(const std::string &infile,
     }
 
     std::unique_ptr<LFortran::LLVMModule> m;
-    Allocator al(64*1024*1024);
-    try {
-        m = LFortran::asr_to_llvm(*asr, e.get_context(), al, compiler_options.platform);
-    } catch (const LFortran::CodeGenError &e) {
-        if (compiler_options.show_stacktrace) {
-            std::vector<LFortran::StacktraceItem> d = e.stacktrace_addresses();
-            get_local_addresses(d);
-            get_local_info(d);
-            std::cerr << stacktrace2str(d, LFortran::stacktrace_depth);
-        }
-        std::cerr << "Code generation error: " << e.msg() << std::endl;
+    diagnostics.diagnostics.clear();
+    LFortran::Result<std::unique_ptr<LFortran::LLVMModule>>
+        res = fe.get_llvm3(*asr, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
+    if (res.ok) {
+        m = std::move(res.result);
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 5;
     }
 
@@ -743,7 +769,7 @@ int compile_to_assembly_file(const std::string &infile,
 
 int compile_to_binary_x86(const std::string &infile, const std::string &outfile,
         bool time_report,
-        CompilerOptions &/*compiler_options*/)
+        CompilerOptions &compiler_options)
 {
     int time_file_read=0;
     int time_src_to_ast=0;
@@ -751,6 +777,8 @@ int compile_to_binary_x86(const std::string &infile, const std::string &outfile,
     int time_asr_to_x86=0;
 
     std::string input;
+    LFortran::diag::Diagnostics diagnostics;
+    LFortran::FortranEvaluator fe(compiler_options);
     Allocator al(64*1024*1024); // Allocate 64 MB
     LFortran::AST::TranslationUnit_t* ast;
     LFortran::ASR::TranslationUnit_t* asr;
@@ -763,35 +791,56 @@ int compile_to_binary_x86(const std::string &infile, const std::string &outfile,
     }
 
     // Src -> AST
+    LFortran::LocationManager lm;
+    lm.in_filename = infile;
     {
         auto t1 = std::chrono::high_resolution_clock::now();
-        try {
-            ast = LFortran::parse2(al, input);
-        } catch (const LFortran::TokenizerError &e) {
-            std::cerr << "Tokenizing error: " << e.msg() << std::endl;
-            return 1;
-        } catch (const LFortran::ParserError &e) {
-            std::cerr << "Parsing error: " << e.msg() << std::endl;
-            return 2;
-        }
+        LFortran::Result<LFortran::AST::TranslationUnit_t*>
+            result = fe.get_ast2(input, lm, diagnostics);
         auto t2 = std::chrono::high_resolution_clock::now();
         time_src_to_ast = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+        std::cerr << diagnostics.render(input, lm, compiler_options);
+        if (result.ok) {
+            ast = result.result;
+        } else {
+            LFORTRAN_ASSERT(diagnostics.has_error())
+            return 1;
+        }
     }
 
     // AST -> ASR
     {
+        diagnostics.diagnostics.clear();
         auto t1 = std::chrono::high_resolution_clock::now();
-        asr = LFortran::ast_to_asr(al, *ast);
+        LFortran::Result<LFortran::ASR::TranslationUnit_t*>
+            result = fe.get_asr3(*ast, diagnostics);
         auto t2 = std::chrono::high_resolution_clock::now();
         time_ast_to_asr = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+        std::cerr << diagnostics.render(input, lm, compiler_options);
+        if (result.ok) {
+            asr = result.result;
+        } else {
+            LFORTRAN_ASSERT(diagnostics.has_error())
+            return 2;
+        }
     }
 
     // ASR -> x86 machine code
     {
         auto t1 = std::chrono::high_resolution_clock::now();
-        LFortran::asr_to_x86(*asr, al, outfile, time_report);
+        LFortran::Result<int>
+            result = LFortran::asr_to_x86(*asr, al, outfile, time_report);
         auto t2 = std::chrono::high_resolution_clock::now();
         time_asr_to_x86 = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+        if (result.ok) {
+            // pass
+        } else {
+            std::cerr << fe.format_error(result.error, input, lm);
+            return 3;
+        }
     }
 
     if (time_report) {
@@ -826,12 +875,14 @@ int compile_to_object_file_cpp(const std::string &infile,
     // Src -> AST -> ASR
     LFortran::LocationManager lm;
     lm.in_filename = infile;
-    LFortran::FortranEvaluator::Result<LFortran::ASR::TranslationUnit_t*>
-        result = fe.get_asr2(input, lm);
+    LFortran::diag::Diagnostics diagnostics;
+    LFortran::Result<LFortran::ASR::TranslationUnit_t*>
+        result = fe.get_asr2(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
     if (result.ok) {
         asr = result.result;
     } else {
-        std::cerr << fe.format_error(result.error, input, lm);
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 1;
     }
 
@@ -872,10 +923,14 @@ int compile_to_object_file_cpp(const std::string &infile,
 
     // ASR -> C++
     std::string src;
-    try {
-        src = LFortran::asr_to_cpp(*asr);
-    } catch (const LFortran::CodeGenError &e) {
-        std::cerr << "Code generation error: " << e.msg() << std::endl;
+    diagnostics.diagnostics.clear();
+    LFortran::Result<std::string> res
+        = fe.get_cpp2(*asr, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
+    if (res.ok) {
+        src = res.result;
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return 5;
     }
 
@@ -993,7 +1048,8 @@ int link_executable(const std::vector<std::string> &infiles,
             }
         } else {
             std::string CC;
-            if (compiler_options.platform == LFortran::Platform::macOS) {
+            if (compiler_options.platform == LFortran::Platform::macOS_Intel
+                || compiler_options.platform == LFortran::Platform::macOS_ARM) {
                 CC = "clang";
             } else {
                 CC = "gcc";
@@ -1004,7 +1060,8 @@ int link_executable(const std::vector<std::string> &infiles,
             std::string options;
             std::string runtime_lib = "lfortran_runtime";
             if (static_executable) {
-                if (compiler_options.platform != LFortran::Platform::macOS) {
+                if (compiler_options.platform != LFortran::Platform::macOS_Intel
+                && compiler_options.platform != LFortran::Platform::macOS_ARM) {
                     options += " -static ";
                 }
                 runtime_lib = "lfortran_runtime_static";
@@ -1168,6 +1225,7 @@ int main(int argc, char *argv[])
         app.add_flag("--symtab-only", compiler_options.symtab_only, "Only create symbol tables in ASR (skip executable stmt)");
         app.add_flag("--time-report", time_report, "Show compilation time report");
         app.add_flag("--static", static_link, "Create a static executable");
+        app.add_flag("--no-warnings", compiler_options.no_warnings, "Turn off all warnings");
         app.add_option("--backend", arg_backend, "Select a backend (llvm, cpp, x86)")->capture_default_str();
         app.add_flag("--openmp", compiler_options.openmp, "Enable openmp");
         app.add_flag("--fast", compiler_options.fast, "Best performance (disable strict standard compliance)");
@@ -1213,7 +1271,8 @@ int main(int argc, char *argv[])
             std::cout << "Platform: ";
             switch (compiler_options.platform) {
                 case (LFortran::Platform::Linux) : std::cout << "Linux"; break;
-                case (LFortran::Platform::macOS) : std::cout << "macOS"; break;
+                case (LFortran::Platform::macOS_Intel) : std::cout << "macOS Intel"; break;
+                case (LFortran::Platform::macOS_ARM) : std::cout << "macOS ARM"; break;
                 case (LFortran::Platform::Windows) : std::cout << "Windows"; break;
             }
             std::cout << std::endl;
@@ -1321,7 +1380,7 @@ int main(int argc, char *argv[])
             return emit_prescan(arg_file, compiler_options);
         }
         if (show_tokens) {
-            return emit_tokens(arg_file);
+            return emit_tokens(arg_file, false, compiler_options);
         }
         if (show_ast) {
             return emit_ast(arg_file, compiler_options);
@@ -1439,6 +1498,7 @@ int main(int argc, char *argv[])
                     backend, static_link, true, compiler_options);
         }
     } catch(const LFortran::LFortranException &e) {
+        std::cerr << "Internal Compiler Error: Unhandled exception" << std::endl;
         std::vector<LFortran::StacktraceItem> d = e.stacktrace_addresses();
         get_local_addresses(d);
         get_local_info(d);

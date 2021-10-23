@@ -7,7 +7,10 @@
 namespace LFortran {
 
 enum Platform {
-    Linux, macOS, Windows
+    Linux,
+    macOS_Intel,
+    macOS_ARM,
+    Windows
 };
 
 Platform get_platform();
@@ -23,6 +26,7 @@ struct CompilerOptions {
     bool indent = false;
     bool fast = false;
     bool openmp = false;
+    bool no_warnings = false;
     std::string target = "";
     Platform platform;
 

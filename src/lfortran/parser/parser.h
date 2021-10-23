@@ -18,19 +18,18 @@ public:
     std::string inp;
 
 public:
+    diag::Diagnostics &diag;
     Allocator &m_a;
     Tokenizer m_tokenizer;
     Vec<AST::ast_t*> result;
 
-    Parser(Allocator &al) : m_a{al} {
+    Parser(Allocator &al, diag::Diagnostics &diagnostics)
+            : diag{diagnostics}, m_a{al} {
         result.reserve(al, 32);
     }
 
     void parse(const std::string &input);
-    int parse();
-
-
-private:
+    void handle_yyerror(const Location &loc, const std::string &msg);
 };
 
 static inline uint32_t bisection(const std::vector<uint32_t> &vec, uint32_t i) {
@@ -190,33 +189,33 @@ struct LocationManager {
         }
     }
 
+    void get_newlines(const std::string &s, std::vector<uint32_t> &newlines) {
+        for (uint32_t pos=0; pos < s.size(); pos++) {
+            if (s[pos] == '\n') newlines.push_back(pos);
+        }
+    }
+
+    void init_simple(const std::string &input) {
+        uint32_t n = input.size();
+        out_start = {0, n};
+        in_start = {0, n};
+        get_newlines(input, in_newlines);
+    }
+
 };
 
 
 // Parses Fortran code to AST
-AST::TranslationUnit_t* parse(Allocator &al, const std::string &s);
-
-// Just like `parse`, but prints a nice error message to std::cout if a
-// syntax error happens:
-AST::TranslationUnit_t* parse2(Allocator &al, const std::string &s,
-        bool use_colors=true, bool fixed_form=false);
-
-// Returns a nice error message as a string
-std::string format_syntax_error(const std::string &filename,
-        const std::string &input, const Location &loc, const int token,
-        const std::string *tstr, bool use_colors,
-        const LocationManager &lm);
-
-std::string format_semantic_error(const std::string &filename,
-        const std::string &input, const Location &loc,
-        const std::string msg, bool use_colors,
-        const LocationManager &lm);
+Result<AST::TranslationUnit_t*> parse(Allocator &al,
+    const std::string &s,
+    diag::Diagnostics &diagnostics);
 
 void populate_spans(diag::Diagnostic &d, const LocationManager &lm,
         const std::string &input);
 
 // Tokenizes the `input` and return a list of tokens
-std::vector<int> tokens(Allocator &al, const std::string &input,
+Result<std::vector<int>> tokens(Allocator &al, const std::string &input,
+        diag::Diagnostics &diagnostics,
         std::vector<YYSTYPE> *stypes=nullptr,
         std::vector<Location> *locations=nullptr);
 

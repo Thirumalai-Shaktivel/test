@@ -14,6 +14,7 @@
 
 #include <lfortran/ast.h>
 #include <lfortran/string_utils.h>
+#include <lfortran/parser/parser_exception.h>
 
 // This is only used in parser.tab.cc, nowhere else, so we simply include
 // everything from LFortran::AST to save typing:
@@ -23,7 +24,6 @@ using LFortran::Vec;
 using LFortran::FnArg;
 using LFortran::CoarrayArg;
 using LFortran::VarType;
-using LFortran::SemanticError;
 using LFortran::ArgStarKw;
 
 
@@ -633,7 +633,7 @@ static inline reduce_opType convert_id_to_reduce_type(
         } else if (s_id == "MAX") {
                 return reduce_opType::ReduceMAX;
         } else {
-                throw SemanticError("Unsupported operation in reduction", loc);
+                throw LFortran::parser_local::ParserError("Unsupported operation in reduction", loc);
         }
 }
 
@@ -1452,6 +1452,24 @@ return make_Program_t(al, a_loc,
         /*body*/ STMTS(body), \
         /*n_body*/ body.size(), trivia_cast(trivia), nullptr)
 
+void add_ws_warning(const Location &loc,
+        LFortran::diag::Diagnostics &diagnostics, int end_token) {
+    if (end_token == yytokentype::KW_ENDDO) {
+        diagnostics.parser_style_label(
+            "Use 'end do' instead of 'enddo'",
+            {loc},
+            "help: write this as 'end do'");
+    } else if (end_token == yytokentype::KW_ENDIF) {
+        diagnostics.parser_style_label(
+            "Use 'end if' instead of 'endif'",
+            {loc},
+            "help: write this as 'end if'");
+    }
+}
+
+#define WARN_ENDDO(l) add_ws_warning(l, p.diag, KW_ENDDO)
+#define WARN_ENDIF(l) add_ws_warning(l, p.diag, KW_ENDIF)
+
 #define DO1(trivia, body, l) make_DoLoop_t(p.m_a, l, 0, nullptr, 0, \
         nullptr, nullptr, nullptr, nullptr, \
         /*body*/ STMTS(body), \
@@ -1466,7 +1484,7 @@ return make_Program_t(al, a_loc,
         /*body*/ STMTS(body), \
         /*n_body*/ body.size(), trivia_cast(trivia), nullptr); \
         if (label == 0) { \
-            throw LFortran::ParserError("Zero is not a valid statement label", l, 0); \
+            throw LFortran::parser_local::ParserError("Zero is not a valid statement label", l); \
         }
 
 #define DO3_LABEL(label, i, a, b, c, trivia, body, l) make_DoLoop_t(p.m_a, l, 0, nullptr, \
@@ -1474,7 +1492,7 @@ return make_Program_t(al, a_loc,
         /*body*/ STMTS(body), \
         /*n_body*/ body.size(), trivia_cast(trivia), nullptr); \
         if (label == 0) { \
-            throw LFortran::ParserError("Zero is not a valid statement label", l, 0); \
+            throw LFortran::parser_local::ParserError("Zero is not a valid statement label", l); \
         }
 #define DO3(i, a, b, c, trivia, body, l) make_DoLoop_t(p.m_a, l, 0, nullptr, 0, \
         name2char(i), EXPR(a), EXPR(b), EXPR(c), \

@@ -96,8 +96,9 @@ public:
         {AST::intrinsicopType::GTE, "~gte"}
     };
 
-    SymbolTableVisitor(Allocator &al, SymbolTable *symbol_table)
-      : CommonVisitor(al, symbol_table), is_derived_type{false} {}
+    SymbolTableVisitor(Allocator &al, SymbolTable *symbol_table,
+        diag::Diagnostics &diagnostics)
+      : CommonVisitor(al, symbol_table, diagnostics), is_derived_type{false} {}
 
 
     ASR::symbol_t* resolve_symbol(const Location &loc, const std::string &sub_name) {
@@ -623,24 +624,13 @@ public:
                     if (current_scope->parent != nullptr) {
                         // re-declaring a global scope variable is allowed
                         // Otherwise raise an error
-                        diag::Span span1;
-                        span1.loc = s.loc;
-                        diag::Label l1;
-                        l1.primary = true;
-                        l1.message = "redeclaration";
-                        l1.spans = {span1};
-                        diag::Span span2;
                         ASR::symbol_t *orig_decl = current_scope->scope[sym];
-                        span2.loc = orig_decl->base.loc;
-                        diag::Label l2;
-                        l2.primary = false;
-                        l2.message = "original declaration";
-                        l2.spans = {span2};
-                        diag::Diagnostic d;
-                        d.level = diag::Level::Error;
-                        d.stage = diag::Stage::Semantic;
-                        d.message = "Symbol is already declared in the same scope";
-                        d.labels = {l1, l2};
+                        diag::Diagnostic d{diag::Diagnostic::semantic_error_label(
+                            "Symbol is already declared in the same scope",
+                            s.loc,
+                            "redeclaration"
+                        )};
+                        d.secondary_label("original declaration", orig_decl->base.loc);
                         throw SemanticError(d);
                         //throw SemanticError("Symbol already declared",
                         //        x.base.base.loc);
@@ -735,22 +725,12 @@ public:
                     if (dims.size() > 0) {
                         // This happens for:
                         // integer, private, dimension(2,2) :: a(2,2)
-                        diag::Span span_attr;
-                        span_attr.loc = dims_attr_loc; // dimension(2,2)
-                        diag::Span span_var;
-                        span_var.loc = s.loc; // a(2,2)
-                        diag::Label l;
-                        l.primary = true;
-                        l.message = "dimensions specified at both places";
-                        l.spans = {span_attr, span_var};
-                        diag::Diagnostic d;
-                        d.level = diag::Level::Error;
-                        d.stage = diag::Stage::Semantic;
-                        d.message = "Dimensions cannot be specified twice";
-                        d.labels.push_back(l);
-                        throw SemanticError(d);
-                        //throw SemanticError("Cannot specify dimensions both ways",
-                        //        x.base.base.loc);
+                        diag.semantic_warning_label(
+                            "Dimensions are specified twice",
+                            {dims_attr_loc, s.loc}, // dimension(2,2), a(2,2)
+                            "help: consider specifying it just one way or the other"
+                        );
+                        dims.n = 0;
                     }
                     process_dims(al, dims, s.m_dim, s.n_dim);
                 }
@@ -1437,11 +1417,19 @@ public:
 
 };
 
-ASR::asr_t *symbol_table_visitor(Allocator &al, AST::TranslationUnit_t &ast,
+Result<ASR::asr_t*> symbol_table_visitor(Allocator &al, AST::TranslationUnit_t &ast,
+        diag::Diagnostics &diagnostics,
         SymbolTable *symbol_table)
 {
-    SymbolTableVisitor v(al, symbol_table);
-    v.visit_TranslationUnit(ast);
+    SymbolTableVisitor v(al, symbol_table, diagnostics);
+    try {
+        v.visit_TranslationUnit(ast);
+    } catch (const SemanticError &e) {
+        Error error;
+        diagnostics.diagnostics.push_back(e.d);
+        error.d = e.d;
+        return error;
+    }
     ASR::asr_t *unit = v.tmp;
     return unit;
 }

@@ -11,6 +11,22 @@
 
 namespace LFortran {
 
+namespace {
+
+    // Local exception that is only used in this file to exit the visitor
+    // pattern and caught later (not propagated outside)
+    class CodeGenError
+    {
+    public:
+        diag::Diagnostic d;
+    public:
+        CodeGenError(const std::string &msg)
+            : d{diag::Diagnostic::codegen_error(msg)}
+        { }
+    };
+
+}
+
 using ASR::is_a;
 using ASR::down_cast;
 using ASR::down_cast2;
@@ -335,7 +351,8 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
                 std::string(x.m_name) == "int" ||
                 std::string(x.m_name) == "char" ||
                 std::string(x.m_name) == "present" ||
-                std::string(x.m_name) == "len"
+                std::string(x.m_name) == "len" ||
+                std::string(x.m_name) == "not"
                 ) && intrinsic_module) {
             // Intrinsic function `int`
             SymbolInfo s;
@@ -429,6 +446,10 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
                 LFORTRAN_ASSERT(x.n_args > 0);
                 visit_expr(*x.m_args[0]);
                 src = "(int)" + src;
+            } else if (fn_name == "not") {
+                LFORTRAN_ASSERT(x.n_args > 0);
+                visit_expr(*x.m_args[0]);
+                src = "!(" + src + ")";
             } else if (fn_name == "len") {
                 LFORTRAN_ASSERT(x.n_args > 0);
                 visit_expr(*x.m_args[0]);
@@ -973,10 +994,16 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
 
 };
 
-std::string asr_to_cpp(ASR::TranslationUnit_t &asr)
+Result<std::string> asr_to_cpp(ASR::TranslationUnit_t &asr)
 {
     ASRToCPPVisitor v;
-    v.visit_asr((ASR::asr_t &)asr);
+    try {
+        v.visit_asr((ASR::asr_t &)asr);
+    } catch (const CodeGenError &e) {
+        Error error;
+        error.d = e.d;
+        return error;
+    }
     return v.src;
 }
 

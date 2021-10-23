@@ -10,10 +10,22 @@ void section(const std::string &s)
     std::cout << color(LFortran::style::bold) << color(LFortran::fg::blue) << s << color(LFortran::style::reset) << color(LFortran::fg::reset) << std::endl;
 }
 
+namespace {
+    class ParserError0 {
+    };
+}
+
 std::string p(Allocator &al, const std::string &s)
 {
     LFortran::AST::TranslationUnit_t* result;
-    result = LFortran::parse2(al, s);
+    LFortran::diag::Diagnostics diagnostics;
+    LFortran::Result<LFortran::AST::TranslationUnit_t*> res
+        = LFortran::parse(al, s, diagnostics);
+    if (res.ok) {
+        result = res.result;
+    } else {
+        throw ParserError0();
+    }
     LFortran::AST::ast_t* ast;
     if (result->n_items >= 1) {
         ast = result->m_items[0];
@@ -46,7 +58,7 @@ TEST_CASE("Names") {
     CHECK(P("abc*function")   == "(* abc function)");
     CHECK(P("abc*subroutine")   == "(* abc subroutine)");
 
-    CHECK_THROWS_AS(P("abc*2xyz"), LFortran::ParserError);
+    CHECK_THROWS_AS(P("abc*2xyz"), ParserError0);
 }
 
 TEST_CASE("Symbolic expressions") {
@@ -58,10 +70,10 @@ TEST_CASE("Symbolic expressions") {
     CHECK(P("a+b*c") == "(+ a (* b c))");
     CHECK(P("(a+b)*c") == "(* (+ a b) c)");
 
-    CHECK_THROWS_AS(P("2*"), LFortran::ParserError);
-    CHECK_THROWS_AS(P("(2*x"), LFortran::ParserError);
-    CHECK_THROWS_AS(P("2*x)"), LFortran::ParserError);
-    CHECK_THROWS_AS(P("3*x**"), LFortran::ParserError);
+    CHECK_THROWS_AS(P("2*"), ParserError0);
+    CHECK_THROWS_AS(P("(2*x"), ParserError0);
+    CHECK_THROWS_AS(P("2*x)"), ParserError0);
+    CHECK_THROWS_AS(P("3*x**"), ParserError0);
 }
 
 TEST_CASE("Symbolic assignments") {
@@ -69,21 +81,21 @@ TEST_CASE("Symbolic assignments") {
     CHECK(P("x = y") == "(= 0 x y ())");
     CHECK(P("x = 2*y") == "(= 0 x (* 2 y) ())");
 
-    CHECK_THROWS_AS(P("x ="), LFortran::ParserError);
-    CHECK_THROWS_AS(P("x = 2*"), LFortran::ParserError);
-    CHECK_THROWS_AS(P(" = 2*y"), LFortran::ParserError);
+    CHECK_THROWS_AS(P("x ="), ParserError0);
+    CHECK_THROWS_AS(P("x = 2*"), ParserError0);
+    CHECK_THROWS_AS(P(" = 2*y"), ParserError0);
 }
 
 TEST_CASE("Arithmetics") {
     Allocator al(4*1024);
 
-    CHECK_THROWS_AS(P("1+2**(*4)"), LFortran::ParserError);
-    CHECK_THROWS_AS(P("1x"), LFortran::ParserError);
-    CHECK_THROWS_AS(P("1+"), LFortran::ParserError);
-    CHECK_THROWS_AS(P("(1+"), LFortran::ParserError);
-    CHECK_THROWS_AS(P("(1+2"), LFortran::ParserError);
-    CHECK_THROWS_AS(P("1+2*"), LFortran::ParserError);
-    CHECK_THROWS_AS(P("f(3+6"), LFortran::ParserError);
+    CHECK_THROWS_AS(P("1+2**(*4)"), ParserError0);
+    CHECK_THROWS_AS(P("1x"), ParserError0);
+    CHECK_THROWS_AS(P("1+"), ParserError0);
+    CHECK_THROWS_AS(P("(1+"), ParserError0);
+    CHECK_THROWS_AS(P("(1+2"), ParserError0);
+    CHECK_THROWS_AS(P("1+2*"), ParserError0);
+    CHECK_THROWS_AS(P("f(3+6"), ParserError0);
 }
 
 TEST_CASE("Comparison") {
@@ -126,16 +138,17 @@ TEST_CASE("Comparison") {
 
 TEST_CASE("Multiple units") {
     Allocator al(4*1024);
+    LFortran::diag::Diagnostics diagnostics;
     LFortran::AST::TranslationUnit_t* results;
     std::string s = R"(x = x+1
         y = z+1)";
-    results = LFortran::parse(al, s);
+    results = LFortran::TRY(LFortran::parse(al, s, diagnostics));
     CHECK(results->n_items == 2);
     CHECK(LFortran::pickle(*results->m_items[0]) == "(= 0 x (+ x 1) ())");
     CHECK(LFortran::pickle(*results->m_items[1]) == "(= 0 y (+ z 1) ())");
 
     s = "x = x+1; ; y = z+1";
-    results = LFortran::parse(al, s);
+    results = LFortran::TRY(LFortran::parse(al, s, diagnostics));
     CHECK(results->n_items == 2);
     CHECK(LFortran::pickle(*results->m_items[0]) == "(= 0 x (+ x 1) (TriviaNode [] [(Semicolon) (Semicolon)]))");
     CHECK(LFortran::pickle(*results->m_items[1]) == "(= 0 y (+ z 1) ())");
@@ -143,7 +156,7 @@ TEST_CASE("Multiple units") {
     s = R"(x = x+1;
 
     ; y = z+1)";
-    results = LFortran::parse(al, s);
+    results = LFortran::TRY(LFortran::parse(al, s, diagnostics));
     CHECK(results->n_items == 2);
     CHECK(LFortran::pickle(*results->m_items[0]) == "(= 0 x (+ x 1) (TriviaNode [] [(Semicolon) (EndOfLine) (EndOfLine) (Semicolon)]))");
     CHECK(LFortran::pickle(*results->m_items[1]) == "(= 0 y (+ z 1) ())");
@@ -151,7 +164,7 @@ TEST_CASE("Multiple units") {
     s = R"(x+1
     y = z+1
     a)";
-    results = LFortran::parse(al, s);
+    results = LFortran::TRY(LFortran::parse(al, s, diagnostics));
     CHECK(results->n_items == 3);
     CHECK(LFortran::pickle(*results->m_items[0]) == "(+ x 1)");
     CHECK(LFortran::pickle(*results->m_items[1]) == "(= 0 y (+ z 1) ())");
@@ -164,7 +177,7 @@ TEST_CASE("Multiple units") {
     s = x
     y = z+1
     a)";
-    results = LFortran::parse(al, s);
+    results = LFortran::TRY(LFortran::parse(al, s, diagnostics));
     CHECK(results->n_items == 4);
     CHECK(LFortran::pickle(*results->m_items[0]) == "(Function g [] [] () () () [] [] [] [] [(= 0 x y ()) (= 0 x (* 2 y) ())] [])");
     CHECK(LFortran::pickle(*results->m_items[1]) == "(= 0 s x ())");
@@ -179,7 +192,7 @@ TEST_CASE("if") {
     if (x) then
         end if = 5
     end if
-    end subroutine)"), LFortran::ParserError);
+    end subroutine)"), ParserError0);
 
     CHECK_THROWS_AS(P(R"(subroutine g
     if (else) then
@@ -189,7 +202,7 @@ TEST_CASE("if") {
     else if (else) then
         else = 3
     end if
-    end subroutine)"), LFortran::ParserError);
+    end subroutine)"), ParserError0);
 
 }
 
@@ -200,7 +213,7 @@ TEST_CASE("while") {
     CHECK_THROWS_AS(P(
  R"(do while (x)
         end do = 5
-    enddo)"), LFortran::ParserError);
+    enddo)"), ParserError0);
 
 }
 
@@ -248,8 +261,8 @@ TEST_CASE("declaration") {
     Allocator al(1024*1024);
 
     CHECK_THROWS_AS(P("integer, parameter, pointer x"),
-            LFortran::ParserError);
-    CHECK_THROWS_AS(P("integer x(5,:,:3,3:) = x y"), LFortran::ParserError);
+            ParserError0);
+    CHECK_THROWS_AS(P("integer x(5,:,:3,3:) = x y"), ParserError0);
 
 }
 

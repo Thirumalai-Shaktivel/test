@@ -624,6 +624,7 @@ static ASR::asr_t* comptime_intrinsic_real(ASR::expr_t *A,
 template <class Derived>
 class CommonVisitor : public AST::BaseVisitor<Derived> {
 public:
+    diag::Diagnostics &diag;
     std::map<AST::operatorType, std::string> binop2str = {
         {AST::operatorType::Mul, "~mul"},
         {AST::operatorType::Add, "~add"},
@@ -646,7 +647,9 @@ public:
     Vec<char *> current_module_dependencies;
     IntrinsicProcedures intrinsic_procedures;
 
-    CommonVisitor(Allocator &al, SymbolTable *symbol_table) : al{al}, current_scope{symbol_table} {
+    CommonVisitor(Allocator &al, SymbolTable *symbol_table,
+            diag::Diagnostics &diagnostics)
+        : diag{diagnostics}, al{al}, current_scope{symbol_table} {
         current_module_dependencies.reserve(al, 4);
     }
 
@@ -654,17 +657,9 @@ public:
         SymbolTable *scope = current_scope;
         ASR::symbol_t *v = scope->resolve_symbol(var_name);
         if (!v) {
-            diag::Span s;
-            s.loc = loc;
-            diag::Label l;
-            l.primary = true;
-            l.message = "'" + var_name + "' is undeclared";
-            l.spans.push_back(s);
-            diag::Diagnostic d;
-            d.level = diag::Level::Error;
-            d.stage = diag::Stage::Semantic;
-            d.message = "Variable '" + var_name + "' is not declared";
-            d.labels.push_back(l);
+            diag::Diagnostic d{diag::Diagnostic::semantic_error_label
+                ("Variable '" + var_name + "' is not declared", loc,
+                 "'" + var_name + "' is undeclared")};
             throw SemanticError(d);
             //throw SemanticError("Variable '" + var_name + "' not declared", loc);
         }
@@ -1087,17 +1082,10 @@ public:
                         f->m_args, f->n_args, x.base.base.loc);
                 } else {
                     LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
-                    diag::Span s;
-                    s.loc = x.base.base.loc;
-                    diag::Label l;
-                    l.primary = true;
-                    l.message = "";
-                    l.spans.push_back(s);
-                    diag::Diagnostic d;
-                    d.level = diag::Level::Error;
-                    d.stage = diag::Stage::Semantic;
-                    d.message = "Keyword arguments are not implemented for generic functions yet";
-                    d.labels.push_back(l);
+                    diag::Diagnostic d{diag::Diagnostic::semantic_error(
+                        "Keyword arguments are not implemented for generic functions yet",
+                        x.base.base.loc
+                    )};
                     throw SemanticError(d);
                 }
             }
@@ -1229,6 +1217,31 @@ public:
         ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Character_t(al, x.base.base.loc,
                 1, s_len, nullptr, nullptr, 0));
         tmp = ASR::make_ConstantString_t(al, x.base.base.loc, x.m_s, type);
+    }
+
+    void visit_BOZ(const AST::BOZ_t& x) {
+        std::string s = std::string(x.m_s); 
+        int base = -1;
+        ASR::bozType boz_type;
+        if( s[0] == 'b' || s[0] == 'B' ) {
+            boz_type = ASR::bozType::Binary;
+            base = 2;
+        } else if( s[0] == 'z' || s[0] == 'Z' ) {
+            boz_type = ASR::bozType::Hex;
+            base = 16;
+        } else if( s[0] == 'o' || s[0] == 'O' ) {
+            boz_type = ASR::bozType::Octal;
+            base = 8;
+        } else {
+            throw SemanticError(R"""(Only 'b', 'o' and 'z' 
+                                are accepted as prefixes of 
+                                BOZ literal constants.)""", 
+                                x.base.base.loc);
+        }
+        std::string boz_str = s.substr(2, s.size() - 2);
+        int boz_int = std::stoi(boz_str, nullptr, base);
+        tmp = ASR::make_BOZ_t(al, x.base.base.loc, boz_int,
+                                boz_type, nullptr);
     }
 
     void visit_Num(const AST::Num_t &x) {
@@ -1374,19 +1387,12 @@ public:
                 ASR::expr_t **fn_args, size_t fn_n_args, const Location &loc) {
         size_t n_args = args.size();
         if (args.size() + n != fn_n_args) {
-            diag::Span s;
-            s.loc = loc;
-            diag::Label l;
-            l.primary = true;
-            l.message = "";
-            l.spans.push_back(s);
-            diag::Diagnostic d;
-            d.level = diag::Level::Error;
-            d.stage = diag::Stage::Semantic;
-            d.message = "Procedure accepts " + std::to_string(fn_n_args)
+            diag::Diagnostic d{diag::Diagnostic::semantic_error(
+                "Procedure accepts " + std::to_string(fn_n_args)
                 + " arguments, but " + std::to_string(args.size() + n)
-                + " were provided";
-            d.labels.push_back(l);
+                + " were provided",
+                loc
+            )};
             throw SemanticError(d);
         }
         for (size_t i=0; i<n; i++) {

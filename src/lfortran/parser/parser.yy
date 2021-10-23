@@ -35,16 +35,12 @@
 
 int yylex(LFortran::YYSTYPE *yylval, YYLTYPE *yyloc, LFortran::Parser &p)
 {
-    return p.m_tokenizer.lex(p.m_a, *yylval, *yyloc);
+    return p.m_tokenizer.lex(p.m_a, *yylval, *yyloc, p.diag);
 } // ylex
 
 void yyerror(YYLTYPE *yyloc, LFortran::Parser &p, const std::string &msg)
 {
-    LFortran::YYSTYPE yylval_;
-    YYLTYPE yyloc_;
-    p.m_tokenizer.cur = p.m_tokenizer.tok;
-    int token = p.m_tokenizer.lex(p.m_a, yylval_, yyloc_);
-    throw LFortran::ParserError(msg, *yyloc, token);
+    p.handle_yyerror(*yyloc, msg);
 }
 
 #define YYLLOC_DEFAULT(Current, Rhs, N)                                 \
@@ -1905,8 +1901,8 @@ inout
 enddo
     : KW_END_DO
     | TK_LABEL KW_END_DO
-    | KW_ENDDO
-    | TK_LABEL KW_ENDDO
+    | KW_ENDDO { WARN_ENDDO(@$); }
+    | TK_LABEL KW_ENDDO {}
     ;
 
 endforall
@@ -1916,7 +1912,7 @@ endforall
 
 endif
     : KW_END_IF
-    | KW_ENDIF
+    | KW_ENDIF { WARN_ENDIF(@$); }
     ;
 
 endwhere

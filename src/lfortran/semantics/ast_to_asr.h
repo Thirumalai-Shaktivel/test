@@ -6,8 +6,9 @@
 
 namespace LFortran {
 
-    ASR::TranslationUnit_t *ast_to_asr(Allocator &al,
-        AST::TranslationUnit_t &ast, SymbolTable *symbol_table=nullptr,
+    Result<ASR::TranslationUnit_t*> ast_to_asr(Allocator &al,
+        AST::TranslationUnit_t &ast, diag::Diagnostics &diagnostics,
+        SymbolTable *symbol_table=nullptr,
         bool symtab_only=false);
 
 } // namespace LFortran

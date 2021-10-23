@@ -9,10 +9,7 @@ typedef enum {
     LFORTRAN_NO_EXCEPTION    = 0,
     LFORTRAN_RUNTIME_ERROR   = 1,
     LFORTRAN_EXCEPTION       = 2,
-    LFORTRAN_TOKENIZER_ERROR = 3,
     LFORTRAN_PARSER_ERROR    = 4,
-    LFORTRAN_SEMANTIC_ERROR  = 5,
-    LFORTRAN_CODEGEN_ERROR   = 6,
     LFORTRAN_ASSERT_FAILED   = 7,
     LFORTRAN_ASSEMBLER_ERROR = 8,
 } lfortran_exceptions_t;
@@ -34,6 +31,54 @@ typedef enum {
 namespace LFortran
 {
 
+struct Error {
+    diag::Diagnostic d;
+};
+
+template<typename T>
+struct Result {
+    bool ok;
+    union {
+        T result;
+        Error error;
+    };
+    // Default constructor
+    Result() = delete;
+    // Success result constructor
+    Result(const T &result) : ok{true}, result{result} {}
+    // Error result constructor
+    Result(const Error &error) : ok{false}, error{error} {}
+    // Destructor
+    ~Result() {
+        if (!ok) {
+            error.~Error();
+        }
+    }
+    // Copy constructor
+    Result(const Result<T> &other) : ok{other.ok} {
+        if (ok) {
+            new(&result) T(other.result);
+        } else {
+            new(&error) Error(other.error);
+        }
+    }
+    // Copy assignment
+    Result<T>& operator=(const Result<T> &other) {
+        ok = other.ok;
+        if (ok) {
+            new(&result) T(other.result);
+        } else {
+            new(&error) Error(other.error);
+        }
+        return *this;
+    }
+    // Move constructor
+    Result(T &&result) : ok{true}, result{std::move(result)} {}
+    // Move assignment
+    Result<T>&& operator=(T &&other) = delete;
+};
+
+
 const int stacktrace_depth = 4;
 
 class LFortranException : public std::exception
@@ -41,15 +86,10 @@ class LFortranException : public std::exception
     std::string m_msg;
     lfortran_exceptions_t ec;
     std::vector<StacktraceItem> m_stacktrace_addresses;
-
 public:
     LFortranException(const std::string &msg, lfortran_exceptions_t error)
-        : m_msg{msg}, ec{error}
-    {
-#if defined(HAVE_LFORTRAN_STACKTRACE)
-        m_stacktrace_addresses = get_stacktrace_addresses();
-#endif
-    }
+        : m_msg{msg}, ec{error}, m_stacktrace_addresses{get_stacktrace_addresses()}
+    { }
     LFortranException(const std::string &msg)
         : LFortranException(msg, LFORTRAN_EXCEPTION)
     {
@@ -67,14 +107,6 @@ public:
         switch (ec) {
             case (lfortran_exceptions_t::LFORTRAN_EXCEPTION) :
                 return "LFortranException";
-            case (lfortran_exceptions_t::LFORTRAN_TOKENIZER_ERROR) :
-                return "TokenizerError";
-            case (lfortran_exceptions_t::LFORTRAN_PARSER_ERROR) :
-                return "ParserError";
-            case (lfortran_exceptions_t::LFORTRAN_SEMANTIC_ERROR) :
-                return "SemanticError";
-            case (lfortran_exceptions_t::LFORTRAN_CODEGEN_ERROR) :
-                return "CodeGenError";
             case (lfortran_exceptions_t::LFORTRAN_ASSERT_FAILED) :
                 return "AssertFailed";
             default : return "Unknown Exception";
@@ -87,60 +119,6 @@ public:
     lfortran_exceptions_t error_code()
     {
         return ec;
-    }
-};
-
-class TokenizerError : public LFortranException
-{
-public:
-    Location loc;
-    std::string token;
-public:
-    TokenizerError(const std::string &msg, const Location &loc,
-            const std::string &token)
-        : LFortranException(msg, LFORTRAN_TOKENIZER_ERROR), loc{loc},
-            token{token}
-    {
-    }
-};
-
-class ParserError : public LFortranException
-{
-public:
-    Location loc;
-    int token;
-public:
-    ParserError(const std::string &msg, const Location &loc, const int token)
-        : LFortranException(msg, LFORTRAN_PARSER_ERROR), loc{loc}, token{token}
-    {
-    }
-};
-
-class SemanticError : public LFortranException
-{
-public:
-    Location loc;
-    bool new_diagnostic=false;
-    diag::Diagnostic d;
-public:
-    SemanticError(const std::string &msg, const Location &loc)
-        : LFortranException(msg, LFORTRAN_SEMANTIC_ERROR), loc{loc}
-    { }
-
-    SemanticError(const diag::Diagnostic &d)
-            : LFortranException(d.message, LFORTRAN_SEMANTIC_ERROR),
-            loc{d.labels[0].spans[0].loc},
-            new_diagnostic{true},
-            d{d} {
-    }
-};
-
-class CodeGenError : public LFortranException
-{
-public:
-    CodeGenError(const std::string &msg)
-        : LFortranException(msg, LFORTRAN_CODEGEN_ERROR)
-    {
     }
 };
 
@@ -161,6 +139,16 @@ public:
     {
     }
 };
+
+template<typename T>
+static inline T TRY(Result<T> result) {
+    if (result.ok) {
+        return result.result;
+    } else {
+        throw LFortranException("Internal Compiler Error: TRY failed, error was not handled explicitly");
+    }
+}
+
 
 } // Namespace LFortran
 

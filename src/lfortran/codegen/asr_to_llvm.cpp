@@ -61,6 +61,31 @@
 
 namespace LFortran {
 
+namespace {
+
+    // Local exception that is only used in this file to exit the visitor
+    // pattern and caught later (not propagated outside)
+    class CodeGenError
+    {
+    public:
+        diag::Diagnostic d;
+    public:
+        CodeGenError(const std::string &msg)
+            : d{diag::Diagnostic::codegen_error(msg)}
+        { }
+
+        CodeGenError(const std::string &msg, const Location &loc)
+            : d{diag::Diagnostic::codegen_error(msg, loc)}
+        { }
+    };
+
+    class CodeGenAbort
+    {
+    };
+
+}
+
+
 using ASR::is_a;
 using ASR::down_cast;
 using ASR::down_cast2;
@@ -151,6 +176,7 @@ private:
     }
 
 public:
+    diag::Diagnostics &diag;
     llvm::LLVMContext &context;
     std::unique_ptr<llvm::Module> module;
     std::unique_ptr<llvm::IRBuilder<>> builder;
@@ -218,7 +244,9 @@ public:
     std::unique_ptr<LLVMUtils> llvm_utils;
     std::unique_ptr<LLVMArrUtils::Descriptor> arr_descr;
 
-    ASRToLLVMVisitor(Allocator &al, llvm::LLVMContext &context, Platform platform) :
+    ASRToLLVMVisitor(Allocator &al, llvm::LLVMContext &context, Platform platform,
+        diag::Diagnostics &diagnostics) :
+    diag{diagnostics},
     context(context),
     builder(std::make_unique<llvm::IRBuilder<>>(context)),
     platform{platform},
@@ -468,7 +496,7 @@ public:
                         break;
                     }
                     default:
-                        throw SemanticError("Cannot identify the type of member, '" + 
+                        throw CodeGenError("Cannot identify the type of member, '" + 
                                             std::string(member->m_name) + 
                                             "' in derived type, '" + der_type_name + "'.", 
                                             member->base.base.loc);
@@ -544,7 +572,7 @@ public:
                             break;
                         }
                         default:
-                            throw SemanticError("Cannot identify the type of member, '" + 
+                            throw CodeGenError("Cannot identify the type of member, '" + 
                                                 std::string(member->m_name) + 
                                                 "' in derived type, '" + der_type_name + "'.", 
                                                 member->base.base.loc);
@@ -969,7 +997,7 @@ public:
         LFORTRAN_ASSERT(der_type_name.size() != 0);
         while( name2memidx[der_type_name].find(member_name) == name2memidx[der_type_name].end() ) {
             if( dertype2parent.find(der_type_name) == dertype2parent.end() ) {
-                throw SemanticError(der_type_name + " doesn't have any member named " + member_name,
+                throw CodeGenError(der_type_name + " doesn't have any member named " + member_name,
                                     x.base.base.loc);
             }
             tmp = llvm_utils->create_gep(tmp, 0);
@@ -1383,6 +1411,10 @@ public:
                     if( is_array_type && !is_malloc_array_type ) {
                         fill_array_details(ptr, m_dims, n_dims);
                     }
+                    if( is_array_type && is_malloc_array_type ) {
+                        // Set allocatable arrays as unallocated
+                        arr_descr->set_is_allocated_flag(ptr, 0);
+                    }
                     if( v->m_symbolic_value != nullptr ) {
                         target_var = ptr;
                         this->visit_expr_wrapper(v->m_symbolic_value, true);
@@ -1535,6 +1567,10 @@ public:
                                     if (platform == Platform::Windows) {
                                         // type_fx2 is i64
                                         llvm::Type* type_fx2 = llvm::Type::getInt64Ty(context);
+                                        type = type_fx2;
+                                    } else if (platform == Platform::macOS_ARM) {
+                                        // type_fx2 is [2 x float]
+                                        llvm::Type* type_fx2 = llvm::ArrayType::get(llvm::Type::getFloatTy(context), 2);
                                         type = type_fx2;
                                     } else {
                                         // type_fx2 is <2 x float>
@@ -1990,6 +2026,9 @@ public:
                         if (platform == Platform::Windows) {
                             // i64
                             return_type = llvm::Type::getInt64Ty(context);
+                        } else if (platform == Platform::macOS_ARM) {
+                            // {float, float}
+                            return_type = getComplexType(a_kind);
                         } else {
                             // <2 x float>
                             return_type = llvm::VectorType::get(llvm::Type::getFloatTy(context), 2);
@@ -2132,6 +2171,9 @@ public:
                         // Convert {float,float}* to i64* using bitcast
                         tmp = builder->CreateBitCast(tmp, type_fx2p);
                         // Then convert i64* -> i64
+                        tmp = builder->CreateLoad(tmp);
+                    } else if (platform == Platform::macOS_ARM) {
+                        // Pass by value
                         tmp = builder->CreateLoad(tmp);
                     } else {
                         // tmp is {float, float}*
@@ -2421,7 +2463,7 @@ public:
                     break;
                 }
                 default : {
-                    throw SemanticError("Comparison operator not implemented",
+                    throw CodeGenError("Comparison operator not implemented",
                             x.base.base.loc);
                 }
             }
@@ -2452,7 +2494,7 @@ public:
                     break;
                 }
                 default : {
-                    throw SemanticError("Comparison operator not implemented",
+                    throw CodeGenError("Comparison operator not implemented",
                             x.base.base.loc);
                 }
             }
@@ -2474,7 +2516,7 @@ public:
                     break;
                 }
                 default : {
-                    throw SemanticError("Comparison operator not implemented",
+                    throw CodeGenError("Comparison operator not implemented",
                             x.base.base.loc);
                 }
             }
@@ -2509,7 +2551,7 @@ public:
                     break;
                 }
                 default : {
-                    throw SemanticError("Comparison operator not implemented.",
+                    throw CodeGenError("Comparison operator not implemented.",
                             x.base.base.loc);
                 }
             }
@@ -3089,7 +3131,7 @@ public:
                         break;
                     }
                     default : {
-                        throw SemanticError(R"""(Only 32 and 64 bit real kinds are implemented)""", 
+                        throw CodeGenError(R"""(Only 32 and 64 bit real kinds are implemented)""", 
                                             x.base.base.loc);
                     }
                 }
@@ -3256,15 +3298,24 @@ public:
     }
 
     void visit_Print(const ASR::Print_t &x) {
+        if (x.m_fmt != nullptr) {
+            diag.codegen_warning_label("format string in `print` is not implemented yet and it is currently treated as '*'",
+                {x.m_fmt->base.loc}, "treated as '*'");
+        }
         handle_print(x);
     }
 
     void visit_Write(const ASR::Write_t &x) {
-        if (x.m_fmt == nullptr && x.m_unit == nullptr) {
-            handle_print(x);
-        } else {
-            throw CodeGenError("fmt and unit not implemented in write yet");
+        if (x.m_fmt != nullptr) {
+            diag.codegen_warning_label("format string in write() is not implemented yet and it is currently treated as '*'",
+                {x.m_fmt->base.loc}, "treated as '*'");
         }
+        if (x.m_unit != nullptr) {
+            diag.codegen_error_label("unit in write() is not implemented yet",
+                {x.m_unit->base.loc}, "not implemented");
+            throw CodeGenAbort();
+        }
+        handle_print(x);
     }
 
     template <typename T>
@@ -3289,7 +3340,7 @@ public:
                         break;
                     }
                     default: {
-                        throw SemanticError(R"""(Printing support is available only 
+                        throw CodeGenError(R"""(Printing support is available only 
                                             for 32, and 64 bit integer kinds.)""", 
                                             x.base.base.loc);
                     }
@@ -3316,7 +3367,7 @@ public:
                         break;
                     }
                     default: {
-                        throw SemanticError(R"""(Printing support is available only 
+                        throw CodeGenError(R"""(Printing support is available only 
                                             for 32, and 64 bit real kinds.)""", 
                                             x.base.base.loc);
                     }
@@ -3346,7 +3397,7 @@ public:
                         break;
                     }
                     default: {
-                        throw SemanticError(R"""(Printing support is available only 
+                        throw CodeGenError(R"""(Printing support is available only 
                                             for 32, and 64 bit complex kinds.)""", 
                                             x.base.base.loc);
                     }
@@ -3511,6 +3562,14 @@ public:
                                                         // Convert {float,float}* to i64* using bitcast
                                                         tmp = builder->CreateBitCast(tmp, type_fx2p);
                                                         // Then convert i64* -> i64
+                                                        tmp = builder->CreateLoad(tmp);
+                                                    } else if (platform == Platform::macOS_ARM) {
+                                                        // tmp is {float, float}*
+                                                        // type_fx2p is [2 x float]*
+                                                        llvm::Type* type_fx2p = llvm::ArrayType::get(llvm::Type::getFloatTy(context), 2)->getPointerTo();
+                                                        // Convert {float,float}* to [2 x float]* using bitcast
+                                                        tmp = builder->CreateBitCast(tmp, type_fx2p);
+                                                        // Then convert [2 x float]* -> [2 x float]
                                                         tmp = builder->CreateLoad(tmp);
                                                     } else {
                                                         // tmp is {float, float}*
@@ -3838,6 +3897,8 @@ public:
                         tmp = builder->CreateBitCast(p_fx2, complex_type_4->getPointerTo());
                         // Convert {float,float}* to {float,float}
                         tmp = builder->CreateLoad(tmp);
+                    } else if (platform == Platform::macOS_ARM) {
+                        // pass
                     } else {
                         // tmp is <2 x float>, have to convert to {float, float}
 
@@ -3862,11 +3923,12 @@ public:
 
 
 
-std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
+Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
+        diag::Diagnostics &diagnostics,
         llvm::LLVMContext &context, Allocator &al, Platform platform,
         std::string run_fn)
 {
-    ASRToLLVMVisitor v(al, context, platform);
+    ASRToLLVMVisitor v(al, context, platform, diagnostics);
     pass_wrap_global_stmts_into_function(al, asr, run_fn);
 
     // Uncomment for debugging the ASR after the transformation
@@ -3881,7 +3943,18 @@ std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
     pass_unused_functions(al, asr);
     v.nested_func_types = pass_find_nested_vars(asr, context, 
         v.nested_globals, v.nested_call_out, v.nesting_map);
-    v.visit_asr((ASR::asr_t&)asr);
+    try {
+        v.visit_asr((ASR::asr_t&)asr);
+    } catch (const CodeGenError &e) {
+        Error error;
+        error.d = e.d;
+        diagnostics.diagnostics.push_back(e.d);
+        return error;
+    } catch (const CodeGenAbort &) {
+        Error error;
+        error.d = diagnostics.diagnostics.back();
+        return error;
+    }
     std::string msg;
     llvm::raw_string_ostream err(msg);
     if (llvm::verifyModule(*v.module, &err)) {
@@ -3889,8 +3962,12 @@ std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
         llvm::raw_string_ostream os(buf);
         v.module->print(os, nullptr);
         std::cout << os.str();
-        throw CodeGenError("asr_to_llvm: module failed verification. Error:\n"
-            + err.str());
+        std::string msg = "asr_to_llvm: module failed verification. Error:\n"
+            + err.str();
+        Error error;
+        error.d = diag::Diagnostic::codegen_error(msg);
+        diagnostics.diagnostics.push_back(error.d);
+        return error;
     };
     return std::make_unique<LLVMModule>(std::move(v.module));
 }

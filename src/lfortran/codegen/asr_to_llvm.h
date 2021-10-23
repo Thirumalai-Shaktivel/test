@@ -3,10 +3,12 @@
 
 #include <lfortran/asr.h>
 #include <lfortran/codegen/evaluator.h>
+#include <lfortran/codegen/fortran_evaluator.h>
 
 namespace LFortran {
 
-    std::unique_ptr<LLVMModule> asr_to_llvm(ASR::TranslationUnit_t &asr,
+    Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
+            diag::Diagnostics &diagnostics,
             llvm::LLVMContext &context, Allocator &al, Platform platform,
             std::string run_fn="f");
 

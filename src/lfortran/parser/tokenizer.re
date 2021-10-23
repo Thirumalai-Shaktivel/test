@@ -1,8 +1,9 @@
 #include <limits>
 
-#include "tokenizer.h"
+#include <lfortran/parser/parser_exception.h>
+#include <lfortran/parser/tokenizer.h>
+#include <lfortran/parser/parser.tab.hh>
 #include <lfortran/bigint.h>
-#include "parser.tab.hh"
 
 namespace LFortran
 {
@@ -112,8 +113,28 @@ uint64_t parse_int(const unsigned char *s)
 
 #define KW(x) token(yylval.string); RET(KW_##x);
 #define RET(x) token_loc(loc); last_token=yytokentype::x; return yytokentype::x;
+#define WARN_REL(x) add_rel_warning(diagnostics, yytokentype::TK_##x);
 
-int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
+void Tokenizer::add_rel_warning(diag::Diagnostics &diagnostics, int rel_token) const {
+    static const std::map<int, std::pair<std::string, std::string>> m = {
+        {yytokentype::TK_EQ, {"==", ".eq."}},
+        {yytokentype::TK_NE, {"/=", ".ne."}},
+        {yytokentype::TK_LT, {"<",  ".lt."}},
+        {yytokentype::TK_GT, {">",  ".gt."}},
+        {yytokentype::TK_LE, {"<=", ".le."}},
+        {yytokentype::TK_GE, {">=", ".ge."}},
+    };
+    const std::string rel_new = m.at(rel_token).first;
+    const std::string rel_old = m.at(rel_token).second;
+    Location loc;
+    token_loc(loc);
+    diagnostics.tokenizer_style_label(
+        "Use '" + rel_new + "' instead of '" + rel_old + "'",
+        {loc},
+        "help: write this as '" + rel_new + "'");
+}
+
+int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc, diag::Diagnostics &diagnostics)
 {
     if (enddo_state == 1) {
         enddo_state = 2;
@@ -219,8 +240,11 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
 
             * { token_loc(loc);
                 std::string t = token();
-                throw LFortran::TokenizerError("token '" + t
-                    + "' is not recognized", loc, t);
+                throw LFortran::parser_local::TokenizerError(diag::Diagnostic::tokenizer_error_label(
+                    "Token '" + t + "' is not recognized",
+                    loc,
+                    "token not recognized"
+                    ));
             }
             end { RET(END_OF_FILE); }
             whitespace { continue; }
@@ -520,12 +544,24 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
             "=>" { RET(TK_ARROW) }
 
             // Relational operators
-            '.eq.' | "==" { RET(TK_EQ) }
-            '.ne.' | "/=" { RET(TK_NE) }
-            '.lt.' | "<"  { RET(TK_LT) }
-            '.le.' | "<=" { RET(TK_LE) }
-            '.gt.' | ">"  { RET(TK_GT) }
-            '.ge.' | ">=" { RET(TK_GE) }
+            "=="   { RET(TK_EQ) }
+            '.eq.' { WARN_REL(EQ) RET(TK_EQ) }
+
+            "/="   { RET(TK_NE) }
+            '.ne.' { WARN_REL(NE) RET(TK_NE) }
+
+            "<"    { RET(TK_LT) }
+            '.lt.' { WARN_REL(LT) RET(TK_LT) }
+
+            "<="   { RET(TK_LE) }
+            '.le.' { WARN_REL(LE) RET(TK_LE) }
+
+            ">"    { RET(TK_GT) }
+            '.gt.' { WARN_REL(GT) RET(TK_GT) }
+
+            ">="   { RET(TK_GE) }
+            '.ge.' { WARN_REL(GE) RET(TK_GE) }
+
 
             // Logical operators
             '.not.'  { RET(TK_NOT) }
@@ -571,8 +607,8 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc)
                     } else {
                         token_loc(loc);
                         std::string t = token();
-                        throw LFortran::TokenizerError("Integer too large",
-                            loc, t);
+                        throw LFortran::parser_local::TokenizerError("Integer '" + t + "' too large",
+                            loc);
                     }
                 } else {
                     lex_int_large(al, tok, cur,
@@ -686,8 +722,8 @@ void lex_format(unsigned char *&cur, Location &loc,
             * {
                 token_loc(loc);
                 std::string t = token(tok, cur);
-                throw LFortran::TokenizerError("Token '" + t
-                    + "' is not recognized in `format` statement", loc, t);
+                throw LFortran::parser_local::TokenizerError("Token '" + t
+                    + "' is not recognized in `format` statement", loc);
             }
             '(' {
                 if (num_paren == 0) {
@@ -720,8 +756,8 @@ void lex_format(unsigned char *&cur, Location &loc,
             end {
                 token_loc(loc);
                 std::string t = token(tok, cur);
-                throw LFortran::TokenizerError(
-                    "End of file not expected in `format` statemenet", loc, t);
+                throw LFortran::parser_local::TokenizerError(
+                    "End of file not expected in `format` statement '" + t + "'", loc);
             }
             whitespace { continue; }
             ',' { continue; }

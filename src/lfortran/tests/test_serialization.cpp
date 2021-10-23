@@ -10,6 +10,7 @@
 #include <lfortran/asr_utils.h>
 #include <lfortran/asr_verify.h>
 
+using LFortran::TRY;
 using LFortran::string_to_uint64;
 using LFortran::uint64_to_string;
 using LFortran::string_to_uint32;
@@ -54,7 +55,8 @@ void ast_ser(const std::string &src) {
     Allocator al(4*1024);
 
     LFortran::AST::TranslationUnit_t* result;
-    result = LFortran::parse2(al, src);
+    LFortran::diag::Diagnostics diagnostics;
+    result = TRY(LFortran::parse(al, src, diagnostics));
     std::string ast_orig = LFortran::pickle(*result);
     std::string binary = LFortran::serialize(*result);
 
@@ -71,8 +73,10 @@ void asr_ser(const std::string &src) {
     Allocator al(4*1024);
 
     LFortran::AST::TranslationUnit_t* ast0;
-    ast0 = LFortran::parse2(al, src);
-    LFortran::ASR::TranslationUnit_t* asr = LFortran::ast_to_asr(al, *ast0);
+    LFortran::diag::Diagnostics diagnostics;
+    ast0 = TRY(LFortran::parse(al, src, diagnostics));
+    LFortran::ASR::TranslationUnit_t* asr = TRY(LFortran::ast_to_asr(al, *ast0,
+        diagnostics));
 
     std::string asr_orig = LFortran::pickle(*asr);
     std::string binary = LFortran::serialize(*asr);
@@ -95,8 +99,10 @@ void asr_mod(const std::string &src) {
     Allocator al(4*1024);
 
     LFortran::AST::TranslationUnit_t* ast0;
-    ast0 = LFortran::parse2(al, src);
-    LFortran::ASR::TranslationUnit_t* asr = LFortran::ast_to_asr(al, *ast0);
+    LFortran::diag::Diagnostics diagnostics;
+    ast0 = TRY(LFortran::parse(al, src, diagnostics));
+    LFortran::ASR::TranslationUnit_t* asr = TRY(LFortran::ast_to_asr(al, *ast0,
+        diagnostics));
 
     std::string modfile = LFortran::save_modfile(*asr);
     LFortran::SymbolTable symtab(nullptr);

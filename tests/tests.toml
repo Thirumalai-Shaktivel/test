@@ -148,6 +148,10 @@ filename = "errors/cpp7.f90"
 asr_preprocess = true
 
 [[test]]
+filename = "warnings/dim_assgn_test.f90"
+asr = true
+
+[[test]]
 filename = "preprocessor1.f90"
 asr_preprocess = true
 
@@ -1308,6 +1312,11 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/string_11.f90"
+asr = true
+llvm = true
+
+[[test]]
 filename = "global_scope7.f90"
 asr = true
 llvm = true
@@ -1647,3 +1656,8 @@ llvm = true
 [[test]]
 filename = "../integration_tests/bits_01.f90"
 asr = true
+
+[[test]]
+filename = "../integration_tests/boz_01.f90"
+asr = true
+llvm = true

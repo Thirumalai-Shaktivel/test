@@ -10,8 +10,8 @@
 #include <lfortran/bigint.h>
 
 using LFortran::parse;
-using LFortran::parse2;
-using LFortran::tokens;
+using LFortran::TRY;
+using LFortran::Result;
 using LFortran::AST::ast_t;
 using LFortran::AST::expr_t;
 using LFortran::AST::Name_t;
@@ -69,6 +69,18 @@ int count(const ast_t &b) {
     return v.get_count();
 }
 
+class TokenizerError0 {
+};
+
+std::vector<int> tokens(Allocator &al, const std::string &input) {
+    LFortran::diag::Diagnostics diagnostics;
+    auto res = LFortran::tokens(al, input, diagnostics);
+    if (res.ok) {
+        return res.result;
+    } else {
+        throw TokenizerError0();
+    }
+}
 
 TEST_CASE("Test longer parser (N = 500)") {
     int N;
@@ -83,8 +95,9 @@ TEST_CASE("Test longer parser (N = 500)") {
     }
     Allocator al(1024*1024);
     std::cout << "Parse" << std::endl;
+    LFortran::diag::Diagnostics diagnostics;
     auto t1 = std::chrono::high_resolution_clock::now();
-    auto result = parse(al, text)->m_items[0];
+    auto result = LFortran::TRY(parse(al, text, diagnostics))->m_items[0];
     auto t2 = std::chrono::high_resolution_clock::now();
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1)
                      .count()
@@ -397,6 +410,7 @@ TEST_CASE("Tokenizer") {
     std::string s;
     std::vector<int> ref;
     std::vector<LFortran::YYSTYPE> stypes;
+    LFortran::diag::Diagnostics diagnostics;
 
     s = R"(subroutine
     x = y
@@ -454,31 +468,31 @@ TEST_CASE("Tokenizer") {
     CHECK(tokens(al, s) == ref);
 
     s = "2*??";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = "2*@";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = "2*#";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = "2*$";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = "2*^";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = "2*&";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = "2*~";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = "2*`";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = "2*\\";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = "2*4294967295"; // 2**32-1, works everywhere
     ref = {
@@ -487,14 +501,14 @@ TEST_CASE("Tokenizer") {
         tt::TK_INTEGER,
         tt::END_OF_FILE,
     };
-    CHECK(tokens(al, s, &stypes) == ref);
+    CHECK(TRY(tokens(al, s, diagnostics, &stypes)) == ref);
     CHECK(stypes[0].int_suffix.int_n.n == 2);
     unsigned long nref = 4294967295U;
     CHECK(stypes[2].int_suffix.int_n.n == nref);
 
     s = "2*18446744073709551616"; // 2**64, too large, will throw an exception
     stypes.clear();
-    CHECK(tokens(al, s, &stypes) == ref);
+    CHECK(TRY(tokens(al, s, diagnostics, &stypes)) == ref);
     LFortran::BigInt::BigInt n = stypes[2].int_suffix.int_n;
     CHECK(n.is_large());
     CHECK(n.str() == "18446744073709551616");
@@ -1028,10 +1042,10 @@ TEST_CASE("Tokenizer") {
     CHECK(tokens(al, s) == ref);
 
     s = ".and .false.";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = "and. .false.";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = R"(print *, "ok", 3)";
     ref = {
@@ -1202,13 +1216,13 @@ TEST_CASE("Tokenizer") {
     CHECK(tokens(al, s) == ref);
 
     s = R"(print *, "o,'"k", "s''""''")";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = R"(x ")";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
     s = R"(x ')";
-    CHECK_THROWS_AS(tokens(al, s), LFortran::TokenizerError);
+    CHECK_THROWS_AS(tokens(al, s), TokenizerError0);
 
 
     s = R"(if (x) then
@@ -1254,7 +1268,8 @@ TEST_CASE("Location") {
     end subroutine)";
 
     Allocator al(1024*1024);
-    LFortran::AST::ast_t* result = parse(al, input)->m_items[0];
+    LFortran::diag::Diagnostics diagnostics;
+    LFortran::AST::ast_t* result = LFortran::TRY(parse(al, input, diagnostics))->m_items[0];
     CHECK(result->loc.first == 0);
     CHECK(result->loc.last == 56);
     auto sub = cast(Subroutine, result);
@@ -1281,7 +1296,7 @@ TEST_CASE("Location") {
     x = y
     x = 213*yz
     end function)";
-    result = parse(al, input)->m_items[0];
+    result = TRY(parse(al, input, diagnostics))->m_items[0];
     CHECK(result->loc.first == 0);
     CHECK(result->loc.last == 54);
 
@@ -1289,7 +1304,7 @@ TEST_CASE("Location") {
     x = y
     x = 213*yz
     end program)";
-    result = parse(al, input)->m_items[0];
+    result = TRY(parse(al, input, diagnostics))->m_items[0];
     CHECK(result->loc.first == 0);
     CHECK(result->loc.last == 50);
 }
@@ -1297,98 +1312,63 @@ TEST_CASE("Location") {
 TEST_CASE("Errors") {
     Allocator al(1024*1024);
     std::string input;
+    LFortran::diag::Diagnostics diagnostics;
 
     input = "(2+3+";
-    try {
-        parse(al, input);
-        CHECK(false);
-    } catch (const LFortran::ParserError &e) {
-        CHECK(e.msg() == "syntax error");
-        CHECK(e.token == yytokentype::TK_NEWLINE);
-//        std::cerr << format_syntax_error("input", input, e.loc, e.token);
-        CHECK(e.loc.first == 5);
-        CHECK(e.loc.last == 5);
-    }
+    Result<LFortran::AST::TranslationUnit_t*> res = parse(al, input, diagnostics);
+    CHECK(res.ok == false);
+    CHECK(res.error.d.stage == LFortran::diag::Stage::Parser);
+    CHECK(res.error.d.labels[0].spans[0].loc.first == 5);
+    CHECK(res.error.d.labels[0].spans[0].loc.last == 5);
 
     input = R"(function f()
     x = y
     x = 213*yz+*
     end function)";
-    try {
-        parse(al, input);
-        CHECK(false);
-    } catch (const LFortran::ParserError &e) {
-        CHECK(e.msg() == "syntax error");
-        CHECK(e.token == tt::TK_STAR);
-//        std::cerr << format_syntax_error("input", input, e.loc, e.token);
-        CHECK(e.loc.first == 38);
-        CHECK(e.loc.last == 38);
-    }
+    res = parse(al, input, diagnostics);
+    CHECK(res.ok == false);
+    CHECK(res.error.d.stage == LFortran::diag::Stage::Parser);
+    CHECK(res.error.d.labels[0].spans[0].loc.first == 38);
+    CHECK(res.error.d.labels[0].spans[0].loc.last == 38);
 
     input = R"(function f()
     x = y
     x = 213-*yz
     end function)";
-    try {
-        parse(al, input);
-        CHECK(false);
-    } catch (const LFortran::ParserError &e) {
-        CHECK(e.msg() == "syntax error");
-        CHECK(e.token == tt::TK_STAR);
-//        std::cerr << format_syntax_error("input", input, e.loc, e.token);
-        CHECK(e.loc.first == 35);
-        CHECK(e.loc.last == 35);
-    }
+    res = parse(al, input, diagnostics);
+    CHECK(res.ok == false);
+    CHECK(res.error.d.stage == LFortran::diag::Stage::Parser);
+    CHECK(res.error.d.labels[0].spans[0].loc.first == 35);
+    CHECK(res.error.d.labels[0].spans[0].loc.last == 35);
 
     input = R"(function f()
     x = y xxy xx
     x = 213*yz
     end function)";
-    try {
-        parse(al, input);
-        CHECK(false);
-    } catch (const LFortran::ParserError &e) {
-        CHECK(e.msg() == "syntax error");
-        CHECK(e.token == yytokentype::TK_NAME);
-//        std::cerr << format_syntax_error("input", input, e.loc, e.token);
-        CHECK(e.loc.first == 23);
-        CHECK(e.loc.last == 25);
-    }
+    res = parse(al, input, diagnostics);
+    CHECK(res.ok == false);
+    CHECK(res.error.d.stage == LFortran::diag::Stage::Parser);
+    CHECK(res.error.d.labels[0].spans[0].loc.first == 23);
+    CHECK(res.error.d.labels[0].spans[0].loc.last == 25);
 
     input = "1 + .notx.";
-    try {
-        parse(al, input);
-        CHECK(false);
-    } catch (const LFortran::ParserError &e) {
-        CHECK(e.msg() == "syntax error");
-        CHECK(e.token == yytokentype::TK_NEWLINE);
-//        std::cerr << format_syntax_error("input", input, e.loc, e.token);
-        CHECK(e.loc.first == 10);
-        CHECK(e.loc.last == 10);
-    }
+    res = parse(al, input, diagnostics);
+    CHECK(res.ok == false);
+    CHECK(res.error.d.stage == LFortran::diag::Stage::Parser);
+    CHECK(res.error.d.labels[0].spans[0].loc.first == 10);
+    CHECK(res.error.d.labels[0].spans[0].loc.last == 10);
 
     input = "1 + x allocate y";
-    try {
-        parse(al, input);
-        CHECK(false);
-    } catch (const LFortran::ParserError &e) {
-        CHECK(e.msg() == "syntax error");
-        CHECK(e.token == yytokentype::KW_ALLOCATE);
-//        std::cerr << format_syntax_error("input", input, e.loc, e.token);
-        CHECK(e.loc.first == 6);
-        CHECK(e.loc.last == 13);
-    }
-    CHECK_THROWS_AS(parse2(al, input), LFortran::ParserError);
+    res = parse(al, input, diagnostics);
+    CHECK(res.ok == false);
+    CHECK(res.error.d.stage == LFortran::diag::Stage::Parser);
+    CHECK(res.error.d.labels[0].spans[0].loc.first == 6);
+    CHECK(res.error.d.labels[0].spans[0].loc.last == 13);
 
     input = "1 @ x allocate y";
-    try {
-        parse(al, input);
-        CHECK(false);
-    } catch (const LFortran::TokenizerError &e) {
-        CHECK(e.token == "@");
-//        std::cerr << format_syntax_error("input", input, e.loc, -1, &e.token);
-        CHECK(e.loc.first == 2);
-        CHECK(e.loc.last == 2);
-    }
-    CHECK_THROWS_AS(parse2(al, input), LFortran::TokenizerError);
+    res = parse(al, input, diagnostics);
+    CHECK(res.ok == false);
+    CHECK(res.error.d.stage == LFortran::diag::Stage::Tokenizer);
+    CHECK(res.error.d.labels[0].spans[0].loc.first == 2);
+    CHECK(res.error.d.labels[0].spans[0].loc.last == 2);
 }

@@ -5,14 +5,28 @@
 #include <lfortran/parser/parser.h>
 #include <lfortran/parser/parser.tab.hh>
 #include <lfortran/diagnostics.h>
+#include <lfortran/parser/parser_exception.h>
 
 namespace LFortran
 {
 
-AST::TranslationUnit_t* parse(Allocator &al, const std::string &s)
+Result<AST::TranslationUnit_t*> parse(Allocator &al, const std::string &s,
+        diag::Diagnostics &diagnostics)
 {
-    Parser p(al);
-    p.parse(s);
+    Parser p(al, diagnostics);
+    try {
+        p.parse(s);
+    } catch (const parser_local::TokenizerError &e) {
+        Error error;
+        error.d = e.d;
+        diagnostics.diagnostics.push_back(e.d);
+        return error;
+    } catch (const parser_local::ParserError &e) {
+        Error error;
+        error.d = e.d;
+        diagnostics.diagnostics.push_back(e.d);
+        return error;
+    }
     Location l;
     if (p.result.size() == 0) {
         l.first=0;
@@ -23,33 +37,6 @@ AST::TranslationUnit_t* parse(Allocator &al, const std::string &s)
     }
     return (AST::TranslationUnit_t*)AST::make_TranslationUnit_t(al, l,
         p.result.p, p.result.size());
-}
-
-AST::TranslationUnit_t* parse2(Allocator &al, const std::string &code_original,
-        bool use_colors, bool fixed_form)
-{
-    LFortran::LocationManager lm;
-    std::string code_prescanned = LFortran::fix_continuation(code_original, lm,
-            fixed_form);
-    AST::TranslationUnit_t* result;
-    try {
-        result = parse(al, code_prescanned);
-    } catch (const LFortran::ParserError &e) {
-        int token;
-        if (e.msg() == "syntax is ambiguous") {
-            token = -2;
-        } else {
-            token = e.token;
-        }
-        std::cerr << format_syntax_error("input", code_prescanned, e.loc,
-            token, nullptr, use_colors, lm);
-        throw;
-    } catch (const LFortran::TokenizerError &e) {
-        std::cerr << format_syntax_error("input", code_prescanned, e.loc,
-            -1, &e.token, use_colors, lm);
-        throw;
-    }
-    return result;
 }
 
 void Parser::parse(const std::string &input)
@@ -64,11 +51,11 @@ void Parser::parse(const std::string &input)
     if (yyparse(*this) == 0) {
         return;
     }
-    Location loc;
-    throw ParserError("Parsing Unsuccessful", loc, 0);
+    throw parser_local::ParserError("Parsing unsuccessful (internal compiler error)");
 }
 
-std::vector<int> tokens(Allocator &al, const std::string &input,
+Result<std::vector<int>> tokens(Allocator &al, const std::string &input,
+        diag::Diagnostics &diagnostics,
         std::vector<YYSTYPE> *stypes,
         std::vector<Location> *locations)
 {
@@ -79,7 +66,14 @@ std::vector<int> tokens(Allocator &al, const std::string &input,
     while (token != yytokentype::END_OF_FILE) {
         YYSTYPE y;
         Location l;
-        token = t.lex(al, y, l);
+        try {
+            token = t.lex(al, y, l, diagnostics);
+        } catch (const parser_local::TokenizerError &e) {
+            Error error;
+            error.d = e.d;
+            diagnostics.diagnostics.push_back(e.d);
+            return error;
+        }
         tst.push_back(token);
         if (stypes) stypes->push_back(y);
         if (locations) locations->push_back(l);
@@ -228,6 +222,7 @@ std::string fix_continuation(const std::string &s, LocationManager &lm,
     if (fixed_form) {
         // `pos` is the position in the original code `s`
         // `out` is the final code (outcome)
+        lm.get_newlines(s, lm.in_newlines);
         lm.out_start.push_back(0);
         lm.in_start.push_back(0);
         std::string out;
@@ -260,11 +255,15 @@ std::string fix_continuation(const std::string &s, LocationManager &lm,
                 case LineType::Comment : {
                     // Skip
                     skip_rest_of_line(s, pos);
+                    lm.out_start.push_back(out.size());
+                    lm.in_start.push_back(pos);
                     break;
                 }
                 case LineType::Statement : {
                     // Copy from column 7
                     pos += 6;
+                    lm.out_start.push_back(out.size());
+                    lm.in_start.push_back(pos);
                     copy_rest_of_line(out, s, pos);
                     break;
                 }
@@ -272,6 +271,8 @@ std::string fix_continuation(const std::string &s, LocationManager &lm,
                     // Copy the label
                     copy_label(out, s, pos);
                     // Copy from column 7
+                    lm.out_start.push_back(out.size());
+                    lm.in_start.push_back(pos);
                     copy_rest_of_line(out, s, pos);
                     break;
                 }
@@ -279,6 +280,8 @@ std::string fix_continuation(const std::string &s, LocationManager &lm,
                     // Append from column 7 to previous line
                     out = out.substr(0, out.size()-1); // Remove the last '\n'
                     pos += 6;
+                    lm.out_start.push_back(out.size());
+                    lm.in_start.push_back(pos);
                     copy_rest_of_line(out, s, pos);
                     break;
                 }
@@ -288,6 +291,8 @@ std::string fix_continuation(const std::string &s, LocationManager &lm,
             };
             if (lt == LineType::EndOfFile) break;
         }
+        lm.in_start.push_back(pos);
+        lm.out_start.push_back(out.size());
         return out;
     } else {
         // `pos` is the position in the original code `s`
@@ -611,98 +616,33 @@ std::string token2text(const int token)
     }
 }
 
-const static std::string redon  = "\033[0;31m";
-const static std::string redoff = "\033[0;00m";
-
-std::string highlight_line(const std::string &line,
-        const size_t first_column,
-        const size_t last_column,
-        bool use_colors)
+void Parser::handle_yyerror(const Location &loc, const std::string &msg)
 {
-    if (first_column == 0 || last_column == 0) return "";
-    if (last_column > line.size()+1) {
-        throw LFortranException("The `last_column` in highlight_line is longer than the source line");
-    }
-    LFORTRAN_ASSERT(first_column >= 1)
-    LFORTRAN_ASSERT(first_column <= last_column)
-    LFORTRAN_ASSERT(last_column <= line.size()+1)
-    std::stringstream out;
-    if (line.size() > 0) {
-        out << line.substr(0, first_column-1);
-        if(use_colors) out << redon;
-        if (last_column <= line.size()) {
-            out << line.substr(first_column-1,
-                    last_column-first_column+1);
-        } else {
-            // `last_column` points to the \n character
-            out << line.substr(first_column-1,
-                    last_column-first_column+1-1);
-        }
-        if(use_colors) out << redoff;
-        if (last_column < line.size()) out << line.substr(last_column);
-    }
-    out << std::endl;
-    if (first_column > 0) {
-        for (size_t i=0; i < first_column-1; i++) {
-            out << " ";
-        }
-    }
-    if(use_colors) out << redon << "^";
-    else out << "^";
-    for (size_t i=first_column; i < last_column; i++) {
-        out << "~";
-    }
-    if(use_colors) out << redoff;
-    out << std::endl;
-    return out.str();
-}
-
-std::string format_syntax_error(const std::string &filename,
-        const std::string &input, const Location &loc, const int token,
-        const std::string *tstr, bool use_colors,
-        const LocationManager &lm)
-{
-    uint32_t first_line, first_column, last_line, last_column;
-    lm.pos_to_linecol(lm.output_to_input_pos(loc.first, false), first_line, first_column);
-    lm.pos_to_linecol(lm.output_to_input_pos(loc.last, true), last_line, last_column);
-
-    std::stringstream out;
-    out << filename << ":" << first_line << ":" << first_column;
-    if (first_line != last_line) {
-        out << " - " << last_line << ":" << last_column;
-    }
-    if(use_colors) out << " " << redon << "syntax error:" << redoff << " ";
-    else out << " " << "syntax error:" <<  " ";
-    if (token == -1) {
-        LFORTRAN_ASSERT(tstr != nullptr);
-        out << "token '";
-        out << *tstr;
-        out << "' is not recognized" << std::endl;
-    } else if (token == -2) {
-        out << "syntax is ambiguous" << std::endl;
-    } else {
+    std::string message;
+    if (msg == "syntax is ambiguous") {
+        message = "Internal Compiler Error: syntax is ambiguous in the parser";
+    } else if (msg == "syntax error") {
+        LFortran::YYSTYPE yylval_;
+        YYLTYPE yyloc_;
+        this->m_tokenizer.cur = this->m_tokenizer.tok;
+        int token = this->m_tokenizer.lex(this->m_a, yylval_, yyloc_, diag);
         if (token == yytokentype::END_OF_FILE) {
-            out << "end of file is unexpected here" << std::endl;
+            message =  "End of file is unexpected here";
+        } else if (token == yytokentype::TK_NEWLINE) {
+            message =  "Newline is unexpected here";
         } else {
-            out << "token type '";
-            out << token2text(token);
-            out << "' is unexpected here" << std::endl;
+            std::string token_str = this->m_tokenizer.token();
+            std::string token_type = token2text(token);
+            if (token_str == token_type) {
+                message =  "Token '" + token_str + "' is unexpected here";
+            } else {
+                message =  "Token '" + token_str + "' (of type '" + token2text(token) + "') is unexpected here";
+            }
         }
-    }
-    if (first_line == last_line) {
-        std::string line = get_line(input, first_line);
-        out << highlight_line(line, first_column, last_column, use_colors);
     } else {
-        out << "first (" << first_line << ":" << first_column;
-        out << ")" << std::endl;
-        std::string line = get_line(input, first_line);
-        out << highlight_line(line, first_column, line.size(), use_colors);
-        out << "last (" << last_line << ":" << last_column;
-        out << ")" << std::endl;
-        line = get_line(input, last_line);
-        out << highlight_line(line, 1, last_column, use_colors);
+        message = "Internal Compiler Error: parser returned unknown error";
     }
-    return out.str();
+    throw parser_local::ParserError(message, loc);
 }
 
 void populate_span(diag::Span &s, const LocationManager &lm,
@@ -725,33 +665,6 @@ void populate_spans(diag::Diagnostic &d, const LocationManager &lm,
             populate_span(s, lm, input);
         }
     }
-}
-
-std::string format_semantic_error(const std::string &/*filename*/,
-        const std::string &input, const Location &loc,
-        const std::string msg, bool use_colors,
-        const LocationManager &lm)
-{
-    // We fill in the new diagnostic data structures and then render the error
-    // message using it.
-
-    diag::Span s;
-    s.loc = loc;
-    diag::Label l;
-    l.primary = true;
-    l.message = "";
-    l.spans.push_back(s);
-    diag::Diagnostic d;
-    d.level = diag::Level::Error;
-    d.stage = diag::Stage::Semantic;
-    d.message = msg;
-    d.labels.push_back(l);
-
-
-    // Convert to line numbers and get source code strings
-    populate_spans(d, lm, input);
-    // Render the message
-    return diag::render_diagnostic(d, use_colors);
 }
 
 }

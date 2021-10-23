@@ -173,7 +173,7 @@ stmt
     | GoToTarget(int id)
     | If(expr test, stmt* body, stmt* orelse)
     | IfArithmetic(expr test, int lt_label, int eq_label, int gt_label)
-    | Print(string? fmt, expr* values)
+    | Print(expr? fmt, expr* values)
     | Open(int label, expr? newunit, expr? filename, expr? status)
     | Close(int label, expr? unit, expr? iostat, expr? iomsg, expr? err, expr? status)
     | Read(int label, expr? unit, expr? fmt, expr? iomsg, expr? iostat, expr? id, expr* values)
@@ -205,6 +205,7 @@ expr
     | ConstantComplex(float re, float im, ttype type)
     | ConstantLogical(bool value, ttype type)
     | ConstantString(string s, ttype type)
+    | BOZ(int v, boz boz_type, ttype? type)
     | Var(symbol v)
     | ArrayRef(symbol v, array_index* args, ttype type, expr? value)
     | DerivedRef(expr v, symbol m, ttype type, expr? value)
@@ -241,6 +242,8 @@ unaryop = Invert | Not | UAdd | USub
 strop = Concat
 
 cmpop = Eq | NotEq | Lt | LtE | Gt | GtE
+
+boz = Binary | Hex | Octal
 
 cast_kind
     = RealToInteger

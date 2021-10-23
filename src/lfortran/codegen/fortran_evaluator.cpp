@@ -23,10 +23,6 @@ namespace LFortran {
 
 namespace LFortran {
 
-template<typename T>
-using Result = FortranEvaluator::Result<T>;
-
-
 
 /* ------------------------------------------------------------------------- */
 // FortranEvaluator
@@ -47,293 +43,273 @@ FortranEvaluator::~FortranEvaluator() = default;
 
 Result<FortranEvaluator::EvalResult> FortranEvaluator::evaluate2(const std::string &code) {
     LocationManager lm;
-    return evaluate(code, false, lm);
+    lm.in_filename = "input";
+    diag::Diagnostics diagnostics;
+    return evaluate(code, false, lm, diagnostics);
 }
+
 Result<FortranEvaluator::EvalResult> FortranEvaluator::evaluate(
 #ifdef HAVE_LFORTRAN_LLVM
-            const std::string &code_orig, bool verbose, LocationManager &lm
+            const std::string &code_orig, bool verbose, LocationManager &lm,
+            diag::Diagnostics &diagnostics
 #else
             const std::string &/*code_orig*/, bool /*verbose*/,
-                LocationManager &/*lm*/
+                LocationManager &/*lm*/, diag::Diagnostics &/*diagnostics*/
 #endif
             )
 {
 #ifdef HAVE_LFORTRAN_LLVM
-    try {
-        EvalResult result;
+    EvalResult result;
 
-        // Src -> AST
-        LFortran::AST::TranslationUnit_t* ast;
-        std::string code = LFortran::fix_continuation(code_orig, lm, false);
-        ast = LFortran::parse(al, code);
-
-        if (verbose) {
-            result.ast = LFortran::pickle(*ast, true);
-        }
-
-        // AST -> ASR
-        LFortran::ASR::TranslationUnit_t* asr;
-        // Remove the old execution function if it exists
-        if (symbol_table) {
-            if (symbol_table->scope.find(run_fn) != symbol_table->scope.end()) {
-                symbol_table->scope.erase(run_fn);
-            }
-            symbol_table->mark_all_variables_external(al);
-        }
-        asr = LFortran::ast_to_asr(al, *ast, symbol_table);
-        if (!symbol_table) symbol_table = asr->m_global_scope;
-
-        if (verbose) {
-            result.asr = LFortran::pickle(*asr, true);
-        }
-
-        eval_count++;
-        run_fn = "__lfortran_evaluate_" + std::to_string(eval_count);
-
-        // ASR -> LLVM
-        std::unique_ptr<LFortran::LLVMModule> m;
-        m = LFortran::asr_to_llvm(*asr, e->get_context(), al, compiler_options.platform, run_fn);
-
-        if (verbose) {
-            result.llvm_ir = m->str();
-        }
-
-        std::string return_type = m->get_return_type(run_fn);
-
-        // LLVM -> Machine code -> Execution
-        e->add_module(std::move(m));
-        if (return_type == "integer4") {
-            int32_t r = e->int32fn(run_fn);
-            result.type = EvalResult::integer4;
-            result.i32 = r;
-        } else if (return_type == "integer8") {
-            int64_t r = e->int64fn(run_fn);
-            result.type = EvalResult::integer8;
-            result.i64 = r;
-        } else if (return_type == "real4") {
-            float r = e->floatfn(run_fn);
-            result.type = EvalResult::real4;
-            result.f32 = r;
-        } else if (return_type == "real8") {
-            double r = e->doublefn(run_fn);
-            result.type = EvalResult::real8;
-            result.f64 = r;
-        } else if (return_type == "complex4") {
-            std::complex<float> r = e->complex4fn(run_fn);
-            result.type = EvalResult::complex4;
-            result.c32.re = r.real();
-            result.c32.im = r.imag();
-        } else if (return_type == "complex8") {
-            std::complex<double> r = e->complex8fn(run_fn);
-            result.type = EvalResult::complex8;
-            result.c64.re = r.real();
-            result.c64.im = r.imag();
-        } else if (return_type == "void") {
-            e->voidfn(run_fn);
-            result.type = EvalResult::statement;
-        } else if (return_type == "none") {
-            result.type = EvalResult::none;
-        } else {
-            throw LFortranException("FortranEvaluator::evaluate(): Return type not supported");
-        }
-        return result;
-    } catch (const TokenizerError &e) {
-        FortranEvaluator::Error error;
-        error.type = FortranEvaluator::Error::Tokenizer;
-        error.loc = e.loc;
-        error.msg = e.msg();
-        error.token_str = e.token;
-        return error;
-    } catch (const ParserError &e) {
-        int token;
-        if (e.msg() == "syntax is ambiguous") {
-            token = -2;
-        } else {
-            token = e.token;
-        }
-        FortranEvaluator::Error error;
-        error.type = FortranEvaluator::Error::Parser;
-        error.loc = e.loc;
-        error.token = token;
-        error.msg = e.msg();
-        return error;
-    } catch (const SemanticError &e) {
-        FortranEvaluator::Error error;
-        error.type = FortranEvaluator::Error::Semantic;
-        error.loc = e.loc;
-        error.msg = e.msg();
-        return error;
-    } catch (const CodeGenError &e) {
-        FortranEvaluator::Error error;
-        error.type = FortranEvaluator::Error::CodeGen;
-        error.msg = e.msg();
-        return error;
+    // Src -> AST
+    Result<AST::TranslationUnit_t*> res = get_ast2(code_orig, lm,
+        diagnostics);
+    AST::TranslationUnit_t* ast;
+    if (res.ok) {
+        ast = res.result;
+    } else {
+        return res.error;
     }
+
+    if (verbose) {
+        result.ast = LFortran::pickle(*ast, true);
+    }
+
+    // AST -> ASR
+    Result<ASR::TranslationUnit_t*> res2 = get_asr3(*ast, diagnostics);
+    LFortran::ASR::TranslationUnit_t* asr;
+    if (res2.ok) {
+        asr = res2.result;
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
+        return res2.error;
+    }
+
+    if (verbose) {
+        result.asr = LFortran::pickle(*asr, true);
+    }
+
+    // ASR -> LLVM
+    Result<std::unique_ptr<LLVMModule>> res3 = get_llvm3(*asr,
+        diagnostics);
+    std::unique_ptr<LFortran::LLVMModule> m;
+    if (res3.ok) {
+        m = std::move(res3.result);
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
+        return res3.error;
+    }
+
+    if (verbose) {
+        result.llvm_ir = m->str();
+    }
+
+    std::string return_type = m->get_return_type(run_fn);
+
+    // LLVM -> Machine code -> Execution
+    e->add_module(std::move(m));
+    if (return_type == "integer4") {
+        int32_t r = e->int32fn(run_fn);
+        result.type = EvalResult::integer4;
+        result.i32 = r;
+    } else if (return_type == "integer8") {
+        int64_t r = e->int64fn(run_fn);
+        result.type = EvalResult::integer8;
+        result.i64 = r;
+    } else if (return_type == "real4") {
+        float r = e->floatfn(run_fn);
+        result.type = EvalResult::real4;
+        result.f32 = r;
+    } else if (return_type == "real8") {
+        double r = e->doublefn(run_fn);
+        result.type = EvalResult::real8;
+        result.f64 = r;
+    } else if (return_type == "complex4") {
+        std::complex<float> r = e->complex4fn(run_fn);
+        result.type = EvalResult::complex4;
+        result.c32.re = r.real();
+        result.c32.im = r.imag();
+    } else if (return_type == "complex8") {
+        std::complex<double> r = e->complex8fn(run_fn);
+        result.type = EvalResult::complex8;
+        result.c64.re = r.real();
+        result.c64.im = r.imag();
+    } else if (return_type == "void") {
+        e->voidfn(run_fn);
+        result.type = EvalResult::statement;
+    } else if (return_type == "none") {
+        result.type = EvalResult::none;
+    } else {
+        throw LFortranException("FortranEvaluator::evaluate(): Return type not supported");
+    }
+    return result;
 #else
     throw LFortranException("LLVM is not enabled");
 #endif
 }
 
 Result<std::string> FortranEvaluator::get_ast(const std::string &code,
-    LocationManager &lm)
+    LocationManager &lm, diag::Diagnostics &diagnostics)
 {
-    Result<AST::TranslationUnit_t*> ast = get_ast2(code, lm);
+    Result<AST::TranslationUnit_t*> ast = get_ast2(code, lm,
+        diagnostics);
     if (ast.ok) {
         return LFortran::pickle(*ast.result, compiler_options.use_colors,
             compiler_options.indent);
     } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return ast.error;
     }
 }
 
 Result<AST::TranslationUnit_t*> FortranEvaluator::get_ast2(
-            const std::string &code_orig, LocationManager &lm)
+            const std::string &code_orig, LocationManager &lm,
+            diag::Diagnostics &diagnostics)
 {
-    try {
-        // Src -> AST
-        const std::string *code=&code_orig;
-        std::string tmp;
-        if (compiler_options.c_preprocessor) {
-            // Preprocessor
-            CPreprocessor cpp(compiler_options);
-            tmp = cpp.run(code_orig, lm, cpp.macro_definitions);
-            code = &tmp;
-        }
-        if (compiler_options.prescan || compiler_options.fixed_form) {
-            tmp = fix_continuation(*code, lm, compiler_options.fixed_form);
-            code = &tmp;
-        }
-        AST::TranslationUnit_t* ast;
-        ast = parse(al, *code);
-        return ast;
-    } catch (const TokenizerError &e) {
-        FortranEvaluator::Error error;
-        error.type = FortranEvaluator::Error::Tokenizer;
-        error.loc = e.loc;
-        error.msg = e.msg();
-        error.token_str = e.token;
-        return error;
-    } catch (const ParserError &e) {
-        int token;
-        if (e.msg() == "syntax is ambiguous") {
-            token = -2;
-        } else {
-            token = e.token;
-        }
-        FortranEvaluator::Error error;
-        error.type = FortranEvaluator::Error::Parser;
-        error.loc = e.loc;
-        error.token = token;
-        error.msg = e.msg();
-        return error;
+    // Src -> AST
+    const std::string *code=&code_orig;
+    std::string tmp;
+    if (compiler_options.c_preprocessor) {
+        // Preprocessor
+        CPreprocessor cpp(compiler_options);
+        tmp = cpp.run(code_orig, lm, cpp.macro_definitions);
+        code = &tmp;
+    }
+    if (compiler_options.prescan || compiler_options.fixed_form) {
+        tmp = fix_continuation(*code, lm, compiler_options.fixed_form);
+        code = &tmp;
+    }
+    Result<AST::TranslationUnit_t*> res = parse(al, *code, diagnostics);
+    if (res.ok) {
+        return res.result;
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
+        return res.error;
     }
 }
 
 Result<std::string> FortranEvaluator::get_asr(const std::string &code,
-    LocationManager &lm)
+    LocationManager &lm, diag::Diagnostics &diagnostics)
 {
-    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, lm);
+    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, lm, diagnostics);
     if (asr.ok) {
         return LFortran::pickle(*asr.result, true);
     } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return asr.error;
     }
 }
 
 Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr2(
-            const std::string &code_orig, LocationManager &lm)
+            const std::string &code_orig, LocationManager &lm,
+            diag::Diagnostics &diagnostics)
+{
+    // Src -> AST
+    Result<AST::TranslationUnit_t*> res = get_ast2(code_orig, lm, diagnostics);
+    AST::TranslationUnit_t* ast;
+    if (res.ok) {
+        ast = res.result;
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
+        return res.error;
+    }
+
+    // AST -> ASR
+    Result<ASR::TranslationUnit_t*> res2 = get_asr3(*ast, diagnostics);
+    if (res2.ok) {
+        return res2.result;
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
+        return res2.error;
+    }
+}
+
+Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr3(
+            AST::TranslationUnit_t &ast, diag::Diagnostics &diagnostics)
 {
     ASR::TranslationUnit_t* asr;
-    try {
-        // Src -> AST
-        Result<AST::TranslationUnit_t*> res = get_ast2(code_orig, lm);
-        AST::TranslationUnit_t* ast;
-        if (res.ok) {
-            ast = res.result;
-        } else {
-            return res.error;
+    // AST -> ASR
+    // Remove the old execution function if it exists
+    if (symbol_table) {
+        if (symbol_table->scope.find(run_fn) != symbol_table->scope.end()) {
+            symbol_table->scope.erase(run_fn);
         }
-
-        // AST -> ASR
-        // Remove the old execution function if it exists
-        if (symbol_table) {
-            if (symbol_table->scope.find(run_fn) != symbol_table->scope.end()) {
-                symbol_table->scope.erase(run_fn);
-            }
-            symbol_table->mark_all_variables_external(al);
-        }
-        asr = ast_to_asr(al, *ast, symbol_table, compiler_options.symtab_only);
-        if (!symbol_table) symbol_table = asr->m_global_scope;
-    } catch (const SemanticError &e) {
-        FortranEvaluator::Error error;
-        error.type = FortranEvaluator::Error::Semantic;
-        if (e.new_diagnostic) {
-            error.new_diagnostic = true;
-            error.d = e.d;
-        }
-        error.loc = e.loc;
-        error.msg = e.msg();
-        error.stacktrace_addresses = e.stacktrace_addresses();
-        return error;
-    } catch (const CodeGenError &e) {
-        FortranEvaluator::Error error;
-        error.type = FortranEvaluator::Error::CodeGen;
-        error.msg = e.msg();
-        error.stacktrace_addresses = e.stacktrace_addresses();
-        return error;
+        symbol_table->mark_all_variables_external(al);
     }
+    auto res = ast_to_asr(al, ast, diagnostics, symbol_table,
+        compiler_options.symtab_only);
+    if (res.ok) {
+        asr = res.result;
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
+        return res.error;
+    }
+    if (!symbol_table) symbol_table = asr->m_global_scope;
 
     return asr;
 }
 
 Result<std::string> FortranEvaluator::get_llvm(
-#ifdef HAVE_LFORTRAN_LLVM
-    const std::string &code, LocationManager &lm
-#else
-    const std::string &/*code*/, LocationManager &/*lm*/
-#endif
+    const std::string &code, LocationManager &lm, diag::Diagnostics &diagnostics
     )
 {
-#ifdef HAVE_LFORTRAN_LLVM
-    Result<std::unique_ptr<LLVMModule>> res = get_llvm2(code, lm);
+    Result<std::unique_ptr<LLVMModule>> res = get_llvm2(code, lm, diagnostics);
     if (res.ok) {
+#ifdef HAVE_LFORTRAN_LLVM
         return res.result->str();
+#else
+        throw LFortranException("LLVM is not enabled");
+#endif
     } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return res.error;
     }
-#else
-    throw LFortranException("LLVM is not enabled");
-#endif
 }
 
 Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm2(
+    const std::string &code, LocationManager &lm, diag::Diagnostics &diagnostics)
+{
+    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, lm, diagnostics);
+    if (!asr.ok) {
+        return asr.error;
+    }
+    Result<std::unique_ptr<LLVMModule>> res = get_llvm3(*asr.result, diagnostics);
+    if (res.ok) {
 #ifdef HAVE_LFORTRAN_LLVM
-    const std::string &code, LocationManager &lm
+        std::unique_ptr<LLVMModule> m = std::move(res.result);
+        return m;
 #else
-    const std::string &/*code*/, LocationManager &/*lm*/
+        throw LFortranException("LLVM is not enabled");
+#endif
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
+        return res.error;
+    }
+}
+
+Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm3(
+#ifdef HAVE_LFORTRAN_LLVM
+    ASR::TranslationUnit_t &asr, diag::Diagnostics &diagnostics
+#else
+    ASR::TranslationUnit_t &/*asr*/, diag::Diagnostics &/*diagnostics*/
 #endif
     )
 {
 #ifdef HAVE_LFORTRAN_LLVM
-    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, lm);
-    if (!asr.ok) {
-        return asr.error;
-    }
-
     eval_count++;
     run_fn = "__lfortran_evaluate_" + std::to_string(eval_count);
 
     // ASR -> LLVM
     std::unique_ptr<LFortran::LLVMModule> m;
-    try {
-        m = LFortran::asr_to_llvm(*asr.result, e->get_context(), al, compiler_options.platform,
+    Result<std::unique_ptr<LFortran::LLVMModule>> res
+        = asr_to_llvm(asr, diagnostics,
+            e->get_context(), al, compiler_options.platform,
             run_fn);
-    } catch (const CodeGenError &e) {
-        FortranEvaluator::Error error;
-        error.type = FortranEvaluator::Error::CodeGen;
-        error.msg = e.msg();
-        error.stacktrace_addresses = e.stacktrace_addresses();
-        return error;
+    if (res.ok) {
+        m = std::move(res.result);
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
+        return res.error;
     }
 
     if (compiler_options.fast) {
@@ -348,17 +324,20 @@ Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm2(
 
 Result<std::string> FortranEvaluator::get_asm(
 #ifdef HAVE_LFORTRAN_LLVM
-    const std::string &code, LocationManager &lm
+    const std::string &code, LocationManager &lm,
+    diag::Diagnostics &diagnostics
 #else
-    const std::string &/*code*/, LocationManager &/*lm*/
+    const std::string &/*code*/, LocationManager &/*lm*/,
+    diag::Diagnostics &/*diagnostics*/
 #endif
     )
 {
 #ifdef HAVE_LFORTRAN_LLVM
-    Result<std::unique_ptr<LLVMModule>> res = get_llvm2(code, lm);
+    Result<std::unique_ptr<LLVMModule>> res = get_llvm2(code, lm, diagnostics);
     if (res.ok) {
         return e->get_asm(*res.result->m_m);
     } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return res.error;
     }
 #else
@@ -367,49 +346,38 @@ Result<std::string> FortranEvaluator::get_asm(
 }
 
 Result<std::string> FortranEvaluator::get_cpp(const std::string &code,
-    LocationManager &lm)
+    LocationManager &lm, diag::Diagnostics &diagnostics)
 {
     // Src -> AST -> ASR
     SymbolTable *old_symbol_table = symbol_table;
     symbol_table = nullptr;
-    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, lm);
+    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, lm, diagnostics);
     symbol_table = old_symbol_table;
     if (asr.ok) {
-        // ASR -> C++
-        try {
-            return LFortran::asr_to_cpp(*asr.result);
-        } catch (const SemanticError &e) {
-            // Note: the asr_to_cpp should only throw CodeGenError
-            // but we currently do not have location information for
-            // CodeGenError. We need to add it. Until then we can raise
-            // SemanticError to get the location information.
-            FortranEvaluator::Error error;
-            error.type = FortranEvaluator::Error::Semantic;
-            error.loc = e.loc;
-            error.msg = e.msg();
-            error.stacktrace_addresses = e.stacktrace_addresses();
-            return error;
-        } catch (const CodeGenError &e) {
-            FortranEvaluator::Error error;
-            error.type = FortranEvaluator::Error::CodeGen;
-            error.msg = e.msg();
-            error.stacktrace_addresses = e.stacktrace_addresses();
-            return error;
-        }
+        return get_cpp2(*asr.result, diagnostics);
     } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return asr.error;
     }
 }
 
+Result<std::string> FortranEvaluator::get_cpp2(ASR::TranslationUnit_t &asr,
+        diag::Diagnostics &/*diagnostics*/)
+{
+    // ASR -> C++
+    return asr_to_cpp(asr);
+}
+
 Result<std::string> FortranEvaluator::get_fmt(const std::string &code,
-    LocationManager &lm)
+    LocationManager &lm, diag::Diagnostics &diagnostics)
 {
     // Src -> AST
-    Result<AST::TranslationUnit_t*> ast = get_ast2(code, lm);
+    Result<AST::TranslationUnit_t*> ast = get_ast2(code, lm, diagnostics);
     if (ast.ok) {
         // AST -> Fortran
         return LFortran::ast_to_src(*ast.result, true);
     } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         return ast.error;
     }
 }
@@ -417,48 +385,14 @@ Result<std::string> FortranEvaluator::get_fmt(const std::string &code,
 std::string FortranEvaluator::format_error(const Error &e, const std::string &input,
         const LocationManager &lm) const
 {
-    std::string out;
-    if (compiler_options.show_stacktrace) {
-        out += error_stacktrace(e);
-    }
-    if (e.new_diagnostic) {
-        // Convert to line numbers and get source code strings
-        diag::Diagnostic d = e.d;
-        populate_spans(d, lm, input);
-        // Render the message
-        out += diag::render_diagnostic(d, compiler_options.use_colors);
-        return out;
-    }
-    switch (e.type) {
-        case (LFortran::FortranEvaluator::Error::Tokenizer) : {
-            out += format_syntax_error(lm.in_filename, input, e.loc, -1, &e.token_str,
-                compiler_options.use_colors, lm);
-            break;
-        }
-        case (LFortran::FortranEvaluator::Error::Parser) : {
-            out += format_syntax_error(lm.in_filename, input, e.loc, e.token, nullptr,
-                compiler_options.use_colors, lm);
-            break;
-        }
-        case (LFortran::FortranEvaluator::Error::Semantic) : {
-            out += format_semantic_error(lm.in_filename, input, e.loc, e.msg,
-                compiler_options.use_colors, lm);
-            break;
-        }
-        case (LFortran::FortranEvaluator::Error::CodeGen) : {
-            out += "Code generation error: " + e.msg + "\n";
-            break;
-        }
-        default : {
-            throw LFortranException("Unknown error type");
-        }
-    }
-    return out;
+    diag::Diagnostic d = e.d;
+    return diag::render_diagnostic(d, input, lm, compiler_options.use_colors,
+        compiler_options.show_stacktrace);
 }
 
-std::string FortranEvaluator::error_stacktrace(const Error &e) const
+std::string FortranEvaluator::error_stacktrace(const std::vector<StacktraceItem> &stacktrace)
 {
-    std::vector<StacktraceItem> d = e.stacktrace_addresses;
+    std::vector<StacktraceItem> d = stacktrace;
     get_local_addresses(d);
     get_local_info(d);
     return stacktrace2str(d, stacktrace_depth-1);
