@@ -84,6 +84,7 @@ public:
     ASR::abiType current_procedure_abi_type = ASR::abiType::Source;
     std::map<SymbolTable*, std::map<AST::decl_attribute_t*, AST::simple_attributeType>> overloaded_ops;
     std::map<SymbolTable*, ASR::accessType> assgn;
+    ASR::symbol_t *current_module_sym;
 
     std::map<AST::intrinsicopType, std::string> intrinsic2str = {
         {AST::intrinsicopType::STAR, "~mul"},
@@ -134,7 +135,7 @@ public:
     }
 
     template <typename T, typename R>
-    void visit_ModuleSubmoduleCommon(const T &x) {
+    void visit_ModuleSubmoduleCommon(const T &x, std::string parent_name="") {
         SymbolTable *parent_scope = current_scope;
         current_scope = al.make_new<SymbolTable>(parent_scope);
         current_module_dependencies.reserve(al, 4);
@@ -150,17 +151,19 @@ public:
                 0,
                 false);
         } else if( x.class_type == AST::modType::Submodule ) {
+            ASR::symbol_t* submod_parent = global_scope->resolve_symbol(parent_name);
             tmp0 = ASR::make_Submodule_t(
                 al, x.base.base.loc,
                 /* a_symtab */ current_scope,
                 /* a_name */ s2c(al, to_lower(x.m_name)),
-                nullptr,
+                submod_parent,
                 nullptr,
                 0,
                 false);
         } else {
             LFORTRAN_ASSERT(false);
         }
+        current_module_sym = ASR::down_cast<ASR::symbol_t>(tmp0);
         for (size_t i=0; i<x.n_use; i++) {
             visit_unit_decl1(*x.m_use[i]);
         }
@@ -170,6 +173,7 @@ public:
         for (size_t i=0; i<x.n_contains; i++) {
             visit_program_unit(*x.m_contains[i]);
         }
+        current_module_sym = nullptr;
         add_generic_procedures();
         add_overloaded_procedures();
         add_class_procedures();
@@ -194,7 +198,7 @@ public:
     }
 
     void visit_Submodule(const AST::Submodule_t &x) {
-        visit_ModuleSubmoduleCommon<AST::Submodule_t, ASR::Submodule_t>(x);
+        visit_ModuleSubmoduleCommon<AST::Submodule_t, ASR::Submodule_t>(x, std::string(x.m_id));
     }
 
     void visit_Program(const AST::Program_t &x) {
@@ -838,8 +842,30 @@ public:
                     std::string derived_type_name = to_lower(sym_type->m_name);
                     ASR::symbol_t *v = current_scope->resolve_symbol(derived_type_name);
                     if (!v) {
-                        throw SemanticError("Derived type '"
-                            + derived_type_name + "' not declared", x.base.base.loc);
+                        bool found = false, stop = false;
+                        ASR::symbol_t *submod_sym = current_module_sym;
+                        while( !stop ) {
+                            ASR::Submodule_t *submod = ASR::down_cast<ASR::Submodule_t>(submod_sym);
+                            if( submod->m_parent == nullptr ) {
+                                break;
+                            }
+                            if( submod->m_parent->type == ASR::symbolType::Submodule ) {
+                                ASR::Submodule_t *submod_ = ASR::down_cast<ASR::Submodule_t>(submod->m_parent);
+                                v = submod_->m_symtab->resolve_symbol(derived_type_name);
+                                found = v != nullptr;
+                                stop = found;
+                                submod_sym = submod->m_parent;
+                            } else if( submod->m_parent->type == ASR::symbolType::Module ) {
+                                stop = true;
+                                ASR::Module_t *mod_ = ASR::down_cast<ASR::Module_t>(submod->m_parent);
+                                v = mod_->m_symtab->resolve_symbol(derived_type_name);
+                                found = v != nullptr;
+                            }
+                        }
+                        if( !found ) {
+                            throw SemanticError("Derived type '"
+                                + derived_type_name + "' not declared", x.base.base.loc);
+                        }
                     }
                     type = LFortran::ASRUtils::TYPE(ASR::make_Derived_t(al, x.base.base.loc, v,
                         dims.p, dims.size()));

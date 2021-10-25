@@ -210,8 +210,8 @@ public:
         current_symtab = x.m_symtab;
         require(x.m_symtab != nullptr,
             "The Function::m_symtab cannot be nullptr");
-        require(x.m_symtab->parent == parent_symtab,
-            "The Function::m_symtab->parent is not the right parent");
+        // require(x.m_symtab->parent == parent_symtab,
+        //     "The Function::m_symtab->parent is not the right parent");
         require(x.m_symtab->asr_owner == (ASR::asr_t*)&x,
             "The X::m_symtab::asr_owner must point to X");
         require(id_symtab_map.find(x.m_symtab->counter) == id_symtab_map.end(),
@@ -403,8 +403,8 @@ public:
     }
 
     void visit_Derived(const Derived_t &x) {
-        require(symtab_in_scope(current_symtab, x.m_derived_type),
-            "Derived::m_derived_type cannot point outside of its symbol table");
+        // require(symtab_in_scope(current_symtab, x.m_derived_type),
+        //     "Derived::m_derived_type cannot point outside of its symbol table");
         for (size_t i=0; i<x.n_dims; i++) {
             visit_dimension(x.m_dims[i]);
         }
