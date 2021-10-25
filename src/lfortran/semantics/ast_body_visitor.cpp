@@ -750,7 +750,7 @@ public:
             );
         }
 
-        ASR::ttype_t *value_type = LFortran::ASRUtils::expr_type(value);
+        ASR::ttype_t *value_type = ASRUtils::expr_type(value);
         if( target->type == ASR::exprType::Var && !ASRUtils::is_array(target_type) &&
             value->type == ASR::exprType::ConstantArray ) {
             throw SemanticError("ArrayInitalizer expressions can only be assigned array references", x.base.base.loc);
@@ -761,6 +761,17 @@ public:
             ImplicitCastRules::set_converted_value(al, x.base.base.loc, &value,
                                                     value_type, target_type);
 
+        }
+        if (!ASRUtils::check_equal_type(ASRUtils::expr_type(target),
+                                    ASRUtils::expr_type(value))) {
+            std::string ltype = ASRUtils::type_to_str(ASRUtils::expr_type(target));
+            std::string rtype = ASRUtils::type_to_str(ASRUtils::expr_type(value));
+            diag.semantic_error_label(
+                "Type mismatch in assignment, the types must be compatible",
+                {target->base.loc, value->base.loc},
+                "type mismatch (" + ltype + " and " + rtype + ")"
+            );
+            throw SemanticAbort();
         }
         tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value,
                                      overloaded_stmt);
@@ -1138,7 +1149,9 @@ Result<ASR::TranslationUnit_t*> body_visitor(Allocator &al,
     } catch (const SemanticError &e) {
         Error error;
         diagnostics.diagnostics.push_back(e.d);
-        error.d = e.d;
+        return error;
+    } catch (const SemanticAbort &) {
+        Error error;
         return error;
     }
     ASR::TranslationUnit_t *tu = ASR::down_cast2<ASR::TranslationUnit_t>(unit);

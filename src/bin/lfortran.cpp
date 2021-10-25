@@ -829,16 +829,18 @@ int compile_to_binary_x86(const std::string &infile, const std::string &outfile,
 
     // ASR -> x86 machine code
     {
+        diagnostics.diagnostics.clear();
         auto t1 = std::chrono::high_resolution_clock::now();
         LFortran::Result<int>
             result = LFortran::asr_to_x86(*asr, al, outfile, time_report);
         auto t2 = std::chrono::high_resolution_clock::now();
         time_asr_to_x86 = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
 
+        std::cerr << diagnostics.render(input, lm, compiler_options);
         if (result.ok) {
             // pass
         } else {
-            std::cerr << fe.format_error(result.error, input, lm);
+            LFORTRAN_ASSERT(diagnostics.has_error())
             return 3;
         }
     }
@@ -1135,6 +1137,7 @@ int emit_c_preprocessor(const std::string &infile, CompilerOptions &compiler_opt
 
 int main(int argc, char *argv[])
 {
+    LFortran::initialize();
 #if defined(HAVE_LFORTRAN_STACKTRACE)
     LFortran::print_stack_on_segfault();
 #endif
@@ -1226,6 +1229,7 @@ int main(int argc, char *argv[])
         app.add_flag("--time-report", time_report, "Show compilation time report");
         app.add_flag("--static", static_link, "Create a static executable");
         app.add_flag("--no-warnings", compiler_options.no_warnings, "Turn off all warnings");
+        app.add_flag("--no-error-banner", compiler_options.no_error_banner, "Turn off error banner");
         app.add_option("--backend", arg_backend, "Select a backend (llvm, cpp, x86)")->capture_default_str();
         app.add_flag("--openmp", compiler_options.openmp, "Enable openmp");
         app.add_flag("--fast", compiler_options.fast, "Best performance (disable strict standard compliance)");

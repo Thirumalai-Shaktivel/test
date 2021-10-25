@@ -18,6 +18,17 @@ namespace LFortran {
 class LLVMModule;
 class LLVMEvaluator;
 
+/*
+   FortranEvaluator is the main class to access the Fortran compiler.
+
+   This class is used for both interactive (.evaluate()) and non-interactive
+   (.get_llvm2()) compilation. The methods return diagnostic messages (errors,
+   warnings, style suggestions, ...) as an argument. One can use
+   Diagnostic::render to render them.
+
+   One can use get_asr2() to obtain the ASR and then hand it over to other
+   backends by hand.
+*/
 class FortranEvaluator
 {
 public:
@@ -72,8 +83,6 @@ public:
     Result<std::string> get_fmt(const std::string &code, LocationManager &lm,
         diag::Diagnostics &diagnostics);
 
-    std::string format_error(const Error &e, const std::string &input,
-            const LocationManager &lm) const;
     static std::string error_stacktrace(const std::vector<StacktraceItem> &stacktrace);
 
 private:

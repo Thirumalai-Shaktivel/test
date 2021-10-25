@@ -63,8 +63,21 @@ namespace LFortran {
 
 namespace {
 
+    // This exception is used to abort the visitor pattern when an error occurs.
+    // This is only used locally in this file, not propagated outside. An error
+    // must be already present in ASRToLLVMVisitor::diag before throwing this
+    // exception. This is checked with an assert when the CodeGenAbort is
+    // caught.
+    class CodeGenAbort
+    {
+    };
+
     // Local exception that is only used in this file to exit the visitor
-    // pattern and caught later (not propagated outside)
+    // pattern and caught later (not propagated outside). It accepts an error
+    // message that is then appended at the end of ASRToLLVMVisitor::diag.  The
+    // `diag` can already contain other errors or warnings.  This is a
+    // convenience class. One can also report the error into `diag` directly and
+    // call `CodeGenAbort` instead.
     class CodeGenError
     {
     public:
@@ -77,10 +90,6 @@ namespace {
         CodeGenError(const std::string &msg, const Location &loc)
             : d{diag::Diagnostic::codegen_error(msg, loc)}
         { }
-    };
-
-    class CodeGenAbort
-    {
     };
 
 }
@@ -965,13 +974,13 @@ public:
 
                         //tmp = p;
                     } else {
-                        throw CodeGenError("Only string(a:b) for a==b supported for now.");
+                        throw CodeGenError("Only string(a:b) for a==b supported for now.", x.base.base.loc);
                     }
                 } else {
-                    throw CodeGenError("Only string(a:b) for a,b variables for now.");
+                    throw CodeGenError("Only string(a:b) for a,b variables for now.", x.base.base.loc);
                 }
             } else {
-                throw CodeGenError("Only string(a:b) supported for now.");
+                throw CodeGenError("Only string(a:b) supported for now.", x.base.base.loc);
             }
         } else {
             // Array indexing:
@@ -3947,12 +3956,11 @@ Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
         v.visit_asr((ASR::asr_t&)asr);
     } catch (const CodeGenError &e) {
         Error error;
-        error.d = e.d;
         diagnostics.diagnostics.push_back(e.d);
         return error;
     } catch (const CodeGenAbort &) {
+        LFORTRAN_ASSERT(diagnostics.has_error())
         Error error;
-        error.d = diagnostics.diagnostics.back();
         return error;
     }
     std::string msg;
@@ -3964,9 +3972,8 @@ Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
         std::cout << os.str();
         std::string msg = "asr_to_llvm: module failed verification. Error:\n"
             + err.str();
+        diagnostics.diagnostics.push_back(diag::Diagnostic::codegen_error(msg));
         Error error;
-        error.d = diag::Diagnostic::codegen_error(msg);
-        diagnostics.diagnostics.push_back(error.d);
         return error;
     };
     return std::make_unique<LLVMModule>(std::move(v.module));

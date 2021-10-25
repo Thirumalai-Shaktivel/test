@@ -27,6 +27,7 @@ struct CompilerOptions {
     bool fast = false;
     bool openmp = false;
     bool no_warnings = false;
+    bool no_error_banner = false;
     std::string target = "";
     Platform platform;
 
@@ -38,6 +39,7 @@ void get_executable_path(std::string &executable_path, int &dirname_length);
 std::string get_runtime_library_dir();
 bool read_file(const std::string &filename, std::string &text);
 bool present(Vec<char*> &v, const char* name);
+int initialize();
 
 } // LFortran
 

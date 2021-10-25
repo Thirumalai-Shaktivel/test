@@ -120,6 +120,14 @@ filename = "errors/redeclaration1.f90"
 asr = true
 
 [[test]]
+filename = "errors/type_mismatch1.f90"
+asr = true
+
+[[test]]
+filename = "errors/type_mismatch2.f90"
+asr = true
+
+[[test]]
 filename = "errors/cpp1.f90"
 asr_preprocess = true
 
@@ -877,6 +885,10 @@ asr = true
 
 [[test]]
 filename = "../integration_tests/interface_05.f90"
+asr = true
+
+[[test]]
+filename = "../integration_tests/interface_08.f90"
 asr = true
 
 [[test]]
@@ -1657,3 +1669,8 @@ asr = true
 filename = "../integration_tests/boz_01.f90"
 asr = true
 llvm = true
+
+[[test]]
+filename = "substring.f90"
+ast = true
+ast_f90 = true
