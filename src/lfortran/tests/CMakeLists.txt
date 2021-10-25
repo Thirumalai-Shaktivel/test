@@ -26,28 +26,38 @@ macro(COPYFILE filename)
 endmacro(COPYFILE)
 
 
-ADDTEST(test_parse p::doctest)
-ADDTEST(test_ast p::doctest)
 ADDTESTC(test_cwrapper)
-
-ADDTEST(test_pickle p::doctest)
+ADDTEST(test_stacktrace)
 COPYFILE(ref_pickle.txt)
 
-ADDTEST(x)
+set(SRC
+    test_parse.cpp
+    test_ast.cpp
+    test_stacktrace2.cpp
+    test_asm.cpp
+    test_serialization.cpp
+    test_pickle.cpp
+)
+
 if (WITH_JSON)
-    ADDTEST(test_ast_to_json p::doctest)
+    set(SRC ${SRC}
+        test_ast_to_json.cpp
+    )
 endif()
 if (WITH_LLVM)
-    ADDTEST(test_llvm p::doctest)
-    if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        target_link_options(test_llvm PRIVATE "LINKER:--export-dynamic")
-    endif()
+    set(SRC ${SRC}
+        test_llvm.cpp
+    )
 endif()
 
-ADDTEST(test_stacktrace)
 
-ADDTEST(test_stacktrace2 p::doctest)
+# Add one main test suite for LFortran, composed of many individual cpp files:
+add_executable(test_lfortran ${SRC})
+target_link_libraries(test_lfortran lfortran_lib p::doctest)
+add_test(test_lfortran ${PROJECT_BINARY_DIR}/test_lfortran)
 
-ADDTEST(test_asm p::doctest)
-
-ADDTEST(test_serialization p::doctest)
+if (WITH_LLVM)
+    if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_options(test_lfortran PRIVATE "LINKER:--export-dynamic")
+    endif()
+endif()
