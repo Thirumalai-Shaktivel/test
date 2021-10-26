@@ -3,11 +3,11 @@
 set -e
 set -x
 
-cmake \
+emcmake cmake \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DWITH_LLVM=yes \
+    -DWITH_LLVM=no \
     -DLFORTRAN_BUILD_ALL=yes \
-    -DWITH_STACKTRACE=yes \
+    -DWITH_STACKTRACE=no \
     -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH_LFORTRAN;$CONDA_PREFIX" \
     -DCMAKE_INSTALL_PREFIX=`pwd`/inst \
     .
