@@ -608,7 +608,7 @@ public:
                         end -= 1;
                     }
                     if( start != -1 && end != -1 && step != -1 ) {
-                        for( int i = start; i <= end; i += step ) {
+                        for( int i = start - 1; i <= end - 1; i += step ) {
                             sliced_str.push_back(m_str->m_s[i]);
                         }
                         Str l_str;
