@@ -317,15 +317,21 @@ static inline bool all_args_have_value(const Vec<ASR::expr_t*> &args) {
 // Returns true if all arguments are evaluated
 static inline bool all_args_evaluated(const Vec<ASR::expr_t*> &args) {
     for (auto &a : args) {
-        if (ASR::is_a<ASR::ConstantInteger_t>(*a)) {
+        // First extract the value and then check whether it's constants
+        // Directly checking on `a` will not work for expressions like FunctionCall.
+        ASR::expr_t* a_value = LFortran::ASRUtils::expr_value(a);
+        if( a_value == nullptr ) {
+            return false;
+        }
+        if (ASR::is_a<ASR::ConstantInteger_t>(*a_value)) {
             // OK
-        } else if (ASR::is_a<ASR::ConstantReal_t>(*a)) {
+        } else if (ASR::is_a<ASR::ConstantReal_t>(*a_value)) {
             // OK
-        } else if (ASR::is_a<ASR::ConstantComplex_t>(*a)) {
+        } else if (ASR::is_a<ASR::ConstantComplex_t>(*a_value)) {
             // OK
-        } else if (ASR::is_a<ASR::ConstantLogical_t>(*a)) {
+        } else if (ASR::is_a<ASR::ConstantLogical_t>(*a_value)) {
             // OK
-        } else if (ASR::is_a<ASR::ConstantString_t>(*a)) {
+        } else if (ASR::is_a<ASR::ConstantString_t>(*a_value)) {
             // OK
         } else {
             return false;
