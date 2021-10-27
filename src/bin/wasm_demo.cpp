@@ -138,6 +138,17 @@ char* sayHi4(char *p) {
     return &buffer[0];
 }
 
+// Call with:
+// driver = Module.cwrap("cdriver", "string", ["string"])
+// driver("5+6")
+// driver("integer :: x\nx = 6+8\nx")
+EMSCRIPTEN_KEEPALIVE
+char* cdriver(char *p) {
+    std::string input = p;
+    buffer = driver(input);
+    return &buffer[0];
+}
+
 }
 
 int main(int argc, char *argv[])
