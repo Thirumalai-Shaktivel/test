@@ -152,7 +152,7 @@
     </p>
     <div id="app">
         Input:</br>
-        <textarea v-model="input" placeholder="5+6"></textarea>
+        <textarea v-model="input"></textarea></br>
         Output:</br>
         <pre>{{ message }}</pre>
         <button v-on:click="reverseMessage">Run LFortran</button>
@@ -162,7 +162,7 @@ var app = new Vue({
   el: '#app',
   data: {
     message: 'Hello Vue.js!',
-    input: '10+1',
+    input: 'integer :: x\nx = 5+6\nx',
   },
   methods: {
     reverseMessage: function () {
