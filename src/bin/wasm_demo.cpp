@@ -100,6 +100,8 @@ std::string driver(const std::string &input) {
     return out;
 }
 
+std::string buffer;
+
 extern "C" {
 
 EMSCRIPTEN_KEEPALIVE
@@ -119,6 +121,18 @@ void sayHi3(char *p) {
     std::string s = p;
     std::cout << "String length: " << std::to_string(s.size()) << "\n";
     std::cout << "String itself: " << s << "\n";
+}
+
+// Call with:
+// Module.ccall("sayHi4", "string", ["string"], ["some string"])
+EMSCRIPTEN_KEEPALIVE
+char* sayHi4(char *p) {
+    std::string s = p;
+    std::cout << "String length: " << std::to_string(s.size()) << "\n";
+    std::cout << "String itself: " << s << "\n";
+    std::string out = "(" + s + ")";
+    buffer = out;
+    return &buffer[0];
 }
 
 }
