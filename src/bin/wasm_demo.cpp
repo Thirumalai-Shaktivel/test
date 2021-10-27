@@ -100,9 +100,13 @@ std::string driver(const std::string &input) {
     return out;
 }
 
+extern "C" {
+
 EMSCRIPTEN_KEEPALIVE
 void sayHi() {
   printf("Hi!\n");
+}
+
 }
 
 int main(int argc, char *argv[])
