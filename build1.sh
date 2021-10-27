@@ -3,9 +3,11 @@
 set -e
 set -x
 
+# Use -Oz for small size
+
 emcmake cmake \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_CXX_FLAGS_DEBUG="-Wall -Wextra -fexceptions -Oz" \
+    -DCMAKE_CXX_FLAGS_DEBUG="-Wall -Wextra -fexceptions" \
     -DWITH_LLVM=no \
     -DLFORTRAN_BUILD_ALL=yes \
     -DWITH_STACKTRACE=no \
