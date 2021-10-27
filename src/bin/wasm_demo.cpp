@@ -2,8 +2,7 @@
 #include <iostream>
 #include <stdlib.h>
 
-#define CLI11_HAS_FILESYSTEM 0
-#include <bin/CLI11.hpp>
+#include <emscripten.h>
 
 #include <lfortran/stacktrace.h>
 #include <lfortran/parser/parser.h>
@@ -99,6 +98,11 @@ std::string driver(const std::string &input) {
     out += "ASR:\n";
     out += asr + "\n";
     return out;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void sayHi() {
+  printf("Hi!\n");
 }
 
 int main(int argc, char *argv[])
