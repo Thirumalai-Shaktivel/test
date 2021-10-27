@@ -6,4 +6,4 @@ set -x
 make -j16 wasm_demo
 
 cd src/bin
-em++ -Wall -Wextra -g -fexceptions @CMakeFiles/wasm_demo.dir/objects1.rsp -o wasm_demo.html @CMakeFiles/wasm_demo.dir/linklibs.rsp
+em++ -Wall -Wextra -Oz -fexceptions @CMakeFiles/wasm_demo.dir/objects1.rsp -o wasm_demo.html @CMakeFiles/wasm_demo.dir/linklibs.rsp
