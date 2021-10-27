@@ -140,3 +140,6 @@ endif()
 
 add_executable(cpptranslate cpptranslate.cpp)
 target_link_libraries(cpptranslate lfortran_lib)
+
+add_executable(wasm_demo wasm_demo.cpp)
+target_link_libraries(wasm_demo lfortran_lib)
