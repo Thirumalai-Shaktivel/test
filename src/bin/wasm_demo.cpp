@@ -107,6 +107,11 @@ void sayHi() {
   printf("Hi!\n");
 }
 
+EMSCRIPTEN_KEEPALIVE
+void sayHi2(int i) {
+    std::cout << "Number:" + std::to_string(i) + "\n";
+}
+
 }
 
 int main(int argc, char *argv[])
