@@ -151,8 +151,9 @@ char* cdriver(char *p) {
 
 }
 
-int main(int argc, char *argv[])
+int main()
 {
+    /*
     std::cout << "Start" << std::endl;
     std::string input = R"(
 program expr2
@@ -164,5 +165,6 @@ end program
     )";
     std::cout << driver(input);
     std::cout << "End" << std::endl;
+    */
     return 0;
 }
