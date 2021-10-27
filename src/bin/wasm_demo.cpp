@@ -112,6 +112,15 @@ void sayHi2(int i) {
     std::cout << "Number:" + std::to_string(i) + "\n";
 }
 
+// Call with:
+// Module.ccall("sayHi3", null, ["string"], ["some string"])
+EMSCRIPTEN_KEEPALIVE
+void sayHi3(char *p) {
+    std::string s = p;
+    std::cout << "String length: " << std::to_string(s.size()) << "\n";
+    std::cout << "String itself: " << s << "\n";
+}
+
 }
 
 int main(int argc, char *argv[])
