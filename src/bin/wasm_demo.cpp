@@ -57,13 +57,12 @@ std::string emit_ast(const std::string &input, CompilerOptions &compiler_options
     LFortran::diag::Diagnostics diagnostics;
     lm.in_filename = "input";
     LFortran::Result<std::string> r = fe.get_ast(input, lm, diagnostics);
-    std::cerr << diagnostics.render(input, lm, compiler_options);
+    std::string out;
+    out += diagnostics.render(input, lm, compiler_options);
     if (r.ok) {
-        return r.result;
-    } else {
-        LFORTRAN_ASSERT(diagnostics.has_error())
-        return "error";
+        out += r.result;
     }
+    return out;
 }
 
 
@@ -74,12 +73,12 @@ std::string emit_asr(const std::string &input, CompilerOptions &compiler_options
     lm.in_filename = "input";
     LFortran::diag::Diagnostics diagnostics;
     LFortran::Result<std::string> r = fe.get_asr(input, lm, diagnostics);
-    std::cerr << diagnostics.render(input, lm, compiler_options);
+    std::string out;
+    out += diagnostics.render(input, lm, compiler_options);
     if (r.ok) {
-        return r.result;
-    } else {
-        return "error";
+        out += r.result;
     }
+    return out;
 }
 
 
