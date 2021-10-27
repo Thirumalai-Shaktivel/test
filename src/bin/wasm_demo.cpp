@@ -125,6 +125,9 @@ void sayHi3(char *p) {
 
 // Call with:
 // Module.ccall("sayHi4", "string", ["string"], ["some string"])
+// Or:
+// f = Module.cwrap("sayHi4", "string", ["string"])
+// f("some string")
 EMSCRIPTEN_KEEPALIVE
 char* sayHi4(char *p) {
     std::string s = p;
