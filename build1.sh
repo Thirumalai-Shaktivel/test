@@ -7,7 +7,7 @@ set -x
 
 emcmake cmake \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_CXX_FLAGS_DEBUG="-Wall -Wextra -fexceptions" \
+    -DCMAKE_CXX_FLAGS_DEBUG="-Wall -Wextra -Oz -fexceptions" \
     -DWITH_LLVM=no \
     -DLFORTRAN_BUILD_ALL=yes \
     -DWITH_STACKTRACE=no \
