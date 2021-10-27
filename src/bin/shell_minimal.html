@@ -151,6 +151,9 @@
     Vue part:
     </p>
     <div id="app">
+        Input:</br>
+        <textarea v-model="input" placeholder="5+6"></textarea>
+        Output:</br>
         <pre>{{ message }}</pre>
         <button v-on:click="reverseMessage">Run LFortran</button>
     </div>
@@ -158,12 +161,14 @@
 var app = new Vue({
   el: '#app',
   data: {
-    message: 'Hello Vue.js!'
+    message: 'Hello Vue.js!',
+    input: '10+1',
   },
   methods: {
     reverseMessage: function () {
       driver = Module.cwrap("cdriver", "string", ["string"])
-      this.message = driver("integer :: x\nx = 6+8\nx")
+      //this.message = driver("integer :: x\nx = 6+8\nx")
+      this.message = driver(this.input)
     }
   }
 })
