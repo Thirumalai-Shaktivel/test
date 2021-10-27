@@ -48,7 +48,7 @@ set(SRC
 
     stacktrace.cpp
 
-    ../bin/tpl/whereami/whereami.cpp
+#    ../bin/tpl/whereami/whereami.cpp
 )
 if (WITH_XEUS)
     set(SRC ${SRC}
