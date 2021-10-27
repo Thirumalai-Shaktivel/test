@@ -13,4 +13,4 @@ emcmake cmake \
     -DCMAKE_INSTALL_PREFIX=`pwd`/inst \
     .
 #cmake --build . -j16 --target install
-make -j16 wasm_demo
+#make -j16 wasm_demo
