@@ -89,6 +89,7 @@ std::string emit_asr(const std::string &input, CompilerOptions &compiler_options
 
 std::string driver(const std::string &input) {
     LFortran::CompilerOptions compiler_options;
+    compiler_options.use_colors = false;
     std::string ast = emit_ast(input, compiler_options);
     std::string asr = emit_asr(input, compiler_options);
     std::string out;
