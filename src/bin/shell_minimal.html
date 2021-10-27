@@ -152,7 +152,7 @@
     </p>
     <div id="app">
         <p>{{ message }}</p>
-        <button v-on:click="reverseMessage">Reverse Message</button>
+        <button v-on:click="reverseMessage">Run LFortran</button>
     </div>
     <script type='text/javascript'>
 var app = new Vue({
@@ -162,7 +162,8 @@ var app = new Vue({
   },
   methods: {
     reverseMessage: function () {
-      this.message = this.message.split('').reverse().join('')
+      driver = Module.cwrap("cdriver", "string", ["string"])
+      this.message = driver("integer :: x\nx = 6+8\nx")
     }
   }
 })
