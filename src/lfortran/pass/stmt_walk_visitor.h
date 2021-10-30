@@ -1,5 +1,3 @@
-#include <lfortran/pass/do_loops.h>
-
 namespace LFortran {
 
 using ASR::down_cast;
@@ -8,12 +6,12 @@ using ASR::is_a;
 template <class Derived>
 class StatementWalkVisitor : public ASR::BaseWalkVisitor<Derived>
 {
-private:
+public:
     Allocator &al;
     Vec<ASR::stmt_t*> stmts;
+    bool is_do_loop_present;
 
-public:
-    StatementWalkVisitor(Allocator &al) : al{al} {
+    StatementWalkVisitor(Allocator &al) : al{al}, is_do_loop_present{false}{
     }
 
     void transform_stmts(ASR::stmt_t **&m_body, size_t &n_body) {
@@ -25,6 +23,7 @@ public:
             stmts.n = 0;
             this->visit_stmt(*m_body[i]);
             if (stmts.size() > 0) {
+                is_do_loop_present = true;
                 for (size_t j=0; j<stmts.size(); j++) {
                     body.push_back(al, stmts[j]);
                 }
@@ -81,7 +80,7 @@ public:
     }
 
     void visit_DoLoop(const ASR::DoLoop_t &x) {
-        // do_loop_result = replace_doloop(al, x);
+        // Should this be included ??
     }
 };
 
