@@ -114,6 +114,9 @@ struct IntrinsicProcedures {
             {"sum", {m_builtin, &not_implemented, false}},
             {"not", {m_builtin, &not_implemented, false}},
             {"index", {m_string, &not_implemented, false}},
+
+            // Inquiry function
+            {"huge", {m_builtin, &eval_huge, false}},
         };
     }
 
@@ -786,6 +789,18 @@ TRIG(sqrt)
 
     static int64_t lfortran_ieor64(int64_t x, int64_t y) {
         return x ^ y;
+    }
+
+    static ASR::expr_t *eval_huge(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        ASR::ttype_t* huge_type = LFortran::ASRUtils::expr_type(args[0]);
+        // Only for Integer, after integer works we can implement for real...
+        if (ASR::is_a<LFortran::ASR::Integer_t>(*huge_type)) {
+            int max_val = std::numeric_limits<int>::max();
+            return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, loc, max_val, huge_type));
+        }
+        else {
+            throw SemanticError("Argument for huge must be Real or Integer", loc);
+        }
     }
 
 }; // ComptimeEval
