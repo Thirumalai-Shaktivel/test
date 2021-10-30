@@ -101,7 +101,6 @@ class DoLoopVisitor : public StatementWalkVisitor<DoLoopVisitor>
 {
 public:
     DoLoopVisitor(Allocator &al) : StatementWalkVisitor(al) {
-        stmts.n = 0;
     }
 
     void visit_DoLoop(const ASR::DoLoop_t &x) {
@@ -113,9 +112,9 @@ void pass_replace_do_loops(Allocator &al, ASR::TranslationUnit_t &unit) {
     DoLoopVisitor v(al);
     // Each call transforms only one layer of nested loops, so we call it twice
     // to transform doubly nested loops:
-    v.is_do_loop_present = true;
-    while( v.is_do_loop_present ) {
-        v.is_do_loop_present = false;
+    v.asr_changed = true;
+    while( v.asr_changed ) {
+        v.asr_changed = false;
         v.visit_TranslationUnit(unit);
     }
     LFORTRAN_ASSERT(asr_verify(unit));

@@ -9,9 +9,10 @@ class StatementWalkVisitor : public ASR::BaseWalkVisitor<Derived>
 public:
     Allocator &al;
     Vec<ASR::stmt_t*> stmts;
-    bool is_do_loop_present;
+    bool asr_changed;
 
-    StatementWalkVisitor(Allocator &al) : al{al}, is_do_loop_present{false}{
+    StatementWalkVisitor(Allocator &al) : al{al}, asr_changed{false}{
+        stmts.n = 0;
     }
 
     void transform_stmts(ASR::stmt_t **&m_body, size_t &n_body) {
@@ -20,10 +21,9 @@ public:
         for (size_t i=0; i<n_body; i++) {
             // Not necessary after we check it after each visit_stmt in every
             // visitor method:
-            stmts.n = 0;
             this->visit_stmt(*m_body[i]);
             if (stmts.size() > 0) {
-                is_do_loop_present = true;
+                asr_changed = true;
                 for (size_t j=0; j<stmts.size(); j++) {
                     body.push_back(al, stmts[j]);
                 }
@@ -80,7 +80,10 @@ public:
     }
 
     void visit_DoLoop(const ASR::DoLoop_t &x) {
-        // Should this be included ??
+        // FIXME: this is a hack, we need to pass in a non-const `x`,
+        // which requires to generate a TransformVisitor.
+        ASR::DoLoop_t &xx = const_cast<ASR::DoLoop_t&>(x);
+        transform_stmts(xx.m_body, xx.n_body);
     }
 };
 
