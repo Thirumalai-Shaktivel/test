@@ -254,7 +254,9 @@ public:
                     break;
                 }
                 default: {
-                    LFORTRAN_ASSERT(false);
+                    // Continue with the original behaviour
+                    // of not processing unrequired attributes
+                    break;
                 }
             }
         }
