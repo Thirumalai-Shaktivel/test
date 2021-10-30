@@ -11,3 +11,12 @@ module bitset
         end subroutine assign_logint8_large
     end interface
 end module
+
+program subroutines_06
+
+    use bitset
+    implicit none
+
+    ! empty program
+
+end program subroutines_06
