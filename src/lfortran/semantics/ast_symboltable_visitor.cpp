@@ -242,7 +242,7 @@ public:
             deftype = ASR::deftypeType::Interface;
         }
         bool is_pure = false, is_module = false;
-        for( int i = 0; i < x.n_attributes; i++ ) {
+        for( size_t i = 0; i < x.n_attributes; i++ ) {
             switch( x.m_attributes[i]->type ) {
                 case AST::decl_attributeType::SimpleAttribute: {
                     AST::SimpleAttribute_t* simple_attr = AST::down_cast<AST::SimpleAttribute_t>(x.m_attributes[i]);
@@ -268,7 +268,7 @@ public:
             /* n_body */ 0,
             current_procedure_abi_type,
             s_access, deftype, bindc_name,
-            );
+            is_pure, is_module);
         if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
             ASR::symbol_t *f1 = parent_scope->scope[sym_name];
             ASR::Subroutine_t *f2 = ASR::down_cast<ASR::Subroutine_t>(f1);
