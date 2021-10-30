@@ -1,4 +1,4 @@
-#include <lfortran/pass/do_loops.h>
+// #include <lfortran/pass/do_loops.h>
 
 namespace LFortran {
 
@@ -9,10 +9,10 @@ template <class Derived>
 class StatementWalkVisitor : public ASR::BaseWalkVisitor<Derived>
 {
 private:
-    Allocator &al;
     Vec<ASR::stmt_t*> stmts;
 
 public:
+    Allocator &al;
     StatementWalkVisitor(Allocator &al) : al{al} {
     }
 

@@ -6,7 +6,6 @@
 #include <lfortran/pass/do_loops.h>
 #include <lfortran/pass/stmt_walk_visitor.h>
 
-
 namespace LFortran {
 
 using ASR::down_cast;
@@ -98,17 +97,17 @@ Vec<ASR::stmt_t*> replace_doloop(Allocator &al, const ASR::DoLoop_t &loop) {
     return result;
 }
 
-class DoLoopVisitor : public ASR::StatementWalkVisitor<DoLoopVisitor>
+class DoLoopVisitor : public StatementWalkVisitor<DoLoopVisitor>
 {
 private:
     Allocator &al;
-    Vec<ASR::stmt_t*> do_loop_result;
+    // Vec<ASR::stmt_t*> do_loop_result;
 
 public:
     bool is_do_loop_present;
 
-    DoLoopVisitor(Allocator &al) : al{al}, is_do_loop_present{false} {
-        do_loop_result.n = 0;
+    DoLoopVisitor(Allocator &al) : ASR::StatementWalkVisitor(al), is_do_loop_present{false} {
+        // do_loop_result.n = 0;
     }
 
     void visit_DoLoop(const ASR::DoLoop_t &x) {
