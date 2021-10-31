@@ -809,7 +809,7 @@ TRIG(sqrt)
             int t2_kind = ASRUtils::extract_kind_from_ttype_t(t2);
             if (t1_kind == 4 && t2_kind == 4) {
                 int32_t x = ASR::down_cast<ASR::ConstantInteger_t>(i)->m_n;
-                int32_t y;
+                int32_t y = 0;
                 if (shift->type == ASR::exprType::ConstantInteger) {
                     y = ASR::down_cast<ASR::ConstantInteger_t>(shift)->m_n;
                 } else if(shift->type == ASR::exprType::UnaryOp){
