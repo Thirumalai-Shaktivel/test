@@ -875,7 +875,7 @@ TRIG(sqrt)
                 }
             } else if (t1_kind == 8 && t2_kind == 8) {
                 int64_t x = ASR::down_cast<ASR::ConstantInteger_t>(i)->m_n;
-                int64_t y;
+                int64_t y = 0;
                 if (shift->type == ASR::exprType::ConstantInteger) {
                     y = ASR::down_cast<ASR::ConstantInteger_t>(shift)->m_n;
                 } else if(shift->type == ASR::exprType::UnaryOp){
