@@ -91,6 +91,8 @@ struct IntrinsicProcedures {
             {"ibclr", {m_bit, &eval_ibclr, true}},
             {"ibset", {m_bit, &eval_ibset, true}},
             {"btest", {m_bit, &not_implemented, false}},
+            // Elemental function
+            {"ishft", {m_bit, &eval_ishft, false}},
 
             // These will fail if used in symbol table visitor, but will be
             // left unevaluated in body visitor
@@ -115,8 +117,6 @@ struct IntrinsicProcedures {
             {"not", {m_builtin, &not_implemented, false}},
             {"index", {m_string, &not_implemented, false}},
 
-            // Elemental function
-            {"ishft", {m_builtin, &eval_ishft, false}},
         };
     }
 
