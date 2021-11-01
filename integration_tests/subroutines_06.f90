@@ -19,7 +19,7 @@ module bitset
             integer, intent(out), optional     :: status
             character(*), intent(in), optional :: module
             character(*), intent(in), optional :: procedure
-        end subroutine error_handler_subrout
+        end subroutine error_handler
     end interface error_handler
 
 contains
