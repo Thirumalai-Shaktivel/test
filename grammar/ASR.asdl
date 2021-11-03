@@ -87,7 +87,8 @@ symbol
     | Subroutine(symbol_table symtab, identifier name, expr* args, stmt* body,
         abi abi, access access, deftype deftype, string? bindc_name, bool pure,
         bool module)
-    | Function(symbol_table symtab, identifier name, expr* args, stmt* body,
+    | Function(symbol_table symtab, identifier name,
+        type_parameter type_parameters, expr* args, stmt* body,
         expr return_var, abi abi, access access, deftype deftype,
         string? bindc_name)
     | GenericProcedure(symbol_table parent_symtab, identifier name,
@@ -196,7 +197,8 @@ expr
         -- Such as: (x, y+z), (3.0, 2.0) generally not known at compile time
     | ComplexConstructor(expr re, expr im, ttype type, expr? value)
     | Compare(expr left, cmpop op, expr right, ttype type, expr? value, expr? overloaded)
-    | FunctionCall(symbol name, symbol? original_name, expr* args,
+    | FunctionCall(symbol name, symbol? original_name,
+        type_parameter* type_parameters, expr* args,
             keyword* keywords, ttype type, expr? value, expr? dt)
     | DerivedTypeConstructor(symbol dt_sym, expr* args, ttype type)
     | ConstantArray(expr* args, ttype type)
@@ -220,20 +222,25 @@ expr
 --  -2 ... character(:), allocatable (possibly we might use -1 for that also)
 --  -3 ... character(n+3), i.e., a runtime expression stored in `len_expr`
 
-ttype
-    = Integer(int kind, dimension* dims)
-    | Real(int kind, dimension* dims)
-    | Complex(int kind, dimension* dims)
-    | Character(int kind, int len, expr? len_expr, dimension* dims)
-    | Logical(int kind, dimension* dims)
-    | Derived(symbol derived_type, dimension* dims)
-    | IntegerPointer(int kind, dimension* dims)
-    | RealPointer(int kind, dimension* dims)
-    | ComplexPointer(int kind, dimension* dims)
-    | CharacterPointer(int kind, dimension* dims)
-    | LogicalPointer(int kind, dimension* dims)
-    | DerivedPointer(symbol derived_type, dimension* dims)
-    | Class(symbol class_type, dimension* dims)
+type_parameter
+    = TypeParameter(identifier name, type_node? constraint)
+    | TypeKindParameter(identifier name)
+
+kind
+    = SpecificKind(int kind, symbol? sym)
+    | GenericKind(type_parameter sym)
+
+type_node
+    = Integer(kind kind)
+    | Real(kind kind)
+    | Complex(kind kind)
+    | Character(kind kind, int len, expr? len_expr)
+    | Logical(kind kind)
+    | Derived(symbol derived_type)
+    | Class(symbol class_type)
+    | Pointer(ttype type)
+    | Dimensions(ttype type, dimension* dims)
+    | Generic(type_parameter sym)
 
 boolop = And | Or | NEqv | Eqv
 
