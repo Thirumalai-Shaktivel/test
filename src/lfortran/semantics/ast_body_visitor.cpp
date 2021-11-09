@@ -105,8 +105,8 @@ public:
                 ASR::ttype_t* a_newunit_type = LFortran::ASRUtils::expr_type(a_newunit);
                 if( ( m_arg_str == std::string("newunit") &&
                       a_newunit->type != ASR::exprType::Var ) ||
-                    ( a_newunit_type->type != ASR::ttypeType::Integer &&
-                    a_newunit_type->type != ASR::ttypeType::IntegerPointer ) ) {
+                    ( !ASR::is_a<ASR::Integer_t>(*ASRUtils::type_get_past_pointer(a_newunit_type))
+                    ) ) {
                         throw SemanticError("`newunit`/`unit` must be a variable of type, Integer or IntegerPointer", x.base.base.loc);
                 }
             } else if( m_arg_str == std::string("file") ) {
@@ -117,8 +117,7 @@ public:
                 this->visit_expr(*kwarg.m_value);
                 a_filename = LFortran::ASRUtils::EXPR(tmp);
                 ASR::ttype_t* a_filename_type = LFortran::ASRUtils::expr_type(a_filename);
-                if( a_filename_type->type != ASR::ttypeType::Character &&
-                    a_filename_type->type != ASR::ttypeType::CharacterPointer ) {
+                if (!ASR::is_a<ASR::Character_t>(*ASRUtils::type_get_past_pointer(a_filename_type))) {
                         throw SemanticError("`file` must be of type, Character or CharacterPointer", x.base.base.loc);
                 }
             } else if( m_arg_str == std::string("status") ) {
@@ -129,8 +128,7 @@ public:
                 this->visit_expr(*kwarg.m_value);
                 a_status = LFortran::ASRUtils::EXPR(tmp);
                 ASR::ttype_t* a_status_type = LFortran::ASRUtils::expr_type(a_status);
-                if( a_status_type->type != ASR::ttypeType::Character &&
-                    a_status_type->type != ASR::ttypeType::CharacterPointer ) {
+                if (!ASR::is_a<ASR::Character_t>(*ASRUtils::type_get_past_pointer(a_status_type))) {
                         throw SemanticError("`status` must be of type, Character or CharacterPointer", x.base.base.loc);
                 }
             }
@@ -165,8 +163,7 @@ public:
                 this->visit_expr(*kwarg.m_value);
                 a_unit = LFortran::ASRUtils::EXPR(tmp);
                 ASR::ttype_t* a_newunit_type = LFortran::ASRUtils::expr_type(a_unit);
-                if( a_newunit_type->type != ASR::ttypeType::Integer &&
-                    a_newunit_type->type != ASR::ttypeType::IntegerPointer ) {
+                if (!ASR::is_a<ASR::Integer_t>(*ASRUtils::type_get_past_pointer(a_newunit_type))) {
                         throw SemanticError("`unit` must be of type, Integer or IntegerPointer", x.base.base.loc);
                 }
             } else if( m_arg_str == std::string("iostat") ) {
@@ -178,8 +175,7 @@ public:
                 a_iostat = LFortran::ASRUtils::EXPR(tmp);
                 ASR::ttype_t* a_iostat_type = LFortran::ASRUtils::expr_type(a_iostat);
                 if( a_iostat->type != ASR::exprType::Var ||
-                    ( a_iostat_type->type != ASR::ttypeType::Integer &&
-                      a_iostat_type->type != ASR::ttypeType::IntegerPointer ) ) {
+                    (!ASR::is_a<ASR::Integer_t>(*ASRUtils::type_get_past_pointer(a_iostat_type))) ) {
                         throw SemanticError("`iostat` must be a variable of type, Integer or IntegerPointer", x.base.base.loc);
                 }
             } else if( m_arg_str == std::string("iomsg") ) {
@@ -191,8 +187,7 @@ public:
                 a_iomsg = LFortran::ASRUtils::EXPR(tmp);
                 ASR::ttype_t* a_iomsg_type = LFortran::ASRUtils::expr_type(a_iomsg);
                 if( a_iomsg->type != ASR::exprType::Var ||
-                   ( a_iomsg_type->type != ASR::ttypeType::Character &&
-                    a_iomsg_type->type != ASR::ttypeType::CharacterPointer ) ) {
+                    (!ASR::is_a<ASR::Character_t>(*ASRUtils::type_get_past_pointer(a_iomsg_type))) ) {
                         throw SemanticError("`iomsg` must be of type, Character or CharacterPointer", x.base.base.loc);
                     }
             } else if( m_arg_str == std::string("status") ) {
@@ -203,8 +198,7 @@ public:
                 this->visit_expr(*kwarg.m_value);
                 a_status = LFortran::ASRUtils::EXPR(tmp);
                 ASR::ttype_t* a_status_type = LFortran::ASRUtils::expr_type(a_status);
-                if( a_status_type->type != ASR::ttypeType::Character &&
-                    a_status_type->type != ASR::ttypeType::CharacterPointer ) {
+                if (!ASR::is_a<ASR::Character_t>(*ASRUtils::type_get_past_pointer(a_status_type))) {
                         throw SemanticError("`status` must be of type, Character or CharacterPointer", x.base.base.loc);
                 }
             } else if( m_arg_str == std::string("err") ) {
@@ -273,8 +267,7 @@ public:
                 this->visit_expr(*kwarg.m_value);
                 a_unit = LFortran::ASRUtils::EXPR(tmp);
                 ASR::ttype_t* a_unit_type = LFortran::ASRUtils::expr_type(a_unit);
-                if( a_unit_type->type != ASR::ttypeType::Integer &&
-                    a_unit_type->type != ASR::ttypeType::IntegerPointer ) {
+                if  (!ASR::is_a<ASR::Integer_t>(*ASRUtils::type_get_past_pointer(a_unit_type))) {
                         throw SemanticError("`unit` must be of type, Integer or IntegerPointer", loc);
                 }
             } else if( m_arg_str == std::string("iostat") ) {
@@ -286,8 +279,7 @@ public:
                 a_iostat = LFortran::ASRUtils::EXPR(tmp);
                 ASR::ttype_t* a_iostat_type = LFortran::ASRUtils::expr_type(a_iostat);
                 if( a_iostat->type != ASR::exprType::Var ||
-                    ( a_iostat_type->type != ASR::ttypeType::Integer &&
-                      a_iostat_type->type != ASR::ttypeType::IntegerPointer ) ) {
+                    (!ASR::is_a<ASR::Integer_t>(*ASRUtils::type_get_past_pointer(a_iostat_type))) ) {
                         throw SemanticError("`iostat` must be of type, Integer or IntegerPointer", loc);
                 }
             } else if( m_arg_str == std::string("iomsg") ) {
@@ -299,8 +291,7 @@ public:
                 a_iomsg = LFortran::ASRUtils::EXPR(tmp);
                 ASR::ttype_t* a_iomsg_type = LFortran::ASRUtils::expr_type(a_iomsg);
                 if( a_iomsg->type != ASR::exprType::Var ||
-                   ( a_iomsg_type->type != ASR::ttypeType::Character &&
-                     a_iomsg_type->type != ASR::ttypeType::CharacterPointer ) ) {
+                   (!ASR::is_a<ASR::Character_t>(*ASRUtils::type_get_past_pointer(a_iomsg_type))) ) {
                         throw SemanticError("`iomsg` must be of type, Character or CharacterPointer", loc);
                     }
             } else if( m_arg_str == std::string("id") ) {
@@ -311,8 +302,7 @@ public:
                 this->visit_expr(*kwarg.m_value);
                 a_id = LFortran::ASRUtils::EXPR(tmp);
                 ASR::ttype_t* a_status_type = LFortran::ASRUtils::expr_type(a_id);
-                if( a_status_type->type != ASR::ttypeType::Character &&
-                    a_status_type->type != ASR::ttypeType::CharacterPointer ) {
+                if (!ASR::is_a<ASR::Character_t>(*ASRUtils::type_get_past_pointer(a_status_type))) {
                         throw SemanticError("`status` must be of type, Character or CharacterPointer", loc);
                 }
             }
@@ -482,7 +472,7 @@ public:
                     ASR::Variable_t* tmp_v = ASR::down_cast<ASR::Variable_t>(tmp_sym);
                     if( tmp_v->m_storage != ASR::storage_typeType::Allocatable ) {
                         // If it is not allocatable, it can also be a pointer
-                        if (ASR::is_a<ASR::RealPointer_t>(*tmp_v->m_type)) {
+                        if (ASR::is_a<ASR::Pointer_t>(*tmp_v->m_type)) {
                             // OK
                         } else {
                             throw SemanticError("Only an allocatable or a pointer variable "
@@ -702,6 +692,10 @@ public:
     // TODO: add SymbolTable::get_symbol(), which will only check in Debug mode
         SymbolTable *old_scope = current_scope;
         ASR::symbol_t *t = current_scope->scope[to_lower(x.m_name)];
+        if( t->type == ASR::symbolType::GenericProcedure ) {
+            std::string subrout_name = "~" + to_lower(x.m_name);
+            t = current_scope->scope[subrout_name];
+        }
         ASR::Subroutine_t *v = ASR::down_cast<ASR::Subroutine_t>(t);
         current_scope = v->m_symtab;
         Vec<ASR::stmt_t*> body;
@@ -820,11 +814,9 @@ public:
                 visit_kwargs(args, x.m_keywords, x.n_keywords,
                     f->m_args, f->n_args, x.base.base.loc);
             } else {
-                diag::Diagnostic d{diag::Diagnostic::semantic_error(
+                throw SemanticError(
                     "Keyword arguments are not implemented for generic subroutines yet",
-                    x.base.base.loc
-                )};
-                throw SemanticError(d);
+                    x.base.base.loc);
             }
         }
         Vec<ASR::expr_t*> args_with_mdt;
@@ -1097,6 +1089,51 @@ public:
         head.loc = head.m_v->base.loc;
         tmp = ASR::make_DoConcurrentLoop_t(al, x.base.base.loc, head, body.p,
                 body.size());
+    }
+
+    void visit_ForAllSingle(const AST::ForAllSingle_t &x) {
+        if (x.n_control != 1) {
+            throw SemanticError("Forall statement: exactly one control statement is required for now",
+            x.base.base.loc);
+        }
+        AST::ConcurrentControl_t &h = *(AST::ConcurrentControl_t*) x.m_control[0];
+        if (! h.m_var) {
+            throw SemanticError("Forall statement: loop variable is required",
+                x.base.base.loc);
+        }
+        if (! h.m_start) {
+            throw SemanticError("Forall statement: start condition is required",
+                x.base.base.loc);
+        }
+        if (! h.m_end) {
+            throw SemanticError("Forall statement: end condition is required",
+                x.base.base.loc);
+        }
+        ASR::expr_t *var = LFortran::ASRUtils::EXPR(
+            resolve_variable(x.base.base.loc, to_lower(h.m_var))
+        );
+        visit_expr(*h.m_start);
+        ASR::expr_t *start = LFortran::ASRUtils::EXPR(tmp);
+        visit_expr(*h.m_end);
+        ASR::expr_t *end = LFortran::ASRUtils::EXPR(tmp);
+        ASR::expr_t *increment;
+        if (h.m_increment) {
+            visit_expr(*h.m_increment);
+            increment = LFortran::ASRUtils::EXPR(tmp);
+        } else {
+            increment = nullptr;
+        }
+
+        ASR::stmt_t* assign_stmt;
+        this->visit_stmt(*x.m_assign);
+        assign_stmt = LFortran::ASRUtils::STMT(tmp);
+        ASR::do_loop_head_t head;
+        head.m_v = var;
+        head.m_start = start;
+        head.m_end = end;
+        head.m_increment = increment;
+        head.loc = head.m_v->base.loc;
+        tmp = ASR::make_ForAllSingle_t(al, x.base.base.loc, head, assign_stmt);
     }
 
     void visit_Exit(const AST::Exit_t &x) {

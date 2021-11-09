@@ -19,6 +19,7 @@
 #include <lfortran/codegen/fortran_evaluator.h>
 #include <lfortran/codegen/evaluator.h>
 #include <lfortran/pass/do_loops.h>
+#include <lfortran/pass/for_all.h>
 #include <lfortran/pass/global_stmts.h>
 #include <lfortran/pass/implied_do_loops.h>
 #include <lfortran/pass/array_op.h>
@@ -500,14 +501,14 @@ int python_wrapper(const std::string &infile, std::string array_order,
     auto pxd_fname = prefix  + "_pxd.pxd"; // the "_pxd" is an ugly hack, see comment in asr_to_py.cpp
     auto pyx_fname = prefix  + ".pyx";
 
-    // The ASR to Python converter needs to know the name of the .h file that will be written, 
+    // The ASR to Python converter needs to know the name of the .h file that will be written,
     // but needs all path information stripped off - just the filename.
     auto chdr_fname_forcodegen = chdr_fname;
     {
         // Find last ocurrence of \ or /, and delete everything up to that point.
         auto pos_windows = chdr_fname_forcodegen.rfind('\\');
         auto pos_other = chdr_fname_forcodegen.rfind('/');
-        auto lastpos = std::max( (pos_windows == std::string::npos ? 0 : pos_windows) , 
+        auto lastpos = std::max( (pos_windows == std::string::npos ? 0 : pos_windows) ,
                                  (pos_other   == std::string::npos ? 0 : pos_other) );
         if (lastpos > 0UL) chdr_fname_forcodegen.erase(0,lastpos+1);
     }
@@ -521,7 +522,7 @@ int python_wrapper(const std::string &infile, std::string array_order,
     std::ofstream(chdr_fname) << c_h;
     std::ofstream(pxd_fname)  << pxd;
     std::ofstream(pyx_fname)  << pyx;
-    
+
     return 0;
 }
 
@@ -866,7 +867,7 @@ int compile_to_binary_x86(const std::string &infile, const std::string &outfile,
 
 int compile_to_object_file_cpp(const std::string &infile,
         const std::string &outfile,
-        bool assembly, bool kokkos,
+        bool assembly, bool kokkos, const std::string &rtlib_header_dir,
         CompilerOptions &compiler_options)
 {
     std::string input = read_file(infile);
@@ -956,6 +957,7 @@ int compile_to_object_file_cpp(const std::string &infile,
             std::string kokkos_dir = get_kokkos_dir();
             options += "-std=c++17 -I" + kokkos_dir + "/include";
         }
+        options += " -I" + rtlib_header_dir;
         std::string cmd = CXX + " " + options + " -o " + outfile + " -c " + cppfile;
         int err = system(cmd.c_str());
         if (err) {
@@ -1146,6 +1148,7 @@ int main(int argc, char *argv[])
         LFortran::get_executable_path(LFortran::binary_executable_path, dirname_length);
 
         std::string runtime_library_dir = LFortran::get_runtime_library_dir();
+        std::string rtlib_header_dir = LFortran::get_runtime_library_header_dir();
         Backend backend;
 
         bool arg_S = false;
@@ -1465,7 +1468,7 @@ int main(int argc, char *argv[])
 #endif
             } else if (backend == Backend::cpp) {
                 return compile_to_object_file_cpp(arg_file, outfile, false,
-                        true, compiler_options);
+                        true, rtlib_header_dir, compiler_options);
             } else if (backend == Backend::x86) {
                 return compile_to_binary_x86(arg_file, outfile, time_report, compiler_options);
             } else {
@@ -1490,7 +1493,7 @@ int main(int argc, char *argv[])
 #endif
             } else if (backend == Backend::cpp) {
                 err = compile_to_object_file_cpp(arg_file, tmp_o, false,
-                        true, compiler_options);
+                        true, rtlib_header_dir, compiler_options);
             } else {
                 throw LFortran::LFortranException("Backend not supported");
             }

@@ -78,6 +78,7 @@ public:
     std::map<std::string, ASR::presenceType> assgnd_presence;
     bool in_module = false;
     bool is_interface = false;
+    std::string interface_name = "";
     bool is_derived_type = false;
     Vec<char*> data_member_names;
     std::vector<std::string> current_procedure_args;
@@ -237,8 +238,7 @@ public:
         current_scope = al.make_new<SymbolTable>(parent_scope);
         for (size_t i=0; i<x.n_args; i++) {
             char *arg=x.m_args[i].m_arg;
-            std::string arg_s = arg;
-            current_procedure_args.push_back(arg);
+            current_procedure_args.push_back(to_lower(arg));
         }
         current_procedure_abi_type = ASR::abiType::Source;
         char *bindc_name=nullptr;
@@ -269,25 +269,49 @@ public:
         if (is_interface){
             deftype = ASR::deftypeType::Interface;
         }
-        tmp = ASR::make_Subroutine_t(
-            al, x.base.base.loc,
-            /* a_symtab */ current_scope,
-            /* a_name */ s2c(al, to_lower(x.m_name)),
-            /* a_args */ args.p,
-            /* n_args */ args.size(),
-            /* a_body */ nullptr,
-            /* n_body */ 0,
-            current_procedure_abi_type,
-            s_access, deftype, bindc_name);
+        bool is_pure = false, is_module = false;
+        for( size_t i = 0; i < x.n_attributes; i++ ) {
+            switch( x.m_attributes[i]->type ) {
+                case AST::decl_attributeType::SimpleAttribute: {
+                    AST::SimpleAttribute_t* simple_attr = AST::down_cast<AST::SimpleAttribute_t>(x.m_attributes[i]);
+                    if( simple_attr->m_attr == AST::simple_attributeType::AttrPure ) {
+                        is_pure = true;
+                    } else if( simple_attr->m_attr == AST::simple_attributeType::AttrModule ) {
+                        is_module = true;
+                    }
+                    break;
+                }
+                default: {
+                    // Continue with the original behaviour
+                    // of not processing unrequired attributes
+                    break;
+                }
+            }
+        }
         if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
             ASR::symbol_t *f1 = parent_scope->scope[sym_name];
             ASR::Subroutine_t *f2 = ASR::down_cast<ASR::Subroutine_t>(f1);
-            if (f2->m_abi == ASR::abiType::Interactive) {
+            if (f2->m_abi == ASR::abiType::Interactive || f2->m_deftype == ASR::deftypeType::Interface) {
                 // Previous declaration will be shadowed
             } else {
                 throw SemanticError("Subroutine already defined", tmp->loc);
             }
         }
+        if( sym_name == interface_name ) {
+            parent_scope->scope.erase(sym_name);
+            sym_name = "~" + sym_name;
+        }
+        tmp = ASR::make_Subroutine_t(
+            al, x.base.base.loc,
+            /* a_symtab */ current_scope,
+            /* a_name */ s2c(al, to_lower(sym_name)),
+            /* a_args */ args.p,
+            /* n_args */ args.size(),
+            /* a_body */ nullptr,
+            /* n_body */ 0,
+            current_procedure_abi_type,
+            s_access, deftype, bindc_name,
+            is_pure, is_module);
         parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(tmp);
         current_scope = parent_scope;
         /* FIXME: This can become incorrect/get cleared prematurely, perhaps
@@ -322,8 +346,7 @@ public:
         current_scope = al.make_new<SymbolTable>(parent_scope);
         for (size_t i=0; i<x.n_args; i++) {
             char *arg=x.m_args[i].m_arg;
-            std::string arg_s = arg;
-            current_procedure_args.push_back(arg);
+            current_procedure_args.push_back(to_lower(arg));
         }
 
         // Determine the ABI (Source or BindC for now)
@@ -652,15 +675,12 @@ public:
                         // re-declaring a global scope variable is allowed
                         // Otherwise raise an error
                         ASR::symbol_t *orig_decl = current_scope->scope[sym];
-                        diag::Diagnostic d{diag::Diagnostic::semantic_error_label(
+                        throw SemanticError(diag::Diagnostic(
                             "Symbol is already declared in the same scope",
-                            s.loc,
-                            "redeclaration"
-                        )};
-                        d.secondary_label("original declaration", orig_decl->base.loc);
-                        throw SemanticError(d);
-                        //throw SemanticError("Symbol already declared",
-                        //        x.base.base.loc);
+                            diag::Level::Error, diag::Stage::Semantic, {
+                                diag::Label("redeclaration", {s.loc}),
+                                diag::Label("original declaration", {orig_decl->base.loc}, false),
+                            }));
                     }
                 }
                 ASR::intentType s_intent;
@@ -771,38 +791,40 @@ public:
                     a_kind = ASRUtils::extract_kind(kind_expr, x.base.base.loc);
                 }
                 if (sym_type->m_type == AST::decl_typeType::TypeReal) {
+                    type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc,
+                        a_kind, dims.p, dims.size()));
                     if (is_pointer) {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_RealPointer_t(al, x.base.base.loc,
-                            a_kind, dims.p, dims.size()));
-                    } else {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc,
-                            a_kind, dims.p, dims.size()));
+                        type = LFortran::ASRUtils::TYPE(ASR::make_Pointer_t(al, x.base.base.loc,
+                            type));
                     }
                 } else if (sym_type->m_type == AST::decl_typeType::TypeDoublePrecision) {
                     a_kind = 8;
+                    type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc,
+                        a_kind, dims.p, dims.size()));
                     if (is_pointer) {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_RealPointer_t(al, x.base.base.loc,
-                            a_kind, dims.p, dims.size()));
-                    } else {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc,
-                            a_kind, dims.p, dims.size()));
+                        type = LFortran::ASRUtils::TYPE(ASR::make_Pointer_t(al, x.base.base.loc,
+                            type));
                     }
                 } else if (sym_type->m_type == AST::decl_typeType::TypeInteger) {
+                    type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                        a_kind, dims.p, dims.size()));
                     if (is_pointer) {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_IntegerPointer_t(al, x.base.base.loc, a_kind, dims.p, dims.size()));
-                    } else {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc, a_kind, dims.p, dims.size()));
+                        type = LFortran::ASRUtils::TYPE(ASR::make_Pointer_t(al, x.base.base.loc,
+                            type));
                     }
                 } else if (sym_type->m_type == AST::decl_typeType::TypeLogical) {
                     type = LFortran::ASRUtils::TYPE(ASR::make_Logical_t(al, x.base.base.loc, 4,
                         dims.p, dims.size()));
+                    if (is_pointer) {
+                        type = LFortran::ASRUtils::TYPE(ASR::make_Pointer_t(al, x.base.base.loc,
+                            type));
+                    }
                 } else if (sym_type->m_type == AST::decl_typeType::TypeComplex) {
-                    if( is_pointer ) {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_ComplexPointer_t(al, x.base.base.loc, a_kind,
-                                    dims.p, dims.size()));
-                    } else {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc, a_kind,
-                                    dims.p, dims.size()));
+                    type = LFortran::ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc,
+                        a_kind, dims.p, dims.size()));
+                    if (is_pointer) {
+                        type = LFortran::ASRUtils::TYPE(ASR::make_Pointer_t(al, x.base.base.loc,
+                            type));
                     }
                 } else if (sym_type->m_type == AST::decl_typeType::TypeCharacter) {
                     int a_len = -10;
@@ -1002,10 +1024,16 @@ public:
         for (size_t i = 0; i < x.n_symbols; i++) {
             AST::UseSymbol_t *use_sym = AST::down_cast<AST::UseSymbol_t>(
                 x.m_symbols[i]);
-            if (use_sym->m_local_rename) {
-                class_procedures[dt_name][to_lower(use_sym->m_local_rename)] = to_lower(use_sym->m_remote_sym);
+            std::string remote_sym_str = "";
+            if( x.m_name ) {
+                remote_sym_str = to_lower(x.m_name);
             } else {
-                class_procedures[dt_name][to_lower(use_sym->m_remote_sym)] = to_lower(use_sym->m_remote_sym);
+                remote_sym_str = to_lower(use_sym->m_remote_sym);
+            }
+            if (use_sym->m_local_rename) {
+                class_procedures[dt_name][to_lower(use_sym->m_local_rename)] = remote_sym_str;
+            } else {
+                class_procedures[dt_name][to_lower(use_sym->m_remote_sym)] = remote_sym_str;
             }
         }
     }
@@ -1025,6 +1053,28 @@ public:
                     char *proc_name = proc->m_names[i];
                     proc_names.push_back(std::string(proc_name));
                 }
+            } else if(AST::is_a<AST::InterfaceProc_t>(*item)) {
+                visit_interface_item(*item);
+                AST::InterfaceProc_t *proc
+                    = AST::down_cast<AST::InterfaceProc_t>(item);
+                switch(proc->m_proc->type) {
+                    case AST::program_unitType::Subroutine: {
+                        AST::Subroutine_t* subrout = AST::down_cast<AST::Subroutine_t>(proc->m_proc);
+                        char* proc_name = subrout->m_name;
+                        proc_names.push_back(std::string(proc_name));
+                        break;
+                    }
+                    case AST::program_unitType::Function: {
+                        AST::Function_t* subrout = AST::down_cast<AST::Function_t>(proc->m_proc);
+                        char* proc_name = subrout->m_name;
+                        proc_names.push_back(std::string(proc_name));
+                        break;
+                    }
+                    default: {
+                        LFORTRAN_ASSERT(false);
+                        break;
+                    }
+                }
             } else {
                 throw SemanticError("Interface procedure type not imlemented yet", item->base.loc);
             }
@@ -1034,9 +1084,11 @@ public:
     void visit_Interface(const AST::Interface_t &x) {
         if (AST::is_a<AST::InterfaceHeaderName_t>(*x.m_header)) {
             std::string generic_name = to_lower(AST::down_cast<AST::InterfaceHeaderName_t>(x.m_header)->m_name);
+            interface_name = generic_name;
             std::vector<std::string> proc_names;
             fill_interface_proc_names(x, proc_names);
             generic_procedures[std::string(generic_name)] = proc_names;
+            interface_name.clear();
         } else if (AST::is_a<AST::InterfaceHeader_t>(*x.m_header) || 
                    AST::is_a<AST::AbstractInterfaceHeader_t>(*x.m_header)) {
             std::vector<std::string> proc_names;

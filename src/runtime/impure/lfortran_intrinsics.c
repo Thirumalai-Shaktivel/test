@@ -6,26 +6,11 @@
 #include <string.h>
 #include <inttypes.h>
 #include <time.h>
+#include <float.h>
+#include <limits.h>
 
-struct _lfortran_complex {
-    float re, im;
-};
+#include "lfortran_intrinsics.h"
 
-#ifdef _MSC_VER
-typedef _Fcomplex float_complex_t;
-typedef _Dcomplex double_complex_t;
-#else
-typedef float _Complex float_complex_t;
-typedef double _Complex double_complex_t;
-#endif
-
-#ifdef _WIN32
-#define LFORTRAN_API __declspec(dllexport)
-#elif defined(__linux__)
-#define LFORTRAN_API __attribute__((visibility("default")))
-#else
-#define LFORTRAN_API /* Nothing */
-#endif
 
 LFORTRAN_API double _lfortran_sum(int n, double *v)
 {
@@ -617,8 +602,72 @@ LFORTRAN_API int64_t _lfortran_btest64(int64_t i, int pos) {
     return i & (1LL << pos);
 }
 
+LFORTRAN_API int32_t _lfortran_ishft32(int32_t i, int32_t shift) {
+    if(shift > 0) {
+        return i << shift;
+    } else if(shift < 0) {
+        return i >> abs(shift);
+    } else {
+        return i;
+    }
+}
+
+LFORTRAN_API int64_t _lfortran_ishft64(int64_t i, int64_t shift) {
+    if(shift > 0) {
+        return i << shift;
+    } else if(shift < 0) {
+        return i >> llabs(shift);
+    } else {
+        return i;
+    }
+}
+
 // cpu_time  -------------------------------------------------------------------
 
 LFORTRAN_API void _lfortran_cpu_time(double *t) {
     *t = ((double) clock()) / CLOCKS_PER_SEC;
+}
+
+// system_time -----------------------------------------------------------------
+
+LFORTRAN_API void _lfortran_i32sys_clock(
+        int32_t *count, int32_t *rate, int32_t *max) {
+#ifdef _MSC_VER
+        *count = - INT_MAX;
+        *rate = 0;
+        *max = 0;
+#else
+    struct timespec ts;
+    if(clock_gettime(CLOCK_MONOTONIC, &ts) == -1) {
+        *count = (int32_t)(ts.tv_nsec / 1000000) + ((int32_t)ts.tv_sec * 1000);
+        *rate = 1e3; // milliseconds
+        *max = INT_MAX;
+    } else {
+        *count = - INT_MAX;
+        *rate = 0;
+        *max = 0;
+    }
+#endif
+}
+
+LFORTRAN_API void _lfortran_i64sys_clock(
+        uint64_t *count, int64_t *rate, int64_t *max) {
+#ifdef _MSC_VER
+        *count = - INT_MAX;
+        *rate = 0;
+        *max = 0;
+#else
+    struct timespec ts;
+    if(clock_gettime(CLOCK_MONOTONIC, &ts) == -1) {
+        *count = (uint64_t)(ts.tv_nsec) + ((uint64_t)ts.tv_sec * 1000000000);
+        // FIXME: Rate can be in microseconds or nanoseconds depending on
+        //          resolution of the underlying platform clock.
+        *rate = 1e9; // nanoseconds
+        *max = LLONG_MAX;
+    } else {
+        *count = - LLONG_MAX;
+        *rate = 0;
+        *max = 0;
+    }
+#endif
 }

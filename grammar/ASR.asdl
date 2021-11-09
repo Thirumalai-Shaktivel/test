@@ -6,7 +6,7 @@
 -- code.
 --
 -- ASR is always semantically valid Fortran code. It is as far from the original
--- Fortran language code as possible (i.e. everthing is explicitly figured out,
+-- Fortran language code as possible (i.e. everything is explicitly figured out,
 -- all semantic information gathered and readily available locally from each ASR
 -- node), while ensuring no semantic information was lost (no lowering was
 -- done), so one can still generate Fortran code from ASR that will be logically
@@ -87,7 +87,8 @@ symbol
     | Submodule(symbol_table symtab, identifier name, symbol parent,
                 identifier* dependencies, bool loaded_from_mod)
     | Subroutine(symbol_table symtab, identifier name, expr* args, stmt* body,
-        abi abi, access access, deftype deftype, string? bindc_name)
+        abi abi, access access, deftype deftype, string? bindc_name, bool pure,
+        bool module)
     | Function(symbol_table symtab, identifier name, expr* args, stmt* body,
         expr return_var, abi abi, access access, deftype deftype,
         string? bindc_name)
@@ -166,6 +167,7 @@ stmt
     | DoLoop(do_loop_head head, stmt* body)
     | ErrorStop(expr? code)
     | Exit()
+    | ForAllSingle(do_loop_head head, stmt assign_stmt)
         -- GoTo points to a GoToTarget with the corresponding target_id within
         -- the same procedure. We currently use `int` IDs to link GoTo with
         -- GoToTarget to avoid issues with serialization.
@@ -227,13 +229,8 @@ ttype
     | Character(int kind, int len, expr? len_expr, dimension* dims)
     | Logical(int kind, dimension* dims)
     | Derived(symbol derived_type, dimension* dims)
-    | IntegerPointer(int kind, dimension* dims)
-    | RealPointer(int kind, dimension* dims)
-    | ComplexPointer(int kind, dimension* dims)
-    | CharacterPointer(int kind, dimension* dims)
-    | LogicalPointer(int kind, dimension* dims)
-    | DerivedPointer(symbol derived_type, dimension* dims)
     | Class(symbol class_type, dimension* dims)
+    | Pointer(ttype type)
 
 boolop = And | Or | NEqv | Eqv
 

@@ -8,6 +8,11 @@
 #include <lfortran/utils.h>
 #include <lfortran/semantics/comptime_eval.h>
 
+using LFortran::diag::Level;
+using LFortran::diag::Stage;
+using LFortran::diag::Label;
+using LFortran::diag::Diagnostic;
+
 namespace LFortran {
 
 #define LFORTRAN_STMT_LABEL_TYPE(x) \
@@ -452,7 +457,34 @@ static ASR::asr_t* comptime_intrinsic_real(ASR::expr_t *A,
                 kind_int, nullptr, 0));
     ASR::ttype_t *source_type = LFortran::ASRUtils::expr_type(A);
 
-    // TODO: this is explicit cast, use ExplicitCast
+    // TODO: this is implicit cast, use ExplicitCast
+    ImplicitCastRules::set_converted_value(al, loc, &result,
+                                           source_type, dest_type);
+    return (ASR::asr_t*)result;
+}
+
+static ASR::asr_t* comptime_intrinsic_int(ASR::expr_t *A,
+        ASR::expr_t * kind,
+        Allocator &al, const Location &loc) {
+    int kind_int = 4;
+    if (kind) {
+        ASR::expr_t* kind_value = LFortran::ASRUtils::expr_value(kind);
+        if (kind_value) {
+            if (ASR::is_a<ASR::ConstantInteger_t>(*kind_value)) {
+                kind_int = ASR::down_cast<ASR::ConstantInteger_t>(kind_value)->m_n;
+            } else {
+                throw SemanticError("kind argument to int(a, kind) is not a constant integer", loc);
+            }
+        } else {
+            throw SemanticError("kind argument to int(a, kind) is not constant", loc);
+        }
+    }
+    ASR::expr_t *result = A;
+    ASR::ttype_t *dest_type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, loc,
+                kind_int, nullptr, 0));
+    ASR::ttype_t *source_type = LFortran::ASRUtils::expr_type(A);
+
+    // TODO: this is implicit cast, use ExplicitCast
     ImplicitCastRules::set_converted_value(al, loc, &result,
                                            source_type, dest_type);
     return (ASR::asr_t*)result;
@@ -498,11 +530,10 @@ public:
         SymbolTable *scope = current_scope;
         ASR::symbol_t *v = scope->resolve_symbol(var_name);
         if (!v) {
-            diag::Diagnostic d{diag::Diagnostic::semantic_error_label
-                ("Variable '" + var_name + "' is not declared", loc,
-                 "'" + var_name + "' is undeclared")};
-            throw SemanticError(d);
-            //throw SemanticError("Variable '" + var_name + "' not declared", loc);
+            diag.semantic_error_label("Variable '" + var_name
+                + "' is not declared", {loc},
+                "'" + var_name + "' is undeclared");
+            throw SemanticAbort();
         }
         if( v->type == ASR::symbolType::Variable ) {
             ASR::Variable_t* v_var = ASR::down_cast<ASR::Variable_t>(v);
@@ -566,8 +597,62 @@ public:
             v = orig_Var->m_v;
             type = ASR::down_cast<ASR::Variable_t>(v)->m_type;
         }
+        ASR::expr_t *arr_ref_val = nullptr;
+        bool all_args_eval = ASRUtils::all_args_evaluated(args);
+        for( auto& a : args ) {
+            // Assume that indices are constant integers
+            int64_t start = -1, end = -1, step = -1;
+            if( a.m_left ) {
+                if( all_args_eval ) {
+                    ASR::expr_t* m_left_expr = ASRUtils::expr_value(a.m_left);
+                    ASR::ConstantInteger_t *m_left = ASR::down_cast<ASR::ConstantInteger_t>(m_left_expr);
+                    start = m_left->m_n;
+                }
+            } else {
+                start = 1;
+            }
+            if( a.m_right ) {
+                if( all_args_eval ) {
+                    ASR::expr_t* m_right_expr = ASRUtils::expr_value(a.m_right);
+                    ASR::ConstantInteger_t *m_right = ASR::down_cast<ASR::ConstantInteger_t>(m_right_expr);
+                    end = m_right->m_n;
+                }
+            }
+            if( a.m_step ) {
+                if( all_args_eval ) {
+                    ASR::expr_t* m_step_expr = ASRUtils::expr_value(a.m_step);
+                    ASR::ConstantInteger_t *m_step = ASR::down_cast<ASR::ConstantInteger_t>(m_step_expr);
+                    step = m_step->m_n;
+                }
+            } else {
+                step = 1;
+            }
+            if( v->type == ASR::symbolType::Variable ) {
+                ASR::Variable_t *var = ASR::down_cast<ASR::Variable_t>(v);
+                ASR::expr_t *m_value = var->m_value;
+                if( m_value && m_value->type == ASR::exprType::ConstantString ) {
+                    ASR::ConstantString_t *m_str = ASR::down_cast<ASR::ConstantString_t>(m_value);
+                    std::string sliced_str;
+                    if( start != -1 && step != -1 && end == -1 ) {
+                        end = 0;
+                        while( m_str->m_s[end] != '\0' ) {
+                            end += 1;
+                        }
+                        end -= 1;
+                    }
+                    if( start != -1 && end != -1 && step != -1 ) {
+                        for( int i = start - 1; i <= end - 1; i += step ) {
+                            sliced_str.push_back(m_str->m_s[i]);
+                        }
+                        Str l_str;
+                        l_str.from_str(al, sliced_str);
+                        arr_ref_val = ASRUtils::EXPR(ASR::make_ConstantString_t(al, loc, l_str.c_str(al), m_str->m_type));
+                    }
+                }
+            }
+        }
         return ASR::make_ArrayRef_t(al, loc,
-            v, args.p, args.size(), type, nullptr);
+            v, args.p, args.size(), type, arr_ref_val);
     }
 
     ASR::ttype_t* handle_character_return(ASR::ttype_t *return_type, const Location &loc) {
@@ -791,15 +876,12 @@ public:
             throw SemanticError("Variable '" + dt_name + "' not declared", loc);
         }
         ASR::Variable_t* v_variable = ASR::down_cast<ASR::Variable_t>(v);
-        if (ASR::is_a<ASR::Derived_t>(*v_variable->m_type) ||
-                ASR::is_a<ASR::DerivedPointer_t>(*v_variable->m_type) ||
+        if (ASR::is_a<ASR::Derived_t>(*ASRUtils::type_get_past_pointer(v_variable->m_type)) ||
                 ASR::is_a<ASR::Class_t>(*v_variable->m_type)) {
-            ASR::ttype_t* v_type = v_variable->m_type;
+            ASR::ttype_t* v_type = ASRUtils::type_get_past_pointer(v_variable->m_type);
             ASR::symbol_t *derived_type = nullptr;
             if (ASR::is_a<ASR::Derived_t>(*v_type)) {
                 derived_type = ASR::down_cast<ASR::Derived_t>(v_type)->m_derived_type;
-            } else if (ASR::is_a<ASR::DerivedPointer_t>(*v_type)) {
-                derived_type = ASR::down_cast<ASR::DerivedPointer_t>(v_type)->m_derived_type;
             } else if (ASR::is_a<ASR::Class_t>(*v_type)) {
                 derived_type = ASR::down_cast<ASR::Class_t>(v_type)->m_class_type;
             }
@@ -864,11 +946,9 @@ public:
         if (!v) {
             throw SemanticError("Variable '" + dt_name + "' not declared", loc);
         }
-        ASR::Variable_t* v_variable = ((ASR::Variable_t*)(&(v->base)));
-        if ( v_variable->m_type->type == ASR::ttypeType::Derived ||
-             v_variable->m_type->type == ASR::ttypeType::DerivedPointer ||
-             v_variable->m_type->type == ASR::ttypeType::Class ) {
-            ASR::ttype_t* v_type = v_variable->m_type;
+        ASR::Variable_t* v_variable = ASR::down_cast<ASR::Variable_t>(v);
+        ASR::ttype_t* v_type = ASRUtils::type_get_past_pointer(v_variable->m_type);
+        if ( ASR::is_a<ASR::Derived_t>(*v_type) || ASR::is_a<ASR::Class_t>(*v_type)) {
             ASR::Derived_t* der = (ASR::Derived_t*)(&(v_type->base));
             ASR::DerivedType_t* der_type;
             if( der->m_derived_type->type == ASR::symbolType::ExternalSymbol ) {
@@ -923,11 +1003,8 @@ public:
                         f->m_args, f->n_args, x.base.base.loc);
                 } else {
                     LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
-                    diag::Diagnostic d{diag::Diagnostic::semantic_error(
-                        "Keyword arguments are not implemented for generic functions yet",
-                        x.base.base.loc
-                    )};
-                    throw SemanticError(d);
+                    throw SemanticError("Keyword arguments are not implemented for generic functions yet",
+                        x.base.base.loc);
                 }
             }
             tmp = create_FunctionCall(x.base.base.loc, v, args);
@@ -1005,19 +1082,11 @@ public:
     }
 
     bool is_integer(ASR::ttype_t &t) {
-        if (ASR::is_a<ASR::Integer_t>(t) ||
-                ASR::is_a<ASR::IntegerPointer_t>(t)) {
-            return true;
-        }
-        return false;
+        return ASR::is_a<ASR::Integer_t>(*ASRUtils::type_get_past_pointer(&t));
     }
 
     bool is_real(ASR::ttype_t &t) {
-        if (ASR::is_a<ASR::Real_t>(t) ||
-                ASR::is_a<ASR::RealPointer_t>(t)) {
-            return true;
-        }
-        return false;
+        return ASR::is_a<ASR::Real_t>(*ASRUtils::type_get_past_pointer(&t));
     }
 
     bool assignment_types_agree(ASR::ttype_t *target, ASR::ttype_t *value) {
@@ -1086,10 +1155,12 @@ public:
                                     ASRUtils::expr_type(right))) {
             std::string ltype = ASRUtils::type_to_str(ASRUtils::expr_type(left));
             std::string rtype = ASRUtils::type_to_str(ASRUtils::expr_type(right));
-            diag.semantic_error_label(
+            diag.add(Diagnostic(
                 "Type mismatch in binary operator, the types must be compatible",
-                {left->base.loc, right->base.loc},
-                "type mismatch (" + ltype + " and " + rtype + ")"
+                Level::Error, Stage::Semantic, {
+                    Label("type mismatch (" + ltype + " and " + rtype + ")",
+                            {left->base.loc, right->base.loc})
+                })
             );
             throw SemanticAbort();
         }
@@ -1427,13 +1498,12 @@ public:
                 ASR::expr_t **fn_args, size_t fn_n_args, const Location &loc) {
         size_t n_args = args.size();
         if (args.size() + n != fn_n_args) {
-            diag::Diagnostic d{diag::Diagnostic::semantic_error(
+            throw SemanticError(
                 "Procedure accepts " + std::to_string(fn_n_args)
                 + " arguments, but " + std::to_string(args.size() + n)
                 + " were provided",
                 loc
-            )};
-            throw SemanticError(d);
+            );
         }
         for (size_t i=0; i<n; i++) {
             args.push_back(al, nullptr);
@@ -1499,10 +1569,9 @@ public:
     // real/int (result in `tmp`), false otherwise (`tmp` unchanged)
     ASR::asr_t* intrinsic_function_transformation(Allocator &al, const Location &loc,
             const std::string &fn_name, Vec<ASR::expr_t*> &args) {
+        // real(), int() are represented using ExplicitCast (for now we use
+        // ImplicitCast) in ASR, so we save them to tmp and exit:
         if (fn_name == "real") {
-            // real(), int() are represented using ExplicitCast
-            // (for now we use ImplicitCast) in ASR, so we save them
-            // to tmp and exit:
             ASR::expr_t *arg1;
             if (args.size() == 1) {
                 arg1 = nullptr;
@@ -1512,6 +1581,22 @@ public:
                 throw SemanticError("real(...) must have 1 or 2 arguments", loc);
             }
             return CommonVisitorMethods::comptime_intrinsic_real(args[0], arg1, al, loc);
+        } else if (fn_name == "int") {
+            ASR::expr_t *arg1;
+            if (args.size() == 1) {
+                arg1 = nullptr;
+            } else if (args.size() == 2) {
+                arg1 = args[1];
+            } else {
+                throw SemanticError("int(...) must have 1 or 2 arguments", loc);
+            }
+            if (ASR::is_a<ASR::BOZ_t>(*args[0])) {
+                // Things like `int(b'01011101')` are skipped for now
+                // They are converted in comptime_eval. We should probably
+                // just convert them here instead.
+                return nullptr;
+            }
+            return CommonVisitorMethods::comptime_intrinsic_int(args[0], arg1, al, loc);
         } else {
             return nullptr;
         }

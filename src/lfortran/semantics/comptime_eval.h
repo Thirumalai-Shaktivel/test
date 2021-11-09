@@ -41,8 +41,11 @@ struct IntrinsicProcedures {
             // Arguments can be evaluated or not
             {"kind", {m_kind, &eval_kind, false}},
             {"tiny", {m_builtin, &eval_tiny, false}},
+            // real and int get transformed into ExplicitCast
+            // in intrinsic_function_transformation()
+            // So we shouldn't even encounter them here
             {"int", {m_builtin, &eval_int, false}},
-            {"real", {m_builtin, &not_implemented, false}}, // Implemented separately
+            {"real", {m_builtin, &not_implemented, false}},
 
             // Require evaluated arguments
             {"aimag", {m_math, &eval_aimag, true}},
@@ -91,6 +94,8 @@ struct IntrinsicProcedures {
             {"ibclr", {m_bit, &eval_ibclr, true}},
             {"ibset", {m_bit, &eval_ibset, true}},
             {"btest", {m_bit, &not_implemented, false}},
+            // Elemental function
+            {"ishft", {m_bit, &eval_ishft, false}},
 
             // These will fail if used in symbol table visitor, but will be
             // left unevaluated in body visitor
@@ -99,9 +104,9 @@ struct IntrinsicProcedures {
 
             // Subroutines
             {"cpu_time", {m_math, &not_implemented, false}},
-            {"bit_size", {m_builtin, &not_implemented, false}},
-            {"not", {m_builtin, &not_implemented, false}},
-            {"iachar",  {m_builtin, &not_implemented, false}},
+            {"bit_size", {m_builtin, &eval_bit_size, false}},
+            {"not", {m_builtin, &eval_not, false}},
+            {"iachar",  {m_builtin, &eval_iachar, false}},
             {"achar", {m_builtin, &eval_achar, false}},
             {"len", {m_builtin, &not_implemented, false}},
             {"size", {m_builtin, &not_implemented, false}},
@@ -112,9 +117,11 @@ struct IntrinsicProcedures {
             {"minval", {m_builtin, &not_implemented, false}},
             {"maxval", {m_builtin, &not_implemented, false}},
             {"sum", {m_builtin, &not_implemented, false}},
-            {"bit_size", {m_builtin, &not_implemented, false}},
-            {"not", {m_builtin, &not_implemented, false}},
             {"index", {m_string, &not_implemented, false}},
+            {"system_clock", {m_math, &not_implemented, false}},
+
+            // Inquiry function
+            {"huge", {m_math2, &eval_huge, false}},
         };
     }
 
@@ -192,6 +199,39 @@ struct IntrinsicProcedures {
                     4, nullptr, 0));
         return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, loc,
                 kind_num, type));
+    }
+
+    static ASR::expr_t *eval_bit_size(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        LFORTRAN_ASSERT(args.size() >= 1);
+        ASR::expr_t* arg = args[0];
+        ASR::ttype_t* arg_type = ASRUtils::expr_type(arg);
+        int64_t bit_size_val = 0;
+        switch( arg_type->type ) {
+            case ASR::ttypeType::Integer: {
+                ASR::Integer_t* arg_int = ASR::down_cast<ASR::Integer_t>(arg_type);
+                bit_size_val = arg_int->m_kind * 8;
+                break;
+            }
+            default: {
+                LFORTRAN_ASSERT(false);
+                break;
+            }
+        }
+        ASR::ttype_t* int32_type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, loc, 4, nullptr, 0));
+        return ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, loc, bit_size_val, int32_type));
+    }
+
+    static ASR::expr_t *eval_not(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        LFORTRAN_ASSERT(args.size() >= 1);
+        ASR::expr_t* arg = ASRUtils::expr_value(args[0]);
+        LFORTRAN_ASSERT(arg);
+        ASR::ttype_t* arg_type = ASRUtils::expr_type(arg);
+        LFORTRAN_ASSERT(arg_type->type == ASR::ttypeType::Integer);
+        ASR::Integer_t* arg_int_type = ASR::down_cast<ASR::Integer_t>(arg_type);
+        ASR::ConstantInteger_t* arg_int = ASR::down_cast<ASR::ConstantInteger_t>(arg);
+        int64_t not_arg = ~(arg_int->m_n);
+        ASR::ttype_t* int_type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, loc, arg_int_type->m_kind, nullptr, 0));
+        return ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, loc, not_arg, int_type));
     }
 
     static ASR::expr_t *eval_tiny(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
@@ -590,6 +630,23 @@ TRIG(sqrt)
         }
     }
 
+    static ASR::expr_t *eval_iachar(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        LFORTRAN_ASSERT(ASRUtils::all_args_evaluated(args));
+        ASR::expr_t* char_expr = args[0];
+        ASR::ttype_t* char_type = LFortran::ASRUtils::expr_type(char_expr);
+        if (LFortran::ASR::is_a<LFortran::ASR::Character_t>(*char_type)) {
+            char* c = ASR::down_cast<ASR::ConstantString_t>(LFortran::ASRUtils::expr_value(char_expr))->m_s;
+            ASR::ttype_t* int_type =
+                LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al,
+                loc, 4, nullptr, 0));
+            return ASR::down_cast<ASR::expr_t>(
+                ASR::make_ConstantInteger_t(al, loc,
+                c[0], int_type));
+        } else {
+            throw SemanticError("iachar() must have one character argument", loc);
+        }
+    }
+
     static ASR::expr_t *eval_selected_int_kind(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
         LFORTRAN_ASSERT(ASRUtils::all_args_evaluated(args));
         ASR::expr_t* real_expr = args[0];
@@ -767,6 +824,127 @@ TRIG(sqrt)
 
     static int64_t lfortran_ieor64(int64_t x, int64_t y) {
         return x ^ y;
+    }
+
+    static ASR::expr_t *eval_huge(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        ASR::ttype_t* huge_type = LFortran::ASRUtils::expr_type(args[0]);
+        // TODO: Arrays are a valid argument for huge
+        if (LFortran::ASRUtils::is_array(huge_type)) {
+            throw SemanticError("Array values not implemented yet", loc);
+        }
+        if (ASR::is_a<LFortran::ASR::Integer_t>(*huge_type)) {
+            int kind = LFortran::ASRUtils::extract_kind_from_ttype_t(huge_type);
+            if(kind == 4) {
+                int max_val = std::numeric_limits<int>::max();
+                return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, loc, max_val, huge_type));
+            } else {
+                throw SemanticError("Only int32 kind is supported", loc);
+            }
+        } else if (ASR::is_a<LFortran::ASR::Real_t>(*huge_type)) {
+            // TODO: Figure out how to deal with higher precision later
+            int kind = LFortran::ASRUtils::extract_kind_from_ttype_t(huge_type);
+            if (kind == 4){
+                float max_val = std::numeric_limits<float>::max();
+                return ASR::down_cast<ASR::expr_t>(
+                    ASR::make_ConstantReal_t(al, loc, max_val, huge_type)
+                );
+            } else {
+                double max_val = std::numeric_limits<double>::max();
+                return ASR::down_cast<ASR::expr_t>(
+                    ASR::make_ConstantReal_t(al, loc, max_val, huge_type)
+                );
+            }
+        } else {
+            throw SemanticError("Argument for huge() must be Real or Integer", loc);
+        }
+    }
+
+    static ASR::expr_t *eval_ishft(Allocator &al,
+            const Location &loc, Vec<ASR::expr_t*> &args) {
+        LFORTRAN_ASSERT(ASRUtils::all_args_evaluated(args));
+        if (args.size() != 2) {
+            throw SemanticError(
+                "The ishft intrinsic function accepts exactly 2 arguments", loc
+            );
+        }
+        ASR::expr_t* i = args[0];
+        ASR::expr_t* shift = args[1];
+        ASR::ttype_t* t1 = LFortran::ASRUtils::expr_type(i);
+        ASR::ttype_t* t2 = LFortran::ASRUtils::expr_type(shift);
+        if (ASR::is_a<LFortran::ASR::Integer_t>(*t1) &&
+                ASR::is_a<LFortran::ASR::Integer_t>(*t2)) {
+            int t1_kind = ASRUtils::extract_kind_from_ttype_t(t1);
+            int t2_kind = ASRUtils::extract_kind_from_ttype_t(t2);
+            if (t1_kind == 4 && t2_kind == 4) {
+                int32_t x = ASR::down_cast<ASR::ConstantInteger_t>(i)->m_n;
+                int32_t y = 0;
+                if (shift->type == ASR::exprType::ConstantInteger) {
+                    y = ASR::down_cast<ASR::ConstantInteger_t>(shift)->m_n;
+                } else if(shift->type == ASR::exprType::UnaryOp){
+                    ASR::UnaryOp_t *u = ASR::down_cast<ASR::UnaryOp_t>(shift);
+                    LFORTRAN_ASSERT(u->m_op == ASR::unaryopType::USub);
+                    y = - ASR::down_cast<ASR::ConstantInteger_t>(u->m_operand)->m_n;
+                }
+                if(abs(y) <= 31) {
+                    int32_t val;
+                    if(y > 0) {
+                        val = x << y;
+                    } else if(y < 0) {
+                        val = x >> abs(y);
+                    } else {
+                        val = x;
+                    }
+                    ASR::ttype_t *type = LFortran::ASRUtils::TYPE(
+                        ASR::make_Integer_t(al, loc, t1_kind, nullptr, 0)
+                    );
+                    return ASR::down_cast<ASR::expr_t>(
+                        ASR::make_ConstantInteger_t(al, loc, val, type)
+                    );
+                } else {
+                    throw SemanticError(
+                        "shift must be less than 32", loc
+                    );
+                }
+            } else if (t1_kind == 8 && t2_kind == 8) {
+                int64_t x = ASR::down_cast<ASR::ConstantInteger_t>(i)->m_n;
+                int64_t y = 0;
+                if (shift->type == ASR::exprType::ConstantInteger) {
+                    y = ASR::down_cast<ASR::ConstantInteger_t>(shift)->m_n;
+                } else if(shift->type == ASR::exprType::UnaryOp){
+                    ASR::UnaryOp_t *u = ASR::down_cast<ASR::UnaryOp_t>(shift);
+                    LFORTRAN_ASSERT(u->m_op == ASR::unaryopType::USub);
+                    y = - ASR::down_cast<ASR::ConstantInteger_t>(u->m_operand)->m_n;
+                }
+                if(abs(y) <= 63) {
+                    int64_t val;
+                    if(y > 0) {
+                        val = x << y;
+                    } else if(y < 0) {
+                        val = x >> abs(y);
+                    } else {
+                        val = x;
+                    }
+                    ASR::ttype_t *type = LFortran::ASRUtils::TYPE(
+                        ASR::make_Integer_t(al, loc, t1_kind, nullptr, 0)
+                    );
+                    return ASR::down_cast<ASR::expr_t>(
+                        ASR::make_ConstantInteger_t(al, loc, val, type)
+                    );
+                } else {
+                    throw SemanticError(
+                        "shift must be less than 64", loc
+                    );
+                }
+            } else {
+                throw SemanticError(
+                    "ishft(x, y): x and y should have the same kind type", loc
+                );
+            }
+        } else {
+            throw SemanticError(
+                "Arguments for this intrinsic function must be an Integer", loc
+            );
+        }
     }
 
 }; // ComptimeEval
