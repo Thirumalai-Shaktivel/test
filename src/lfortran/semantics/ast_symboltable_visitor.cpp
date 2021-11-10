@@ -164,7 +164,8 @@ public:
         }
         current_module_sym = ASR::down_cast<ASR::symbol_t>(tmp0);
         if( x.class_type == AST::modType::Submodule ) {
-            ASR::symbol_t* submod_parent = global_scope->resolve_symbol(parent_name);
+            ASR::symbol_t* submod_parent = (ASR::symbol_t*)LFortran::ASRUtils::load_module(al, global_scope,
+                                                parent_name, x.base.base.loc, false);
             ASR::Module_t *m = ASR::down_cast<ASR::Module_t>(submod_parent);
             std::string unsupported_sym_name = import_all(m);
             if( !unsupported_sym_name.empty() ) {
