@@ -20,3 +20,7 @@ contains
     distance = sqrt((a%x - b%x)**2 + (a%y - b%y)**2)
   end function point_dist
 end submodule points_a
+
+program submodules_02
+implicit none
+end program

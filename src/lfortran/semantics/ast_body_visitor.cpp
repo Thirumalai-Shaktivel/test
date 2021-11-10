@@ -599,16 +599,16 @@ public:
     void visit_Submodule(const AST::Submodule_t &x) {
         SymbolTable *old_scope = current_scope;
         ASR::symbol_t *t = current_scope->scope[to_lower(x.m_name)];
-        ASR::Submodule_t *v = ASR::down_cast<ASR::Submodule_t>(t);
+        ASR::Module_t *v = ASR::down_cast<ASR::Module_t>(t);
         current_scope = v->m_symtab;
-        current_submodule = v;
+        current_module = v;
 
         for (size_t i=0; i<x.n_contains; i++) {
             visit_program_unit(*x.m_contains[i]);
         }
 
         current_scope = old_scope;
-        current_submodule = nullptr;
+        current_module = nullptr;
         tmp = nullptr;
     }
 

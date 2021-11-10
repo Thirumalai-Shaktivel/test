@@ -516,7 +516,6 @@ public:
     Allocator &al;
     SymbolTable *current_scope;
     ASR::Module_t *current_module = nullptr;
-    ASR::Submodule_t *current_submodule = nullptr;
     Vec<char *> current_module_dependencies;
     IntrinsicProcedures intrinsic_procedures;
 
