@@ -143,25 +143,13 @@ public:
         current_module_dependencies.reserve(al, 4);
         generic_procedures.clear();
         ASR::asr_t *tmp0 = nullptr;
-        if( x.class_type == AST::modType::Module ) {
-            tmp0 = ASR::make_Module_t(
-                al, x.base.base.loc,
-                /* a_symtab */ current_scope,
-                /* a_name */ s2c(al, to_lower(x.m_name)),
-                nullptr,
-                0,
-                false);
-        } else if( x.class_type == AST::modType::Submodule ) {
-            tmp0 = ASR::make_Module_t(
-                al, x.base.base.loc,
-                /* a_symtab */ current_scope,
-                /* a_name */ s2c(al, to_lower(x.m_name)),
-                nullptr,
-                0,
-                false);
-        } else {
-            LFORTRAN_ASSERT(false);
-        }
+        tmp0 = ASR::make_Module_t(
+            al, x.base.base.loc,
+            /* a_symtab */ current_scope,
+            /* a_name */ s2c(al, to_lower(x.m_name)),
+            nullptr,
+            0,
+            false);
         current_module_sym = ASR::down_cast<ASR::symbol_t>(tmp0);
         if( x.class_type == AST::modType::Submodule ) {
             ASR::symbol_t* submod_parent = (ASR::symbol_t*)LFortran::ASRUtils::load_module(al, global_scope,
@@ -878,6 +866,11 @@ public:
                     LFORTRAN_ASSERT(sym_type->m_name);
                     std::string derived_type_name = to_lower(sym_type->m_name);
                     ASR::symbol_t *v = current_scope->resolve_symbol(derived_type_name);
+                    if (!v) {
+                        throw SemanticError("Derived type '"
+                            + derived_type_name + "' not declared", x.base.base.loc);
+
+                    }
                     type = LFortran::ASRUtils::TYPE(ASR::make_Derived_t(al, x.base.base.loc, v,
                         dims.p, dims.size()));
                 } else if (sym_type->m_type == AST::decl_typeType::TypeClass) {
