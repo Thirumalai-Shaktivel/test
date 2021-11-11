@@ -142,14 +142,12 @@ public:
         current_scope = al.make_new<SymbolTable>(parent_scope);
         current_module_dependencies.reserve(al, 4);
         generic_procedures.clear();
-        ASR::asr_t *tmp0 = nullptr;
-        tmp0 = ASR::make_Module_t(
-            al, x.base.base.loc,
-            /* a_symtab */ current_scope,
-            /* a_name */ s2c(al, to_lower(x.m_name)),
-            nullptr,
-            0,
-            false);
+        ASR::asr_t *tmp0 = ASR::make_Module_t(al, x.base.base.loc,
+                                            /* a_symtab */ current_scope,
+                                            /* a_name */ s2c(al, to_lower(x.m_name)),
+                                            nullptr,
+                                            0,
+                                            false);
         current_module_sym = ASR::down_cast<ASR::symbol_t>(tmp0);
         if( x.class_type == AST::modType::Submodule ) {
             ASR::symbol_t* submod_parent = (ASR::symbol_t*)LFortran::ASRUtils::load_module(al, global_scope,
