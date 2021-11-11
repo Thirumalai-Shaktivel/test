@@ -611,6 +611,9 @@ public:
                             } else if (sa->m_attr == AST::simple_attributeType
                                     ::AttrOptional) {
                                 assgnd_presence[sym] = ASR::presenceType::Optional;
+                            } else if(sa->m_attr == AST::simple_attributeType
+                                    ::AttrIntrinsic) {
+                                // Ignore Intrinsic attribute
                             } else {
                                 throw SemanticError("Attribute declaration not "
                                         "supported", x.base.base.loc);
