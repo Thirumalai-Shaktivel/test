@@ -7,7 +7,7 @@ contains
         integer, intent(in) :: x
         integer, intent(in) :: num_bits
 
-        intrinsic :: btest
+        logical, intrinsic :: btest
         integer :: pos
 
         res = .true.
