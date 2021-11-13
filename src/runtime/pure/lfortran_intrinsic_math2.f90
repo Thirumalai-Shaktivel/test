@@ -32,11 +32,11 @@ interface mod
 end interface
 
 interface min
-    module procedure imin, smin, dmin
+    module procedure imin, smin, dmin, variadic_min
 end interface
 
 interface max
-    module procedure imax, smax, dmax
+    module procedure imax, smax, dmax, variadic_max
 end interface
 
 interface huge
@@ -234,6 +234,10 @@ else
 end if
 end function
 
+! Dummy function for variadic nature of min intrinsic
+elemental integer function variadic_min() result(r)
+end function
+
 ! max --------------------------------------------------------------------------
 
 elemental integer function imax(x, y) result(r)
@@ -261,6 +265,10 @@ if (x > y) then
 else
     r = y
 end if
+end function
+
+! Dummy function for variadic nature of max
+elemental integer function variadic_max() result(r)
 end function
 
 ! huge -------------------------------------------------------------------------

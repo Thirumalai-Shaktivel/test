@@ -511,6 +511,11 @@ public:
         {AST::cmpopType::GtE, "~gte"}
     };
 
+    std::vector<std::string> variadic_funcs = {
+        "variadic_min",
+        "variadic_max"
+    };
+
 
     ASR::asr_t *tmp;
     Allocator &al;
@@ -1643,6 +1648,25 @@ public:
     }
 
     template <typename T>
+    bool arguments_types_match_variadic(const Vec<ASR::expr_t*> &args,
+            const T &sub) {
+        if( std::find(variadic_funcs.begin(),
+                      variadic_funcs.end(),
+                      to_lower(sub.m_name)) == variadic_funcs.end() ||
+                      args.size() == 0 ) {
+            return false;
+        }
+        ASR::ttype_t *common_type = LFortran::ASRUtils::expr_type(args[0]);
+        for (size_t i = 1; i < args.size(); i++) {
+            ASR::ttype_t *arg_type = LFortran::ASRUtils::expr_type(args[i]);
+            if (!types_equal(*arg_type, *common_type)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    template <typename T>
     bool argument_types_match(const Vec<ASR::expr_t*> &args,
             const T &sub) {
         if (args.size() == sub.n_args) {
@@ -1656,7 +1680,7 @@ public:
             }
             return true;
         } else {
-            return false;
+            return arguments_types_match_variadic(args, sub);
         }
     }
 
