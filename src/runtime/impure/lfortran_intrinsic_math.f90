@@ -99,6 +99,10 @@ interface system_clock
     module procedure i32sys_clock, i64sys_clock
 end interface
 
+interface random_number
+    module procedure sp_rand_num, dp_rand_num
+end interface
+
 contains
 
 ! abs --------------------------------------------------------------------------
@@ -1029,6 +1033,29 @@ interface
     end subroutine
 end interface
 call c_i64sys_clock(count, count_rate, count_max)
+end subroutine
+
+! random_number ----------------------------------------------------------------
+pure subroutine sp_rand_num(harvest)
+real(sp), intent(out) :: harvest
+interface
+    pure subroutine c_sp_rand_num(harvest) &
+        bind(c, name="_lfortran_sp_rand_num")
+        real(sp), intent(out) :: harvest
+    end subroutine
+end interface
+call c_sp_rand_num(harvest)
+end subroutine
+
+pure subroutine dp_rand_num(harvest)
+real(dp), intent(out) :: harvest
+interface
+    pure subroutine c_dp_rand_num(harvest) &
+        bind(c, name="_lfortran_dp_rand_num")
+        real(dp), intent(out) :: harvest
+    end subroutine
+end interface
+call c_dp_rand_num(harvest)
 end subroutine
 
 end module
