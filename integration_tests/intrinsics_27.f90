@@ -1,11 +1,5 @@
 program intrinsics_27
-implicit none
-
-real(4) :: random_sp
-real(8) :: random_dp
-
-call random_number(random_sp)
-call random_number(random_dp)
-print*, random_sp, random_dp
-
-end program intrinsics_27
+    integer, dimension(-1:1, -1:2) :: a
+    print *, shape(a)             ! (/ 3, 4 /)
+    print *, size(shape(42))      ! (/ /)
+end program
