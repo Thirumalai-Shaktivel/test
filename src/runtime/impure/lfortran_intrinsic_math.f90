@@ -1041,7 +1041,8 @@ real(sp), intent(out) :: harvest
 interface
     pure subroutine c_sp_rand_num(harvest) &
         bind(c, name="_lfortran_sp_rand_num")
-        real(sp), intent(out) :: harvest
+        import :: c_float
+        real(c_float), intent(out) :: harvest
     end subroutine
 end interface
 call c_sp_rand_num(harvest)
@@ -1052,7 +1053,8 @@ real(dp), intent(out) :: harvest
 interface
     pure subroutine c_dp_rand_num(harvest) &
         bind(c, name="_lfortran_dp_rand_num")
-        real(dp), intent(out) :: harvest
+        import :: c_double
+        real(c_double), intent(out) :: harvest
     end subroutine
 end interface
 call c_dp_rand_num(harvest)
