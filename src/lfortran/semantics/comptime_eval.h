@@ -20,6 +20,7 @@ struct IntrinsicProcedures {
     const std::string m_math2 = "lfortran_intrinsic_math2";
     const std::string m_string = "lfortran_intrinsic_string";
     const std::string m_bit = "lfortran_intrinsic_bit";
+    const std::string m_ieee_arithmetic = "lfortran_intrinsic_ieee_arithmetic";
 
     /*
         The last parameter is true if the callback accepts evaluated arguments.
@@ -51,6 +52,7 @@ struct IntrinsicProcedures {
             {"aimag", {m_math, &eval_aimag, true}},
             {"char", {m_builtin, &eval_char, true}},
             {"floor", {m_math2, &eval_floor, true}},
+            {"ceiling", {m_math2, &eval_ceiling, true}},
             {"nint", {m_math2, &eval_nint, true}},
             {"mod", {m_math2, &eval_mod, true}},
             {"modulo", {m_math2, &eval_modulo, true}},
@@ -60,6 +62,8 @@ struct IntrinsicProcedures {
             {"selected_real_kind", {m_kind, &eval_selected_real_kind, true}},
             {"selected_char_kind", {m_kind, &eval_selected_char_kind, true}},
             {"exp", {m_math, &eval_exp, true}},
+            {"range", {m_math, &eval_range, false}},
+            {"epsilon", {m_math, &eval_epsilon, true}},
             {"log", {m_math, &eval_log, true}},
             {"erf", {m_math, &eval_erf, true}},
             {"erfc", {m_math, &eval_erfc, true}},
@@ -102,6 +106,7 @@ struct IntrinsicProcedures {
             {"trim", {m_string, &not_implemented, false}},
             {"len_trim", {m_string, &not_implemented, false}},
             {"repeat", {m_string, &not_implemented, false}},
+            {"new_line", {m_string, &eval_new_line, false}},
 
             // Subroutines
             {"cpu_time", {m_math, &not_implemented, false}},
@@ -109,8 +114,9 @@ struct IntrinsicProcedures {
             {"not", {m_builtin, &eval_not, false}},
             {"iachar",  {m_builtin, &eval_iachar, false}},
             {"achar", {m_builtin, &eval_achar, false}},
-            {"len", {m_builtin, &not_implemented, false}},
+            {"len", {m_builtin, &eval_len, false}},
             {"size", {m_builtin, &not_implemented, false}},
+            {"merge", {m_builtin, &not_implemented, false}},
             {"shape", {m_builtin, &not_implemented, false}},
             {"present", {m_builtin, &not_implemented, false}},
             {"lbound", {m_builtin, &not_implemented, false}},
@@ -285,6 +291,22 @@ struct IntrinsicProcedures {
         }
     }
 
+    static ASR::expr_t *eval_ceiling(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        LFORTRAN_ASSERT(ASRUtils::all_args_evaluated(args));
+        // TODO: Implement optional kind; J3/18-007r1 --> FLOOR(A, [KIND])
+        ASR::expr_t* func_expr = args[0];
+        ASR::ttype_t* func_type = LFortran::ASRUtils::expr_type(func_expr);
+        if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*func_type)) {
+            double rv = ASR::down_cast<ASR::ConstantReal_t>(func_expr)->m_r;
+            int64_t ival = ceil(rv);
+            ASR::ttype_t *type = LFortran::ASRUtils::TYPE(
+                    ASR::make_Integer_t(al, loc, 4, nullptr, 0));
+            return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, loc, ival, type));
+        } else {
+            throw SemanticError("floor must have one real argument", loc);
+        }
+    }
+
     static ASR::expr_t *eval_nint(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
         LFORTRAN_ASSERT(ASRUtils::all_args_evaluated(args));
         ASR::expr_t* func_expr = args[0];
@@ -430,6 +452,30 @@ TRIG(sqrt)
     static ASR::expr_t *eval_atan2(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
         return eval_2args(al, loc, args, &atan2);
     }
+    static ASR::expr_t *eval_epsilon(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        LFORTRAN_ASSERT(args.size() == 1);
+        return ASRUtils::expr_value(args[0]);
+    }
+
+    static ASR::expr_t *eval_new_line(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        LFORTRAN_ASSERT(args.size() == 1);
+        char* new_line_str = (char*)"\n";
+        return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantString_t(al, loc, new_line_str, ASRUtils::expr_type(args[0])));
+    }
+
+    static ASR::expr_t *eval_len(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        if( !ASRUtils::all_args_evaluated(args) ) {
+            return nullptr;
+        }
+        LFORTRAN_ASSERT(args.size() == 1 || args.size() == 2);
+        ASR::expr_t *arg_value = ASRUtils::expr_value(args[0]);
+        LFORTRAN_ASSERT(arg_value->type == ASR::exprType::ConstantString);
+        ASR::ConstantString_t *value_str = ASR::down_cast<ASR::ConstantString_t>(arg_value);
+        int64_t len_str = to_lower(value_str->m_s).length();
+        ASR::ttype_t *type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, loc,
+                                                        4, nullptr, 0));
+        return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, loc, len_str, type));
+    }
 
     static double lfortran_modulo(double x, double y) {
         if (x > 0 && y > 0) {
@@ -506,7 +552,7 @@ TRIG(sqrt)
             ) {
         LFORTRAN_ASSERT(ASRUtils::all_args_evaluated(args));
         if (args.size() != 1) {
-            throw SemanticError("Intrinsic trig function accepts exactly 1 argument", loc);
+            throw SemanticError("Intrinsic abs function accepts exactly 1 argument", loc);
         }
         ASR::expr_t* trig_arg = args[0];
         ASR::ttype_t* t = LFortran::ASRUtils::expr_type(args[0]);
@@ -527,6 +573,52 @@ TRIG(sqrt)
         } else {
             throw SemanticError("Argument of the abs function must be Integer, Real or Complex", loc);
         }
+    }
+
+    static ASR::expr_t *eval_range(Allocator &al, const Location &loc,
+            Vec<ASR::expr_t*> &args
+            ) {
+        if (args.size() != 1) {
+            throw SemanticError("Intrinsic range function accepts exactly 1 argument", loc);
+        }
+        ASR::ttype_t* t = LFortran::ASRUtils::expr_type(args[0]);
+        int64_t range_val = -1;
+        if (LFortran::ASR::is_a<LFortran::ASR::Real_t>(*t)) {
+            ASR::Real_t* t_real = ASR::down_cast<ASR::Real_t>(t);
+            if( t_real->m_kind == 4 ) {
+                range_val = 37;
+            } else if( t_real->m_kind == 8 ) {
+                range_val = 307;
+            } else {
+                throw SemanticError("Only 32 and 64 bit kinds are supported.", loc);
+            }
+        } else if (LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*t)) {
+            ASR::Integer_t* t_int = ASR::down_cast<ASR::Integer_t>(t);
+            if( t_int->m_kind == 4 ) {
+                range_val = 9;
+            } else if( t_int->m_kind == 8 ) {
+                range_val = 18;
+            } else if( t_int->m_kind == 1 ) {
+                range_val = 2;
+            } else if( t_int->m_kind == 2 ) {
+                range_val = 4;
+            } else {
+                throw SemanticError("Only 32, 64 and 8 bit kinds are supported.", loc);
+            }
+        } else if (LFortran::ASR::is_a<LFortran::ASR::Complex_t>(*t)) {
+            ASR::Complex_t* t_complex = ASR::down_cast<ASR::Complex_t>(t);
+            if( t_complex->m_kind == 4 ) {
+                range_val = 37;
+            } else if( t_complex->m_kind == 8 ) {
+                range_val = 307;
+            } else {
+                throw SemanticError("Only 32 and 64 bit kinds are supported.", loc);
+            }
+        } else {
+            throw SemanticError("Argument of the range function must be Integer, Real or Complex", loc);
+        }
+        ASR::ttype_t* tmp_int_type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, loc, 4, nullptr, 0));
+        return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, loc, range_val, tmp_int_type));;
     }
 
     static ASR::expr_t *eval_aimag(Allocator &al, const Location &loc,
