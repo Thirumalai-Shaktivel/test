@@ -407,8 +407,10 @@ public:
             {
                 case 1:
                     type_ptr = llvm::Type::getInt8PtrTy(context);
+                    break;
                 case 2:
                     type_ptr = llvm::Type::getInt16PtrTy(context);
+                    break;
                 case 4:
                     type_ptr = llvm::Type::getInt32PtrTy(context);
                     break;
@@ -423,8 +425,10 @@ public:
             {
                 case 1:
                     type_ptr = llvm::Type::getInt8Ty(context);
+                    break;
                 case 2:
                     type_ptr = llvm::Type::getInt16Ty(context);
+                    break;
                 case 4:
                     type_ptr = llvm::Type::getInt32Ty(context);
                     break;
