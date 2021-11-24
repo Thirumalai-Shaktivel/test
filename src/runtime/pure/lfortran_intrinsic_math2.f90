@@ -158,7 +158,7 @@ end function
 
 elemental integer function dceiling(x) result(r)
 real(dp), intent(in) :: x
-r = sfloor(x)
+r = dfloor(x)
 if (r - x /= 0.0) then
     r = r + 1
 end if
