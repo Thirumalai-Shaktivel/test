@@ -63,6 +63,7 @@ struct IntrinsicProcedures {
             {"selected_char_kind", {m_kind, &eval_selected_char_kind, true}},
             {"exp", {m_math, &eval_exp, true}},
             {"range", {m_math, &eval_range, false}},
+            {"epsilon", {m_math, &eval_epsilon, true}},
             {"log", {m_math, &eval_log, true}},
             {"erf", {m_math, &eval_erf, true}},
             {"erfc", {m_math, &eval_erfc, true}},
@@ -716,6 +717,11 @@ TRIG(sqrt)
         } else {
             throw SemanticError("iachar() must have one character argument", loc);
         }
+    }
+
+    static ASR::expr_t *eval_epsilon(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
+        LFORTRAN_ASSERT(args.size() == 1);
+        return ASRUtils::expr_value(args[0]);
     }
 
     static ASR::expr_t *eval_new_line(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
