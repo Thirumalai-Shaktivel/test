@@ -405,6 +405,10 @@ public:
         if( get_pointer ) {
             switch(a_kind)
             {
+                case 1:
+                    type_ptr = llvm::Type::getInt8PtrTy(context);
+                case 2:
+                    type_ptr = llvm::Type::getInt16PtrTy(context);
                 case 4:
                     type_ptr = llvm::Type::getInt32PtrTy(context);
                     break;
@@ -417,6 +421,10 @@ public:
         } else {
             switch(a_kind)
             {
+                case 1:
+                    type_ptr = llvm::Type::getInt8Ty(context);
+                case 2:
+                    type_ptr = llvm::Type::getInt16Ty(context);
                 case 4:
                     type_ptr = llvm::Type::getInt32Ty(context);
                     break;
