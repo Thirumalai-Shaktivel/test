@@ -63,7 +63,7 @@ struct IntrinsicProcedures {
             {"selected_char_kind", {m_kind, &eval_selected_char_kind, true}},
             {"exp", {m_math, &eval_exp, true}},
             {"range", {m_math, &eval_range, false}},
-            {"epsilon", {m_math, &eval_epsilon, true}},
+            {"epsilon", {m_math, &eval_epsilon, false}},
             {"log", {m_math, &eval_log, true}},
             {"erf", {m_math, &eval_erf, true}},
             {"erfc", {m_math, &eval_erfc, true}},
@@ -721,7 +721,23 @@ TRIG(sqrt)
 
     static ASR::expr_t *eval_epsilon(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {
         LFORTRAN_ASSERT(args.size() == 1);
-        return ASRUtils::expr_value(args[0]);
+        ASR::ttype_t* t = LFortran::ASRUtils::expr_type(args[0]);
+        if (!LFortran::ASR::is_a<LFortran::ASR::Real_t>(*t)) {
+            throw SemanticError("Only inputs of real type are accepted in epsilon intrinsic.", loc);
+        }
+        ASR::Real_t* t_real = ASR::down_cast<ASR::Real_t>(t);
+        if( t_real->m_kind == 4 ) {
+            float epsilon_val = std::numeric_limits<float>::min();
+            return ASR::down_cast<ASR::expr_t>(
+                    ASR::make_ConstantReal_t(al, loc, epsilon_val, t));
+        } else if( t_real->m_kind == 8 ) {
+            double epsilon_val = std::numeric_limits<double>::min();
+            return ASR::down_cast<ASR::expr_t>(
+                    ASR::make_ConstantReal_t(al, loc, epsilon_val, t));
+        } else {
+            throw SemanticError("Only 32 and 64 bit kinds are supported in epsilon intrinsic.", loc);
+        }
+        return nullptr;
     }
 
     static ASR::expr_t *eval_new_line(Allocator &al, const Location &loc, Vec<ASR::expr_t*> &args) {

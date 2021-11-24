@@ -1012,12 +1012,12 @@ end function
 
 elemental real(sp) function sepsilon(x) result(r)
 real(sp), intent(in) :: x
-r = 1.175494351e-38
+r = 1.19209290E-07
 end function
 
 elemental real(dp) function depsilon(x) result(r)
 real(dp), intent(in) :: x
-r = 2.2250738585072014E-308
+r = 2.2204460492503131E-016
 end function
 
 ! range ---------------------------------------------------------------------
