@@ -49,7 +49,7 @@ set(SRC
 
     stacktrace.cpp
 
-    ../bin/tpl/whereami/whereami.cpp
+#    ../bin/tpl/whereami/whereami.cpp
 )
 if (WITH_XEUS)
     set(SRC ${SRC}
@@ -82,7 +82,7 @@ if (WITH_LLVM)
     endif()
 endif()
 add_library(lfortran_lib ${SRC})
-target_link_libraries(lfortran_lib lfortran_runtime_static ZLIB::ZLIB)
+target_link_libraries(lfortran_lib lfortran_runtime_static)
 target_include_directories(lfortran_lib BEFORE PUBLIC ${lfortran_SOURCE_DIR}/src)
 target_include_directories(lfortran_lib BEFORE PUBLIC ${lfortran_BINARY_DIR}/src)
 if (WITH_XEUS)
