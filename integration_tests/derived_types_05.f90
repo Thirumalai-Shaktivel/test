@@ -2,7 +2,7 @@ module stdlib_string_type
     implicit none
 
     type :: string_type
-        character(len=*), allocatable :: raw
+        character(len=:), allocatable :: raw
     end type string_type
 
     interface string_type
