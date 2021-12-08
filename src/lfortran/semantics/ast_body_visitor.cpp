@@ -524,10 +524,6 @@ public:
                             = AST::down_cast<AST::CaseCondExpr_t>(Case_Stmt->m_test[i]);
                         this->visit_expr(*condexpr->m_cond);
                         ASR::expr_t* m_test_i = LFortran::ASRUtils::EXPR(tmp);
-                        if( LFortran::ASRUtils::expr_type(m_test_i)->type != ASR::ttypeType::Integer ) {
-                            throw SemanticError(R"""(Expression in Case selector can only be an Integer)""",
-                                                x.base.loc);
-                        }
                         a_test_vec.push_back(al, LFortran::ASRUtils::EXPR(tmp));
                     }
                     Vec<ASR::stmt_t*> case_body_vec;
@@ -580,9 +576,6 @@ public:
     void visit_Select(const AST::Select_t& x) {
         this->visit_expr(*(x.m_test));
         ASR::expr_t* a_test = LFortran::ASRUtils::EXPR(tmp);
-        if( LFortran::ASRUtils::expr_type(a_test)->type != ASR::ttypeType::Integer ) {
-            throw SemanticError(R"""(Expression in Case selector can only be an Integer)""", x.base.base.loc);
-        }
         Vec<ASR::case_stmt_t*> a_body_vec;
         a_body_vec.reserve(al, x.n_body);
         Vec<ASR::stmt_t*> def_body;
@@ -729,6 +722,9 @@ public:
     void visit_Function(const AST::Function_t &x) {
         SymbolTable *old_scope = current_scope;
         ASR::symbol_t *t = current_scope->scope[to_lower(x.m_name)];
+        if( t->type == ASR::symbolType::GenericProcedure ) {
+            t = current_scope->scope["~" + to_lower(x.m_name)];
+        }
         ASR::Function_t *v = ASR::down_cast<ASR::Function_t>(t);
         current_scope = v->m_symtab;
         Vec<ASR::stmt_t*> body;
@@ -998,23 +994,20 @@ public:
     }
 
     void visit_DoLoop(const AST::DoLoop_t &x) {
-        if (! x.m_var) {
-            throw SemanticError("Do loop: loop variable is required for now",
-                x.base.base.loc);
+        ASR::expr_t *var, *start, *end;
+        var = start = end = nullptr;
+        if (x.m_var) {
+            var = LFortran::ASRUtils::EXPR(resolve_variable(x.base.base.loc, to_lower(x.m_var)));
         }
-        if (! x.m_start) {
-            throw SemanticError("Do loop: start condition required for now",
-                x.base.base.loc);
+        if (x.m_start) {
+            visit_expr(*x.m_start);
+            start = LFortran::ASRUtils::EXPR(tmp);
         }
-        if (! x.m_end) {
-            throw SemanticError("Do loop: end condition required for now",
-                x.base.base.loc);
+        if (x.m_end) {
+            visit_expr(*x.m_end);
+            end = LFortran::ASRUtils::EXPR(tmp);
         }
-        ASR::expr_t *var = LFortran::ASRUtils::EXPR(resolve_variable(x.base.base.loc, to_lower(x.m_var)));
-        visit_expr(*x.m_start);
-        ASR::expr_t *start = LFortran::ASRUtils::EXPR(tmp);
-        visit_expr(*x.m_end);
-        ASR::expr_t *end = LFortran::ASRUtils::EXPR(tmp);
+
         ASR::expr_t *increment;
         if (x.m_increment) {
             visit_expr(*x.m_increment);
@@ -1031,7 +1024,11 @@ public:
         head.m_start = start;
         head.m_end = end;
         head.m_increment = increment;
-        head.loc = head.m_v->base.loc;
+        if( head.m_v ) {
+            head.loc = head.m_v->base.loc;
+        } else {
+            head.loc = x.base.base.loc;
+        }
         tmp = ASR::make_DoLoop_t(al, x.base.base.loc, head, body.p,
                 body.size());
     }

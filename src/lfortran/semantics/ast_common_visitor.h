@@ -969,37 +969,45 @@ public:
     }
 
     ASR::symbol_t* resolve_deriv_type_proc(const Location &loc, const std::string &var_name,
-            const std::string &dt_name, SymbolTable*& scope) {
-        ASR::symbol_t *v = scope->resolve_symbol(dt_name);
-        if (!v) {
-            throw SemanticError("Variable '" + dt_name + "' not declared", loc);
-        }
-        ASR::Variable_t* v_variable = ASR::down_cast<ASR::Variable_t>(v);
-        ASR::ttype_t* v_type = ASRUtils::type_get_past_pointer(v_variable->m_type);
-        if ( ASR::is_a<ASR::Derived_t>(*v_type) || ASR::is_a<ASR::Class_t>(*v_type)) {
-            ASR::Derived_t* der = (ASR::Derived_t*)(&(v_type->base));
-            ASR::DerivedType_t* der_type;
-            if( der->m_derived_type->type == ASR::symbolType::ExternalSymbol ) {
-                ASR::ExternalSymbol_t* der_ext = (ASR::ExternalSymbol_t*)(&(der->m_derived_type->base));
-                ASR::symbol_t* der_sym = der_ext->m_external;
-                if( der_sym == nullptr ) {
-                    throw SemanticError("'" + std::string(der_ext->m_name) + "' isn't a Derived type.", loc);
+            const std::string dt_name, SymbolTable*& scope, ASR::symbol_t* parent=nullptr) {
+        ASR::symbol_t* v = nullptr;
+        ASR::DerivedType_t* der_type = nullptr;
+        if( parent == nullptr ) {
+            v = scope->resolve_symbol(dt_name);
+            if (!v) {
+                throw SemanticError("Variable '" + dt_name + "' not declared", loc);
+            }
+            ASR::Variable_t* v_variable = ASR::down_cast<ASR::Variable_t>(v);
+            ASR::ttype_t* v_type = ASRUtils::type_get_past_pointer(v_variable->m_type);
+            if ( ASR::is_a<ASR::Derived_t>(*v_type) || ASR::is_a<ASR::Class_t>(*v_type)) {
+                ASR::Derived_t* der = (ASR::Derived_t*)(&(v_type->base));
+                if( der->m_derived_type->type == ASR::symbolType::ExternalSymbol ) {
+                    ASR::ExternalSymbol_t* der_ext = (ASR::ExternalSymbol_t*)(&(der->m_derived_type->base));
+                    ASR::symbol_t* der_sym = der_ext->m_external;
+                    if( der_sym == nullptr ) {
+                        throw SemanticError("'" + std::string(der_ext->m_name) + "' isn't a Derived type.", loc);
+                    } else {
+                        der_type = (ASR::DerivedType_t*)(&(der_sym->base));
+                    }
                 } else {
-                    der_type = (ASR::DerivedType_t*)(&(der_sym->base));
+                    der_type = (ASR::DerivedType_t*)(&(der->m_derived_type->base));
                 }
             } else {
-                der_type = (ASR::DerivedType_t*)(&(der->m_derived_type->base));
-            }
-            scope = der_type->m_symtab;
-            ASR::symbol_t* member = der_type->m_symtab->resolve_symbol(var_name);
-            if( member != nullptr ) {
-                return member;
-            } else {
-                throw SemanticError("Variable '" + dt_name + "' doesn't have any member named, '" + var_name + "'.", loc);
+                throw SemanticError("Variable '" + dt_name + "' is not a derived type", loc);
             }
         } else {
-            throw SemanticError("Variable '" + dt_name + "' is not a derived type", loc);
+            v = ASRUtils::symbol_get_past_external(parent);
+            der_type = ASR::down_cast<ASR::DerivedType_t>(v);
         }
+        ASR::symbol_t* member = der_type->m_symtab->resolve_symbol(var_name);
+        if( member != nullptr ) {
+            scope = der_type->m_symtab;
+        } else if( der_type->m_parent != nullptr ) {
+            member = resolve_deriv_type_proc(loc, var_name, "", scope, der_type->m_parent);
+        } else {
+            throw SemanticError("Variable '" + dt_name + "' doesn't have any member named, '" + var_name + "'.", loc);
+        }
+        return member;
     }
 
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
@@ -1359,7 +1367,7 @@ public:
     }
 
     void visit_BOZ(const AST::BOZ_t& x) {
-        std::string s = std::string(x.m_s); 
+        std::string s = std::string(x.m_s);
         int base = -1;
         ASR::bozType boz_type;
         if( s[0] == 'b' || s[0] == 'B' ) {
@@ -1372,9 +1380,9 @@ public:
             boz_type = ASR::bozType::Octal;
             base = 8;
         } else {
-            throw SemanticError(R"""(Only 'b', 'o' and 'z' 
-                                are accepted as prefixes of 
-                                BOZ literal constants.)""", 
+            throw SemanticError(R"""(Only 'b', 'o' and 'z'
+                                are accepted as prefixes of
+                                BOZ literal constants.)""",
                                 x.base.base.loc);
         }
         std::string boz_str = s.substr(2, s.size() - 2);
@@ -1503,6 +1511,10 @@ public:
                 re, im, type, value);
     }
 
+    void visit_Procedure(const AST::Procedure_t&) {
+        // To Be Implemented
+    }
+
     Vec<ASR::expr_t*> visit_expr_list(AST::fnarg_t *ast_list, size_t n) {
         Vec<ASR::expr_t*> asr_list;
         asr_list.reserve(al, n);
@@ -1531,7 +1543,7 @@ public:
     void visit_kwargs(Vec<ASR::expr_t*> &args, AST::keyword_t *kwargs, size_t n,
                 ASR::expr_t **fn_args, size_t fn_n_args, const Location &loc) {
         size_t n_args = args.size();
-        if (args.size() + n != fn_n_args) {
+        if (n_args + n != fn_n_args) {
             throw SemanticError(
                 "Procedure accepts " + std::to_string(fn_n_args)
                 + " arguments, but " + std::to_string(args.size() + n)
@@ -1662,7 +1674,7 @@ public:
             const ASR::GenericProcedure_t &p, Location loc) {
         for (size_t i=0; i < p.n_procs; i++) {
             if( ASR::is_a<ASR::ClassProcedure_t>(*p.m_procs[i]) ) {
-                ASR::ClassProcedure_t *clss_fn 
+                ASR::ClassProcedure_t *clss_fn
                     = ASR::down_cast<ASR::ClassProcedure_t>(p.m_procs[i]);
                 const ASR::symbol_t *proc = ASRUtils::symbol_get_past_external(clss_fn->m_proc);
                 if( select_func_subrout(proc, args, loc) ) {
@@ -1746,6 +1758,16 @@ public:
                 case (ASR::ttypeType::Logical) : {
                     ASR::Logical_t *a2 = ASR::down_cast<ASR::Logical_t>(&a);
                     ASR::Logical_t *b2 = ASR::down_cast<ASR::Logical_t>(&b);
+                    if (a2->m_kind == b2->m_kind) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                    break;
+                }
+                case (ASR::ttypeType::Character) : {
+                    ASR::Character_t *a2 = ASR::down_cast<ASR::Character_t>(&a);
+                    ASR::Character_t *b2 = ASR::down_cast<ASR::Character_t>(&b);
                     if (a2->m_kind == b2->m_kind) {
                         return true;
                     } else {
