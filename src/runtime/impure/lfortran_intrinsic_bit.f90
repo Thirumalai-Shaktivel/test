@@ -332,52 +332,52 @@ end subroutine
 ! bge ------------------------------------------------------------------------
 
 elemental logical function bge32(i, j) result(r)
-integer(int32) :: i, j
+integer(int32), intent(in) :: i, j
 end function
 
 elemental logical function bge64(i, j) result(r)
-integer(int64) :: i, j
+integer(int64), intent(in) :: i, j
 end function
 
 ! bgt ------------------------------------------------------------------------
 
 elemental logical function bgt32(i, j) result(r)
-integer(int32) :: i, j
+integer(int32), intent(in) :: i, j
 end function
 
 elemental logical function bgt64(i, j) result(r)
-integer(int64) :: i, j
+integer(int64), intent(in) :: i, j
 end function
 
 ! ble ------------------------------------------------------------------------
 
 elemental logical function ble32(i, j) result(r)
-integer(int32) :: i, j
+integer(int32), intent(in) :: i, j
 end function
 
 elemental logical function ble64(i, j) result(r)
-integer(int64) :: i, j
+integer(int64), intent(in) :: i, j
 end function
 
 ! blt ------------------------------------------------------------------------
 
 elemental logical function blt32(i, j) result(r)
-integer(int32) :: i, j
+integer(int32), intent(in) :: i, j
 end function
 
 elemental logical function blt64(i, j) result(r)
-integer(int64) :: i, j
+integer(int64), intent(in) :: i, j
 end function
 
 ! ibits ------------------------------------------------------------------------
 
 elemental integer(int32) function ibits32(i, pos, len) result(r)
-integer(int32) :: i, pos, len
+integer(int32), intent(in) :: i, pos, len
 end function
 
 elemental integer(int64) function ibits64(i, pos, len) result(r)
-integer(int64) :: i
-integer(int32) :: pos, len
+integer(int64), intent(in) :: i
+integer(int32), intent(in) :: pos, len
 end function
 
 end module
