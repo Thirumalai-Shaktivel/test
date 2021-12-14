@@ -523,7 +523,6 @@ public:
                         AST::CaseCondExpr_t *condexpr
                             = AST::down_cast<AST::CaseCondExpr_t>(Case_Stmt->m_test[i]);
                         this->visit_expr(*condexpr->m_cond);
-                        ASR::expr_t* m_test_i = LFortran::ASRUtils::EXPR(tmp);
                         a_test_vec.push_back(al, LFortran::ASRUtils::EXPR(tmp));
                     }
                     Vec<ASR::stmt_t*> case_body_vec;
