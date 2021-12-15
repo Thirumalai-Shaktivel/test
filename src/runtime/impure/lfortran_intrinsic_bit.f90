@@ -319,8 +319,16 @@ end function
 ! mvbits ------------------------------------------------------------------------
 
 elemental subroutine mvbits32(from, frompos, len, to, topos)
-integer(int32), intent(in) :: from, frompos, len
-integer(int32), intent(out) :: to, topos
+integer(int32), intent(in) :: from, frompos, len, topos
+integer(int32), intent(out) :: to
+print *, from, frompos, len, to, topos
+interface
+    pure integer(int32) function c_mvbits32(from, frompos, len, to, topos) bind(c, name="_lfortran_mvbits32")
+    import :: int32
+    integer(int32), intent(in), value :: from, frompos, len, to, topos
+    end function
+end interface
+to = c_mvbits32(from, frompos, len, to, topos)
 end subroutine
 
 elemental subroutine mvbits64(from, frompos, len, to, topos)

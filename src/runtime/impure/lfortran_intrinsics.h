@@ -136,6 +136,8 @@ LFORTRAN_API int32_t _lfortran_btest32(int32_t i, int pos);
 LFORTRAN_API int64_t _lfortran_btest64(int64_t i, int pos);
 LFORTRAN_API int32_t _lfortran_ishft32(int32_t i, int32_t shift);
 LFORTRAN_API int64_t _lfortran_ishft64(int64_t i, int64_t shift);
+LFORTRAN_API int32_t _lfortran_mvbits32(int32_t from, int32_t frompos,
+                                        int32_t len, int32_t to, int32_t topos);
 LFORTRAN_API void _lfortran_cpu_time(double *t);
 LFORTRAN_API void _lfortran_i32sys_clock(
         int32_t *count, int32_t *rate, int32_t *max);
