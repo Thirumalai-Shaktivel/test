@@ -82,6 +82,8 @@ LFORTRAN_API void _lfortran_complex_div(struct _lfortran_complex* a,
 #define CMPLXF(x, y) ((float complex)((float)(x) + _Imaginary_I * (float)(y)))
 #define CMPLXL(x, y) ((long double complex)((long double)(x) + \
                       _Imaginary_I * (long double)(y)))
+#define BIT_LENGTH_32 32
+#define BIT_LENGTH_64 64
 
 LFORTRAN_API void _lfortran_complex_pow(struct _lfortran_complex* a,
         struct _lfortran_complex* b, struct _lfortran_complex *result)
@@ -632,36 +634,16 @@ LFORTRAN_API int64_t _lfortran_ishft64(int64_t i, int64_t shift) {
 
 LFORTRAN_API int32_t _lfortran_mvbits32(int32_t from, int32_t frompos,
                                         int32_t len, int32_t to, int32_t topos) {
-    char from_str[32], to_str[32];
-    int i, j;
-    for( i = 0; i < 32; i++ ) {
-        from_str[i] = '0';
-        to_str[i] = '0';
-    }
-    i = 0;
-    while( from > 0 ) {
-        from_str[i] = (char)('0' + from % 2);
-        from /= 2;
-        i++;
-    }
-    i = 0;
-    while( to > 0 ) {
-        to_str[i] = (char)('0' + to % 2);
-        to /= 2;
-        i++;
-    }
-    i = frompos, j = topos;
-    while( len-- ) {
-        to_str[j] = from_str[i];
-        i++, j++;
-    }
-    int coeff = 1;
-    int32_t new_to = 0;
-    for( i = 0; i < 32; i++ ) {
-        new_to += (to_str[i] - '0') * coeff;
-        coeff = coeff * 2;
-    }
-    return new_to;
+    uint32_t all_ones = ~0;
+    uint32_t ufrom = from;
+    uint32_t uto = to;
+    all_ones <<= (BIT_LENGTH_32 - frompos - len);
+    all_ones >>= (BIT_LENGTH_32 - len);
+    all_ones <<= topos;
+    ufrom <<= (BIT_LENGTH_32 - frompos - len);
+    ufrom >>= (BIT_LENGTH_32 - len);
+    ufrom <<= topos;
+    return (~all_ones & uto) | ufrom;
 }
 
 // cpu_time  -------------------------------------------------------------------
