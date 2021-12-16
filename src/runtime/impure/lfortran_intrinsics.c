@@ -82,8 +82,8 @@ LFORTRAN_API void _lfortran_complex_div(struct _lfortran_complex* a,
 #define CMPLXF(x, y) ((float complex)((float)(x) + _Imaginary_I * (float)(y)))
 #define CMPLXL(x, y) ((long double complex)((long double)(x) + \
                       _Imaginary_I * (long double)(y)))
-#define BIT_LENGTH_32 32
-#define BIT_LENGTH_64 64
+#define BITS_32 32
+#define BITS_64 64
 
 LFORTRAN_API void _lfortran_complex_pow(struct _lfortran_complex* a,
         struct _lfortran_complex* b, struct _lfortran_complex *result)
@@ -637,11 +637,25 @@ LFORTRAN_API int32_t _lfortran_mvbits32(int32_t from, int32_t frompos,
     uint32_t all_ones = ~0;
     uint32_t ufrom = from;
     uint32_t uto = to;
-    all_ones <<= (BIT_LENGTH_32 - frompos - len);
-    all_ones >>= (BIT_LENGTH_32 - len);
+    all_ones <<= (BITS_32 - frompos - len);
+    all_ones >>= (BITS_32 - len);
     all_ones <<= topos;
-    ufrom <<= (BIT_LENGTH_32 - frompos - len);
-    ufrom >>= (BIT_LENGTH_32 - len);
+    ufrom <<= (BITS_32 - frompos - len);
+    ufrom >>= (BITS_32 - len);
+    ufrom <<= topos;
+    return (~all_ones & uto) | ufrom;
+}
+
+LFORTRAN_API int64_t _lfortran_mvbits64(int64_t from, int32_t frompos,
+                                        int32_t len, int64_t to, int32_t topos) {
+    uint64_t all_ones = ~0;
+    uint64_t ufrom = from;
+    uint64_t uto = to;
+    all_ones <<= (BITS_64 - frompos - len);
+    all_ones >>= (BITS_64 - len);
+    all_ones <<= topos;
+    ufrom <<= (BITS_64 - frompos - len);
+    ufrom >>= (BITS_64 - len);
     ufrom <<= topos;
     return (~all_ones & uto) | ufrom;
 }

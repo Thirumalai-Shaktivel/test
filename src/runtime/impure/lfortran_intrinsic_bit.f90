@@ -334,6 +334,14 @@ elemental subroutine mvbits64(from, frompos, len, to, topos)
 integer(int64), intent(in) :: from
 integer(int32), intent(in) :: frompos, len, topos
 integer(int64), intent(out) :: to
+interface
+    pure integer(int64) function c_mvbits64(from, frompos, len, to, topos) bind(c, name="_lfortran_mvbits64")
+    import :: int64, int32
+    integer(int64), intent(in), value :: from, to
+    integer(int32), intent(in), value :: frompos, len, topos
+    end function
+end interface
+to = c_mvbits64(from, frompos, len, to, topos)
 end subroutine
 
 ! bge ------------------------------------------------------------------------
