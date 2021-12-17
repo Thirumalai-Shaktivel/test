@@ -148,6 +148,8 @@ LFORTRAN_API int32_t _lfortran_ble32(int32_t i, int32_t j);
 LFORTRAN_API int32_t _lfortran_ble64(int64_t i, int64_t j);
 LFORTRAN_API int32_t _lfortran_blt32(int32_t i, int32_t j);
 LFORTRAN_API int32_t _lfortran_blt64(int64_t i, int64_t j);
+LFORTRAN_API int32_t _lfortran_ibits32(int32_t i, int32_t pos, int32_t len);
+LFORTRAN_API int64_t _lfortran_ibits64(int64_t i, int32_t pos, int32_t len);
 LFORTRAN_API void _lfortran_cpu_time(double *t);
 LFORTRAN_API void _lfortran_i32sys_clock(
         int32_t *count, int32_t *rate, int32_t *max);

@@ -700,6 +700,16 @@ LFORTRAN_API int32_t _lfortran_blt64(int64_t i, int64_t j) {
     return ui < uj;
 }
 
+LFORTRAN_API int32_t _lfortran_ibits32(int32_t i, int32_t pos, int32_t len) {
+    uint32_t ui = i;
+    return ((ui << (BITS_32 - pos - len)) >> (BITS_32 - len));
+}
+
+LFORTRAN_API int64_t _lfortran_ibits64(int64_t i, int32_t pos, int32_t len) {
+    uint64_t ui = i;
+    return ((ui << (BITS_64 - pos - len)) >> (BITS_64 - len));
+}
+
 // cpu_time  -------------------------------------------------------------------
 
 LFORTRAN_API void _lfortran_cpu_time(double *t) {

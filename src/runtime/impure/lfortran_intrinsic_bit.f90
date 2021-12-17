@@ -444,11 +444,26 @@ end function
 
 elemental integer(int32) function ibits32(i, pos, len) result(r)
 integer(int32), intent(in) :: i, pos, len
+interface
+    pure integer(int32) function c_ibits32(i, pos, len) bind(c, name="_lfortran_ibits32")
+    import :: int32
+    integer(int32), intent(in), value :: i, pos, len
+    end function
+end interface
+r = c_ibits32(i, pos, len)
 end function
 
 elemental integer(int64) function ibits64(i, pos, len) result(r)
 integer(int64), intent(in) :: i
 integer(int32), intent(in) :: pos, len
+interface
+    pure integer(int32) function c_ibits64(i, pos, len) bind(c, name="_lfortran_ibits64")
+    import :: int32, int64
+    integer(int64), intent(in), value :: i
+    integer(int32), intent(in), value :: pos, len
+    end function
+end interface
+r = c_ibits64(i, pos, len)
 end function
 
 end module
