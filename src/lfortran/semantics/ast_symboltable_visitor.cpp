@@ -309,7 +309,8 @@ public:
         }
         if( sym_name == interface_name ) {
             parent_scope->scope.erase(sym_name);
-            sym_name = "~" + sym_name;
+            std::cout<<"312 "<<sym_name<<std::endl;
+            sym_name = sym_name + "~genericprocedure";
         }
         tmp = ASR::make_Subroutine_t(
             al, x.base.base.loc,
@@ -487,7 +488,7 @@ public:
 
         if( generic_procedures.find(sym_name) != generic_procedures.end() ) {
             parent_scope->scope.erase(sym_name);
-            sym_name = "~" + sym_name;
+            sym_name = sym_name + "~genericprocedure";
         }
 
         if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
@@ -1114,7 +1115,7 @@ public:
             fill_interface_proc_names(x, proc_names);
             generic_procedures[std::string(generic_name)] = proc_names;
             interface_name.clear();
-        } else if (AST::is_a<AST::InterfaceHeader_t>(*x.m_header) || 
+        } else if (AST::is_a<AST::InterfaceHeader_t>(*x.m_header) ||
                    AST::is_a<AST::AbstractInterfaceHeader_t>(*x.m_header)) {
             std::vector<std::string> proc_names;
             for (size_t i = 0; i < x.n_items; i++) {
@@ -1235,7 +1236,7 @@ public:
             for (auto &pname : proc.second) {
                 std::string correct_pname = pname;
                 if( pname == proc.first ) {
-                    correct_pname = "~" + pname;
+                    correct_pname = pname + "~genericprocedure";
                 }
                 ASR::symbol_t *x;
                 Str s;
@@ -1474,7 +1475,7 @@ public:
                         throw SemanticError("Symbol with use not supported yet", x.base.base.loc);
                 }
                 std::string local_sym;
-                if (AST::is_a<AST::UseSymbol_t>(*x.m_symbols[i]) && 
+                if (AST::is_a<AST::UseSymbol_t>(*x.m_symbols[i]) &&
                     AST::down_cast<AST::UseSymbol_t>(x.m_symbols[i])->m_local_rename) {
                     local_sym = to_lower(AST::down_cast<AST::UseSymbol_t>(x.m_symbols[i])->m_local_rename);
                 } else {
