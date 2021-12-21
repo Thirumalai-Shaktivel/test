@@ -309,7 +309,6 @@ public:
         }
         if( sym_name == interface_name ) {
             parent_scope->scope.erase(sym_name);
-            std::cout<<"312 "<<sym_name<<std::endl;
             sym_name = sym_name + "~genericprocedure";
         }
         tmp = ASR::make_Subroutine_t(
