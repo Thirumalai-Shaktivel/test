@@ -24,6 +24,7 @@ set(SRC
     pass/select_case.cpp
     pass/implied_do_loops.cpp
     pass/array_op.cpp
+    pass/flip_sign.cpp
     pass/class_constructor.cpp
     pass/arr_slice.cpp
     pass/print_arr.cpp
