@@ -27,6 +27,7 @@ private:
     bool is_function_call_present, is_function_modulo, is_divisor_2;
     bool is_one_present;
     bool is_unary_op_present, is_operand_same_as_input;
+    bool is_flip_sign_present;
 
 public:
     FlipSignVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_) : al(al_), unit(unit_)
@@ -61,6 +62,7 @@ public:
         std::vector<std::pair<std::string, ASR::symbol_t*>> replace_vec;
         // Transform nested functions and subroutines
         for (auto &item : x.m_symtab->scope) {
+            // std::cout<<item.first<<" "<<item.second<<std::endl;
             if (is_a<ASR::Subroutine_t>(*item.second)) {
                 ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
                 visit_Subroutine(*s);
@@ -107,6 +109,19 @@ public:
                 visit_stmt(*(x.m_body[0]));
             }
         }
+        set_flip_sign();
+    }
+
+    void set_flip_sign() {
+        is_flip_sign_present = (is_if_present &&
+                                is_compare_present &&
+                                is_function_call_present &&
+                                is_function_modulo &&
+                                is_divisor_2 &&
+                                is_one_present &&
+                                is_unary_op_present &&
+                                is_operand_same_as_input);
+        std::cout<<is_flip_sign_present<<std::endl;
     }
 
     void visit_Assignment(const ASR::Assignment_t& x) {
@@ -129,11 +144,12 @@ public:
         is_compare_present = true;
         ASR::expr_t* potential_one = nullptr;
         if( x.m_left->type == ASR::exprType::FunctionCall ) {
-            potential_one = x.m_left;
-        } else if( x.m_right->type == ASR::exprType::FunctionCall ) {
             potential_one = x.m_right;
+        } else if( x.m_right->type == ASR::exprType::FunctionCall ) {
+            potential_one = x.m_left;
         }
-        if( potential_one ) {
+        if( potential_one &&
+            potential_one->type == ASR::exprType::ConstantInteger ) {
             ASR::ConstantInteger_t* const_int = ASR::down_cast<ASR::ConstantInteger_t>(potential_one);
             is_one_present = const_int->m_n == 1;
         }
@@ -141,8 +157,14 @@ public:
 
     void visit_FunctionCall(const ASR::FunctionCall_t& x) {
         is_function_call_present = true;
-        if( x.m_original_name->type == ASR::symbolType::ExternalSymbol ) {
-            ASR::ExternalSymbol_t* ext_sym = ASR::down_cast<ASR::ExternalSymbol_t>(x.m_original_name);
+        ASR::symbol_t* func_name = nullptr;
+        if( x.m_original_name ) {
+            func_name = x.m_original_name;
+        } else if( x.m_name ) {
+            func_name = x.m_name;
+        }
+        if( func_name && func_name->type == ASR::symbolType::ExternalSymbol ) {
+            ASR::ExternalSymbol_t* ext_sym = ASR::down_cast<ASR::ExternalSymbol_t>(func_name);
             if( std::string(ext_sym->m_original_name) == "modulo" &&
                 std::string(ext_sym->m_module_name) == "lfortran_intrinsic_math2" ) {
                 is_function_modulo = true;
