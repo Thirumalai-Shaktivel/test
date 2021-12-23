@@ -1,7 +1,7 @@
 program flip_sign
     implicit none
     integer :: number
-    real :: x
+    real :: x, eps = 1e-6
 
     number = 123
     x = 5.5

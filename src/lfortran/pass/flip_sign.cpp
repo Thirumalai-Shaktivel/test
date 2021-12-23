@@ -15,51 +15,6 @@ namespace LFortran {
 using ASR::down_cast;
 using ASR::is_a;
 
-/*
-This ASR pass replaces operations over arrays with do loops.
-The function `pass_replace_array_op` transforms the ASR tree in-place.
-
-Converts:
-
-    c = a + b
-
-to:
-
-    do i = lbound(a), ubound(a)
-        c(i) = a(i) + b(i)
-    end do
-
-The code below might seem intriguing because of minor but crucial
-details. Generally for any node, first, its children are visited.
-If any child contains operations over arrays then, the a do loop
-pass is added for performing the operation element wise. For stroing
-the result, either a new variable is created or a result variable
-available from the parent node is used. Once done, this result variable
-is used by the parent node in place of the child node from which it was
-made available. Consider the example below for better understanding.
-
-Say, BinOp(BinOp(Arr1 Add Arr2) Add Arr3) is the expression we want
-to visit. Then, first BinOp(Arr1 Add Arr2) will be visited and its
-result will be stored (not actually, just extra ASR do loop node will be added)
-in a new variable, Say Result1. Then this Result1 will be used as follows,
-BinOp(Result1 Add Arr3). Imagine, this overall expression is further
-assigned to some Fortran variable as, Assign(Var1, BinOp(Result1 Add Arr3)).
-In this case a new variable will not be created to store the result of RHS, just Var1
-will be used as the final destination and a do loop pass will be added as follows,
-do i = lbound(Var1), ubound(Var1)
-
-Var1(i) = Result1(i) + Arr3(i)
-
-end do
-
-Note that once the control will reach the above loop, the loop for
-Result1 would have already been executed.
-
-All the nodes should be implemented using the above logic to track
-array operations and perform the do loop pass. As of now, some of the
-nodes are implemented and more are yet to be implemented with time.
-*/
-
 class FlipSignVisitor : public ASR::BaseWalkVisitor<FlipSignVisitor>
 {
 private:
@@ -67,8 +22,14 @@ private:
     ASR::TranslationUnit_t &unit;
     Vec<ASR::stmt_t*> flip_sign_result;
 
+    bool is_if_present;
+    bool is_compare_present;
+    bool is_function_call_present, is_function_modulo, is_divisor_2;
+    bool is_one_present;
+    bool is_unary_op_present, is_operand_same_as_input;
+
 public:
-    FlipSignVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_) : al{al_}, unit{unit_}
+    FlipSignVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_) : al(al_), unit(unit_)
     {
     }
 
@@ -101,7 +62,7 @@ public:
         // Transform nested functions and subroutines
         for (auto &item : x.m_symtab->scope) {
             if (is_a<ASR::Subroutine_t>(*item.second)) {
-                ASR::Subroutine_t *s = down_cast<ASR::Subroutine_t>(item.second);
+                ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
                 visit_Subroutine(*s);
             }
             if (is_a<ASR::Function_t>(*item.second)) {
@@ -130,6 +91,75 @@ public:
         // which requires to generate a TransformVisitor.
         ASR::Function_t &xx = const_cast<ASR::Function_t&>(x);
         transform_stmts(xx.m_body, xx.n_body);
+    }
+
+    void visit_If(const ASR::If_t& x) {
+        is_if_present = true;
+        is_compare_present = false;
+        is_function_call_present = false;
+        is_function_modulo = false, is_divisor_2 = false;
+        is_one_present = false;
+        is_unary_op_present = false;
+        is_operand_same_as_input = false;
+        visit_expr(*(x.m_test));
+        if( x.n_body == 1 && x.n_orelse == 0 ) {
+            if( x.m_body[0]->type == ASR::stmtType::Assignment ) {
+                visit_stmt(*(x.m_body[0]));
+            }
+        }
+    }
+
+    void visit_Assignment(const ASR::Assignment_t& x) {
+        if( x.m_value->type == ASR::exprType::UnaryOp ) {
+            is_unary_op_present = true;
+            ASR::symbol_t* sym = nullptr;
+            ASR::UnaryOp_t* negation = ASR::down_cast<ASR::UnaryOp_t>(x.m_value);
+            if( negation->m_operand->type == ASR::exprType::Var ) {
+                ASR::Var_t* var = ASR::down_cast<ASR::Var_t>(negation->m_operand);
+                sym = var->m_v;
+            }
+            if( x.m_target->type == ASR::exprType::Var ) {
+                ASR::Var_t* var = ASR::down_cast<ASR::Var_t>(x.m_target);
+                is_operand_same_as_input = sym == var->m_v;
+            }
+        }
+    }
+
+    void visit_Compare(const ASR::Compare_t& x) {
+        is_compare_present = true;
+        ASR::expr_t* potential_one = nullptr;
+        if( x.m_left->type == ASR::exprType::FunctionCall ) {
+            potential_one = x.m_left;
+        } else if( x.m_right->type == ASR::exprType::FunctionCall ) {
+            potential_one = x.m_right;
+        }
+        if( potential_one ) {
+            ASR::ConstantInteger_t* const_int = ASR::down_cast<ASR::ConstantInteger_t>(potential_one);
+            is_one_present = const_int->m_n == 1;
+        }
+    }
+
+    void visit_FunctionCall(const ASR::FunctionCall_t& x) {
+        is_function_call_present = true;
+        if( x.m_original_name->type == ASR::symbolType::ExternalSymbol ) {
+            ASR::ExternalSymbol_t* ext_sym = ASR::down_cast<ASR::ExternalSymbol_t>(x.m_original_name);
+            if( std::string(ext_sym->m_original_name) == "modulo" &&
+                std::string(ext_sym->m_module_name) == "lfortran_intrinsic_math2" ) {
+                is_function_modulo = true;
+            }
+        }
+        if( is_function_modulo && x.n_args == 2) {
+            ASR::expr_t* arg0 = x.m_args[0];
+            ASR::expr_t* arg1 = x.m_args[1];
+            bool cond_for_arg0 = false, cond_for_arg1 = false;
+            ASR::ttype_t* arg0_ttype = ASRUtils::expr_type(arg0);
+            cond_for_arg0 = arg0_ttype->type == ASR::ttypeType::Integer;
+            if( arg1->type == ASR::exprType::ConstantInteger ) {
+                ASR::ConstantInteger_t* const_int = ASR::down_cast<ASR::ConstantInteger_t>(arg1);
+                cond_for_arg1 = const_int->m_n == 2;
+            }
+            is_divisor_2 = cond_for_arg0 && cond_for_arg1;
+        }
     }
 
 };
