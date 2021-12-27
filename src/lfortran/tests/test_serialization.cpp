@@ -316,7 +316,7 @@ end module
 }
 
 TEST_CASE("Topological sorting mod_int") {
-    std::map<std::string, std::vector<std::string>> deps;
+    std::unordered_map<std::string, std::vector<std::string>> deps;
     // 1 depends on 2
     deps["mod_1"].push_back("mod_2");
     // 3 depends on 1, etc.
@@ -341,7 +341,7 @@ TEST_CASE("Topological sorting mod_int") {
 }
 
 TEST_CASE("Topological sorting string") {
-    std::map<std::string, std::vector<std::string>> deps;
+    std::unordered_map<std::string, std::vector<std::string>> deps;
     // A depends on B
     deps["A"].push_back("B");
     // C depends on A, etc.
