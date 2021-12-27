@@ -1,4 +1,5 @@
-#include <set>
+#include <unordered_set>
+#include <unordered_map>
 #include <libasr/asr_utils.h>
 #include <lfortran/string_utils.h>
 #include <lfortran/serialization.h>
@@ -14,8 +15,8 @@ namespace LFortran {
 // depth-first graph traversal
 void visit(
     std::string const& a, 
-    std::map<std::string, std::vector<std::string>> const& deps,
-    std::set<std::string>& visited, 
+    std::unordered_map<std::string, std::vector<std::string>> const& deps,
+    std::unordered_set<std::string>& visited, 
     std::vector<std::string>& result
 ) {
     visited.insert(a);
@@ -27,11 +28,11 @@ void visit(
     result.push_back(a);
 }
 
-std::vector<std::string> order_deps(std::map<std::string, std::vector<std::string>> const& deps) {
+std::vector<std::string> order_deps(std::unordered_map<std::string, std::vector<std::string>> const& deps) {
     // Compute ordering: depth-first graph traversal, inserting nodes on way back
 
     // set containing the visited nodes
-    std::set<std::string> visited;
+    std::unordered_set<std::string> visited;
 
     // vector containing result
     std::vector<std::string> result;
@@ -47,7 +48,7 @@ std::vector<std::string> order_deps(std::map<std::string, std::vector<std::strin
 std::vector<std::string> determine_module_dependencies(
         const ASR::TranslationUnit_t &unit)
 {
-    std::map<std::string, std::vector<std::string>> deps;
+    std::unordered_map<std::string, std::vector<std::string>> deps;
     for (auto &item : unit.m_global_scope->scope) {
         if (ASR::is_a<ASR::Module_t>(*item.second)) {
             std::string name = item.first;
