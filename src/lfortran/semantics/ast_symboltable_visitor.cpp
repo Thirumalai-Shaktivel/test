@@ -10,12 +10,12 @@
 #include <libasr/asr.h>
 #include <libasr/asr_utils.h>
 #include <libasr/asr_verify.h>
-#include <lfortran/exception.h>
+#include <libasr/exception.h>
 #include <lfortran/semantics/asr_implicit_cast_rules.h>
 #include <lfortran/semantics/ast_common_visitor.h>
 #include <lfortran/semantics/ast_to_asr.h>
 #include <lfortran/parser/parser_stype.h>
-#include <lfortran/string_utils.h>
+#include <libasr/string_utils.h>
 #include <lfortran/utils.h>
 
 namespace LFortran {

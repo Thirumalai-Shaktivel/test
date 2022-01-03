@@ -6,9 +6,9 @@
 
 #include <bin/tpl/whereami/whereami.h>
 
-#include <lfortran/exception.h>
+#include <libasr/exception.h>
 #include <lfortran/utils.h>
-#include <lfortran/string_utils.h>
+#include <libasr/string_utils.h>
 
 namespace LFortran {
 
