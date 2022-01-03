@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PASS_FLIP_SIGN_H
-#define LFORTRAN_PASS_FLIP_SIGN_H
+#ifndef LIBASR_PASS_FLIP_SIGN_H
+#define LIBASR_PASS_FLIP_SIGN_H
 
 #include <lfortran/asr.h>
 
@@ -9,4 +9,4 @@ namespace LFortran {
 
 } // namespace LFortran
 
-#endif // LFORTRAN_PASS_FLIP_SIGN_H
+#endif // LIBASR_PASS_FLIP_SIGN_H
