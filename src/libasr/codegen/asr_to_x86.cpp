@@ -3,12 +3,12 @@
 #include <chrono>
 
 #include <libasr/asr.h>
-#include <lfortran/containers.h>
+#include <libasr/containers.h>
 #include <libasr/codegen/asr_to_x86.h>
 #include <libasr/codegen/x86_assembler.h>
 #include <libasr/pass/do_loops.h>
 #include <libasr/pass/global_stmts.h>
-#include <lfortran/exception.h>
+#include <libasr/exception.h>
 #include <libasr/asr_utils.h>
 
 

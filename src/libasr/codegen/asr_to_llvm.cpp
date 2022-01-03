@@ -39,7 +39,7 @@
 #include <llvm/Support/Path.h>
 
 #include <libasr/asr.h>
-#include <lfortran/containers.h>
+#include <libasr/containers.h>
 #include <libasr/codegen/asr_to_llvm.h>
 #include <libasr/pass/do_loops.h>
 #include <libasr/pass/for_all.h>
@@ -53,7 +53,7 @@
 #include <libasr/pass/arr_slice.h>
 #include <libasr/pass/class_constructor.h>
 #include <libasr/pass/unused_functions.h>
-#include <lfortran/exception.h>
+#include <libasr/exception.h>
 #include <libasr/asr_utils.h>
 #include <lfortran/pickle.h>
 #include <libasr/codegen/llvm_utils.h>
