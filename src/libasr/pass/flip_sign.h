@@ -1,7 +1,7 @@
 #ifndef LIBASR_PASS_FLIP_SIGN_H
 #define LIBASR_PASS_FLIP_SIGN_H
 
-#include <lfortran/asr.h>
+#include <libasr/asr.h>
 
 namespace LFortran {
 

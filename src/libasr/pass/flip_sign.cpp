@@ -1,4 +1,4 @@
-#include <lfortran/asr.h>
+#include <libasr/asr.h>
 #include <lfortran/containers.h>
 #include <lfortran/exception.h>
 #include <libasr/asr_utils.h>
@@ -21,6 +21,8 @@ private:
     Allocator &al;
     ASR::TranslationUnit_t &unit;
     Vec<ASR::stmt_t*> flip_sign_result;
+
+    ASR::expr_t *flip_sign_signal_variable, *flip_sign_variable;
 
     bool is_if_present;
     bool is_compare_present;
@@ -102,6 +104,7 @@ public:
         is_one_present = false;
         is_unary_op_present = false;
         is_operand_same_as_input = false;
+        flip_sign_signal_variable = flip_sign_variable = nullptr;
         visit_expr(*(x.m_test));
         if( x.n_body == 1 && x.n_orelse == 0 ) {
             if( x.m_body[0]->type == ASR::stmtType::Assignment ) {
@@ -110,8 +113,16 @@ public:
         }
         set_flip_sign();
         if( is_flip_sign_present ) {
-            // Add code here
             // xi = xor(shiftl(int(Nd),63), xi)
+            LFORTRAN_ASSERT(flip_sign_signal_variable);
+            LFORTRAN_ASSERT(flip_sign_variable);
+            ASR::expr_t* left = PassUtils::get_ishift(flip_sign_signal_variable,
+                                    63, al, unit, current_scope);
+            ASR::expr_t* right = flip_sign_variable;
+            ASR::expr_t* xor_op = ASR::make_BoolOp_t(al, left->base.loc, left, ASR::boolopType::Xor, right,
+                                                     ASRUtils::expr_type(right), nullptr);
+            ASR::stmt_t* assign = ASR::make_Assignment_t(al, flip_sign_variable->base.loc, flip_sign_variable, xor_op, nullptr);
+            flip_sign_result.push_back(al, assign);
         }
     }
 
@@ -138,6 +149,7 @@ public:
             if( x.m_target->type == ASR::exprType::Var ) {
                 ASR::Var_t* var = ASR::down_cast<ASR::Var_t>(x.m_target);
                 is_operand_same_as_input = sym == var->m_v;
+                flip_sign_variable = x.m_target;
             }
         }
     }
@@ -189,6 +201,7 @@ public:
                 cond_for_arg1 = const_int->m_n == 2;
             }
             is_divisor_2 = cond_for_arg0 && cond_for_arg1;
+            flip_sign_signal_variable = arg0;
         }
     }
 
