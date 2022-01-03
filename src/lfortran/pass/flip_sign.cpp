@@ -109,8 +109,9 @@ public:
             }
         }
         set_flip_sign();
-        if( is_flip_sign_result ) {
+        if( is_flip_sign_present ) {
             // Add code here
+            // xi = xor(shiftl(int(Nd),63), xi)
         }
     }
 
@@ -147,7 +148,7 @@ public:
         ASR::expr_t* potential_func_call = nullptr;
         if( x.m_left->type == ASR::exprType::FunctionCall ) {
             potential_one = x.m_right;
-            potential_xffunc_call = x.m_left;
+            potential_func_call = x.m_left;
         } else if( x.m_right->type == ASR::exprType::FunctionCall ) {
             potential_one = x.m_left;
             potential_func_call = x.m_right;
