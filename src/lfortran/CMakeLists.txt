@@ -44,10 +44,10 @@ set(SRC
 
     mod_to_asr.cpp
 
-    string_utils.cpp
+    ../libasr/string_utils.cpp
     utils.cpp
 
-    stacktrace.cpp
+    ../libasr/stacktrace.cpp
 
     ../bin/tpl/whereami/whereami.cpp
 )

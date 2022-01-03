@@ -1,8 +1,8 @@
 #ifndef LFORTRAN_DIAGNOSTICS_H
 #define LFORTRAN_DIAGNOSTICS_H
 
-#include <lfortran/parser/location.h>
-#include <lfortran/stacktrace.h>
+#include <libasr/location.h>
+#include <libasr/stacktrace.h>
 
 namespace LFortran {
 
