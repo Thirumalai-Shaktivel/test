@@ -24,6 +24,8 @@ private:
 
     ASR::expr_t *flip_sign_signal_variable, *flip_sign_variable;
 
+    SymbolTable* current_scope;
+
     bool is_if_present;
     bool is_compare_present;
     bool is_function_call_present, is_function_modulo, is_divisor_2;
@@ -61,7 +63,8 @@ public:
     // to visit_stmt().
 
     void visit_Program(const ASR::Program_t &x) {
-        std::vector<std::pair<std::string, ASR::symbol_t*>> replace_vec;
+        current_scope = x.m_symtab;
+
         // Transform nested functions and subroutines
         for (auto &item : x.m_symtab->scope) {
             if (is_a<ASR::Subroutine_t>(*item.second)) {
@@ -86,6 +89,7 @@ public:
         // FIXME: this is a hack, we need to pass in a non-const `x`,
         // which requires to generate a TransformVisitor.
         ASR::Subroutine_t &xx = const_cast<ASR::Subroutine_t&>(x);
+        current_scope = xx.m_symtab;
         transform_stmts(xx.m_body, xx.n_body);
     }
 
@@ -93,6 +97,7 @@ public:
         // FIXME: this is a hack, we need to pass in a non-const `x`,
         // which requires to generate a TransformVisitor.
         ASR::Function_t &xx = const_cast<ASR::Function_t&>(x);
+        current_scope = xx.m_symtab;
         transform_stmts(xx.m_body, xx.n_body);
     }
 
@@ -119,9 +124,11 @@ public:
             ASR::expr_t* left = PassUtils::get_ishift(flip_sign_signal_variable,
                                     63, al, unit, current_scope);
             ASR::expr_t* right = flip_sign_variable;
-            ASR::expr_t* xor_op = ASR::make_BoolOp_t(al, left->base.loc, left, ASR::boolopType::Xor, right,
+            ASR::asr_t* xor_op_asr = ASR::make_BoolOp_t(al, left->base.loc, left, ASR::boolopType::Xor, right,
                                                      ASRUtils::expr_type(right), nullptr);
-            ASR::stmt_t* assign = ASR::make_Assignment_t(al, flip_sign_variable->base.loc, flip_sign_variable, xor_op, nullptr);
+            ASR::expr_t* xor_op = LFortran::ASRUtils::EXPR(xor_op_asr);
+            ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, flip_sign_variable->base.loc,
+                                    flip_sign_variable, xor_op, nullptr));
             flip_sign_result.push_back(al, assign);
         }
     }
