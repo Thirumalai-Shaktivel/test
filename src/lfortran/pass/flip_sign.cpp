@@ -62,7 +62,6 @@ public:
         std::vector<std::pair<std::string, ASR::symbol_t*>> replace_vec;
         // Transform nested functions and subroutines
         for (auto &item : x.m_symtab->scope) {
-            // std::cout<<item.first<<" "<<item.second<<std::endl;
             if (is_a<ASR::Subroutine_t>(*item.second)) {
                 ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
                 visit_Subroutine(*s);
@@ -110,6 +109,9 @@ public:
             }
         }
         set_flip_sign();
+        if( is_flip_sign_result ) {
+            // Add code here
+        }
     }
 
     void set_flip_sign() {
@@ -121,7 +123,6 @@ public:
                                 is_one_present &&
                                 is_unary_op_present &&
                                 is_operand_same_as_input);
-        std::cout<<is_flip_sign_present<<std::endl;
     }
 
     void visit_Assignment(const ASR::Assignment_t& x) {
@@ -143,15 +144,21 @@ public:
     void visit_Compare(const ASR::Compare_t& x) {
         is_compare_present = true;
         ASR::expr_t* potential_one = nullptr;
+        ASR::expr_t* potential_func_call = nullptr;
         if( x.m_left->type == ASR::exprType::FunctionCall ) {
             potential_one = x.m_right;
+            potential_xffunc_call = x.m_left;
         } else if( x.m_right->type == ASR::exprType::FunctionCall ) {
             potential_one = x.m_left;
+            potential_func_call = x.m_right;
         }
         if( potential_one &&
             potential_one->type == ASR::exprType::ConstantInteger ) {
             ASR::ConstantInteger_t* const_int = ASR::down_cast<ASR::ConstantInteger_t>(potential_one);
             is_one_present = const_int->m_n == 1;
+        }
+        if( potential_func_call && is_one_present ) {
+            visit_expr(*potential_func_call);
         }
     }
 
