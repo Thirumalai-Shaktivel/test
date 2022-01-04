@@ -33,6 +33,10 @@ namespace LFortran {
                                 Allocator& al, ASR::TranslationUnit_t& unit,
                                 SymbolTable*& current_scope);
 
+        ASR::expr_t* get_ieor(ASR::expr_t* arg0, ASR::expr_t* arg1,
+                              Allocator& al, ASR::TranslationUnit_t& unit,
+                              SymbolTable*& current_scope);
+
         ASR::expr_t* to_int32(ASR::expr_t* x, ASR::ttype_t* int32type, Allocator& al);
 
         bool is_slice_present(const ASR::ArrayRef_t& x);

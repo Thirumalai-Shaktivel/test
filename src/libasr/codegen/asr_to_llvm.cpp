@@ -53,6 +53,7 @@
 #include <libasr/pass/arr_slice.h>
 #include <libasr/pass/class_constructor.h>
 #include <libasr/pass/unused_functions.h>
+#include <libasr/pass/flip_sign.h>
 #include <lfortran/exception.h>
 #include <libasr/asr_utils.h>
 #include <lfortran/pickle.h>
@@ -3977,6 +3978,7 @@ Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
     pass_replace_forall(al, asr);
     pass_replace_select_case(al, asr);
     pass_unused_functions(al, asr);
+    pass_replace_flip_sign(al, asr);
     v.nested_func_types = pass_find_nested_vars(asr, context,
         v.nested_globals, v.nested_call_out, v.nesting_map);
     try {

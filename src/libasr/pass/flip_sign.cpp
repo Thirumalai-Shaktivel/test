@@ -122,11 +122,9 @@ public:
             LFORTRAN_ASSERT(flip_sign_signal_variable);
             LFORTRAN_ASSERT(flip_sign_variable);
             ASR::expr_t* left = PassUtils::get_ishift(flip_sign_signal_variable,
-                                    63, al, unit, current_scope);
+                                    31, al, unit, current_scope);
             ASR::expr_t* right = flip_sign_variable;
-            ASR::asr_t* xor_op_asr = ASR::make_BoolOp_t(al, left->base.loc, left, ASR::boolopType::Xor, right,
-                                                     ASRUtils::expr_type(right), nullptr);
-            ASR::expr_t* xor_op = LFortran::ASRUtils::EXPR(xor_op_asr);
+            ASR::expr_t* xor_op = LFortran::PassUtils::get_ieor(left, right, al, unit, current_scope);
             ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, flip_sign_variable->base.loc,
                                     flip_sign_variable, xor_op, nullptr));
             flip_sign_result.push_back(al, assign);
