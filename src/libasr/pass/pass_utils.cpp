@@ -205,6 +205,32 @@ namespace LFortran {
             }
         }
 
+        ASR::symbol_t* import_generic_procedure(std::string func_name, std::string module_name,
+                                       Allocator& al, ASR::TranslationUnit_t& unit,
+                                       SymbolTable*& current_scope, Location& loc) {
+            ASR::symbol_t *v;
+            std::string remote_sym = func_name;
+            SymbolTable* current_scope_copy = current_scope;
+            current_scope = unit.m_global_scope;
+            ASR::Module_t *m = LFortran::ASRUtils::load_module(al, current_scope,
+                                            module_name, loc, true);
+
+            ASR::symbol_t *t = m->m_symtab->resolve_symbol(remote_sym);
+            ASR::asr_t *fn = ASR::make_ExternalSymbol_t(al, t->base.loc, current_scope,
+                                                        s2c(al, remote_sym), t,
+                                                        s2c(al, module_name), nullptr, 0, s2c(al, remote_sym),
+                                                        ASR::accessType::Private);
+            std::string& sym = remote_sym;
+            if( current_scope->scope.find(sym) != current_scope->scope.end() ) {
+                v = current_scope->scope[sym];
+            } else {
+                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
+                v = ASR::down_cast<ASR::symbol_t>(fn);
+            }
+            current_scope = current_scope_copy;
+            return v;
+        }
+
         ASR::symbol_t* import_function(std::string func_name, std::string module_name,
                                        Allocator& al, ASR::TranslationUnit_t& unit,
                                        SymbolTable*& current_scope, Location& loc) {
@@ -252,17 +278,18 @@ namespace LFortran {
         ASR::expr_t* get_ishift(ASR::expr_t* int_var, int64_t shift,
                                 Allocator& al, ASR::TranslationUnit_t& unit,
                                 SymbolTable*& current_scope) {
-            ASR::symbol_t *v = import_function("ishft", "lfortran_intrinsic_bit",
-                                               al, unit, current_scope, int_var->base.loc);
+            ASR::symbol_t *v = import_generic_procedure("ishft", "lfortran_intrinsic_bit",
+                                                        al, unit, current_scope, int_var->base.loc);
             Vec<ASR::expr_t*> args;
             args.reserve(al, 2);
             args.push_back(al, int_var);
             ASR::expr_t* const_1 = LFortran::ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, int_var->base.loc, shift, LFortran::ASRUtils::expr_type(int_var)));
             args.push_back(al, const_1);
-            ASR::ttype_t *type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(
-                                        LFortran::ASRUtils::symbol_get_past_external(v))->m_return_var)->m_type;
-            return LFortran::ASRUtils::EXPR(ASR::make_FunctionCall_t(al, int_var->base.loc, v, nullptr,
-                                                args.p, args.size(), nullptr, 0, type, nullptr, nullptr));
+            // ASR::ttype_t *type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(
+            //                             LFortran::ASRUtils::symbol_get_past_external(v))->m_return_var)->m_type;
+            // return LFortran::ASRUtils::EXPR(ASR::make_FunctionCall_t(al, int_var->base.loc, v, nullptr,
+            //                                     args.p, args.size(), nullptr, 0, type, nullptr, nullptr));
+            return ASRUtils::symbol_resolve_external_generic_procedure_without_eval(int_var->base.loc, v, args, current_scope, al);
         }
 
         ASR::expr_t* to_int32(ASR::expr_t* x, ASR::ttype_t* int64type, Allocator& al) {

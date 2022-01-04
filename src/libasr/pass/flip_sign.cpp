@@ -44,7 +44,7 @@ public:
         for (size_t i=0; i<n_body; i++) {
             // Not necessary after we check it after each visit_stmt in every
             // visitor method:
-            flip_sign_result.n = 0;
+            flip_sign_result.reserve(al, 0);
             visit_stmt(*m_body[i]);
             if (flip_sign_result.size() > 0) {
                 for (size_t j=0; j<flip_sign_result.size(); j++) {
