@@ -6,6 +6,8 @@ interface flipsign
     module procedure flipsigni32r32, flipsigni32r64
 end interface
 
+contains
+
 ! ------- flipsign procedures
 
 elemental real(real32) function flipsigni32r32(signal, variable) result(r)
