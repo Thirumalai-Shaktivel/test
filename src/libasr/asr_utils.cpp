@@ -666,7 +666,7 @@ int select_generic_procedure(const Vec<ASR::expr_t*> &args,
     throw SemanticError("Arguments do not match for any generic procedure", loc);
 }
 
-ASR::expr_t* symbol_resolve_external_generic_procedure_without_eval(
+ASR::asr_t* symbol_resolve_external_generic_procedure_without_eval(
             const Location &loc,
             ASR::symbol_t *v, Vec<ASR::expr_t*> args,
             SymbolTable* current_scope, Allocator& al) {
@@ -676,9 +676,9 @@ ASR::expr_t* symbol_resolve_external_generic_procedure_without_eval(
     int idx = select_generic_procedure(args, *g, loc);
     ASR::symbol_t *final_sym;
     final_sym = g->m_procs[idx];
-    if (!ASR::is_a<ASR::Function_t>(*final_sym)) {
-        throw SemanticError("ExternalSymbol must point to a Function", loc);
-    }
+    LFORTRAN_ASSERT(ASR::is_a<ASR::Function_t>(*final_sym) ||
+                    ASR::is_a<ASR::Subroutine_t>(*final_sym));
+    bool is_subroutine = ASR::is_a<ASR::Subroutine_t>(*final_sym);
     ASR::ttype_t *return_type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
     // Create ExternalSymbol for the final subroutine:
     // We mangle the new ExternalSymbol's local name as:
@@ -704,9 +704,16 @@ ASR::expr_t* symbol_resolve_external_generic_procedure_without_eval(
     } else {
         final_sym = current_scope->scope[local_sym];
     }
-    return EXPR(ASR::make_FunctionCall_t(al, loc,
-        final_sym, v, args.p, args.size(), nullptr, 0, return_type,
-        nullptr, nullptr));
+    if( is_subroutine ) {
+        return ASR::make_SubroutineCall_t(al, loc, final_sym,
+                                        v, args.p, args.size(),
+                                        nullptr);
+    } else {
+        return ASR::make_FunctionCall_t(al, loc, final_sym,
+                                        v, args.p, args.size(),
+                                        nullptr, 0, return_type,
+                                        nullptr, nullptr);
+    }
 }
 
     } // namespace ASRUtils

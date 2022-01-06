@@ -10,14 +10,14 @@ contains
 
 ! ------- flipsign procedures
 
-elemental real(real32) function flipsigni32r32(signal, variable) result(r)
+subroutine flipsigni32r32(signal, variable)
 integer(int32), intent(in) :: signal
-real(real32), intent(in) :: variable
-end function
+real(real32), intent(out) :: variable
+end subroutine
 
-elemental real(real64) function flipsigni32r64(signal, variable) result(r)
+subroutine flipsigni32r64(signal, variable)
 integer(int32), intent(in) :: signal
-real(real64), intent(in) :: variable
-end function
+real(real64), intent(out) :: variable
+end subroutine
 
 end module

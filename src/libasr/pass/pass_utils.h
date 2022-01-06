@@ -30,7 +30,7 @@ namespace LFortran {
                                 SymbolTable*& current_scope);
 
 
-        ASR::expr_t* get_flipsign(ASR::expr_t* arg0, ASR::expr_t* arg1,
+        ASR::stmt_t* get_flipsign(ASR::expr_t* arg0, ASR::expr_t* arg1,
                                   Allocator& al, ASR::TranslationUnit_t& unit,
                                   SymbolTable*& current_scope);
 

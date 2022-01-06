@@ -15,6 +15,46 @@ namespace LFortran {
 using ASR::down_cast;
 using ASR::is_a;
 
+/*
+
+This ASR replaces flip sign operation with bit shifts for enhancing efficiency.
+
+Converts:
+
+    if (modulo(number, 2) == 1 ) x = -x
+
+to:
+
+    x = xor(shiftl(int(number), 31), x)
+
+For 64 bit `number`, 31 is replaced with 63.
+
+The algorithm contains two components,
+
+1. Detecting Flip Signs - This is achieved by looking for the existence
+    of a specific subtree in the complete ASR tree. In this case, we are
+    looking for a subtree which has an `If` node as the parent node. The
+    `Compare` attribute of that `If` node should contain a `FunctionCall`
+    to `modulo` (with second argument as `2`) and a `ConstantInteger`, `1`.
+    The statement attribute of `If` node should contain only 1 and that too
+    an `Assignment` statement. The right should be a `UnaryOp` expression
+    with operand as the left hand side of that expression.
+
+    For achieving this `FlipSignVisitor` has attributes which are
+    set to True only when the above properties are satisfied in an
+    order. For example, `is_function_call_present` will be set to `True`
+    only when we have visited `Compare` which means `is_compare_present`
+    is already `True` at that point.
+
+2. Replacing Flip Sign with bit shifts - This phase is executed only
+    when the above one is a success. Here, we replace the subtree
+    detected above with a call to a generic procedure defined in
+    `lfortran_intrinsic_optimisation`. This is just a dummy call
+    anyways to keep things backend agnostic. The actual implementation
+    will be generated in the backend specified.
+
+
+*/
 class FlipSignVisitor : public ASR::BaseWalkVisitor<FlipSignVisitor>
 {
 private:
@@ -121,11 +161,9 @@ public:
             // xi = xor(shiftl(int(Nd),63), xi)
             LFORTRAN_ASSERT(flip_sign_signal_variable);
             LFORTRAN_ASSERT(flip_sign_variable);
-            ASR::expr_t* flip_sign_call = PassUtils::get_flipsign(flip_sign_signal_variable,
+            ASR::stmt_t* flip_sign_call = PassUtils::get_flipsign(flip_sign_signal_variable,
                                             flip_sign_variable, al, unit, current_scope);
-            ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, flip_sign_variable->base.loc,
-                                    flip_sign_variable, flip_sign_call, nullptr));
-            flip_sign_result.push_back(al, assign);
+            flip_sign_result.push_back(al, flip_sign_call);
         }
     }
 
@@ -145,7 +183,8 @@ public:
             is_unary_op_present = true;
             ASR::symbol_t* sym = nullptr;
             ASR::UnaryOp_t* negation = ASR::down_cast<ASR::UnaryOp_t>(x.m_value);
-            if( negation->m_operand->type == ASR::exprType::Var ) {
+            if( negation->m_operand->type == ASR::exprType::Var &&
+                negation->m_op == ASR::unaryopType::USub ) {
                 ASR::Var_t* var = ASR::down_cast<ASR::Var_t>(negation->m_operand);
                 sym = var->m_v;
             }
