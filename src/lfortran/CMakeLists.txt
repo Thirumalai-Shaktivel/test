@@ -86,6 +86,11 @@ add_library(lfortran_lib ${SRC})
 target_link_libraries(lfortran_lib lfortran_runtime_static ZLIB::ZLIB)
 target_include_directories(lfortran_lib BEFORE PUBLIC ${lfortran_SOURCE_DIR}/src)
 target_include_directories(lfortran_lib BEFORE PUBLIC ${lfortran_BINARY_DIR}/src)
+
+if (MSVC)
+    target_include_directories(lfortran_lib BEFORE PUBLIC ${lfortran_SOURCE_DIR}/src/windows)
+endif()
+
 if (WITH_XEUS)
     target_link_libraries(lfortran_lib xeus)
 endif()

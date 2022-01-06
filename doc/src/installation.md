@@ -99,6 +99,21 @@ Run an interactive prompt:
 ./src/bin/lfortran
 ```
 
+## Building on Windows with Visual Studio
+
+Building LFortran on Windows with Visual Studio requires the installation of ZLib from  http://gnuwin32.sourceforge.net (for the include and 32-bit lib-files) resp. the 64-libraries from http://www.winimage.com/zLibDll.
+
+Further ensure that "CMake-Tools for Windows" support for Visual Studio is installed (use Visual Studio Installer). 
+
+Clone the LFortran git repository:
+```
+git clone https://gitlab.com/lfortran/lfortran.git
+```
+
+In Visual Studio use `File->Open->Folder...` and open the lfortran-folder with CMake-support.
+
+Add the GnuWin32-include path as ZLIB_INCLUDE_DIR (usually "C:\Program Files (x86)\GnuWin32\include") and as ZLIB_LIBRARY_DEBUG / ZLIB_LIBRARY_RELEASE the path to the resp. ZLib library-file.
+
 ## Enabling the Jupyter Kernel
 
 To install the Jupyter kernel, install the following Conda packages also:
