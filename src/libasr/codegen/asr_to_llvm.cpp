@@ -3978,7 +3978,6 @@ Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
     pass_replace_forall(al, asr);
     pass_replace_select_case(al, asr);
     pass_unused_functions(al, asr);
-    pass_replace_flip_sign(al, asr);
     v.nested_func_types = pass_find_nested_vars(asr, context,
         v.nested_globals, v.nested_call_out, v.nesting_map);
     try {

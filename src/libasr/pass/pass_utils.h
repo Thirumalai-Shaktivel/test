@@ -29,13 +29,6 @@ namespace LFortran {
                                 Allocator& al, ASR::TranslationUnit_t& unit,
                                 SymbolTable*& current_scope);
 
-        ASR::expr_t* get_ishift(ASR::expr_t* int_var, int64_t shift,
-                                Allocator& al, ASR::TranslationUnit_t& unit,
-                                SymbolTable*& current_scope);
-
-        ASR::expr_t* get_ieor(ASR::expr_t* arg0, ASR::expr_t* arg1,
-                              Allocator& al, ASR::TranslationUnit_t& unit,
-                              SymbolTable*& current_scope);
 
         ASR::expr_t* get_flipsign(ASR::expr_t* arg0, ASR::expr_t* arg1,
                                   Allocator& al, ASR::TranslationUnit_t& unit,

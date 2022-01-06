@@ -51,9 +51,10 @@ if (WITH_RUNTIME_LIBRARY)
     endmacro(LFORTRAN_COMPILE_RUNTIME)
 
     LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_builtin builtin)
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_optimisation builtin)
     LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_kind pure)
     LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_iso_fortran_env pure)
+    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_optimisation builtin
+      ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod)
     LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_ieee_arithmetic pure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
     )

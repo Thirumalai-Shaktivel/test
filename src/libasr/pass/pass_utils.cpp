@@ -275,34 +275,6 @@ namespace LFortran {
                                                 args.p, args.size(), nullptr, 0, type, nullptr, nullptr));
         }
 
-        ASR::expr_t* get_ishift(ASR::expr_t* int_var, int64_t shift,
-                                Allocator& al, ASR::TranslationUnit_t& unit,
-                                SymbolTable*& current_scope) {
-            ASR::symbol_t *v = import_generic_procedure("ishft", "lfortran_intrinsic_bit",
-                                                        al, unit, current_scope, int_var->base.loc);
-            Vec<ASR::expr_t*> args;
-            args.reserve(al, 2);
-            args.push_back(al, int_var);
-            ASR::expr_t* const_1 = LFortran::ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, int_var->base.loc, shift, LFortran::ASRUtils::expr_type(int_var)));
-            args.push_back(al, const_1);
-            // ASR::ttype_t *type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(
-            //                             LFortran::ASRUtils::symbol_get_past_external(v))->m_return_var)->m_type;
-            // return LFortran::ASRUtils::EXPR(ASR::make_FunctionCall_t(al, int_var->base.loc, v, nullptr,
-            //                                     args.p, args.size(), nullptr, 0, type, nullptr, nullptr));
-            return ASRUtils::symbol_resolve_external_generic_procedure_without_eval(int_var->base.loc, v, args, current_scope, al);
-        }
-
-        ASR::expr_t* get_ieor(ASR::expr_t* arg0, ASR::expr_t* arg1,
-                              Allocator& al, ASR::TranslationUnit_t& unit,
-                              SymbolTable*& current_scope) {
-            ASR::symbol_t *v = import_generic_procedure("ieor", "lfortran_intrinsic_bit",
-                                                        al, unit, current_scope, arg0->base.loc);
-            Vec<ASR::expr_t*> args;
-            args.reserve(al, 2);
-            args.push_back(al, arg0);
-            args.push_back(al, arg1);
-            return ASRUtils::symbol_resolve_external_generic_procedure_without_eval(arg0->base.loc, v, args, current_scope, al);
-        }
 
         ASR::expr_t* get_flipsign(ASR::expr_t* arg0, ASR::expr_t* arg1,
                               Allocator& al, ASR::TranslationUnit_t& unit,
