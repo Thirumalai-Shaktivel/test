@@ -1,6 +1,6 @@
-#include <lfortran/stacktrace.h>
-#include <lfortran/config.h>
-#include <lfortran/colors.h>
+#include <libasr/stacktrace.h>
+#include <libasr/config.h>
+#include <libasr/colors.h>
 
 #include <fstream>
 #include <iostream>

@@ -39,7 +39,7 @@
 #include <llvm/Support/Path.h>
 
 #include <libasr/asr.h>
-#include <lfortran/containers.h>
+#include <libasr/containers.h>
 #include <libasr/codegen/asr_to_llvm.h>
 #include <libasr/pass/do_loops.h>
 #include <libasr/pass/for_all.h>
@@ -53,10 +53,8 @@
 #include <libasr/pass/arr_slice.h>
 #include <libasr/pass/class_constructor.h>
 #include <libasr/pass/unused_functions.h>
-#include <libasr/pass/flip_sign.h>
-#include <lfortran/exception.h>
+#include <libasr/exception.h>
 #include <libasr/asr_utils.h>
-#include <lfortran/pickle.h>
 #include <libasr/codegen/llvm_utils.h>
 #include <libasr/codegen/llvm_array_utils.h>
 
@@ -921,6 +919,17 @@ public:
             } else {
                 throw CodeGenError("Stat variable in allocate not found in LLVM symtab");
             }
+        }
+    }
+
+    void visit_Nullify(const ASR::Nullify_t& x) {
+        for( size_t i = 0; i < x.n_vars; i++ ) {
+            std::uint32_t h = get_hash((ASR::asr_t*)x.m_vars[i]);
+            llvm::Value *target = llvm_symtab[h];
+            llvm::Type* tp = target->getType()->getContainedType(0);
+            llvm::Value* np = builder->CreateIntToPtr(
+                llvm::ConstantInt::get(context, llvm::APInt(32, 0)), tp);
+            builder->CreateStore(np, target);
         }
     }
 

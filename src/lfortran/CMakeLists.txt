@@ -1,4 +1,4 @@
-configure_file(config.h.in config.h)
+configure_file(../libasr/config.h.in ../libasr/config.h)
 
 set(SRC
     parser/preprocessor.cpp
@@ -9,7 +9,7 @@ set(SRC
     semantics/ast_symboltable_visitor.cpp
     semantics/ast_body_visitor.cpp
     semantics/ast_to_asr.cpp
-    semantics/asr_scopes.cpp
+    ../libasr/asr_scopes.cpp
 
     ../libasr/codegen/fortran_evaluator.cpp
     ../libasr/codegen/asr_to_cpp.cpp
@@ -33,9 +33,10 @@ set(SRC
 
     ../libasr/asr_verify.cpp
     ../libasr/asr_utils.cpp
-    modfile.cpp
+    ../libasr/modfile.cpp
     pickle.cpp
-    serialization.cpp
+    ast_serialization.cpp
+    ../libasr/serialization.cpp
     cwrapper.cpp
 
     ../libasr/diagnostics.cpp
@@ -45,10 +46,10 @@ set(SRC
 
     mod_to_asr.cpp
 
-    string_utils.cpp
+    ../libasr/string_utils.cpp
     utils.cpp
 
-    stacktrace.cpp
+    ../libasr/stacktrace.cpp
 
     ../bin/tpl/whereami/whereami.cpp
 )

@@ -5,8 +5,8 @@
 #include <iostream>
 #include <memory>
 
-#include <lfortran/parser/alloc.h>
-#include <lfortran/semantics/asr_scopes.h>
+#include <libasr/alloc.h>
+#include <libasr/asr_scopes.h>
 #include <lfortran/ast.h>
 #include <libasr/asr.h>
 #include <lfortran/utils.h>

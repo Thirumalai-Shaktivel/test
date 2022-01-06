@@ -2,11 +2,11 @@
 #include <memory>
 
 #include <libasr/asr.h>
-#include <lfortran/containers.h>
+#include <libasr/containers.h>
 #include <libasr/codegen/asr_to_cpp.h>
-#include <lfortran/exception.h>
+#include <libasr/exception.h>
 #include <libasr/asr_utils.h>
-#include <lfortran/string_utils.h>
+#include <libasr/string_utils.h>
 #include <libasr/pass/unused_functions.h>
 
 

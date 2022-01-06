@@ -2,10 +2,9 @@
 #include <sstream>
 
 #include <libasr/diagnostics.h>
-#include <lfortran/assert.h>
-#include <lfortran/exception.h>
+#include <libasr/assert.h>
+#include <libasr/exception.h>
 #include <libasr/codegen/fortran_evaluator.h>
-#include <lfortran/parser/parser.h>
 
 namespace LFortran::diag {
 

@@ -1,6 +1,6 @@
 #include <libasr/asr.h>
-#include <lfortran/containers.h>
-#include <lfortran/exception.h>
+#include <libasr/containers.h>
+#include <libasr/exception.h>
 #include <libasr/asr_utils.h>
 #include <libasr/asr_verify.h>
 #include <libasr/pass/nested_vars.h>

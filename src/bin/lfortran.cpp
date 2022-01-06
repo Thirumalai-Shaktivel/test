@@ -5,7 +5,7 @@
 #define CLI11_HAS_FILESYSTEM 0
 #include <bin/CLI11.hpp>
 
-#include <lfortran/stacktrace.h>
+#include <libasr/stacktrace.h>
 #include <lfortran/parser/parser.h>
 #include <lfortran/parser/preprocessor.h>
 #include <lfortran/pickle.h>
@@ -30,10 +30,10 @@
 #include <libasr/pass/flip_sign.h>
 #include <libasr/asr_utils.h>
 #include <libasr/asr_verify.h>
-#include <lfortran/modfile.h>
-#include <lfortran/config.h>
+#include <libasr/modfile.h>
+#include <libasr/config.h>
 #include <lfortran/fortran_kernel.h>
-#include <lfortran/string_utils.h>
+#include <libasr/string_utils.h>
 #include <lfortran/utils.h>
 #include <lfortran/parser/parser.tab.hh>
 

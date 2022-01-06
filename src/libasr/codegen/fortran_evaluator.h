@@ -4,13 +4,13 @@
 #include <iostream>
 #include <memory>
 
-#include <lfortran/parser/alloc.h>
+#include <libasr/alloc.h>
 #include <lfortran/parser/parser.h>
-#include <lfortran/semantics/asr_scopes.h>
+#include <libasr/asr_scopes.h>
 #include <lfortran/ast.h>
 #include <libasr/asr.h>
 #include <lfortran/utils.h>
-#include <lfortran/config.h>
+#include <libasr/config.h>
 #include <libasr/diagnostics.h>
 
 namespace LFortran {
