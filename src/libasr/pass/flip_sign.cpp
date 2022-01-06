@@ -121,10 +121,6 @@ public:
             // xi = xor(shiftl(int(Nd),63), xi)
             LFORTRAN_ASSERT(flip_sign_signal_variable);
             LFORTRAN_ASSERT(flip_sign_variable);
-            ASR::ttype_t* signal_type = ASRUtils::expr_type(flip_sign_signal_variable);
-            ASR::ttype_t* variable_type = ASRUtils::expr_type(flip_sign_variable);
-            LFORTRAN_ASSERT(signal_type->type == ASR::ttypeType::Integer);
-            LFORTRAN_ASSERT(variable_type->type == ASR::ttypeType::Real);
             ASR::expr_t* flip_sign_call = PassUtils::get_flipsign(flip_sign_signal_variable,
                                             flip_sign_variable, al, unit, current_scope);
             ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, flip_sign_variable->base.loc,

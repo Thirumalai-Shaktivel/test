@@ -5,7 +5,7 @@
 #define WITH_LFORTRAN_ASSERT
 
 /* LFortran version */
-#define LFORTRAN_VERSION "0.12.0-1784-g01cdf4ad"
+#define LFORTRAN_VERSION "0.12.0-1786-g23bdc588"
 
 /* Define if LLVM is enabled */
 #define HAVE_LFORTRAN_LLVM
