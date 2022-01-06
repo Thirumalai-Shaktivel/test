@@ -125,10 +125,6 @@ public:
             ASR::ttype_t* variable_type = ASRUtils::expr_type(flip_sign_variable);
             LFORTRAN_ASSERT(signal_type->type == ASR::ttypeType::Integer);
             LFORTRAN_ASSERT(variable_type->type == ASR::ttypeType::Real);
-            ASR::Integer_t* signal_int = ASR::down_cast<ASR::Integer_t>(signal_type);
-            ASR::Real_t* variable_float = ASR::down_cast<ASR::Real_t>(variable_type);
-            LFORTRAN_ASSERT(signal_int->m_kind == 4);
-            LFORTRAN_ASSERT(variable_float->m_kind == 4);
             ASR::expr_t* flip_sign_call = PassUtils::get_flipsign(flip_sign_signal_variable,
                                             flip_sign_variable, al, unit, current_scope);
             ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, flip_sign_variable->base.loc,
