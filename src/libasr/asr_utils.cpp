@@ -679,7 +679,10 @@ ASR::asr_t* symbol_resolve_external_generic_procedure_without_eval(
     LFORTRAN_ASSERT(ASR::is_a<ASR::Function_t>(*final_sym) ||
                     ASR::is_a<ASR::Subroutine_t>(*final_sym));
     bool is_subroutine = ASR::is_a<ASR::Subroutine_t>(*final_sym);
-    ASR::ttype_t *return_type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+    ASR::ttype_t *return_type = nullptr;
+    if( ASR::is_a<ASR::Function_t>(*final_sym) ) {
+        return_type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+    }
     // Create ExternalSymbol for the final subroutine:
     // We mangle the new ExternalSymbol's local name as:
     //   generic_procedure_local_name @
