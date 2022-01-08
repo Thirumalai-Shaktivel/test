@@ -313,7 +313,7 @@ struct IntrinsicProcedures {
                     ASR::make_Integer_t(al, loc, 4, nullptr, 0));
             return ASR::down_cast<ASR::expr_t>(ASR::make_ConstantInteger_t(al, loc, ival, type));
         } else {
-            throw SemanticError("floor must have one real argument", loc);
+            throw SemanticError("CEILING must have one real argument", loc);
         }
     }
 
