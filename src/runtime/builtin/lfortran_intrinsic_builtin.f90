@@ -90,6 +90,14 @@ interface
     integer, intent(in) :: i
     integer, optional :: kind
     end function
+
+    real function aint(i, kind)
+    ! FIXME: return type kind is not fixed
+    ! it depends on input arguments
+    real, intent(in) :: i
+    integer, optional :: kind
+    end function
+
 end interface
 
 end module

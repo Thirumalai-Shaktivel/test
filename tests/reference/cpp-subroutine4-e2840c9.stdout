@@ -20,6 +20,12 @@ std::string achar(int i, int kind)
     return achar;
 }
 
+float aint(float i, int kind)
+{
+    float aint;
+    return aint;
+}
+
 bool allocated(const Kokkos::View<const int*> &x)
 {
     bool allocated;

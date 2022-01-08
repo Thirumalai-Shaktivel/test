@@ -67,10 +67,10 @@ src/lfortran/parser/parser.tab.hh
 src/lfortran/parser/tokenizer.cpp
 src/lfortran/parser/preprocessor.cpp
 src/lfortran/ast.h
-src/lfortran/asr.h
-src/lfortran/config.h
+src/libasr/asr.h
+src/libasr/config.h
 share/jupyter/kernels/fortran/kernel.json
-src/runtime/*.o.empty.c 
+src/runtime/*.o.empty.c
 
 ### https://raw.github.com/github/gitignore/218a941be92679ce67d0484547e3e142b2f5f6f0/Global/macOS.gitignore
 
