@@ -100,8 +100,10 @@ struct IntrinsicProcedures {
             {"ibclr", {m_bit, &eval_ibclr, true}},
             {"ibset", {m_bit, &eval_ibset, true}},
             {"btest", {m_bit, &not_implemented, false}},
+
             // Elemental function
             {"ishft", {m_bit, &eval_ishft, false}},
+            {"aint", {m_builtin, &eval_aint, false}},
 
             // These will fail if used in symbol table visitor, but will be
             // left unevaluated in body visitor
@@ -1067,6 +1069,72 @@ TRIG(sqrt)
             throw SemanticError(
                 "Arguments for this intrinsic function must be an Integer", loc
             );
+        }
+    }
+
+    static ASR::expr_t *eval_aint(Allocator &al,
+        const Location &loc, Vec<ASR::expr_t*> &args) {
+        LFORTRAN_ASSERT(ASRUtils::all_args_evaluated(args));
+        if (args.size() > 0) {
+            ASR::expr_t* a = args[0];
+            ASR::ttype_t* a_type = ASRUtils::expr_type(a);
+            int a_kind = ASRUtils::extract_kind_from_ttype_t(a_type);
+            if(LFortran::ASR::is_a<LFortran::ASR::Real_t>(*a_type)) {
+                if (args.size() == 1) {
+                    if (a_kind == 4){
+                        float a_val = ASR::down_cast<ASR::ConstantReal_t>(
+                            LFortran::ASRUtils::expr_value(a))->m_r;
+                        float val = (int) a_val;
+                        return ASR::down_cast<ASR::expr_t>(
+                            ASR::make_ConstantReal_t(al, loc, val, a_type)
+                        );
+                    } else if (a_kind == 8) {
+                        double a_val = ASR::down_cast<ASR::ConstantReal_t>(
+                            LFortran::ASRUtils::expr_value(a))->m_r;
+                        double val = (int) a_val;
+                        return ASR::down_cast<ASR::expr_t>(
+                            ASR::make_ConstantReal_t(al, loc, val, a_type)
+                        );
+                    }
+                } else if (args.size() == 2) {
+                    ASR::expr_t* kind = args[1];
+                    ASR::ttype_t* k_type = ASRUtils::expr_type(kind);
+                    if(LFortran::ASR::is_a<LFortran::ASR::Integer_t>(*k_type)) {
+                        int k_val = ASR::down_cast<ASR::ConstantInteger_t>(
+                            LFortran::ASRUtils::expr_value(kind))->m_n;
+                        if (k_val == 4){
+                            float a_val = ASR::down_cast<ASR::ConstantReal_t>(
+                                LFortran::ASRUtils::expr_value(a))->m_r;
+                            float val = (int) a_val;
+                            ASR::ttype_t* real_type = LFortran::ASRUtils::TYPE(
+                                ASR::make_Real_t(al, loc, 4, nullptr, 0)
+                            );
+                            return ASR::down_cast<ASR::expr_t>(
+                                ASR::make_ConstantReal_t(al, loc, val, real_type)
+                            );
+                        } else if (k_val == 8) {
+                            double a_val = ASR::down_cast<ASR::ConstantReal_t>(
+                                LFortran::ASRUtils::expr_value(a))->m_r;
+                            double val = (int) a_val;
+                            ASR::ttype_t* real_type = LFortran::ASRUtils::TYPE(
+                                ASR::make_Real_t(al, loc, 8, nullptr, 0));
+                            return ASR::down_cast<ASR::expr_t>(
+                                ASR::make_ConstantReal_t(al, loc, val, real_type)
+                            );
+                        }
+                    } else {
+                        throw SemanticError("In AINT(A, KIND), KIND must be "
+                            "INTEGER constant.", loc);
+                    }
+                } else {
+                    throw SemanticError( "The AINT intrinsic function accepts either "
+                        "1 or 2 arguments", loc);
+                }
+            } else {
+                throw SemanticError("In AINT(A), A must be of type REAL.", loc);
+            }
+        } else {
+            throw SemanticError("The AINT intrinsic function must have an argument", loc);
         }
     }
 
