@@ -30,6 +30,152 @@
  * The following technique is called X-macros, if you don't recognize it.
  * You should be able to look it up under that name for an explanation.
  */
+namespace LFortran{
+ 
+ 
+void map2c(size_t type, int64_t m_kind, std::string &ctype, std::string &bindc_type){
+   
+   if (type == ASR::Integer && m_kind == 1){
+     ctype = "int8_t";
+     bindc_type = "c_int8_t";
+   }
+   else if (type == ASR::Integer && m_kind == 2){
+     ctype = "int16_t";
+     bindc_type = "c_int16_t";
+   }
+   else if (type == ASR::Integer && m_kind == 4){
+     ctype = "int32_t";
+     bindc_type = "c_int32_t";
+   }
+   else if (type == ASR::Integer && m_kind == 8){
+     ctype = "int64_t";
+     bindc_type = "c_int64_t";
+   }
+   else if (type == ASR::Real && m_kind == 4){
+     ctype = "float";
+     bindc_type = "c_float";
+   }
+   else if (type == ASR::Real && m_kind == 8){
+     ctype = "double";
+     bindc_type = "c_double";
+   } 
+}
+
+struct PyModVar
+{  
+  std::string module_name;
+  std::string name;
+  std::string base_ftype;
+  std::string bindc_type;
+  std::string ctype;
+  std::string cythontype;
+  
+  std::string getter_name;
+  std::string setter_name;
+  
+  std::string pxd_fname;
+  
+  size_t n_dims;
+}; 
+
+void intrinsic_var(PyModVar v, std::string &f90_tmp, 
+  std::string &chdr_tmp, std::string &pxd_tmp, std::string &pyx_tmp){
+    
+    f90_tmp =  "  subroutine "+v.getter_name+"(var) bind(c)\n";
+    f90_tmp += "    use "+v.module_name+", only: "+v.name+"\n";
+    f90_tmp += "    "+v.base_ftype+"("+v.bindc_type+"), intent(out) :: var\n";
+    f90_tmp += "    var = "+v.name+"\n";
+    f90_tmp += "  end subroutine "+v.getter_name+"\n\n";  
+    f90_tmp += "  subroutine "+v.setter_name+"(var) bind(c)\n";
+    f90_tmp += "    use "+v.module_name+", only: "+v.name+"\n";
+    f90_tmp += "    "+v.base_ftype+"("+v.bindc_type+"), intent(in) :: var\n";
+    f90_tmp += "    "+v.name+" = var\n";
+    f90_tmp += "  end subroutine "+v.setter_name+"\n\n";
+    
+    chdr_tmp =  "void "+v.setter_name+"("+v.ctype+" *"+v.name+");\n";
+    chdr_tmp += "void "+v.getter_name+"("+v.ctype+" *"+v.name+");\n";
+    
+    pxd_tmp =  "  cdef void "+v.setter_name+"("+v.ctype+" *"+v.name+");\n";
+    pxd_tmp += "  cdef void "+v.getter_name+"("+v.ctype+" *"+v.name+");\n";
+    
+    pyx_tmp =  "  property "+v.name+":\n";
+    pyx_tmp += "    def __get__(self):\n";
+    pyx_tmp += "      cdef "+v.ctype+" var\n";
+    pyx_tmp += "      "+v.pxd_fname+"."+v.getter_name+"(&var)\n";
+    pyx_tmp += "      return var\n";
+    pyx_tmp += "    def __set__(self, "+v.ctype+" var):\n";
+    pyx_tmp += "      "+v.pxd_fname+"."+v.setter_name+"(&var)\n\n";
+    
+}
+
+void intrinsic_arr(PyModVar v, std::string &f90_tmp, 
+  std::string &chdr_tmp, std::string &pxd_tmp, std::string &pyx_tmp){
+    
+    
+    f90_tmp =  "  subroutine "+v.getter_name+"_size(";
+    for (size_t i = 0; i < v.n_dims; i++){
+      f90_tmp += "dim"+std::to_string(i+1);
+      if (i < v.n_dims - 1){
+        f90_tmp += ", ";
+      }
+    }
+    f90_tmp += ") bind(c)\n";
+    
+    f90_tmp += "    use "+v.module_name+", only: "+v.name+"\n";
+    for (size_t i = 0; i < v.n_dims; i++){
+      f90_tmp += "    integer(c_int32_t), intent(out) :: dim"+std::to_string(i+1)+"\n";
+    }
+    for (size_t i = 0; i < v.n_dims; i++){
+      f90_tmp += "    dim"+std::to_string(i+1)+" = size("+v.name+", "+std::to_string(i+1)+")\n";
+    }
+    f90_tmp += "  end subroutine "+v.getter_name+"_size\n\n";  
+    
+    f90_tmp += "  subroutine "+v.getter_name+"(var, ";
+    for (size_t i = 0; i < v.n_dims; i++){
+      f90_tmp += "dim"+std::to_string(i+1);
+      if (i < v.n_dims - 1){
+        f90_tmp += ", ";
+      }
+    }
+    f90_tmp += ") bind(c)\n";
+    f90_tmp += "    use "+v.module_name+", only: "+v.name+"\n";
+    f90_tmp += "    "+v.base_ftype+"("+v.bindc_type+"), intent(out) :: var(";
+    for (size_t i = 0; i < v.n_dims; i++){
+      f90_tmp += "dim"+std::to_string(i+1);
+      if (i < v.n_dims - 1){
+        f90_tmp += ", ";
+      }
+    }
+    f90_tmp += ")\n";
+    for (size_t i = 0; i < v.n_dims; i++){
+      f90_tmp += "    integer(c_int32_t), intent(in) :: dim"+std::to_string(i+1)+"\n";
+    }
+    f90_tmp += "    var = "+v.name+"\n";
+    f90_tmp += "  end subroutine "+v.getter_name+"\n\n"; 
+    
+    // f90_tmp += "  subroutine "+v.setter_name+"(var) bind(c)\n";
+    // f90_tmp += "    use "+v.module_name+", only: "+v.name+"\n";
+    // f90_tmp += "    "+v.base_ftype+"("+v.bindc_type+"), intent(in) :: var\n";
+    // f90_tmp += "    "+v.name+" = var\n";
+    // f90_tmp += "  end subroutine "+v.setter_name+"\n\n";
+    
+    // chdr_tmp =  "void "+v.setter_name+"("+v.ctype+" *"+v.name+");\n";
+    // chdr_tmp += "void "+v.getter_name+"("+v.ctype+" *"+v.name+");\n";
+    // 
+    // pxd_tmp =  "  cdef void "+v.setter_name+"("+v.ctype+" *"+v.name+");\n";
+    // pxd_tmp += "  cdef void "+v.getter_name+"("+v.ctype+" *"+v.name+");\n";
+    // 
+    // pyx_tmp =  "  property "+v.name+":\n";
+    // pyx_tmp += "    def __get__(self):\n";
+    // pyx_tmp += "      cdef "+v.ctype+" var\n";
+    // pyx_tmp += "      "+v.pxd_fname+"."+v.getter_name+"(&var)\n";
+    // pyx_tmp += "      return var\n";
+    // pyx_tmp += "    def __set__(self, "+v.ctype+" var):\n";
+    // pyx_tmp += "      "+v.pxd_fname+"."+v.setter_name+"(&var)\n\n";
+    
+}
+ 
+}
 
 #define CTYPELIST \
     _X(ASR::Integer_t, 1, "int8_t" ) \
@@ -497,12 +643,165 @@ public:
 
 };
 
+struct CVariable{
+  
+};
+
+class ASRToPyVisitor1 : public ASR::BaseVisitor<ASRToPyVisitor1>
+{
+public:
+  
+  std::string module_name; // module to be wrapped
+  
+  std::string pyx; // Cython implementation file (.pyx)
+  std::string pxd; // Cython header file (.pxd)
+  std::string f90; // Fortran wrapper file (.f90)
+  std::string chdr; // C header file for Fortran wrapper (.h)
+  
+  std::string pyx_fname = "pyx_fname";
+  std::string pxd_fname = "pxd_fname";
+  std::string f90_fname = "f90_fname";
+  std::string chdr_fname = "chdr_fname";
+  
+  void visit_TranslationUnit(const ASR::TranslationUnit_t &x){
+    
+    chdr =  "// This file was automatically generated by the LFortran compiler.\n";
+    chdr += "// Editing by hand is discouraged.\n\n";
+    chdr += "#include <stdint.h>\n\n";
+    
+    pxd =   "# This file was automatically generated by the LFortran compiler.\n";
+    pxd +=  "# Editing by hand is discouraged.\n\n";
+    pxd +=  "from libc.stdint cimport int8_t, int16_t, int32_t, int64_t\n\n";
+    pxd +=  "cdef extern from \""+chdr_fname+".h\":\n";
+    
+    pyx =  "# This file was automatically generated by the LFortran compiler.\n";
+    pyx += "# Editing by hand is discouraged.\n\n";
+    pyx += "from numpy cimport ndarray, int8_t, int16_t, int32_t, int64_t\n";
+    pyx += "import numpy as np\n";
+    pyx += "cimport "+pxd_fname+" \n\n";  
+    pyx += "cdef class __"+module_name+":\n";
+    
+    f90 =  "! This file was automatically generated by the LFortran compiler.\n";
+    f90 += "! Editing by hand is discouraged.\n\n";
+    f90 += "module "+module_name+"_wrapper\n";
+    f90 += "  use iso_c_binding\n";
+    f90 += "  implicit none\n\n";
+    f90 += "contains\n\n";
+    
+    std::vector<std::string> build_order
+        = ASRUtils::determine_module_dependencies(x);
+    
+    // loop over stuff in tranlation unit
+    for(auto item : build_order){
+      ASR::symbol_t *mod = x.m_global_scope->scope[item];    
+      visit_symbol(*mod);
+    }
+    
+  }
+
+  void visit_Module(const ASR::Module_t &x)
+  {
+    // check if module is the right one
+    if (x.m_name != module_name){
+      return;
+    }
+    // std::cout << "Module: " << x.m_name << std::endl;
+    
+    // loop through symbols in module
+    for (auto &item : x.m_symtab->scope) {
+      
+      if (is_a<ASR::Variable_t>(*item.second)) {
+        // variables in module
+        ASR::Variable_t *s = ASR::down_cast<ASR::Variable_t>(item.second);
+        visit_Variable(*s);
+      }
+      else{
+        // IDK
+      }
+      
+    }
+    std::cout << f90 << std::endl;
+    std::cout << chdr << std::endl;
+    std::cout << pxd << std::endl;
+    std::cout << pyx << std::endl;
+    
+  }
+  
+  void visit_Variable(const ASR::Variable_t &x)
+  {
+    // std::cout << "  Variable: " << x.m_name << std::endl;
+    // std::cout << "            " << x.m_type->type << std::endl;
+    
+    // All these are variables. We must create setters and getters for
+    // each of them. We need to know the c-type, number of dimensions.
+    
+    std::string f90_tmp;
+    std::string chdr_tmp;
+    std::string pxd_tmp;
+    std::string pyx_tmp;
+    
+    PyModVar v;
+    
+    v.name = x.m_name;
+    v.module_name = module_name;
+    if (x.m_type->type == ASR::Integer){
+      ASR::Integer_t *tmp = down_cast<ASR::Integer_t>(x.m_type);
+      map2c(ASR::Integer, tmp->m_kind, v.ctype, v.bindc_type);
+      v.base_ftype = "integer";
+      v.n_dims = tmp->n_dims;
+    } 
+    else if (x.m_type->type == ASR::Real) {
+      ASR::Real_t *tmp = down_cast<ASR::Real_t>(x.m_type);
+      map2c(ASR::Real, tmp->m_kind, v.ctype, v.bindc_type);
+      v.base_ftype = "real";
+      v.n_dims = tmp->n_dims;
+    }
+    else {
+      throw CodeGenError("Type not supported");
+    }
+    v.getter_name = v.module_name+"_get_"+v.name;
+    v.setter_name = v.module_name+"_set_"+v.name;
+    v.pxd_fname = pxd_fname;
+    
+    if (v.n_dims == 0){
+      intrinsic_var(v, f90_tmp, chdr_tmp, pxd_tmp, pyx_tmp);
+    }
+    else {
+      intrinsic_arr(v, f90_tmp, chdr_tmp, pxd_tmp, pyx_tmp);
+    }
+    
+    
+    f90 += f90_tmp;
+    chdr += chdr_tmp;
+    pxd += pxd_tmp;
+    pyx += pyx_tmp;
+    
+    
+  }
+
+};
+
+
+
+
+
+
+
+
 std::tuple<std::string, std::string, std::string> asr_to_py(ASR::TranslationUnit_t &asr, bool c_order, std::string chdr_filename)
 {
     ASRToPyVisitor v (c_order, chdr_filename);
     v.visit_asr((ASR::asr_t &)asr);
 
     return std::make_tuple(v.chdr, v.pxd, v.pyx);
+}
+
+void asr_to_py1(ASR::TranslationUnit_t &asr, std::string module)
+{
+    ASRToPyVisitor1 v;
+    v.module_name = module;
+    v.visit_asr((ASR::asr_t &)asr);
+    
 }
 
 } // namespace LFortran

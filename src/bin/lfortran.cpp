@@ -470,7 +470,34 @@ int format(const std::string &infile, bool inplace, bool color, int indent,
     return 0;
 }
 
-int python_wrapper(const std::string &infile, std::string array_order,
+int python_wrapper(const std::string &infile, const std::string &module,
+    CompilerOptions &compiler_options)
+{
+  
+  std::string input = read_file(infile);
+
+  // Src -> AST -> ASR
+  LFortran::FortranEvaluator fe(compiler_options);
+  LFortran::ASR::TranslationUnit_t* asr;
+  LFortran::LocationManager lm;
+  lm.in_filename = infile;
+  LFortran::diag::Diagnostics diagnostics;
+  LFortran::Result<LFortran::ASR::TranslationUnit_t*>
+      result = fe.get_asr2(input, lm, diagnostics);
+  std::cerr << diagnostics.render(input, lm, compiler_options);
+  if (result.ok) {
+      asr = result.result;
+  } else {
+      LFORTRAN_ASSERT(diagnostics.has_error())
+      return 1;
+  }
+  
+  LFortran::asr_to_py1(*asr, module);
+  
+  return 0;
+}
+
+int python_wrapper_old(const std::string &infile, std::string array_order,
     CompilerOptions &compiler_options)
 {
 
@@ -1184,8 +1211,8 @@ int main(int argc, char *argv[])
         bool arg_mod_show_asr = false;
         bool arg_mod_no_color = false;
 
-        std::string arg_pywrap_file;
-        std::string arg_pywrap_array_order="f";
+        std::string arg_pywrap_files;
+        std::string arg_pywrap_module;
 
         CompilerOptions compiler_options;
 
@@ -1257,10 +1284,8 @@ int main(int argc, char *argv[])
 
         // pywrap
         CLI::App &pywrap = *app.add_subcommand("pywrap", "Python wrapper generator");
-        pywrap.add_option("file", arg_pywrap_file, "Fortran source file (*.f90)")->required();
-        pywrap.add_option("--array-order", arg_pywrap_array_order,
-                "Select array order (c, f)")->capture_default_str();
-
+        pywrap.add_option("file", arg_pywrap_files, "Fortran source files (*.f90)")->required();
+        pywrap.add_option("module", arg_pywrap_module, "Fortran module to be wrapped")->required();
 
         app.get_formatter()->column_width(25);
         app.require_subcommand(0, 1);
@@ -1322,8 +1347,7 @@ int main(int argc, char *argv[])
         }
 
         if (pywrap) {
-            return python_wrapper(arg_pywrap_file, arg_pywrap_array_order,
-                compiler_options);
+            return python_wrapper(arg_pywrap_files, arg_pywrap_module, compiler_options);
         }
 
         if (arg_backend == "llvm") {
