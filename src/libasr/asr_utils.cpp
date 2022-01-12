@@ -666,6 +666,7 @@ int select_generic_procedure(const Vec<ASR::expr_t*> &args,
         }
     }
     err("Arguments do not match for any generic procedure", loc);
+    return -1;
 }
 
 ASR::asr_t* symbol_resolve_external_generic_procedure_without_eval(
