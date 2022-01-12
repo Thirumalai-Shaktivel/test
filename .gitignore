@@ -42,6 +42,7 @@ Testing/Temporary
 CPackConfig.cmake
 CPackSourceConfig.cmake
 _CPack_Packages
+/CMakeSettings.json
 
 ## libraries
 *.a
@@ -154,6 +155,7 @@ MANIFEST
 
 ## Editor Files
 .vscode/
+.vs/
 
 ## Build Files
 */bin/lfortran

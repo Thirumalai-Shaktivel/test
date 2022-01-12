@@ -3,7 +3,7 @@
 #include <libasr/serialization.h>
 #include <libasr/assert.h>
 #include <libasr/asr_verify.h>
-#include <lfortran/utils.h>
+#include <libasr/utils.h>
 #include <libasr/modfile.h>
 
 namespace LFortran {
@@ -96,31 +96,32 @@ ASR::Module_t* extract_module(const ASR::TranslationUnit_t &m) {
 
 ASR::Module_t* load_module(Allocator &al, SymbolTable *symtab,
                             const std::string &module_name,
-                            const Location &loc, bool intrinsic) {
+                            const Location &loc, bool intrinsic,
+                            const std::string &rl_path,
+                            const std::function<void (const std::string &, const Location &)> err) {
     LFORTRAN_ASSERT(symtab);
     if (symtab->scope.find(module_name) != symtab->scope.end()) {
         ASR::symbol_t *m = symtab->scope[module_name];
         if (ASR::is_a<ASR::Module_t>(*m)) {
             return ASR::down_cast<ASR::Module_t>(m);
         } else {
-            throw SemanticError("The symbol '" + module_name
-                + "' is not a module", loc);
+            err("The symbol '" + module_name + "' is not a module", loc);
         }
     }
     LFORTRAN_ASSERT(symtab->parent == nullptr);
     ASR::TranslationUnit_t *mod1 = find_and_load_module(al, module_name,
-            *symtab, intrinsic);
+            *symtab, intrinsic, rl_path);
     if (mod1 == nullptr && !intrinsic) {
         // Module not found as a regular module. Try intrinsic module
         if (module_name == "iso_c_binding"
             ||module_name == "iso_fortran_env"
             ||module_name == "ieee_arithmetic") {
             mod1 = find_and_load_module(al, "lfortran_intrinsic_" + module_name,
-                *symtab, true);
+                *symtab, true, rl_path);
         }
     }
     if (mod1 == nullptr) {
-        throw SemanticError("Module '" + module_name + "' not declared in the current source and the modfile was not found",
+        err("Module '" + module_name + "' not declared in the current source and the modfile was not found",
             loc);
     }
     ASR::Module_t *mod2 = extract_module(*mod1);
@@ -153,19 +154,18 @@ ASR::Module_t* load_module(Allocator &al, SymbolTable *symtab,
                 bool is_intrinsic = startswith(item, "lfortran_intrinsic");
                 ASR::TranslationUnit_t *mod1 = find_and_load_module(al,
                         item,
-                        *symtab, is_intrinsic);
+                        *symtab, is_intrinsic, rl_path);
                 if (mod1 == nullptr && !is_intrinsic) {
                     // Module not found as a regular module. Try intrinsic module
                     if (item == "iso_c_binding"
                         ||item == "iso_fortran_env") {
                         mod1 = find_and_load_module(al, "lfortran_intrinsic_" + item,
-                            *symtab, true);
+                            *symtab, true, rl_path);
                     }
                 }
 
                 if (mod1 == nullptr) {
-                    throw SemanticError("Module '" + item + "' modfile was not found",
-                        loc);
+                    err("Module '" + item + "' modfile was not found", loc);
                 }
                 ASR::Module_t *mod2 = extract_module(*mod1);
                 symtab->scope[item] = (ASR::symbol_t*)mod2;
@@ -181,8 +181,7 @@ ASR::Module_t* load_module(Allocator &al, SymbolTable *symtab,
         = determine_module_dependencies(*tu);
     for (auto &item : modules_list) {
         if (symtab->scope.find(item) == symtab->scope.end()) {
-            throw SemanticError("ICE: Module '" + item + "' modfile was not found, but should have",
-                loc);
+            err("ICE: Module '" + item + "' modfile was not found, but should have", loc);
         }
     }
 
@@ -236,10 +235,10 @@ void set_intrinsic(ASR::TranslationUnit_t* trans_unit) {
 }
 
 ASR::TranslationUnit_t* find_and_load_module(Allocator &al, const std::string &msym,
-                                                SymbolTable &symtab, bool intrinsic) {
+                                                SymbolTable &symtab, bool intrinsic,
+                                                const std::string &rl_path) {
     std::string modfilename = msym + ".mod";
     if (intrinsic) {
-        std::string rl_path = get_runtime_library_dir();
         modfilename = rl_path + "/" + modfilename;
     }
 
@@ -315,7 +314,8 @@ ASR::asr_t* getDerivedRef_t(Allocator& al, const Location& loc,
 bool use_overloaded(ASR::expr_t* left, ASR::expr_t* right,
                     ASR::binopType op, std::string& intrinsic_op_name,
                     SymbolTable* curr_scope, ASR::asr_t*& asr,
-                    Allocator &al, const Location& loc) {
+                    Allocator &al, const Location& loc,
+                    const std::function<void (const std::string &, const Location &)> err) {
     ASR::ttype_t *left_type = LFortran::ASRUtils::expr_type(left);
     ASR::ttype_t *right_type = LFortran::ASRUtils::expr_type(right);
     bool found = false;
@@ -347,7 +347,7 @@ bool use_overloaded(ASR::expr_t* left, ASR::expr_t* right,
                     break;
                 }
                 default: {
-                    throw SemanticError("While overloading binary operators only functions can be used",
+                    err("While overloading binary operators only functions can be used",
                                         proc->base.loc);
                 }
             }
@@ -446,7 +446,8 @@ bool use_overloaded_assignment(ASR::expr_t* target, ASR::expr_t* value,
 bool use_overloaded(ASR::expr_t* left, ASR::expr_t* right,
                     ASR::cmpopType op, std::string& intrinsic_op_name,
                     SymbolTable* curr_scope, ASR::asr_t*& asr,
-                    Allocator &al, const Location& loc) {
+                    Allocator &al, const Location& loc,
+                    const std::function<void (const std::string &, const Location &)> err) {
     ASR::ttype_t *left_type = LFortran::ASRUtils::expr_type(left);
     ASR::ttype_t *right_type = LFortran::ASRUtils::expr_type(right);
     bool found = false;
@@ -478,7 +479,7 @@ bool use_overloaded(ASR::expr_t* left, ASR::expr_t* right,
                     break;
                 }
                 default: {
-                    throw SemanticError("While overloading binary operators only functions can be used",
+                    err("While overloading binary operators only functions can be used",
                                         proc->base.loc);
                 }
             }

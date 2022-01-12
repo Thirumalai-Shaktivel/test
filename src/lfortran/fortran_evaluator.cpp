@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <libasr/codegen/fortran_evaluator.h>
+#include <lfortran/fortran_evaluator.h>
 #include <libasr/codegen/asr_to_cpp.h>
 #include <lfortran/ast_to_src.h>
 #include <libasr/exception.h>
@@ -304,6 +304,7 @@ Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm3(
     Result<std::unique_ptr<LFortran::LLVMModule>> res
         = asr_to_llvm(asr, diagnostics,
             e->get_context(), al, compiler_options.platform,
+            get_runtime_library_dir(),
             run_fn);
     if (res.ok) {
         m = std::move(res.result);
@@ -380,14 +381,6 @@ Result<std::string> FortranEvaluator::get_fmt(const std::string &code,
         LFORTRAN_ASSERT(diagnostics.has_error())
         return ast.error;
     }
-}
-
-std::string FortranEvaluator::error_stacktrace(const std::vector<StacktraceItem> &stacktrace)
-{
-    std::vector<StacktraceItem> d = stacktrace;
-    get_local_addresses(d);
-    get_local_info(d);
-    return stacktrace2str(d, stacktrace_depth-1);
 }
 
 } // namespace LFortran

@@ -1,10 +1,11 @@
 #ifndef LFORTRAN_ASR_UTILS_H
 #define LFORTRAN_ASR_UTILS_H
 
+#include <functional>
+
 #include <libasr/assert.h>
 #include <libasr/asr.h>
 #include <libasr/string_utils.h>
-#include <lfortran/semantics/semantic_exception.h>
 
 namespace LFortran  {
 
@@ -457,10 +458,13 @@ ASR::Module_t* extract_module(const ASR::TranslationUnit_t &m);
 
 ASR::Module_t* load_module(Allocator &al, SymbolTable *symtab,
                             const std::string &module_name,
-                            const Location &loc, bool intrinsic);
+                            const Location &loc, bool intrinsic,
+                            const std::string &rl_path,
+                            const std::function<void (const std::string &, const Location &)> err);
 
 ASR::TranslationUnit_t* find_and_load_module(Allocator &al, const std::string &msym,
-                                                SymbolTable &symtab, bool intrinsic);
+                                                SymbolTable &symtab, bool intrinsic,
+                                                const std::string &rl_path);
 
 void set_intrinsic(ASR::TranslationUnit_t* trans_unit);
 
@@ -471,7 +475,8 @@ ASR::asr_t* getDerivedRef_t(Allocator& al, const Location& loc,
 bool use_overloaded(ASR::expr_t* left, ASR::expr_t* right,
                     ASR::binopType op, std::string& intrinsic_op_name,
                     SymbolTable* curr_scope, ASR::asr_t*& asr,
-                    Allocator &al, const Location& loc);
+                    Allocator &al, const Location& loc,
+                    const std::function<void (const std::string &, const Location &)> err);
 
 bool is_op_overloaded(ASR::binopType op, std::string& intrinsic_op_name,
                       SymbolTable* curr_scope);
@@ -479,7 +484,8 @@ bool is_op_overloaded(ASR::binopType op, std::string& intrinsic_op_name,
 bool use_overloaded(ASR::expr_t* left, ASR::expr_t* right,
                     ASR::cmpopType op, std::string& intrinsic_op_name,
                     SymbolTable* curr_scope, ASR::asr_t*& asr,
-                    Allocator &al, const Location& loc);
+                    Allocator &al, const Location& loc,
+                    const std::function<void (const std::string &, const Location &)> err);
 
 bool is_op_overloaded(ASR::cmpopType op, std::string& intrinsic_op_name,
                       SymbolTable* curr_scope);
@@ -603,6 +609,7 @@ inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
                 return 4;
             }
 
+            template <typename SemanticError>
             inline int extract_kind(ASR::expr_t* kind_expr, const Location& loc) {
                 int a_kind = 4;
                 switch( kind_expr->type ) {
@@ -641,6 +648,7 @@ inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
                 return a_kind;
             }
 
+            template <typename SemanticError>
             inline int extract_len(ASR::expr_t* len_expr, const Location& loc) {
                 int a_len = -10;
                 switch( len_expr->type ) {

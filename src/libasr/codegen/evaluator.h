@@ -7,9 +7,8 @@
 
 #include <libasr/alloc.h>
 #include <libasr/asr_scopes.h>
-#include <lfortran/ast.h>
 #include <libasr/asr.h>
-#include <lfortran/utils.h>
+#include <libasr/utils.h>
 
 // Forward declare all needed LLVM classes without importing any LLVM header
 // files. Those are only imported in evaluator.cpp and nowhere else, to speed

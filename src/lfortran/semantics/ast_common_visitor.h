@@ -118,9 +118,9 @@ public:
     ASR::ttype_t *right_type = LFortran::ASRUtils::expr_type(right);
 
     ASR::expr_t *overloaded = nullptr;
-    if( LFortran::ASRUtils::use_overloaded(left, right, asr_op,
+    if ( ASRUtils::use_overloaded(left, right, asr_op,
         intrinsic_op_name, curr_scope, asr, al,
-        x.base.base.loc) ) {
+        x.base.base.loc, [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }) ) {
         overloaded = LFortran::ASRUtils::EXPR(asr);
     }
 
@@ -1097,8 +1097,11 @@ public:
         std::string module_name = intrinsic_procedures.get_module(remote_sym, loc);
 
         SymbolTable *tu_symtab = ASRUtils::get_tu_symtab(current_scope);
+        std::string rl_path = get_runtime_library_dir();
         ASR::Module_t *m = ASRUtils::load_module(al, tu_symtab, module_name,
-                loc, true);
+                loc, true, rl_path,
+                [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }
+                );
 
         ASR::symbol_t *t = m->m_symtab->resolve_symbol(remote_sym);
         if (!t) {
@@ -1201,9 +1204,9 @@ public:
         ASR::ttype_t *left_type = LFortran::ASRUtils::expr_type(left);
         ASR::ttype_t *right_type = LFortran::ASRUtils::expr_type(right);
         ASR::expr_t *overloaded = nullptr;
-        if( LFortran::ASRUtils::use_overloaded(left, right, op,
+        if ( ASRUtils::use_overloaded(left, right, op,
             intrinsic_op_name, curr_scope, asr, al,
-            x.base.base.loc) ) {
+            x.base.base.loc, [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }) ) {
             overloaded = LFortran::ASRUtils::EXPR(asr);
         }
 
