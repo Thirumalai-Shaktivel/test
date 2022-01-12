@@ -165,7 +165,8 @@ public:
             LFORTRAN_ASSERT(flip_sign_signal_variable);
             LFORTRAN_ASSERT(flip_sign_variable);
             ASR::stmt_t* flip_sign_call = PassUtils::get_flipsign(flip_sign_signal_variable,
-                                            flip_sign_variable, al, unit, rl_path, current_scope);
+                                            flip_sign_variable, al, unit, rl_path, current_scope,
+                                            [&](const std::string &msg, const Location &) { throw LFortranException(msg); });
             flip_sign_result.push_back(al, flip_sign_call);
         }
     }

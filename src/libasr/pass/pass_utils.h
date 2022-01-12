@@ -34,7 +34,8 @@ namespace LFortran {
         ASR::stmt_t* get_flipsign(ASR::expr_t* arg0, ASR::expr_t* arg1,
                                   Allocator& al, ASR::TranslationUnit_t& unit,
                                   const std::string &rl_path,
-                                  SymbolTable*& current_scope);
+                                  SymbolTable*& current_scope,
+                                  const std::function<void (const std::string &, const Location &)> err);
 
         ASR::expr_t* to_int32(ASR::expr_t* x, ASR::ttype_t* int32type, Allocator& al);
 

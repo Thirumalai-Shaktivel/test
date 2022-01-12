@@ -804,7 +804,8 @@ public:
         ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
         ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
         ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
-        int idx = ASRUtils::select_generic_procedure(args, *g, loc);
+        int idx = ASRUtils::select_generic_procedure(args, *g, loc,
+                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
         ASR::symbol_t *final_sym;
         final_sym = g->m_procs[idx];
         if (!ASR::is_a<ASR::Function_t>(*final_sym)) {
@@ -877,7 +878,8 @@ public:
                     args);
         } else {
             ASR::GenericProcedure_t *p = ASR::down_cast<ASR::GenericProcedure_t>(v);
-            int idx = ASRUtils::select_generic_procedure(args, *p, loc);
+            int idx = ASRUtils::select_generic_procedure(args, *p, loc,
+                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
             ASR::symbol_t *final_sym = p->m_procs[idx];
 
             ASR::ttype_t *type;

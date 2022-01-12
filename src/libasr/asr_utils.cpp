@@ -5,7 +5,6 @@
 #include <libasr/asr_verify.h>
 #include <libasr/utils.h>
 #include <libasr/modfile.h>
-#include <lfortran/semantics/semantic_exception.h>
 
 namespace LFortran {
 
@@ -629,7 +628,7 @@ bool argument_types_match(const Vec<ASR::expr_t*> &args,
 }
 
 bool select_func_subrout(const ASR::symbol_t* proc, const Vec<ASR::expr_t*> &args,
-                         Location& loc) {
+                         Location& loc, const std::function<void (const std::string &, const Location &)> err) {
     bool result = false;
     if (ASR::is_a<ASR::Subroutine_t>(*proc)) {
         ASR::Subroutine_t *sub
@@ -644,38 +643,40 @@ bool select_func_subrout(const ASR::symbol_t* proc, const Vec<ASR::expr_t*> &arg
             result = true;
         }
     } else {
-        throw SemanticError("Only Subroutine and Function supported in generic procedure", loc);
+        err("Only Subroutine and Function supported in generic procedure", loc);
     }
     return result;
 }
 
 int select_generic_procedure(const Vec<ASR::expr_t*> &args,
-        const ASR::GenericProcedure_t &p, Location loc) {
+        const ASR::GenericProcedure_t &p, Location loc,
+        const std::function<void (const std::string &, const Location &)> err) {
     for (size_t i=0; i < p.n_procs; i++) {
         if( ASR::is_a<ASR::ClassProcedure_t>(*p.m_procs[i]) ) {
             ASR::ClassProcedure_t *clss_fn
                 = ASR::down_cast<ASR::ClassProcedure_t>(p.m_procs[i]);
             const ASR::symbol_t *proc = ASRUtils::symbol_get_past_external(clss_fn->m_proc);
-            if( select_func_subrout(proc, args, loc) ) {
+            if( select_func_subrout(proc, args, loc, err) ) {
                 return i;
             }
         } else {
-            if( select_func_subrout(p.m_procs[i], args, loc) ) {
+            if( select_func_subrout(p.m_procs[i], args, loc, err) ) {
                 return i;
             }
         }
     }
-    throw SemanticError("Arguments do not match for any generic procedure", loc);
+    err("Arguments do not match for any generic procedure", loc);
 }
 
 ASR::asr_t* symbol_resolve_external_generic_procedure_without_eval(
             const Location &loc,
             ASR::symbol_t *v, Vec<ASR::expr_t*> args,
-            SymbolTable* current_scope, Allocator& al) {
+            SymbolTable* current_scope, Allocator& al,
+            const std::function<void (const std::string &, const Location &)> err) {
     ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
     ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
     ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
-    int idx = select_generic_procedure(args, *g, loc);
+    int idx = select_generic_procedure(args, *g, loc, err);
     ASR::symbol_t *final_sym;
     final_sym = g->m_procs[idx];
     LFORTRAN_ASSERT(ASR::is_a<ASR::Function_t>(*final_sym) ||

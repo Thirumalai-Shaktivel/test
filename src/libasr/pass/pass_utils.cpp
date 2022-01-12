@@ -287,7 +287,8 @@ namespace LFortran {
         ASR::stmt_t* get_flipsign(ASR::expr_t* arg0, ASR::expr_t* arg1,
                               Allocator& al, ASR::TranslationUnit_t& unit,
                               const std::string& rl_path,
-                              SymbolTable*& current_scope) {
+                              SymbolTable*& current_scope,
+                              const std::function<void (const std::string &, const Location &)> err) {
             ASR::symbol_t *v = import_generic_procedure("flipsign", "lfortran_intrinsic_optimisation",
                                                         al, unit, rl_path, current_scope, arg0->base.loc);
             Vec<ASR::expr_t*> args;
@@ -296,7 +297,8 @@ namespace LFortran {
             args.push_back(al, arg1);
             return ASRUtils::STMT(
                     ASRUtils::symbol_resolve_external_generic_procedure_without_eval(
-                        arg0->base.loc, v, args, current_scope, al));
+                        arg0->base.loc, v, args, current_scope, al,
+                        err));
         }
 
         ASR::expr_t* to_int32(ASR::expr_t* x, ASR::ttype_t* int64type, Allocator& al) {
