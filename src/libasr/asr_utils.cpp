@@ -5,6 +5,7 @@
 #include <libasr/asr_verify.h>
 #include <libasr/utils.h>
 #include <libasr/modfile.h>
+#include <lfortran/semantics/semantic_exception.h>
 
 namespace LFortran {
 
