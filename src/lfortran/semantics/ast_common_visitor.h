@@ -1,10 +1,10 @@
 #ifndef LFORTRAN_SEMANTICS_AST_COMMON_VISITOR_H
 #define LFORTRAN_SEMANTICS_AST_COMMON_VISITOR_H
 
-#include <lfortran/asr.h>
+#include <libasr/asr.h>
 #include <lfortran/ast.h>
 #include <lfortran/bigint.h>
-#include <lfortran/string_utils.h>
+#include <libasr/string_utils.h>
 #include <lfortran/utils.h>
 #include <lfortran/semantics/comptime_eval.h>
 
@@ -117,9 +117,9 @@ public:
     ASR::ttype_t *right_type = LFortran::ASRUtils::expr_type(right);
 
     ASR::expr_t *overloaded = nullptr;
-    if( LFortran::ASRUtils::use_overloaded(left, right, asr_op,
+    if ( ASRUtils::use_overloaded(left, right, asr_op,
         intrinsic_op_name, curr_scope, asr, al,
-        x.base.base.loc) ) {
+        x.base.base.loc, [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }) ) {
         overloaded = LFortran::ASRUtils::EXPR(asr);
     }
 
@@ -1067,8 +1067,11 @@ public:
         std::string module_name = intrinsic_procedures.get_module(remote_sym, loc);
 
         SymbolTable *tu_symtab = ASRUtils::get_tu_symtab(current_scope);
+        std::string rl_path = get_runtime_library_dir();
         ASR::Module_t *m = ASRUtils::load_module(al, tu_symtab, module_name,
-                loc, true);
+                loc, true, rl_path,
+                [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }
+                );
 
         ASR::symbol_t *t = m->m_symtab->resolve_symbol(remote_sym);
         if (!t) {
@@ -1171,9 +1174,9 @@ public:
         ASR::ttype_t *left_type = LFortran::ASRUtils::expr_type(left);
         ASR::ttype_t *right_type = LFortran::ASRUtils::expr_type(right);
         ASR::expr_t *overloaded = nullptr;
-        if( LFortran::ASRUtils::use_overloaded(left, right, op,
+        if ( ASRUtils::use_overloaded(left, right, op,
             intrinsic_op_name, curr_scope, asr, al,
-            x.base.base.loc) ) {
+            x.base.base.loc, [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }) ) {
             overloaded = LFortran::ASRUtils::EXPR(asr);
         }
 
@@ -1367,7 +1370,7 @@ public:
     }
 
     void visit_BOZ(const AST::BOZ_t& x) {
-        std::string s = std::string(x.m_s); 
+        std::string s = std::string(x.m_s);
         int base = -1;
         ASR::bozType boz_type;
         if( s[0] == 'b' || s[0] == 'B' ) {
@@ -1380,9 +1383,9 @@ public:
             boz_type = ASR::bozType::Octal;
             base = 8;
         } else {
-            throw SemanticError(R"""(Only 'b', 'o' and 'z' 
-                                are accepted as prefixes of 
-                                BOZ literal constants.)""", 
+            throw SemanticError(R"""(Only 'b', 'o' and 'z'
+                                are accepted as prefixes of
+                                BOZ literal constants.)""",
                                 x.base.base.loc);
         }
         std::string boz_str = s.substr(2, s.size() - 2);
@@ -1539,7 +1542,7 @@ public:
     void visit_kwargs(Vec<ASR::expr_t*> &args, AST::keyword_t *kwargs, size_t n,
                 ASR::expr_t **fn_args, size_t fn_n_args, const Location &loc) {
         size_t n_args = args.size();
-        if (args.size() + n != fn_n_args) {
+        if (n_args + n != fn_n_args) {
             throw SemanticError(
                 "Procedure accepts " + std::to_string(fn_n_args)
                 + " arguments, but " + std::to_string(args.size() + n)
@@ -1670,7 +1673,7 @@ public:
             const ASR::GenericProcedure_t &p, Location loc) {
         for (size_t i=0; i < p.n_procs; i++) {
             if( ASR::is_a<ASR::ClassProcedure_t>(*p.m_procs[i]) ) {
-                ASR::ClassProcedure_t *clss_fn 
+                ASR::ClassProcedure_t *clss_fn
                     = ASR::down_cast<ASR::ClassProcedure_t>(p.m_procs[i]);
                 const ASR::symbol_t *proc = ASRUtils::symbol_get_past_external(clss_fn->m_proc);
                 if( select_func_subrout(proc, args, loc) ) {
@@ -1754,6 +1757,16 @@ public:
                 case (ASR::ttypeType::Logical) : {
                     ASR::Logical_t *a2 = ASR::down_cast<ASR::Logical_t>(&a);
                     ASR::Logical_t *b2 = ASR::down_cast<ASR::Logical_t>(&b);
+                    if (a2->m_kind == b2->m_kind) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                    break;
+                }
+                case (ASR::ttypeType::Character) : {
+                    ASR::Character_t *a2 = ASR::down_cast<ASR::Character_t>(&a);
+                    ASR::Character_t *b2 = ASR::down_cast<ASR::Character_t>(&b);
                     if (a2->m_kind == b2->m_kind) {
                         return true;
                     } else {

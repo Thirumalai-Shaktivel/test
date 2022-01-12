@@ -3,11 +3,12 @@
 
 #include <complex>
 
-#include <lfortran/asr.h>
+#include <libasr/asr.h>
 #include <lfortran/ast.h>
 #include <lfortran/bigint.h>
-#include <lfortran/string_utils.h>
+#include <libasr/string_utils.h>
 #include <lfortran/utils.h>
+#include <lfortran/semantics/semantic_exception.h>
 
 namespace LFortran {
 
@@ -112,8 +113,14 @@ struct IntrinsicProcedures {
             // Subroutines
             {"cpu_time", {m_math, &not_implemented, false}},
             {"bit_size", {m_builtin, &eval_bit_size, false}},
-            {"not", {m_builtin, &eval_not, false}},
-            {"iachar",  {m_builtin, &eval_iachar, false}},
+            {"not", {m_bit, &eval_not, true}},
+            {"mvbits", {m_bit, &not_implemented, true}},
+            {"bge", {m_bit, &not_implemented, true}},
+            {"bgt", {m_bit, &not_implemented, true}},
+            {"ble", {m_bit, &not_implemented, true}},
+            {"blt", {m_bit, &not_implemented, true}},
+            {"ibits", {m_bit, &not_implemented, true}},
+            {"iachar",  {m_builtin, &eval_iachar, true}},
             {"achar", {m_builtin, &eval_achar, false}},
             {"len", {m_builtin, &eval_len, false}},
             {"size", {m_builtin, &not_implemented, false}},
@@ -194,7 +201,7 @@ struct IntrinsicProcedures {
                 break;
             }
             case ASR::exprType::Var : {
-                kind_num = ASRUtils::extract_kind(kind_expr, loc);
+                kind_num = ASRUtils::extract_kind<SemanticError>(kind_expr, loc);
                 break;
             }
             default: {
