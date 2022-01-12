@@ -205,11 +205,65 @@ namespace LFortran {
             }
         }
 
+        ASR::symbol_t* import_generic_procedure(std::string func_name, std::string module_name,
+                                       Allocator& al, ASR::TranslationUnit_t& unit,
+                                       const std::string &rl_path,
+                                       SymbolTable*& current_scope, Location& loc) {
+            ASR::symbol_t *v;
+            std::string remote_sym = func_name;
+            SymbolTable* current_scope_copy = current_scope;
+            current_scope = unit.m_global_scope;
+            ASR::Module_t *m = LFortran::ASRUtils::load_module(al, current_scope,
+                                            module_name, loc, true);
+
+            ASR::symbol_t *t = m->m_symtab->resolve_symbol(remote_sym);
+            ASR::asr_t *fn = ASR::make_ExternalSymbol_t(al, t->base.loc, current_scope,
+                                                        s2c(al, remote_sym), t,
+                                                        s2c(al, module_name), nullptr, 0, s2c(al, remote_sym),
+                                                        ASR::accessType::Private);
+            std::string& sym = remote_sym;
+            if( current_scope->scope.find(sym) != current_scope->scope.end() ) {
+                v = current_scope->scope[sym];
+            } else {
+                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
+                v = ASR::down_cast<ASR::symbol_t>(fn);
+            }
+            current_scope = current_scope_copy;
+            return v;
+        }
+
+        ASR::symbol_t* import_function(std::string func_name, std::string module_name,
+                                       Allocator& al, ASR::TranslationUnit_t& unit,
+                                       const std::string &rl_path,
+                                       SymbolTable*& current_scope, Location& loc) {
+            ASR::symbol_t *v;
+            std::string remote_sym = func_name;
+            SymbolTable* current_scope_copy = current_scope;
+            current_scope = unit.m_global_scope;
+            ASR::Module_t *m = LFortran::ASRUtils::load_module(al, current_scope,
+                                            module_name, loc, true);
+
+            ASR::symbol_t *t = m->m_symtab->resolve_symbol(remote_sym);
+            ASR::Function_t *mfn = ASR::down_cast<ASR::Function_t>(t);
+            ASR::asr_t *fn = ASR::make_ExternalSymbol_t(al, mfn->base.base.loc, current_scope,
+                                                        mfn->m_name, (ASR::symbol_t*)mfn,
+                                                        m->m_name, nullptr, 0, mfn->m_name, ASR::accessType::Private);
+            std::string sym = mfn->m_name;
+            if( current_scope->scope.find(sym) != current_scope->scope.end() ) {
+                v = current_scope->scope[sym];
+            } else {
+                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
+                v = ASR::down_cast<ASR::symbol_t>(fn);
+            }
+            current_scope = current_scope_copy;
+            return v;
+        }
+
         ASR::expr_t* get_bound(ASR::expr_t* arr_expr, int dim, std::string bound,
                                 Allocator& al, ASR::TranslationUnit_t& unit,
                                 SymbolTable*& current_scope) {
             ASR::symbol_t *v = import_function(bound, "lfortran_intrinsic_builtin", al,
-                                               unit, current_scope, arr_expr->base.loc);
+                                               unit, rl_path, current_scope, arr_expr->base.loc);
             ASR::ExternalSymbol_t* v_ext = ASR::down_cast<ASR::ExternalSymbol_t>(v);
             ASR::Function_t* mfn = ASR::down_cast<ASR::Function_t>(v_ext->m_external);
             Vec<ASR::expr_t*> args;
@@ -228,7 +282,7 @@ namespace LFortran {
                               Allocator& al, ASR::TranslationUnit_t& unit,
                               SymbolTable*& current_scope) {
             ASR::symbol_t *v = import_generic_procedure("flipsign", "lfortran_intrinsic_optimisation",
-                                                        al, unit, current_scope, arg0->base.loc);
+                                                        al, unit, rl_path, current_scope, arg0->base.loc);
             Vec<ASR::expr_t*> args;
             args.reserve(al, 2);
             args.push_back(al, arg0);
