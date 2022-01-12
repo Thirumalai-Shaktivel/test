@@ -60,6 +60,8 @@ class FlipSignVisitor : public ASR::BaseWalkVisitor<FlipSignVisitor>
 private:
     Allocator &al;
     ASR::TranslationUnit_t &unit;
+
+    std::string rl_path;
     Vec<ASR::stmt_t*> flip_sign_result;
 
     ASR::expr_t *flip_sign_signal_variable, *flip_sign_variable;
@@ -74,7 +76,8 @@ private:
     bool is_flip_sign_present;
 
 public:
-    FlipSignVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_) : al(al_), unit(unit_)
+    FlipSignVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_, const std::string& rl_path_) : al(al_), unit(unit_),
+    rl_path{rl_path_}
     {
     }
 
@@ -162,7 +165,7 @@ public:
             LFORTRAN_ASSERT(flip_sign_signal_variable);
             LFORTRAN_ASSERT(flip_sign_variable);
             ASR::stmt_t* flip_sign_call = PassUtils::get_flipsign(flip_sign_signal_variable,
-                                            flip_sign_variable, al, unit, current_scope);
+                                            flip_sign_variable, al, unit, rl_path, current_scope);
             flip_sign_result.push_back(al, flip_sign_call);
         }
     }
@@ -249,8 +252,9 @@ public:
 
 };
 
-void pass_replace_flip_sign(Allocator &al, ASR::TranslationUnit_t &unit) {
-    FlipSignVisitor v(al, unit);
+void pass_replace_flip_sign(Allocator &al, ASR::TranslationUnit_t &unit,
+                            const std::string& rl_path) {
+    FlipSignVisitor v(al, unit, rl_path);
     v.visit_TranslationUnit(unit);
     LFORTRAN_ASSERT(asr_verify(unit));
 }

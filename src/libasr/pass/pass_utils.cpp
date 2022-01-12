@@ -266,6 +266,7 @@ namespace LFortran {
 
         ASR::expr_t* get_bound(ASR::expr_t* arr_expr, int dim, std::string bound,
                                 Allocator& al, ASR::TranslationUnit_t& unit,
+                                const std::string& rl_path,
                                 SymbolTable*& current_scope) {
             ASR::symbol_t *v = import_function(bound, "lfortran_intrinsic_builtin", al,
                                                unit, rl_path, current_scope, arr_expr->base.loc);
@@ -285,6 +286,7 @@ namespace LFortran {
 
         ASR::stmt_t* get_flipsign(ASR::expr_t* arg0, ASR::expr_t* arg1,
                               Allocator& al, ASR::TranslationUnit_t& unit,
+                              const std::string& rl_path,
                               SymbolTable*& current_scope) {
             ASR::symbol_t *v = import_generic_procedure("flipsign", "lfortran_intrinsic_optimisation",
                                                         al, unit, rl_path, current_scope, arg0->base.loc);

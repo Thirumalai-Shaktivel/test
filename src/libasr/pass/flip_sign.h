@@ -5,7 +5,7 @@
 
 namespace LFortran {
 
-    void pass_replace_flip_sign(Allocator &al, ASR::TranslationUnit_t &unit);
+    void pass_replace_flip_sign(Allocator &al, ASR::TranslationUnit_t &unit, const std::string& rl_path);
 
 } // namespace LFortran
 

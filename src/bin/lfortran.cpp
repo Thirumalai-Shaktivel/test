@@ -567,7 +567,7 @@ int emit_asr(const std::string &infile,
                 break;
             }
             case (ASRPass::flip_sign) : {
-                LFortran::pass_replace_flip_sign(al, *asr);
+                LFortran::pass_replace_flip_sign(al, *asr, LFortran::get_runtime_library_dir());
                 break;
             }
             case (ASRPass::class_constructor) : {
