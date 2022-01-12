@@ -214,7 +214,10 @@ namespace LFortran {
             SymbolTable* current_scope_copy = current_scope;
             current_scope = unit.m_global_scope;
             ASR::Module_t *m = LFortran::ASRUtils::load_module(al, current_scope,
-                                            module_name, loc, true);
+                                            module_name, loc, true,
+                                            rl_path,
+                                            [&](const std::string &msg, const Location &) { throw LFortranException(msg); }
+                                            );
 
             ASR::symbol_t *t = m->m_symtab->resolve_symbol(remote_sym);
             ASR::asr_t *fn = ASR::make_ExternalSymbol_t(al, t->base.loc, current_scope,
@@ -241,7 +244,9 @@ namespace LFortran {
             SymbolTable* current_scope_copy = current_scope;
             current_scope = unit.m_global_scope;
             ASR::Module_t *m = LFortran::ASRUtils::load_module(al, current_scope,
-                                            module_name, loc, true);
+                                            module_name, loc, true,
+                                            rl_path,
+                                            [&](const std::string &msg, const Location &) { throw LFortranException(msg); });
 
             ASR::symbol_t *t = m->m_symtab->resolve_symbol(remote_sym);
             ASR::Function_t *mfn = ASR::down_cast<ASR::Function_t>(t);
