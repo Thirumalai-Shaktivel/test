@@ -6,7 +6,7 @@ type shape
     integer :: x
     integer :: y
 contains
-    procedure :: initialize
+    procedure :: initialize => initialize_subrout
 end type shape
 
 type, extends(shape) :: rectangle
@@ -16,7 +16,7 @@ end type rectangle
 
 contains
 
-subroutine initialize(sh, color, filled, x, y)
+subroutine initialize_subrout(sh, color, filled, x, y)
     ! initialize shape objects
     class(shape) :: sh
     integer :: color
@@ -28,12 +28,13 @@ subroutine initialize(sh, color, filled, x, y)
     sh%filled = filled
     sh%x = x
     sh%y = y
-end subroutine initialize
+end subroutine initialize_subrout
 
 end module
 
 program derived_types_08
-    use shape_mod, only : shape, rectangle, initialize
+    use shape_mod
+    implicit none
     type(shape) :: shp                                  ! declare an instance of shape
     type(rectangle) :: rect                             ! declare an instance of rectangle
     call shp%initialize(1, .true., 10, 20)              ! initialize shape
