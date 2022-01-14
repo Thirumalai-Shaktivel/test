@@ -1,14 +1,15 @@
 #include <tests/doctest.h>
 #include <iostream>
 
-#include <lfortran/bwriter.h>
-#include <lfortran/serialization.h>
-#include <lfortran/modfile.h>
+#include <libasr/bwriter.h>
+#include <libasr/serialization.h>
+#include <lfortran/ast_serialization.h>
+#include <libasr/modfile.h>
 #include <lfortran/pickle.h>
 #include <lfortran/parser/parser.h>
 #include <lfortran/semantics/ast_to_asr.h>
-#include <lfortran/asr_utils.h>
-#include <lfortran/asr_verify.h>
+#include <libasr/asr_utils.h>
+#include <libasr/asr_verify.h>
 
 using LFortran::TRY;
 using LFortran::string_to_uint64;

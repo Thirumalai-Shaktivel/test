@@ -7,15 +7,15 @@
 #include <limits>
 
 #include <lfortran/ast.h>
-#include <lfortran/asr.h>
-#include <lfortran/asr_utils.h>
-#include <lfortran/asr_verify.h>
-#include <lfortran/exception.h>
+#include <libasr/asr.h>
+#include <libasr/asr_utils.h>
+#include <libasr/asr_verify.h>
+#include <libasr/exception.h>
 #include <lfortran/semantics/asr_implicit_cast_rules.h>
 #include <lfortran/semantics/ast_common_visitor.h>
 #include <lfortran/semantics/ast_to_asr.h>
 #include <lfortran/parser/parser_stype.h>
-#include <lfortran/string_utils.h>
+#include <libasr/string_utils.h>
 #include <lfortran/utils.h>
 
 namespace LFortran {
@@ -163,8 +163,12 @@ public:
                                             false);
         current_module_sym = ASR::down_cast<ASR::symbol_t>(tmp0);
         if( x.class_type == AST::modType::Submodule ) {
-            ASR::symbol_t* submod_parent = (ASR::symbol_t*)LFortran::ASRUtils::load_module(al, global_scope,
-                                                parent_name, x.base.base.loc, false);
+            std::string rl_path = get_runtime_library_dir();
+            ASR::symbol_t* submod_parent = (ASR::symbol_t*)(ASRUtils::load_module(al, global_scope,
+                                                parent_name, x.base.base.loc, false,
+                                                rl_path,
+                                                [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }
+                                                ));
             ASR::Module_t *m = ASR::down_cast<ASR::Module_t>(submod_parent);
             std::string unsupported_sym_name = import_all(m);
             if( !unsupported_sym_name.empty() ) {
@@ -425,9 +429,9 @@ public:
                     visit_expr(*return_type->m_kind->m_value);
                     ASR::expr_t* kind_expr = LFortran::ASRUtils::EXPR(tmp);
                     if (return_type->m_type == AST::decl_typeType::TypeCharacter) {
-                        a_len = ASRUtils::extract_len(kind_expr, x.base.base.loc);
+                        a_len = ASRUtils::extract_len<SemanticError>(kind_expr, x.base.base.loc);
                     } else {
-                        a_kind = ASRUtils::extract_kind(kind_expr, x.base.base.loc);
+                        a_kind = ASRUtils::extract_kind<SemanticError>(kind_expr, x.base.base.loc);
                     }
                 } else {
                     throw SemanticError("Only one kind item supported for now", x.base.base.loc);
@@ -816,7 +820,7 @@ public:
                     sym_type->m_kind->m_value != nullptr) {
                     visit_expr(*sym_type->m_kind->m_value);
                     ASR::expr_t* kind_expr = LFortran::ASRUtils::EXPR(tmp);
-                    a_kind = ASRUtils::extract_kind(kind_expr, x.base.base.loc);
+                    a_kind = ASRUtils::extract_kind<SemanticError>(kind_expr, x.base.base.loc);
                 }
                 if (sym_type->m_type == AST::decl_typeType::TypeReal) {
                     type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc,
@@ -864,7 +868,7 @@ public:
                                 LFORTRAN_ASSERT(sym_type->m_kind->m_value != nullptr);
                                 visit_expr(*sym_type->m_kind->m_value);
                                 ASR::expr_t* len_expr0 = LFortran::ASRUtils::EXPR(tmp);
-                                a_len = ASRUtils::extract_len(len_expr0, x.base.base.loc);
+                                a_len = ASRUtils::extract_len<SemanticError>(len_expr0, x.base.base.loc);
                                 if (a_len == -3) {
                                     len_expr = len_expr0;
                                 }
@@ -1112,7 +1116,7 @@ public:
             fill_interface_proc_names(x, proc_names);
             generic_procedures[std::string(generic_name)] = proc_names;
             interface_name.clear();
-        } else if (AST::is_a<AST::InterfaceHeader_t>(*x.m_header) || 
+        } else if (AST::is_a<AST::InterfaceHeader_t>(*x.m_header) ||
                    AST::is_a<AST::AbstractInterfaceHeader_t>(*x.m_header)) {
             std::vector<std::string> proc_names;
             for (size_t i = 0; i < x.n_items; i++) {
@@ -1312,7 +1316,8 @@ public:
         // Import all symbols from the module, e.g.:
         //     use a
         for (auto &item : m->m_symtab->scope) {
-            if( current_scope->scope.find(item.first) != current_scope->scope.end() ) {
+            if( current_scope->scope.find(item.first) != current_scope->scope.end() &&
+                !in_submodule ) {
                 continue;
             }
             // TODO: only import "public" symbols from the module
@@ -1382,21 +1387,21 @@ public:
                 // We have to "repack" the ExternalSymbol so that it lives in the
                 // local symbol table
                 ASR::ExternalSymbol_t *es0 = ASR::down_cast<ASR::ExternalSymbol_t>(item.second);
-                ASR::asr_t *es = ASR::make_ExternalSymbol_t(
-                    al, es0->base.base.loc,
-                    /* a_symtab */ current_scope,
-                    /* a_name */ es0->m_name,
-                    es0->m_external,
-                    es0->m_module_name, nullptr, 0,
-                    es0->m_original_name,
-                    dflt_access
-                    );
                 std::string sym;
                 if( in_submodule ) {
                     sym = item.first;
                 } else {
                     sym = to_lower(es0->m_original_name);
                 }
+                ASR::asr_t *es = ASR::make_ExternalSymbol_t(
+                    al, es0->base.base.loc,
+                    /* a_symtab */ current_scope,
+                    /* a_name */ s2c(al, sym),
+                    es0->m_external,
+                    es0->m_module_name, nullptr, 0,
+                    es0->m_original_name,
+                    dflt_access
+                    );
                 current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(es);
             } else if( ASR::is_a<ASR::DerivedType_t>(*item.second) ) {
                 ASR::DerivedType_t *mv = ASR::down_cast<ASR::DerivedType_t>(item.second);
@@ -1430,8 +1435,11 @@ public:
         }
         ASR::symbol_t *t = current_scope->parent->resolve_symbol(msym);
         if (!t) {
-            t = (ASR::symbol_t*)LFortran::ASRUtils::load_module(al, current_scope->parent,
-                msym, x.base.base.loc, false);
+            std::string rl_path = get_runtime_library_dir();
+            t = (ASR::symbol_t*)(ASRUtils::load_module(al, current_scope->parent,
+                msym, x.base.base.loc, false, rl_path,
+                [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }
+                ));
         }
         if (!ASR::is_a<ASR::Module_t>(*t)) {
             throw SemanticError("The symbol '" + msym + "' must be a module",
@@ -1467,7 +1475,7 @@ public:
                         throw SemanticError("Symbol with use not supported yet", x.base.base.loc);
                 }
                 std::string local_sym;
-                if (AST::is_a<AST::UseSymbol_t>(*x.m_symbols[i]) && 
+                if (AST::is_a<AST::UseSymbol_t>(*x.m_symbols[i]) &&
                     AST::down_cast<AST::UseSymbol_t>(x.m_symbols[i])->m_local_rename) {
                     local_sym = to_lower(AST::down_cast<AST::UseSymbol_t>(x.m_symbols[i])->m_local_rename);
                 } else {

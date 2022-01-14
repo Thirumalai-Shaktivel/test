@@ -928,6 +928,10 @@ filename = "../integration_tests/interface_08.f90"
 asr = true
 
 [[test]]
+filename = "../integration_tests/interface_10.f90"
+asr = true
+
+[[test]]
 filename = "../integration_tests/if_04.f90"
 ast = true
 
@@ -1761,6 +1765,18 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/bits_03.f90"
+asr = true
+
+[[test]]
+filename = "../integration_tests/bits_04.f90"
+asr = true
+
+[[test]]
+filename = "../integration_tests/bits_05.f90"
+asr = true
+
+[[test]]
 filename = "../integration_tests/boz_01.f90"
 asr = true
 llvm = true
@@ -1773,3 +1789,15 @@ ast_f90 = true
 [[test]]
 filename = "../integration_tests/forall_01.f90"
 asr = true
+
+[[test]]
+filename = "../integration_tests/nullify_01.f90"
+ast = true
+asr = true
+llvm = true
+
+[[test]]
+filename = "../integration_tests/nullify_02.f90"
+ast = true
+asr = true
+llvm = true
