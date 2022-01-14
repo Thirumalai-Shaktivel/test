@@ -355,6 +355,7 @@ llvm = true
 filename = "../integration_tests/doloop_04.f90"
 ast = true
 ast_f90 = true
+asr = true
 
 [[test]]
 filename = "../integration_tests/doloop_05.f90"
