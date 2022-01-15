@@ -492,7 +492,18 @@ int python_wrapper(const std::string &infile, const std::string &module,
       return 1;
   }
   
-  LFortran::asr_to_py1(*asr, module);
+  auto prefix = module;
+  auto f90_fname  = prefix + "_wrapper.f90";
+  auto chdr_fname = prefix + ".h";
+  auto pxd_fname  = prefix  + "_pxd.pxd"; 
+  auto pyx_fname  = prefix  + ".pyx";
+  
+  std::string f90, chdr, pxd, pyx;
+  std::tie(f90, chdr, pxd, pyx) = LFortran::asr_to_py1(*asr, module);
+  std::ofstream(f90_fname)  << f90;
+  std::ofstream(chdr_fname) << chdr;
+  std::ofstream(pxd_fname)  << pxd;
+  std::ofstream(pyx_fname)  << pyx;
   
   return 0;
 }

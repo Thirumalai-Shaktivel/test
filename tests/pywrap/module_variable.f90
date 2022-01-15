@@ -1,6 +1,11 @@
 module module_variable
   implicit none
-  integer :: a
+  integer :: a1
+  integer, parameter :: a2 = 3
+  integer, allocatable :: a3
   
-  real :: b(8,8,8,8,8,8)
+  real :: arr1(8)
+  integer, parameter :: arr2(3) = [1,2,3]
+  real, allocatable :: arr3(:)
+  
 end module
