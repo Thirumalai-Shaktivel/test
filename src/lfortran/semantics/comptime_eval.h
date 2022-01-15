@@ -3,11 +3,12 @@
 
 #include <complex>
 
-#include <lfortran/asr.h>
+#include <libasr/asr.h>
 #include <lfortran/ast.h>
 #include <lfortran/bigint.h>
-#include <lfortran/string_utils.h>
+#include <libasr/string_utils.h>
 #include <lfortran/utils.h>
+#include <lfortran/semantics/semantic_exception.h>
 
 namespace LFortran {
 
@@ -200,7 +201,7 @@ struct IntrinsicProcedures {
                 break;
             }
             case ASR::exprType::Var : {
-                kind_num = ASRUtils::extract_kind(kind_expr, loc);
+                kind_num = ASRUtils::extract_kind<SemanticError>(kind_expr, loc);
                 break;
             }
             default: {
