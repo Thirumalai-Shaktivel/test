@@ -499,69 +499,13 @@ int python_wrapper(const std::string &infile, const std::string &module,
   auto pyx_fname  = prefix  + ".pyx";
   
   std::string f90, chdr, pxd, pyx;
-  std::tie(f90, chdr, pxd, pyx) = LFortran::asr_to_py1(*asr, module);
+  std::tie(f90, chdr, pxd, pyx) = LFortran::asr_to_py(*asr, module);
   std::ofstream(f90_fname)  << f90;
   std::ofstream(chdr_fname) << chdr;
   std::ofstream(pxd_fname)  << pxd;
   std::ofstream(pyx_fname)  << pyx;
   
   return 0;
-}
-
-int python_wrapper_old(const std::string &infile, std::string array_order,
-    CompilerOptions &compiler_options)
-{
-
-    bool c_order = (0==array_order.compare("c"));
-
-    std::string input = read_file(infile);
-
-    LFortran::FortranEvaluator fe(compiler_options);
-    LFortran::ASR::TranslationUnit_t* asr;
-
-    // Src -> AST -> ASR
-    LFortran::LocationManager lm;
-    lm.in_filename = infile;
-    LFortran::diag::Diagnostics diagnostics;
-    LFortran::Result<LFortran::ASR::TranslationUnit_t*>
-        result = fe.get_asr2(input, lm, diagnostics);
-    std::cerr << diagnostics.render(input, lm, compiler_options);
-    if (result.ok) {
-        asr = result.result;
-    } else {
-        LFORTRAN_ASSERT(diagnostics.has_error())
-        return 1;
-    }
-
-    // figure out pyx and pxd filenames
-    auto prefix = infile.substr(0,infile.rfind('.'));
-    auto chdr_fname = prefix + ".h";
-    auto pxd_fname = prefix  + "_pxd.pxd"; // the "_pxd" is an ugly hack, see comment in asr_to_py.cpp
-    auto pyx_fname = prefix  + ".pyx";
-
-    // The ASR to Python converter needs to know the name of the .h file that will be written,
-    // but needs all path information stripped off - just the filename.
-    auto chdr_fname_forcodegen = chdr_fname;
-    {
-        // Find last ocurrence of \ or /, and delete everything up to that point.
-        auto pos_windows = chdr_fname_forcodegen.rfind('\\');
-        auto pos_other = chdr_fname_forcodegen.rfind('/');
-        auto lastpos = std::max( (pos_windows == std::string::npos ? 0 : pos_windows) ,
-                                 (pos_other   == std::string::npos ? 0 : pos_other) );
-        if (lastpos > 0UL) chdr_fname_forcodegen.erase(0,lastpos+1);
-    }
-
-    // ASR -> (C header file, Cython pxd file, Cython pyx file)
-    std::string c_h, pxd, pyx;
-    std::tie(c_h, pxd, pyx) = LFortran::asr_to_py(*asr, c_order, chdr_fname_forcodegen);
-
-
-    // save generated outputs to files.
-    std::ofstream(chdr_fname) << c_h;
-    std::ofstream(pxd_fname)  << pxd;
-    std::ofstream(pyx_fname)  << pyx;
-
-    return 0;
 }
 
 int emit_asr(const std::string &infile,
