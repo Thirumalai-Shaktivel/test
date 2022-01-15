@@ -6,6 +6,6 @@ module module_variable
   
   real :: arr1(8)
   integer, parameter :: arr2(3) = [1,2,3]
-  real, allocatable :: arr3(:)
+  real, allocatable :: arr3(:,:)
   
 end module

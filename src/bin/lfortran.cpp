@@ -494,7 +494,7 @@ int python_wrapper(const std::string &infile, const std::string &module,
   
   auto prefix = module;
   auto f90_fname  = prefix + "_wrapper.f90";
-  auto chdr_fname = prefix + ".h";
+  auto chdr_fname = prefix + "_wrapper.h";
   auto pxd_fname  = prefix  + "_pxd.pxd"; 
   auto pyx_fname  = prefix  + ".pyx";
   
