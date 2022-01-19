@@ -1,4 +1,16 @@
+module test
+  implicit none
+  
+  integer :: aaa
+  
+  type :: lala
+    integer :: bb
+  end type
+end module
+
+
 module module_variable
+  use test
   implicit none
   integer :: a1
   integer, parameter :: a2 = 3

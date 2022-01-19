@@ -8,7 +8,33 @@
 
 
 namespace LFortran{
- 
+  
+struct PyModVar
+{  
+  std::string pxd_fname;
+  std::string module_name;
+  
+  std::string name; // variable name
+  bool derived; // True if attribute of derived type
+  std::string derived_name; // name of derived type, if derived
+  std::string base_ftype; // e.g. integer or real
+  std::string bindc_type; // e.g. c_int32_t
+  std::string ctype; // e.g. int32_t
+  std::string nptype; // e.g. np.int32
+  size_t m_storage; // allocatable, parameter, default
+  size_t n_dims; // number of dimensions
+  std::vector<size_t> dims; // dimensions
+}; 
+
+struct PyFiles
+{
+  std::string f90 = "";
+  std::string chdr = "";
+  std::string pxd = "";
+  std::string pyx = "";
+};
+  
+  
 // map between ASR types, iso_c_binding types, C types, and numpy types
 void map2c(size_t type, int64_t m_kind, std::string &ctype, std::string &bindc_type, std::string &nptype){
    
@@ -43,23 +69,6 @@ void map2c(size_t type, int64_t m_kind, std::string &ctype, std::string &bindc_t
      nptype = "np.float64";
    } 
 }
-
-struct PyModVar
-{  
-  std::string pxd_fname;
-  std::string module_name;
-  
-  std::string name; // variable name
-  bool derived; // True if attribute of derived type
-  std::string derived_name; // name of derived type, if derived
-  std::string base_ftype; // e.g. integer or real
-  std::string bindc_type; // e.g. c_int32_t
-  std::string ctype; // e.g. int32_t
-  std::string nptype; // e.g. np.int32
-  size_t m_storage; // allocatable, parameter, default
-  size_t n_dims; // number of dimensions
-  std::vector<size_t> dims; // dimensions
-}; 
 
 // Generates getter and setters for integer, real, complex of any size (e.g. single precision)
 void intrinsic1(PyModVar v, std::string &f90_tmp, 
@@ -582,8 +591,6 @@ void dtype_init(std::string pxd_fname, std::string module_name, std::string type
 }
 
 
- 
-
 namespace {
 
     // Local exception that is only used in this file to exit the visitor
@@ -644,16 +651,20 @@ public:
     std::vector<std::string> build_order
         = ASRUtils::determine_module_dependencies(x);
     
-    // loop over stuff in tranlation unit
+    // loop over modules in the translation unit
     for(auto item : build_order){
-      ASR::symbol_t *mod = x.m_global_scope->scope[item];    
-      visit_symbol(*mod);
+      ASR::symbol_t *s = x.m_global_scope->scope[item];
+      if (s->type == ASR::Module){
+        ASR::Module_t *mod = ASR::down_cast<ASR::Module_t>(s);
+        wrap_Module(*mod);
+      }    
     }
     
     f90 += "end module";
+    pyx += "\n"+module_name+" = __"+module_name+"()\n";
   }
 
-  void visit_Module(const ASR::Module_t &x)
+  void wrap_Module(const ASR::Module_t &x)
   {
     // check if module is the right one
     if (x.m_name != module_name){
@@ -665,8 +676,24 @@ public:
     for (auto &item : x.m_symtab->scope) {
       if (is_a<ASR::DerivedType_t>(*item.second)) {
         ASR::DerivedType_t *s = ASR::down_cast<ASR::DerivedType_t>(item.second);
-        visit_DerivedType(*s);
+        PyFiles f = wrap_DerivedType(*s);
+        f90 += f.f90;
+        chdr += f.chdr;
+        pxd += f.pxd;
+        pyx += f.pyx;
         dtype_names.push_back(s->m_name);
+      }
+      else if (is_a<ASR::ExternalSymbol_t>(*item.second)) {
+        ASR::ExternalSymbol_t *e = ASR::down_cast<ASR::ExternalSymbol_t>(item.second);
+        if (e->m_external->type == ASR::DerivedType){
+          ASR::DerivedType_t *s = ASR::down_cast<ASR::DerivedType_t>(e->m_external);
+          PyFiles f = wrap_DerivedType(*s);
+          f90 += f.f90;
+          chdr += f.chdr;
+          pxd += f.pxd;
+          pyx += f.pyx;
+          dtype_names.push_back(s->m_name);
+        }
       }
     }
     
@@ -679,7 +706,23 @@ public:
         // variables in module
         ASR::Variable_t *s = ASR::down_cast<ASR::Variable_t>(item.second);
         std::string empty_str = "";
-        wrap_Variable(*s, false, empty_str);
+        PyFiles f = wrap_Variable(*s, false, empty_str);
+        f90 += f.f90;
+        chdr += f.chdr;
+        pxd += f.pxd;
+        pyx += f.pyx;
+      }
+      else if (is_a<ASR::ExternalSymbol_t>(*item.second)) {
+        ASR::ExternalSymbol_t *e = ASR::down_cast<ASR::ExternalSymbol_t>(item.second);
+        if (e->m_external->type == ASR::Variable){
+          ASR::Variable_t *s = ASR::down_cast<ASR::Variable_t>(e->m_external);
+          std::string empty_str = "";
+          PyFiles f = wrap_Variable(*s, false, empty_str);
+          f90 += f.f90;
+          chdr += f.chdr;
+          pxd += f.pxd;
+          pyx += f.pyx;
+        }
       }
       
     }
@@ -698,35 +741,34 @@ public:
     for (auto &item : x.m_symtab->scope) {
       if (is_a<ASR::Subroutine_t>(*item.second)){
         ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
-        std::cout << "Subroutine (Module): " << s->m_name << std::endl;
-        
+        std::cout << "Subroutine: " << s->m_name << std::endl;
+        // wrap subroutines
       }
       else if (is_a<ASR::Function_t>(*item.second)){
+        ASR::Function_t *s = ASR::down_cast<ASR::Function_t>(item.second);
+        std::cout << "Function: " << s->m_name << std::endl;
+        // wrap function
       }
       
     }
   
-    // cap off function
-    pyx += "\n"+module_name+" = __"+module_name+"()\n";
-
-    
   }
   
   
-  void visit_DerivedType(const ASR::DerivedType_t &x)
+  PyFiles wrap_DerivedType(const ASR::DerivedType_t &x)
   {
-    
+    PyFiles f;
     std::cout << "Wrapping derived type: " << x.m_name << std::endl;
     if (x.m_access == ASR::Private){
       std::cout << x.m_name << " is private so not wrapping" << std::endl;
-      return;
+      return f;
     }
   
     // Beginning of type
     std::string tmp = x.m_name;
-    pyx += "cdef class __"+module_name+"_"+tmp+":\n";
-    pyx += "  cdef void *_ptr\n";
-    pyx += "  cdef bint _destroy\n\n";
+    f.pyx = "cdef class __"+module_name+"_"+tmp+":\n";
+    f.pyx += "  cdef void *_ptr\n";
+    f.pyx += "  cdef bint _destroy\n\n";
     
     std::string f90_tmp = "";
     std::string chdr_tmp = "";
@@ -737,17 +779,21 @@ public:
     dtype_init(pxd_fname, module_name, tmp, 
       f90_tmp, chdr_tmp, pxd_tmp, pyx_tmp);
     
-    f90 += f90_tmp;
-    chdr += chdr_tmp;
-    pxd += pxd_tmp;
-    pyx += pyx_tmp;
+    f.f90 += f90_tmp;
+    f.chdr += chdr_tmp;
+    f.pxd += pxd_tmp;
+    f.pyx += pyx_tmp;
     
     // loop through symbols in derived type
     for (auto &item : x.m_symtab->scope) {
       
       if (is_a<ASR::Variable_t>(*item.second)) {
         ASR::Variable_t *s = ASR::down_cast<ASR::Variable_t>(item.second);
-        wrap_Variable(*s, true, tmp);
+        PyFiles f1 = wrap_Variable(*s, true, tmp);
+        f.f90 += f1.f90;
+        f.chdr += f1.chdr;
+        f.pxd += f1.pxd;
+        f.pyx += f1.pyx;
       }
       else {
         // There shouldn't be anything but variables?
@@ -755,23 +801,25 @@ public:
       
     }
     
+    return f;
+    
   }
   
-  void wrap_Variable(const ASR::Variable_t &x, bool derived, std::string &derived_name)
+  PyFiles wrap_Variable(const ASR::Variable_t &x, bool derived, std::string &derived_name)
   {
     
+    PyFiles f;
     std::string f90_tmp = "";
     std::string chdr_tmp = "";
     std::string pxd_tmp = "";
     std::string pyx_tmp = "";
     
     if (x.m_access == ASR::Private){
-      return;
+      return f;
     }
     
     PyModVar v;
-    // if the varaible is CONTAINED within a derived type
-    v.derived = derived; 
+    v.derived = derived; // if the varaible is CONTAINED within a derived type
     if (v.derived){
       v.derived_name = derived_name;
     }
@@ -818,7 +866,7 @@ public:
         std::cout << "  ";
       }
       std::cout << "Skipping: " << v.name << std::endl;
-      return;
+      return f;
 
       ASR::Derived_t *tmp = down_cast<ASR::Derived_t>(x.m_type);
       ASR::DerivedType_t *tmp_d = down_cast<ASR::DerivedType_t>(tmp->m_derived_type);
@@ -838,7 +886,7 @@ public:
     }
     else {
       std::cout << "Type not supported: " << v.name << std::endl;
-      return;
+      return f;
     }
     
     if (x.m_type->type == ASR::Derived){
@@ -877,13 +925,14 @@ public:
       throw CodeGenError("Type not supported!");
     }
     
-    } // if not derived
+    } // if derived
     
-    f90 += f90_tmp;
-    chdr += chdr_tmp;
-    pxd += pxd_tmp;
-    pyx += pyx_tmp;
+    f.f90 = f90_tmp;
+    f.chdr = chdr_tmp;
+    f.pxd = pxd_tmp;
+    f.pyx = pyx_tmp;
     
+    return f;
   }
 
 };
