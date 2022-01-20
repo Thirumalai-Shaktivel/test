@@ -24,6 +24,38 @@ namespace {
   };
 
 }
+
+using ASR::is_a;
+using ASR::down_cast;
+// using ASR::down_cast2;
+
+struct Dimension
+{
+  bool fixed;
+  size_t start_d;
+  size_t end_d;
+  std::string start_n;
+  std::string end_n;
+};
+
+struct PyArgVar
+{
+  std::string name; // variable name
+  
+  std::string base_ftype; // e.g. integer or real
+  std::string bindc_type; // e.g. c_int32_t
+  std::string ctype; // e.g. int32_t
+  std::string nptype; // e.g. np.int32
+  
+  ASR::intentType m_intent; // local, in, out, inout, unspecified
+  ASR::storage_typeType m_storage; // allocatable, default
+  bool assumed_shape; // no dimension information
+  ASR::presenceType m_presence; // required, optional
+  bool m_value_attr; // True if passed by value
+  
+  size_t n_dims; // number of dimensions
+  std::vector<Dimension> dims; // dimensions
+};
   
 struct PyModVar
 {  
@@ -37,7 +69,7 @@ struct PyModVar
   std::string bindc_type; // e.g. c_int32_t
   std::string ctype; // e.g. int32_t
   std::string nptype; // e.g. np.int32
-  size_t m_storage; // allocatable, parameter, default
+  ASR::storage_typeType m_storage; // allocatable, parameter, default
   size_t n_dims; // number of dimensions
   std::vector<size_t> dims; // dimensions (if n_dim > 1 and not allocatable)
 }; 
@@ -629,9 +661,78 @@ void dtype_init(std::string pxd_fname, std::string module_name, std::string type
   
 }
 
-using ASR::is_a;
-using ASR::down_cast;
-using ASR::down_cast2;
+size_t get_variable_dimension(const ASR::dimension_t &x, std::string name)
+{
+  std::string err = "Problem getting dimensions for variable "+name;
+  long int dim_start = 0;
+  long int dim_end = 0;
+  
+  if (x.m_start->type == ASR::ConstantInteger){
+    ASR::ConstantInteger_t *d_start = down_cast<ASR::ConstantInteger_t>(x.m_start);
+    dim_start = d_start->m_n;
+  }
+  // else it is a parameter
+  else if (x.m_start->type == ASR::Var){
+    ASR::Var_t *d_start = down_cast<ASR::Var_t>(x.m_start);
+    if (d_start->m_v->type == ASR::Variable){
+      ASR::Variable_t *d_start1 = down_cast<ASR::Variable_t>(d_start->m_v);
+      if (d_start1->m_value){
+        if (d_start1->m_value->type == ASR::ConstantInteger){
+          ASR::ConstantInteger_t *d_start2 = down_cast<ASR::ConstantInteger_t>(d_start1->m_value);
+          dim_start = d_start2->m_n;
+        }
+        else {
+          throw CodeGenError(err);
+        }
+      }
+      else {
+        throw CodeGenError(err);
+      }
+    }
+    else {
+      throw CodeGenError(err);
+    }
+  }
+  else {
+    throw CodeGenError(err);
+  }
+  
+  
+  if (x.m_end->type == ASR::ConstantInteger){
+    ASR::ConstantInteger_t *d_end = down_cast<ASR::ConstantInteger_t>(x.m_end);
+    dim_end = d_end->m_n;
+  }
+  // else it is a parameter
+  else if (x.m_end->type == ASR::Var){
+    ASR::Var_t *d_end = down_cast<ASR::Var_t>(x.m_end);
+    if (d_end->m_v->type == ASR::Variable){
+      ASR::Variable_t *d_end1 = down_cast<ASR::Variable_t>(d_end->m_v);
+      if (d_end1->m_value){
+        if (d_end1->m_value->type == ASR::ConstantInteger){
+          ASR::ConstantInteger_t *d_end2 = down_cast<ASR::ConstantInteger_t>(d_end1->m_value);
+          dim_end = d_end2->m_n;
+        }
+        else {
+          throw CodeGenError(err);
+        }
+      }
+      else {
+        throw CodeGenError(err);
+      }
+    }
+    else {
+      throw CodeGenError(err);
+    }
+  }
+  else {
+    throw CodeGenError(err);
+  }
+
+  size_t res = (dim_end - dim_start + 1);
+  return res;
+  
+}
+
 
 class ASRToPyVisitor : public ASR::BaseVisitor<ASRToPyVisitor>
 {
@@ -767,8 +868,9 @@ public:
     for (auto &item : x.m_symtab->scope) {
       if (is_a<ASR::Subroutine_t>(*item.second)){
         ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
-        std::cout << "Skipping Subroutine: " << s->m_name << std::endl;
-        // wrap subroutines
+        // PyFiles f = wrap_Subroutine(*s);
+        
+        
       }
       else if (is_a<ASR::Function_t>(*item.second)){
         ASR::Function_t *s = ASR::down_cast<ASR::Function_t>(item.second);
@@ -863,9 +965,7 @@ public:
       if (v.n_dims > 0 && v.m_storage != ASR::Allocatable){
         v.dims.resize(v.n_dims);
         for (size_t i = 0; i < v.n_dims; i++){
-          ASR::ConstantInteger_t *d_start = down_cast<ASR::ConstantInteger_t>(tmp->m_dims[i].m_start);
-          ASR::ConstantInteger_t *d_end = down_cast<ASR::ConstantInteger_t>(tmp->m_dims[i].m_end);
-          v.dims[i] = (d_end->m_n - d_start->m_n + 1);
+          v.dims[i] = get_variable_dimension(tmp->m_dims[i], v.name);
         }
       }
         
@@ -880,9 +980,7 @@ public:
       if (v.n_dims > 0 && v.m_storage != ASR::Allocatable){
         v.dims.resize(v.n_dims);
         for (size_t i = 0; i < v.n_dims; i++){
-          ASR::ConstantInteger_t *d_start = down_cast<ASR::ConstantInteger_t>(tmp->m_dims[i].m_start);
-          ASR::ConstantInteger_t *d_end = down_cast<ASR::ConstantInteger_t>(tmp->m_dims[i].m_end);
-          v.dims[i] = (d_end->m_n - d_start->m_n + 1);
+          v.dims[i] = get_variable_dimension(tmp->m_dims[i], v.name);
         }
       }
     }
@@ -896,9 +994,7 @@ public:
       if (v.n_dims > 0 && v.m_storage != ASR::Allocatable){
         v.dims.resize(v.n_dims);
         for (size_t i = 0; i < v.n_dims; i++){
-          ASR::ConstantInteger_t *d_start = down_cast<ASR::ConstantInteger_t>(tmp->m_dims[i].m_start);
-          ASR::ConstantInteger_t *d_end = down_cast<ASR::ConstantInteger_t>(tmp->m_dims[i].m_end);
-          v.dims[i] = (d_end->m_n - d_start->m_n + 1);
+          v.dims[i] = get_variable_dimension(tmp->m_dims[i], v.name);
         }
       }
 
@@ -913,9 +1009,7 @@ public:
       if (v.n_dims > 0 && v.m_storage != ASR::Allocatable){
         v.dims.resize(v.n_dims);
         for (size_t i = 0; i < v.n_dims; i++){
-          ASR::ConstantInteger_t *d_start = down_cast<ASR::ConstantInteger_t>(tmp->m_dims[i].m_start);
-          ASR::ConstantInteger_t *d_end = down_cast<ASR::ConstantInteger_t>(tmp->m_dims[i].m_end);
-          v.dims[i] = (d_end->m_n - d_start->m_n + 1);
+          v.dims[i] = get_variable_dimension(tmp->m_dims[i], v.name);
         }
       }
     }
@@ -927,7 +1021,7 @@ public:
       return f;
 
       ASR::Derived_t *tmp = down_cast<ASR::Derived_t>(x.m_type);
-      ASR::DerivedType_t *tmp_d = down_cast<ASR::DerivedType_t>(tmp->m_derived_type);
+      // ASR::DerivedType_t *tmp_d = down_cast<ASR::DerivedType_t>(tmp->m_derived_type);
       v.ctype = "void *";
       v.bindc_type = "c_ptr";
       v.base_ftype = "type";
@@ -935,9 +1029,7 @@ public:
       if (v.n_dims > 0 && v.m_storage != ASR::Allocatable){
         v.dims.resize(v.n_dims);
         for (size_t i = 0; i < v.n_dims; i++){
-          ASR::ConstantInteger_t *d_start = down_cast<ASR::ConstantInteger_t>(tmp->m_dims[i].m_start);
-          ASR::ConstantInteger_t *d_end = down_cast<ASR::ConstantInteger_t>(tmp->m_dims[i].m_end);
-          v.dims[i] = (d_end->m_n - d_start->m_n + 1);
+          v.dims[i] = get_variable_dimension(tmp->m_dims[i], v.name);
         }
       }
     }
@@ -1002,6 +1094,74 @@ public:
     
     return f;
   }
+  
+  PyFiles wrap_Subroutine(const ASR::Subroutine_t &x)
+  {
+    PyFiles f;
+    
+    std::vector<PyArgVar> v;
+    v.resize(x.n_args);
+    
+    std::string err1 = x.m_name;
+    std::string err = "Subroutine "+err1+" has a argument"+
+    "which is not a Variable.";
+    
+    // loop through args and get all details
+    for (size_t i = 0; i < x.n_args; i++){
+      if (x.m_args[i]->type == ASR::Var){
+        ASR::Var_t *var1 = down_cast<ASR::Var_t>(x.m_args[i]);
+        if (var1->m_v->type == ASR::Variable){
+          ASR::Variable_t *var = down_cast<ASR::Variable_t>(var1->m_v);
+          
+          v[i].name = var->m_name;
+          v[i].m_intent = var->m_intent;
+          v[i].m_storage = var->m_storage;
+          v[i].m_presence = var->m_presence;
+          v[i].m_value_attr = var->m_value_attr;
+          
+          if (var->m_type->type == ASR::Integer){
+            ASR::Integer_t *tmp = down_cast<ASR::Integer_t>(var->m_type);
+            
+            v[i].n_dims = tmp->n_dims;
+            
+            if (tmp->n_dims > 0){
+              v[i].assumed_shape = false;
+              if (tmp->m_dims[0].m_start == NULL && var->m_storage == ASR::Default){
+                v[i].assumed_shape = true;
+              }
+              else if (tmp->m_dims[0].m_start != NULL && var->m_storage == ASR::Default){
+                // get dimensions
+                v[i].dims.resize(tmp->n_dims);
+                for (size_t j = 0; j < tmp->n_dims; j++){
+                  
+                }
+              }
+            }
+            
+          }
+          else {
+            std::cout << "Skipping subroutine "+err1+
+            " because it has an unsuported argument type." << std::endl;
+            return f;
+          }
+          
+          std::cout<< var->m_name <<std::endl;
+        }
+        else {
+          throw CodeGenError(err);
+        }
+        
+      }
+      else {
+        throw CodeGenError(err);
+      }
+    }
+    
+    
+    return f;
+  }
+  
+  
 
 };
 
