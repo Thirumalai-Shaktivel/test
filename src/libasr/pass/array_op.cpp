@@ -16,7 +16,7 @@ using ASR::down_cast;
 using ASR::is_a;
 
 /*
-This ASR pass replaces operations over arrays with do loops. 
+This ASR pass replaces operations over arrays with do loops.
 The function `pass_replace_array_op` transforms the ASR tree in-place.
 
 Converts:
@@ -40,7 +40,7 @@ made available. Consider the example below for better understanding.
 
 Say, BinOp(BinOp(Arr1 Add Arr2) Add Arr3) is the expression we want
 to visit. Then, first BinOp(Arr1 Add Arr2) will be visited and its
-result will be stored (not actually, just extra ASR do loop node will be added) 
+result will be stored (not actually, just extra ASR do loop node will be added)
 in a new variable, Say Result1. Then this Result1 will be used as follows,
 BinOp(Result1 Add Arr3). Imagine, this overall expression is further
 assigned to some Fortran variable as, Assign(Var1, BinOp(Result1 Add Arr3)).
@@ -55,9 +55,9 @@ end do
 Note that once the control will reach the above loop, the loop for
 Result1 would have already been executed.
 
-All the nodes should be implemented using the above logic to track 
+All the nodes should be implemented using the above logic to track
 array operations and perform the do loop pass. As of now, some of the
-nodes are implemented and more are yet to be implemented with time. 
+nodes are implemented and more are yet to be implemented with time.
 */
 
 class ArrayOpVisitor : public ASR::BaseWalkVisitor<ArrayOpVisitor>
@@ -74,13 +74,13 @@ private:
         to the new variable which will store the result
         of that operation once the code is compiled.
     */
-    ASR::expr_t *tmp_val; 
+    ASR::expr_t *tmp_val;
 
     /*
         This pointer is intened to be a signal for the current
         node to create a new variable for storing the result of
         array operation or store it in a variable available from
-        the parent node. For example, if BinOp is a child of the 
+        the parent node. For example, if BinOp is a child of the
         Assignment node then, the following will point to the target
         attribute of the assignment node. This helps in avoiding
         unnecessary do loop passes.
@@ -108,7 +108,7 @@ private:
 
 public:
     ArrayOpVisitor(Allocator &al, ASR::TranslationUnit_t &unit,
-        const std::string &rl_path) : al{al}, unit{unit}, 
+        const std::string &rl_path) : al{al}, unit{unit},
     tmp_val{nullptr}, result_var{nullptr}, use_custom_loop_params{false},
     result_var_num{0}, current_scope{nullptr}, rl_path{rl_path}
     {
@@ -169,7 +169,7 @@ public:
                             } else if( var->m_intent == ASR::intentType::ReturnVar ) {
                                 var->m_intent = ASR::intentType::Out;
                             }
-                        } 
+                        }
                     }
                     Vec<ASR::expr_t*> a_args;
                     a_args.reserve(al, s->n_args + 1);
@@ -177,9 +177,20 @@ public:
                         a_args.push_back(al, s->m_args[i]);
                     }
                     a_args.push_back(al, s->m_return_var);
-                    ASR::asr_t* s_sub_asr = ASR::make_Subroutine_t(al, s->base.base.loc, s->m_symtab, 
-                                                    s->m_name, a_args.p, a_args.size(), s->m_body, s->n_body, 
-                                                    s->m_abi, s->m_access, s->m_deftype, nullptr, false, false);
+                    int n_optional = 0;
+                    for( auto itr = s->m_symtab->scope.begin(); itr != s->m_symtab->scope.end();
+                        itr++ ) {
+                        ASR::symbol_t* func_arg = itr->second;
+                        if( ASR::is_a<ASR::Variable_t>(*func_arg) ) {
+                            ASR::Variable_t* arg_var = ASR::down_cast<ASR::Variable_t>(func_arg);
+                            n_optional += arg_var->m_presence == ASR::presenceType::Optional;
+
+                        }
+                    }
+                    ASR::asr_t* s_sub_asr = ASR::make_Subroutine_t(al, s->base.base.loc, s->m_symtab,
+                                                    s->m_name, a_args.p, a_args.size(), s->m_body, s->n_body,
+                                                    s->m_abi, s->m_access, s->m_deftype, nullptr, false, false,
+                                                    n_optional);
                     ASR::symbol_t* s_sub = ASR::down_cast<ASR::symbol_t>(s_sub_asr);
                     replace_vec.push_back(std::make_pair(item.first, s_sub));
                 }
@@ -264,7 +275,7 @@ public:
         int ndims;
         PassUtils::get_dim_rank(sibling_type, m_dims, ndims);
         for( int i = 0; i < ndims; i++ ) {
-            if( m_dims[i].m_start != nullptr || 
+            if( m_dims[i].m_start != nullptr ||
                 m_dims[i].m_end != nullptr ) {
                 return sibling_type;
             }
@@ -274,7 +285,7 @@ public:
         for( int i = 0; i < ndims; i++ ) {
             ASR::dimension_t new_m_dim;
             new_m_dim.loc = m_dims[i].loc;
-            new_m_dim.m_start = PassUtils::get_bound(sibling, i + 1, "lbound", 
+            new_m_dim.m_start = PassUtils::get_bound(sibling, i + 1, "lbound",
                                                      al, unit, rl_path, current_scope);
             new_m_dim.m_end = PassUtils::get_bound(sibling, i + 1, "ubound",
                                                     al, unit, rl_path, current_scope);
@@ -293,8 +304,8 @@ public:
         char* idx_var_name = (char*)const_idx_var_name;
 
         if( current_scope->scope.find(std::string(idx_var_name)) == current_scope->scope.end() ) {
-            ASR::asr_t* idx_sym = ASR::make_Variable_t(al, loc, current_scope, idx_var_name, 
-                                                    ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default, 
+            ASR::asr_t* idx_sym = ASR::make_Variable_t(al, loc, current_scope, idx_var_name,
+                                                    ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default,
                                                     var_type, ASR::abiType::Source, ASR::accessType::Public, ASR::presenceType::Required,
                                                     false);
             current_scope->scope[std::string(idx_var_name)] = ASR::down_cast<ASR::symbol_t>(idx_sym);
@@ -422,7 +433,7 @@ public:
         if( rank_operand > 0 ) {
             result_var = result_var_copy;
             if( result_var == nullptr ) {
-                result_var = create_var(result_var_num, res_prefix, 
+                result_var = create_var(result_var_num, res_prefix,
                                         x.base.base.loc, operand);
                 result_var_num += 1;
             }
@@ -446,7 +457,7 @@ public:
                     ASR::expr_t* ref = PassUtils::create_array_ref(operand, idx_vars, al);
                     ASR::expr_t* res = PassUtils::create_array_ref(result_var, idx_vars, al);
                     ASR::expr_t* op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_UnaryOp_t(
-                                                    al, x.base.base.loc, 
+                                                    al, x.base.base.loc,
                                                     x.m_op, ref, x.m_type, nullptr));
                     ASR::stmt_t* assign = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, res, op_el_wise, nullptr));
                     doloop_body.push_back(al, assign);
@@ -520,18 +531,18 @@ public:
                     switch( x.class_type ) {
                         case ASR::exprType::BinOp:
                             op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(
-                                                al, x.base.base.loc, 
+                                                al, x.base.base.loc,
                                                 ref_1, (ASR::binopType)x.m_op, ref_2,
                                                 x.m_type, nullptr, nullptr));
                             break;
                         case ASR::exprType::Compare:
                             op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_Compare_t(
-                                                al, x.base.base.loc, 
+                                                al, x.base.base.loc,
                                                 ref_1, (ASR::cmpopType)x.m_op, ref_2, x.m_type, nullptr, nullptr));
                             break;
                         case ASR::exprType::BoolOp:
                             op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_BoolOp_t(
-                                                al, x.base.base.loc, 
+                                                al, x.base.base.loc,
                                                 ref_1, (ASR::boolopType)x.m_op, ref_2, x.m_type, nullptr));
                             break;
                         default:
@@ -554,7 +565,7 @@ public:
             ASR::stmt_t* set_to_one = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[0], const_1, nullptr));
             array_op_result.push_back(al, set_to_one);
             array_op_result.push_back(al, doloop);
-        } else if( (rank_left == 0 && rank_right > 0) || 
+        } else if( (rank_left == 0 && rank_right > 0) ||
                    (rank_right == 0 && rank_left > 0) ) {
             result_var = result_var_copy;
             ASR::expr_t *arr_expr = nullptr, *other_expr = nullptr;
@@ -603,18 +614,18 @@ public:
                     switch( x.class_type ) {
                         case ASR::exprType::BinOp:
                             op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(
-                                                    al, x.base.base.loc, 
+                                                    al, x.base.base.loc,
                                                     ref, (ASR::binopType)x.m_op, other_expr,
                                                     x.m_type, nullptr, nullptr));
                             break;
                         case ASR::exprType::Compare:
                             op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_Compare_t(
-                                                    al, x.base.base.loc, 
+                                                    al, x.base.base.loc,
                                                     ref, (ASR::cmpopType)x.m_op, other_expr, x.m_type, nullptr, nullptr));
                             break;
                         case ASR::exprType::BoolOp:
                             op_el_wise = LFortran::ASRUtils::EXPR(ASR::make_BoolOp_t(
-                                                    al, x.base.base.loc, 
+                                                    al, x.base.base.loc,
                                                     ref, (ASR::boolopType)x.m_op, other_expr, x.m_type, nullptr));
                             break;
                         default:
@@ -658,13 +669,13 @@ public:
         } else if( x.m_name->type == ASR::symbolType::Function ) {
             x_name = down_cast<ASR::Function_t>(x.m_name)->m_name;
         }
-        // The following checks if the name of a function actually 
+        // The following checks if the name of a function actually
         // points to a subroutine. If true this would mean that the
         // original function returned an array and is now a subroutine.
         // So the current function call will be converted to a subroutine
         // call. In short, this check acts as a signal whether to convert
         // a function call to a subroutine call.
-        if( current_scope != nullptr && 
+        if( current_scope != nullptr &&
             current_scope->scope.find(x_name) != current_scope->scope.end() &&
             current_scope->scope[x_name]->type == ASR::symbolType::Subroutine ) {
             if( result_var == nullptr ) {
@@ -679,7 +690,7 @@ public:
             s_args.push_back(al, result_var);
             tmp_val = result_var;
             ASR::stmt_t* subrout_call = LFortran::ASRUtils::STMT(ASR::make_SubroutineCall_t(al, x.base.base.loc,
-                                                current_scope->scope[x_name], nullptr, 
+                                                current_scope->scope[x_name], nullptr,
                                                 s_args.p, s_args.size(), nullptr));
             array_op_result.push_back(al, subrout_call);
         }
