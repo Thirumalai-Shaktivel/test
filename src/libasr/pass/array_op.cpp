@@ -147,9 +147,20 @@ public:
                         a_args.push_back(al, s->m_args[i]);
                     }
                     a_args.push_back(al, s->m_return_var);
+                    int n_optional = 0;
+                    for( auto itr = s->m_symtab->scope.begin(); itr != s->m_symtab->scope.end();
+                        itr++ ) {
+                        ASR::symbol_t* func_arg = itr->second;
+                        if( ASR::is_a<ASR::Variable_t>(*func_arg) ) {
+                            ASR::Variable_t* arg_var = ASR::down_cast<ASR::Variable_t>(func_arg);
+                            n_optional += arg_var->m_presence == ASR::presenceType::Optional;
+
+                        }
+                    }
                     ASR::asr_t* s_sub_asr = ASR::make_Subroutine_t(al, s->base.base.loc, s->m_symtab,
                                                     s->m_name, a_args.p, a_args.size(), s->m_body, s->n_body,
-                                                    s->m_abi, s->m_access, s->m_deftype, nullptr, false, false);
+                                                    s->m_abi, s->m_access, s->m_deftype, nullptr, false, false,
+                                                    n_optional);
                     ASR::symbol_t* s_sub = ASR::down_cast<ASR::symbol_t>(s_sub_asr);
                     replace_vec.push_back(std::make_pair(item.first, s_sub));
                 }
@@ -506,8 +517,13 @@ public:
                 doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
             }
             ASR::stmt_t* set_to_one = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[0], const_1, nullptr));
+<<<<<<< HEAD
             pass_result.push_back(al, set_to_one);
             pass_result.push_back(al, doloop);
+=======
+            array_op_result.push_back(al, set_to_one);
+            array_op_result.push_back(al, doloop);
+>>>>>>> 67ce2c95a (Added support for keyword argument handling in ASR)
         } else if( (rank_left == 0 && rank_right > 0) ||
                    (rank_right == 0 && rank_left > 0) ) {
             result_var = result_var_copy;

@@ -86,10 +86,10 @@ symbol
         bool loaded_from_mod)
     | Subroutine(symbol_table symtab, identifier name, expr* args, stmt* body,
         abi abi, access access, deftype deftype, string? bindc_name, bool pure,
-        bool module)
+        bool module, int n_optional)
     | Function(symbol_table symtab, identifier name, expr* args, stmt* body,
         expr return_var, abi abi, access access, deftype deftype,
-        string? bindc_name)
+        string? bindc_name, int n_optional)
     | GenericProcedure(symbol_table parent_symtab, identifier name,
         symbol* procs, access access)
     | CustomOperator(symbol_table parent_symtab, identifier name,
@@ -271,7 +271,7 @@ attribute_arg = (identifier arg)
 
 arg = (identifier arg)
 
-keyword = (identifier? arg, expr value)
+keyword = (identifier? arg, expr? value)
 
 tbind = Bind(string lang, string name)
 
