@@ -316,15 +316,6 @@ public:
             sym_name = sym_name + "~genericprocedure";
         }
 
-        int n_optional = 0;
-        for( auto itr = current_scope->scope.begin(); itr != current_scope->scope.end();
-             itr++ ) {
-            ASR::symbol_t* func_arg = itr->second;
-            if( ASR::is_a<ASR::Variable_t>(*func_arg) ) {
-                ASR::Variable_t* arg_var = ASR::down_cast<ASR::Variable_t>(func_arg);
-                n_optional += arg_var->m_presence == ASR::presenceType::Optional;
-            }
-        }
 
         tmp = ASR::make_Subroutine_t(
             al, x.base.base.loc,
@@ -336,7 +327,7 @@ public:
             /* n_body */ 0,
             current_procedure_abi_type,
             s_access, deftype, bindc_name,
-            is_pure, is_module, n_optional);
+            is_pure, is_module);
         parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(tmp);
         current_scope = parent_scope;
         /* FIXME: This can become incorrect/get cleared prematurely, perhaps
@@ -520,16 +511,6 @@ public:
             }
         }
 
-        int n_optional = 0;
-        for( auto itr = current_scope->scope.begin(); itr != current_scope->scope.end();
-             itr++ ) {
-            ASR::symbol_t* func_arg = itr->second;
-            if( ASR::is_a<ASR::Variable_t>(*func_arg) ) {
-                ASR::Variable_t* arg_var = ASR::down_cast<ASR::Variable_t>(func_arg);
-                n_optional += arg_var->m_presence == ASR::presenceType::Optional;
-
-            }
-        }
 
         tmp = ASR::make_Function_t(
             al, x.base.base.loc,
@@ -540,7 +521,7 @@ public:
             /* a_body */ nullptr,
             /* n_body */ 0,
             /* a_return_var */ LFortran::ASRUtils::EXPR(return_var_ref),
-            current_procedure_abi_type, s_access, deftype, bindc_name, n_optional);
+            current_procedure_abi_type, s_access, deftype, bindc_name);
         parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(tmp);
         current_scope = parent_scope;
         current_procedure_args.clear();
