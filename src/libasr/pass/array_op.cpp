@@ -147,20 +147,10 @@ public:
                         a_args.push_back(al, s->m_args[i]);
                     }
                     a_args.push_back(al, s->m_return_var);
-                    int n_optional = 0;
-                    for( auto itr = s->m_symtab->scope.begin(); itr != s->m_symtab->scope.end();
-                        itr++ ) {
-                        ASR::symbol_t* func_arg = itr->second;
-                        if( ASR::is_a<ASR::Variable_t>(*func_arg) ) {
-                            ASR::Variable_t* arg_var = ASR::down_cast<ASR::Variable_t>(func_arg);
-                            n_optional += arg_var->m_presence == ASR::presenceType::Optional;
 
-                        }
-                    }
                     ASR::asr_t* s_sub_asr = ASR::make_Subroutine_t(al, s->base.base.loc, s->m_symtab,
                                                     s->m_name, a_args.p, a_args.size(), s->m_body, s->n_body,
-                                                    s->m_abi, s->m_access, s->m_deftype, nullptr, false, false,
-                                                    n_optional);
+                                                    s->m_abi, s->m_access, s->m_deftype, nullptr, false, false);
                     ASR::symbol_t* s_sub = ASR::down_cast<ASR::symbol_t>(s_sub_asr);
                     replace_vec.push_back(std::make_pair(item.first, s_sub));
                 }

@@ -9,6 +9,8 @@
 #include <lfortran/utils.h>
 #include <lfortran/semantics/comptime_eval.h>
 
+#include <string>
+
 using LFortran::diag::Level;
 using LFortran::diag::Stage;
 using LFortran::diag::Label;
@@ -1092,7 +1094,7 @@ public:
                 if (ASR::is_a<ASR::Function_t>(*f2)) {
                     ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(f2);
                     visit_kwargs(args, x.m_keywords, x.n_keywords,
-                        f->m_args, f->n_args, x.base.base.loc, f->m_n_optional,
+                        f->m_args, f->n_args, x.base.base.loc, f,
                         kwargs);
                 } else {
                     LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
@@ -1600,14 +1602,27 @@ public:
         return result;
     }
 
+    template <typename T>
     void visit_kwargs(Vec<ASR::expr_t*> &args, AST::keyword_t *kwargs, size_t n,
-                ASR::expr_t **fn_args, size_t fn_n_args, const Location &loc,
-                int n_optional, Vec<ASR::keyword_t>& kwargs_vec) {
+                ASR::expr_t **fn_args, size_t fn_n_args, const Location &loc, T* fn,
+                Vec<ASR::keyword_t>& kwargs_vec) {
         size_t n_args = args.size();
-        if (n_args != fn_n_args - n_optional) {
+        std::vector<std::string> optional_args;
+        for( auto itr = fn->m_symtab->scope.begin(); itr != fn->m_symtab->scope.end();
+             itr++ ) {
+            ASR::symbol_t* fn_sym = itr->second;
+            if( ASR::is_a<ASR::Variable_t>(*fn_sym) ) {
+                ASR::Variable_t* fn_var = ASR::down_cast<ASR::Variable_t>(fn_sym);
+                if( fn_var->m_presence == ASR::presenceType::Optional ) {
+                    optional_args.push_back(itr->first);
+                }
+            }
+        }
+        size_t n_optional = optional_args.size();
+        if (n_args + n > fn_n_args + n_optional) {
             throw SemanticError(
-                "Procedure accepts " + std::to_string(fn_n_args)
-                + " arguments, but " + std::to_string(args.size() + n)
+                "Procedure accepts " + std::to_string(fn_n_args + n_optional)
+                + " arguments, but " + std::to_string(n_args + n)
                 + " were provided",
                 loc
             );
@@ -1616,10 +1631,18 @@ public:
         std::vector<std::string> fn_args2 = convert_fn_args_to_string(
                 fn_args, fn_n_args, loc);
 
+        for (size_t i=0; i < n; i++) {
+            std::string str = std::string(kwargs[i].m_arg);
+            if( std::find(optional_args.begin(), optional_args.end(), str) == optional_args.end() ) {
+                args.push_back(al, nullptr);
+            }
+        }
+
+
         kwargs_vec.reserve(al, n_optional);
-        for (int i = 0; i < n_optional; i++) {
+        for (size_t i = 0; i < n_optional; i++) {
             ASR::keyword_t kwarg;
-            kwarg.m_arg = s2c(al, fn_args2[i + n_args]);
+            kwarg.m_arg = s2c(al, optional_args[i]);
             kwarg.m_value = nullptr;
             kwargs_vec.push_back(al, kwarg);
         }
@@ -1627,19 +1650,25 @@ public:
             this->visit_expr(*kwargs[i].m_value);
             ASR::expr_t *expr = LFortran::ASRUtils::EXPR(tmp);
             std::string name = kwargs[i].m_arg;
-            auto search = std::find(fn_args2.begin(), fn_args2.end(), name);
-            if (search != fn_args2.end()) {
-                size_t idx = std::distance(fn_args2.begin(), search) - n_args;
-                if (idx < 0) {
-                    throw SemanticError("Keyword argument is already specified as a non-keyword argument", loc);
-                }
-                if (kwargs_vec[idx].m_value != nullptr) {
-                    throw SemanticError("Keyword argument is already specified as another keyword argument " + name, loc);
-                }
-                kwargs_vec.p[idx].m_value = expr;
-                kwargs_vec.p[idx].loc = expr->base.loc;
+            auto search_optional = std::find(optional_args.begin(), optional_args.end(), name);
+            if( search_optional != optional_args.end() ) {
+                size_t kwarg_idx = std::distance(optional_args.begin(), search_optional);
+                kwargs_vec.p[kwarg_idx].m_value = expr;
+                kwargs_vec.p[kwarg_idx].loc = expr->base.loc;
             } else {
-                throw SemanticError("Keyword argument not found", loc);
+                auto search = std::find(fn_args2.begin(), fn_args2.end(), name);
+                if (search != fn_args2.end()) {
+                    size_t idx = std::distance(fn_args2.begin(), search);
+                    if (idx < n_args) {
+                        throw SemanticError("Keyword argument is already specified as a non-keyword argument", loc);
+                    }
+                    if (args[idx] != nullptr) {
+                        throw SemanticError("Keyword argument is already specified as another keyword argument ", loc);
+                    }
+                    args.p[idx] = expr;
+                } else {
+                    throw SemanticError("Keyword argument not found", loc);
+                }
             }
         }
         for (size_t i=0; i<args.size(); i++) {

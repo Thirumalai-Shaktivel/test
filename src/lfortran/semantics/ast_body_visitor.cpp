@@ -819,7 +819,7 @@ public:
                 Vec<ASR::keyword_t> kwargs;
                 kwargs.reserve(al, 0);
                 visit_kwargs(args, x.m_keywords, x.n_keywords,
-                    f->m_args, f->n_args, x.base.base.loc, f->m_n_optional,
+                    f->m_args, f->n_args, x.base.base.loc, f,
                     kwargs);
             } else {
                 throw SemanticError(

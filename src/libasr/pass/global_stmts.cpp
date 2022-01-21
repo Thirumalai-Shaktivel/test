@@ -105,16 +105,6 @@ void pass_wrap_global_stmts_into_function(Allocator &al,
             // The last defined `return_var` is the actual return value
             ASR::down_cast2<ASR::Variable_t>(return_var)->m_intent = LFortran::ASRUtils::intent_return_var;
 
-            int n_optional = 0;
-            for( auto itr = fn_scope->scope.begin(); itr != fn_scope->scope.end();
-                itr++ ) {
-                ASR::symbol_t* func_arg = itr->second;
-                if( ASR::is_a<ASR::Variable_t>(*func_arg) ) {
-                    ASR::Variable_t* arg_var = ASR::down_cast<ASR::Variable_t>(func_arg);
-                    n_optional += arg_var->m_presence == ASR::presenceType::Optional;
-
-                }
-            }
 
             ASR::asr_t *fn = ASR::make_Function_t(
                 al, loc,
@@ -126,7 +116,7 @@ void pass_wrap_global_stmts_into_function(Allocator &al,
                 /* n_body */ body.size(),
                 /* a_return_var */ return_var_ref,
                 ASR::abiType::BindC,
-                ASR::Public, ASR::Implementation, nullptr, n_optional);
+                ASR::Public, ASR::Implementation, nullptr);
             std::string sym_name = fn_name;
             if (unit.m_global_scope->scope.find(sym_name) != unit.m_global_scope->scope.end()) {
                 throw LFortranException("Function already defined");
@@ -145,7 +135,7 @@ void pass_wrap_global_stmts_into_function(Allocator &al,
                 /* n_body */ body.size(),
                 ASR::abiType::Source,
                 ASR::Public, ASR::Implementation, nullptr,
-                false, false, 0);
+                false, false);
             std::string sym_name = fn_name;
             if (unit.m_global_scope->scope.find(sym_name) != unit.m_global_scope->scope.end()) {
                 throw LFortranException("Function already defined");
