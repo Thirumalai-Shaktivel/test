@@ -396,46 +396,82 @@ public:
         for( size_t i = 0; i < x.n_args; i++ ) {
             ASR::alloc_arg_t new_arg;
             new_arg.loc = x.base.base.loc;
-            this->visit_expr(*(x.m_args[i].m_end));
+            if( x.m_args[i].m_end && !x.m_args[i].m_start && !x.m_args[i].m_step ) {
+                this->visit_expr(*(x.m_args[i].m_end));
+            } else if( x.m_args[i].m_start && !x.m_args[i].m_end && x.m_args[i].m_step ) {
+                this->visit_expr(*(x.m_args[i].m_step));
+            }
             // Assume that tmp is an `ArrayRef`
             ASR::expr_t* tmp_stmt = LFortran::ASRUtils::EXPR(tmp);
-            ASR::ArrayRef_t* array_ref = ASR::down_cast<ASR::ArrayRef_t>(tmp_stmt);
-            new_arg.m_a = array_ref->m_v;
-            Vec<ASR::dimension_t> dims_vec;
-            dims_vec.reserve(al, array_ref->n_args);
-            for( size_t j = 0; j < array_ref->n_args; j++ ) {
-                ASR::dimension_t new_dim;
-                new_dim.loc = array_ref->m_args[j].loc;
-                ASR::expr_t* m_left = array_ref->m_args[j].m_left;
-                if( m_left != nullptr ) {
-                    new_dim.m_start = m_left;
-                } else {
-                    new_dim.m_start = const_1;
+            if( ASR::is_a<ASR::ArrayRef_t>(*tmp_stmt) ) {
+                ASR::ArrayRef_t* array_ref = ASR::down_cast<ASR::ArrayRef_t>(tmp_stmt);
+                new_arg.m_a = array_ref->m_v;
+                Vec<ASR::dimension_t> dims_vec;
+                dims_vec.reserve(al, array_ref->n_args);
+                for( size_t j = 0; j < array_ref->n_args; j++ ) {
+                    ASR::dimension_t new_dim;
+                    new_dim.loc = array_ref->m_args[j].loc;
+                    ASR::expr_t* m_left = array_ref->m_args[j].m_left;
+                    if( m_left != nullptr ) {
+                        new_dim.m_start = m_left;
+                    } else {
+                        new_dim.m_start = const_1;
+                    }
+                    ASR::expr_t* m_right = array_ref->m_args[j].m_right;
+                    new_dim.m_end = m_right;
+                    dims_vec.push_back(al, new_dim);
                 }
-                ASR::expr_t* m_right = array_ref->m_args[j].m_right;
-                new_dim.m_end = m_right;
-                dims_vec.push_back(al, new_dim);
+                new_arg.m_dims = dims_vec.p;
+                new_arg.n_dims = dims_vec.size();
+                alloc_args_vec.push_back(al, new_arg);
+            } else if( ASR::is_a<ASR::Var_t>(*tmp_stmt) ) {
+                ASR::Var_t* array_var = ASR::down_cast<ASR::Var_t>(tmp_stmt);
+                new_arg.m_a = array_var->m_v;
+                new_arg.m_dims = nullptr;
+                new_arg.n_dims = 0;
+                alloc_args_vec.push_back(al, new_arg);
             }
-            new_arg.m_dims = dims_vec.p;
-            new_arg.n_dims = dims_vec.size();
-            alloc_args_vec.push_back(al, new_arg);
         }
 
-        // Only one arg should be present
-        if( x.n_keywords > 1 ||
-          ( x.n_keywords == 1 && to_lower(x.m_keywords[0].m_arg) != "stat") ) {
+        bool cond = x.n_keywords == 0;
+        bool stat_cond = false, errmsg_cond = false;
+        ASR::expr_t *stat = nullptr, *errmsg = nullptr;
+        if( x.n_keywords >= 1 ) {
+            stat_cond = !stat_cond && (to_lower(x.m_keywords[0].m_arg) == "stat");
+            errmsg_cond = !errmsg_cond && (to_lower(x.m_keywords[0].m_arg) == "errmsg");
+            cond = cond || (stat_cond || errmsg_cond);
+            if( stat_cond ) {
+                this->visit_expr(*(x.m_keywords[0].m_value));
+                stat = LFortran::ASRUtils::EXPR(tmp);
+            } else if( errmsg_cond ) {
+                this->visit_expr(*(x.m_keywords[0].m_value));
+                errmsg = LFortran::ASRUtils::EXPR(tmp);
+            }
+        }
+
+        if( x.n_keywords == 2 ) {
+            stat_cond = !stat_cond && (to_lower(x.m_keywords[1].m_arg) == "stat");
+            errmsg_cond = !errmsg_cond && (to_lower(x.m_keywords[1].m_arg) == "errmsg");
+            cond = cond && (stat_cond || errmsg_cond);
+            if( stat_cond ) {
+                this->visit_expr(*(x.m_keywords[1].m_value));
+                stat = LFortran::ASRUtils::EXPR(tmp);
+            } else if( errmsg_cond ) {
+                this->visit_expr(*(x.m_keywords[1].m_value));
+                errmsg = LFortran::ASRUtils::EXPR(tmp);
+            }
+        }
+
+
+        if( !cond ) {
             throw SemanticError("`allocate` statement only "
-                                "accepts one keyword argument,"
-                                "`stat`", x.base.base.loc);
+                                "accepts two keyword arguments,"
+                                "`stat` and `errmsg`", x.base.base.loc);
         }
-        ASR::expr_t* stat = nullptr;
-        if( x.n_keywords == 1 ) {
-            this->visit_expr(*(x.m_keywords[0].m_value));
-            stat = LFortran::ASRUtils::EXPR(tmp);
-        }
+
         tmp = ASR::make_Allocate_t(al, x.base.base.loc,
                                     alloc_args_vec.p, alloc_args_vec.size(),
-                                    stat);
+                                    stat, errmsg);
     }
 
 // If there are allocatable variables in the local scope it inserts an ImplicitDeallocate node
@@ -523,11 +559,6 @@ public:
                         AST::CaseCondExpr_t *condexpr
                             = AST::down_cast<AST::CaseCondExpr_t>(Case_Stmt->m_test[i]);
                         this->visit_expr(*condexpr->m_cond);
-                        ASR::expr_t* m_test_i = LFortran::ASRUtils::EXPR(tmp);
-                        if( LFortran::ASRUtils::expr_type(m_test_i)->type != ASR::ttypeType::Integer ) {
-                            throw SemanticError(R"""(Expression in Case selector can only be an Integer)""",
-                                                x.base.loc);
-                        }
                         a_test_vec.push_back(al, LFortran::ASRUtils::EXPR(tmp));
                     }
                     Vec<ASR::stmt_t*> case_body_vec;
@@ -580,9 +611,6 @@ public:
     void visit_Select(const AST::Select_t& x) {
         this->visit_expr(*(x.m_test));
         ASR::expr_t* a_test = LFortran::ASRUtils::EXPR(tmp);
-        if( LFortran::ASRUtils::expr_type(a_test)->type != ASR::ttypeType::Integer ) {
-            throw SemanticError(R"""(Expression in Case selector can only be an Integer)""", x.base.base.loc);
-        }
         Vec<ASR::case_stmt_t*> a_body_vec;
         a_body_vec.reserve(al, x.n_body);
         Vec<ASR::stmt_t*> def_body;
@@ -703,7 +731,7 @@ public:
         SymbolTable *old_scope = current_scope;
         ASR::symbol_t *t = current_scope->scope[to_lower(x.m_name)];
         if( t->type == ASR::symbolType::GenericProcedure ) {
-            std::string subrout_name = "~" + to_lower(x.m_name);
+            std::string subrout_name = to_lower(x.m_name) + "~genericprocedure";
             t = current_scope->scope[subrout_name];
         }
         ASR::Subroutine_t *v = ASR::down_cast<ASR::Subroutine_t>(t);
@@ -729,6 +757,9 @@ public:
     void visit_Function(const AST::Function_t &x) {
         SymbolTable *old_scope = current_scope;
         ASR::symbol_t *t = current_scope->scope[to_lower(x.m_name)];
+        if( t->type == ASR::symbolType::GenericProcedure ) {
+            t = current_scope->scope[to_lower(x.m_name) + "~genericprocedure"];
+        }
         ASR::Function_t *v = ASR::down_cast<ASR::Function_t>(t);
         current_scope = v->m_symtab;
         Vec<ASR::stmt_t*> body;
@@ -810,6 +841,12 @@ public:
             v_expr = LFortran::ASRUtils::EXPR(v_var);
             original_sym = resolve_deriv_type_proc(x.base.base.loc, to_lower(x.m_name),
                 to_lower(x.m_member[0].m_name), scope);
+            // if( original_sym->type == ASR::symbolType::ClassProcedure ) {
+            //     ASR::ClassProcedure_t* class_proc = ASR::down_cast<ASR::ClassProcedure_t>(original_sym);
+            //     sub_name = to_lower(class_proc->m_proc_name);
+            //     original_sym = current_scope->resolve_symbol(sub_name);
+            //     LFORTRAN_ASSERT(original_sym);
+            // }
         } else {
             original_sym = current_scope->resolve_symbol(sub_name);
         }
@@ -821,8 +858,11 @@ public:
             ASR::symbol_t* f2 = LFortran::ASRUtils::symbol_get_past_external(original_sym);
             if (ASR::is_a<ASR::Subroutine_t>(*f2)) {
                 ASR::Subroutine_t *f = ASR::down_cast<ASR::Subroutine_t>(f2);
+                Vec<ASR::keyword_t> kwargs;
+                kwargs.reserve(al, 0);
                 visit_kwargs(args, x.m_keywords, x.n_keywords,
-                    f->m_args, f->n_args, x.base.base.loc);
+                    f->m_args, f->n_args, x.base.base.loc, f,
+                    kwargs);
             } else {
                 throw SemanticError(
                     "Keyword arguments are not implemented for generic subroutines yet",
@@ -1001,23 +1041,20 @@ public:
     }
 
     void visit_DoLoop(const AST::DoLoop_t &x) {
-        if (! x.m_var) {
-            throw SemanticError("Do loop: loop variable is required for now",
-                x.base.base.loc);
+        ASR::expr_t *var, *start, *end;
+        var = start = end = nullptr;
+        if (x.m_var) {
+            var = LFortran::ASRUtils::EXPR(resolve_variable(x.base.base.loc, to_lower(x.m_var)));
         }
-        if (! x.m_start) {
-            throw SemanticError("Do loop: start condition required for now",
-                x.base.base.loc);
+        if (x.m_start) {
+            visit_expr(*x.m_start);
+            start = LFortran::ASRUtils::EXPR(tmp);
         }
-        if (! x.m_end) {
-            throw SemanticError("Do loop: end condition required for now",
-                x.base.base.loc);
+        if (x.m_end) {
+            visit_expr(*x.m_end);
+            end = LFortran::ASRUtils::EXPR(tmp);
         }
-        ASR::expr_t *var = LFortran::ASRUtils::EXPR(resolve_variable(x.base.base.loc, to_lower(x.m_var)));
-        visit_expr(*x.m_start);
-        ASR::expr_t *start = LFortran::ASRUtils::EXPR(tmp);
-        visit_expr(*x.m_end);
-        ASR::expr_t *end = LFortran::ASRUtils::EXPR(tmp);
+
         ASR::expr_t *increment;
         if (x.m_increment) {
             visit_expr(*x.m_increment);
@@ -1034,7 +1071,11 @@ public:
         head.m_start = start;
         head.m_end = end;
         head.m_increment = increment;
-        head.loc = head.m_v->base.loc;
+        if( head.m_v ) {
+            head.loc = head.m_v->base.loc;
+        } else {
+            head.loc = x.base.base.loc;
+        }
         tmp = ASR::make_DoLoop_t(al, x.base.base.loc, head, body.p,
                 body.size());
     }

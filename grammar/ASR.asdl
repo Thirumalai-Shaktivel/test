@@ -152,7 +152,7 @@ abi                   -- External     ABI
 
 
 stmt
-    = Allocate(alloc_arg* args, expr? stat)
+    = Allocate(alloc_arg* args, expr? stat, expr? errmsg)
     | Assign(int label, identifier variable)
     | Assignment(expr target, expr value, stmt? overloaded)
     | Associate(expr target, expr value)
@@ -264,13 +264,13 @@ attribute_arg = (identifier arg)
 
 arg = (identifier arg)
 
-keyword = (identifier? arg, expr value)
+keyword = (identifier? arg, expr? value)
 
 tbind = Bind(string lang, string name)
 
 array_index = (expr? left, expr? right, expr? step)
 
-do_loop_head = (expr v, expr start, expr end, expr? increment)
+do_loop_head = (expr? v, expr? start, expr? end, expr? increment)
 
 case_stmt = CaseStmt(expr* test, stmt* body) | CaseStmt_Range(expr? start, expr? end, stmt* body)
 
