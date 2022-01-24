@@ -8,20 +8,6 @@ set(SRC
     semantics/ast_body_visitor.cpp
     semantics/ast_to_asr.cpp
 
-    ../libasr/pass/param_to_const.cpp
-    ../libasr/pass/do_loops.cpp
-    ../libasr/pass/for_all.cpp
-    ../libasr/pass/global_stmts.cpp
-    ../libasr/pass/select_case.cpp
-    ../libasr/pass/implied_do_loops.cpp
-    ../libasr/pass/array_op.cpp
-    ../libasr/pass/class_constructor.cpp
-    ../libasr/pass/arr_slice.cpp
-    ../libasr/pass/print_arr.cpp
-    ../libasr/pass/pass_utils.cpp
-    ../libasr/pass/unused_functions.cpp
-    ../libasr/pass/flip_sign.cpp
-
     fortran_evaluator.cpp
 
     pickle.cpp
