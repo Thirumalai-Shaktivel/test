@@ -82,12 +82,15 @@ unit
 symbol
     = Program(symbol_table symtab, identifier name, identifier* dependencies,
         stmt* body)
-    | Module(symbol_table symtab, identifier name, identifier* dependencies,
+    | Module(symbol_table symtab, identifier name,
+        type_parameter* type_parameters,
+        identifier* dependencies,
         bool loaded_from_mod)
     | Subroutine(symbol_table symtab, identifier name, expr* args, stmt* body,
         abi abi, access access, deftype deftype, string? bindc_name, bool pure,
         bool module)
-    | Function(symbol_table symtab, identifier name, expr* args, stmt* body,
+    | Function(symbol_table symtab, identifier name,
+        type_parameter* type_parameters, expr* args, stmt* body,
         expr return_var, abi abi, access access, deftype deftype,
         string? bindc_name)
     | GenericProcedure(symbol_table parent_symtab, identifier name,
@@ -97,7 +100,9 @@ symbol
     | ExternalSymbol(symbol_table parent_symtab, identifier name,
         symbol external, identifier module_name, identifier* scope_names,
         identifier original_name, access access)
-    | DerivedType(symbol_table symtab, identifier name, identifier* members,
+    | DerivedType(symbol_table symtab, identifier name,
+        type_parameter* type_parameters,
+        identifier* members,
         abi abi, access access, symbol? parent)
     | Variable(symbol_table parent_symtab, identifier name, intent intent,
         expr? symbolic_value, expr? value, storage_type storage, ttype type,
@@ -197,7 +202,8 @@ expr
         -- Such as: (x, y+z), (3.0, 2.0) generally not known at compile time
     | ComplexConstructor(expr re, expr im, ttype type, expr? value)
     | Compare(expr left, cmpop op, expr right, ttype type, expr? value, expr? overloaded)
-    | FunctionCall(symbol name, symbol? original_name, expr* args,
+    | FunctionCall(symbol name, symbol? original_name,
+        ttype* type_parameter_instances, expr* args,
             keyword* keywords, ttype type, expr? value, expr? dt)
     | DerivedTypeConstructor(symbol dt_sym, expr* args, ttype type)
     | ConstantArray(expr* args, ttype type)
@@ -221,6 +227,15 @@ expr
 --  -2 ... character(:), allocatable (possibly we might use -1 for that also)
 --  -3 ... character(n+3), i.e., a runtime expression stored in `len_expr`
 
+type_parameter
+    = TypeParameter(identifier name, ttype? constraint)
+    | TypeIntegerParameter(identifier name) -- can be used as type len parameter
+    | TypeKindParameter(identifier name)
+
+kind
+    = SpecificKind(int kind, symbol? sym)
+    | GenericKind(type_parameter sym)
+
 ttype
     = Integer(int kind, dimension* dims)
     | Real(int kind, dimension* dims)
@@ -230,6 +245,7 @@ ttype
     | Derived(symbol derived_type, dimension* dims)
     | Class(symbol class_type, dimension* dims)
     | Pointer(ttype type)
+    | Generic(type_parameter sym)
 
 boolop = And | Or | Xor | NEqv | Eqv
 
