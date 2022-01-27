@@ -111,6 +111,10 @@ public:
     void visit_Subroutine(const ASR::Subroutine_t &x) {
         // FIXME: this is a hack, we need to pass in a non-const `x`,
         // which requires to generate a TransformVisitor.
+        std::string x_m_name = std::string(x.m_name);
+        if( x_m_name.find("flipsign") != std::string::npos ) {
+            return ;
+        }
         ASR::Subroutine_t &xx = const_cast<ASR::Subroutine_t&>(x);
         current_scope = xx.m_symtab;
         transform_stmts(xx.m_body, xx.n_body, al, flip_sign_result);
