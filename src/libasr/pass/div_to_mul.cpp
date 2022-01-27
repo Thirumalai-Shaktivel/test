@@ -17,42 +17,20 @@ using ASR::is_a;
 
 /*
 
-This ASR replaces flip sign operation with bit shifts for enhancing efficiency.
+This ASR pass replaces divison operation with multiplication
+if the divisor can be evaluated to a constant at compile time.
 
 Converts:
 
-    if (modulo(number, 2) == 1 ) x = -x
+    real :: x
+    real, parameter :: divisor = 2.0
+    print *, x/divisor
 
 to:
 
-    x = xor(shiftl(int(number), 31), x)
-
-For 64 bit `number`, 31 is replaced with 63.
-
-The algorithm contains two components,
-
-1. Detecting Flip Signs - This is achieved by looking for the existence
-    of a specific subtree in the complete ASR tree. In this case, we are
-    looking for a subtree which has an `If` node as the parent node. The
-    `Compare` attribute of that `If` node should contain a `FunctionCall`
-    to `modulo` (with second argument as `2`) and a `ConstantInteger`, `1`.
-    The statement attribute of `If` node should contain only 1 and that too
-    an `Assignment` statement. The right should be a `UnaryOp` expression
-    with operand as the left hand side of that expression.
-
-    For achieving this `DivToMulVisitor` has attributes which are
-    set to True only when the above properties are satisfied in an
-    order. For example, `is_function_call_present` will be set to `True`
-    only when we have visited `Compare` which means `is_compare_present`
-    is already `True` at that point.
-
-2. Replacing Flip Sign with bit shifts - This phase is executed only
-    when the above one is a success. Here, we replace the subtree
-    detected above with a call to a generic procedure defined in
-    `lfortran_intrinsic_optimization`. This is just a dummy call
-    anyways to keep things backend agnostic. The actual implementation
-    will be generated in the backend specified.
-
+    real :: x
+    real, parameter :: divisor = 2.0
+    print *, x * 0.5
 
 */
 class DivToMulVisitor : public PassUtils::PassVisitor<DivToMulVisitor>
