@@ -3776,7 +3776,23 @@ public:
         return args;
     }
 
+    void generate_optimization_instructions(const ASR::symbol_t* routine) {
+
+    }
+
+    bool is_optimization_routine(const ASR::symbol_t* routine) {
+        if( ASR::is_a<ASR::ExternalSymbol_t>(*routine) ) {
+            ASR::ExternalSymbol_t* ext_sym = ASR::down_cast<ASR::ExternalSymbol_t>(routine);
+            return std::string(ext_sym->m_module_name) == "lfortran_intrinsic_optimization";
+        }
+        return false;
+    }
+
     void visit_SubroutineCall(const ASR::SubroutineCall_t &x) {
+        if( is_optimization_routine(x.m_original_name) ) {
+            generate_optimization_instructions(x.m_original_name);
+            return ;
+        }
         ASR::Subroutine_t *s;
         std::vector<llvm::Value*> args;
         const ASR::symbol_t *proc_sym = symbol_get_past_external(x.m_name);
