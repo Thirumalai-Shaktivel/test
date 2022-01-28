@@ -58,15 +58,11 @@ The algorithm contains two components,
 class FlipSignVisitor : public PassUtils::PassVisitor<FlipSignVisitor>
 {
 private:
-    Allocator &al;
     ASR::TranslationUnit_t &unit;
 
     std::string rl_path;
-    Vec<ASR::stmt_t*> flip_sign_result;
 
     ASR::expr_t *flip_sign_signal_variable, *flip_sign_variable;
-
-    SymbolTable* current_scope;
 
     bool is_if_present;
     bool is_compare_present;
@@ -76,56 +72,22 @@ private:
     bool is_flip_sign_present;
 
 public:
-    FlipSignVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_, const std::string& rl_path_) : al(al_), unit(unit_),
-    rl_path{rl_path_}
+    FlipSignVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_,
+                    const std::string& rl_path_) : PassVisitor(al_, nullptr),
+    unit(unit_), rl_path(rl_path_)
     {
-        flip_sign_result.reserve(al, 1);
-    }
-
-    // TODO: Only Program and While is processed, we need to process all calls
-    // to visit_stmt().
-
-    void visit_Program(const ASR::Program_t &x) {
-        current_scope = x.m_symtab;
-
-        // Transform nested functions and subroutines
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Subroutine_t>(*item.second)) {
-                ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
-                visit_Subroutine(*s);
-            }
-            if (is_a<ASR::Function_t>(*item.second)) {
-                ASR::Function_t *s = down_cast<ASR::Function_t>(item.second);
-                visit_Function(*s);
-            }
-        }
-
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        ASR::Program_t &xx = const_cast<ASR::Program_t&>(x);
-
-        transform_stmts(xx.m_body, xx.n_body, al, flip_sign_result);
-
+        pass_result.reserve(al, 1);
     }
 
     void visit_Subroutine(const ASR::Subroutine_t &x) {
         // FIXME: this is a hack, we need to pass in a non-const `x`,
         // which requires to generate a TransformVisitor.
-        std::string x_m_name = std::string(x.m_name);
-        if( x_m_name.find("flipsign") != std::string::npos ) {
+        if( ASRUtils::is_intrinsic_optimization<ASR::Subroutine_t>(&x) ) {
             return ;
         }
         ASR::Subroutine_t &xx = const_cast<ASR::Subroutine_t&>(x);
         current_scope = xx.m_symtab;
-        transform_stmts(xx.m_body, xx.n_body, al, flip_sign_result);
-    }
-
-    void visit_Function(const ASR::Function_t &x) {
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        ASR::Function_t &xx = const_cast<ASR::Function_t&>(x);
-        current_scope = xx.m_symtab;
-        transform_stmts(xx.m_body, xx.n_body, al, flip_sign_result);
+        PassUtils::PassVisitor<FlipSignVisitor>::transform_stmts(xx.m_body, xx.n_body);
     }
 
     void visit_If(const ASR::If_t& x) {
@@ -151,7 +113,7 @@ public:
             ASR::stmt_t* flip_sign_call = PassUtils::get_flipsign(flip_sign_signal_variable,
                                             flip_sign_variable, al, unit, rl_path, current_scope,
                                             [&](const std::string &msg, const Location &) { throw LFortranException(msg); });
-            flip_sign_result.push_back(al, flip_sign_call);
+            pass_result.push_back(al, flip_sign_call);
         }
     }
 
