@@ -3776,21 +3776,41 @@ public:
         return args;
     }
 
-    void generate_optimization_instructions(const ASR::symbol_t* routine) {
-
+    void generate_flip_sign(ASR::expr_t** m_args, size_t n_args) {
+        LFORTRAN_ASSERT(n_args == 2);
+        this->visit_expr_wrapper(m_args[0], true);
+        llvm::Value* signal = tmp;
+        LFORTRAN_ASSERT(m_args[1]->type == ASR::exprType::Var);
+        ASR::Var_t* asr_var = ASR::down_cast<ASR::Var_t>(m_args[1]);
+        ASR::Variable_t* asr_variable = ASR::down_cast<ASR::Variable_t>(asr_var->m_v);
+        uint32_t x_h = get_hash((ASR::asr_t*)asr_variable);
+        llvm::Value* variable = llvm_symtab[x_h];
+        // variable = xor(shiftl(int(Nd), 63), variable)
+        ASR::ttype_t* signal_type = ASRUtils::expr_type(m_args[0]);
+        int signal_kind = ASRUtils::extract_kind_from_ttype_t(signal_type);
+        llvm::Value* num_shifts = llvm::ConstantInt::get(context, llvm::APInt(32, signal_kind * 8 - 1));
+        llvm::Value* shifted_signal = builder->CreateShl(signal, num_shifts);
+        llvm::Value* int_var = builder->CreateBitCast(builder->CreateLoad(variable), shifted_signal->getType());
+        tmp = builder->CreateXor(shifted_signal, int_var);
+        llvm::PointerType* variable_type = static_cast<llvm::PointerType*>(variable->getType());
+        builder->CreateStore(builder->CreateBitCast(tmp, variable_type->getElementType()), variable);
     }
 
-    bool is_optimization_routine(const ASR::symbol_t* routine) {
-        if( ASR::is_a<ASR::ExternalSymbol_t>(*routine) ) {
-            ASR::ExternalSymbol_t* ext_sym = ASR::down_cast<ASR::ExternalSymbol_t>(routine);
-            return std::string(ext_sym->m_module_name) == "lfortran_intrinsic_optimization";
+    template <typename T>
+    void generate_optimization_instructions(const T* routine, ASR::expr_t** m_args,
+                                            size_t n_args) {
+        if( std::string(routine->m_name).find("flipsign") != std::string::npos ) {
+            generate_flip_sign(m_args, n_args);
+        } else {
+            throw CodeGenError(std::string(routine->m_name) + " optimization routine not supported in LLVM backend yet.");
         }
-        return false;
     }
 
     void visit_SubroutineCall(const ASR::SubroutineCall_t &x) {
-        if( is_optimization_routine(x.m_original_name) ) {
-            generate_optimization_instructions(x.m_original_name);
+        if( ASRUtils::is_intrinsic_optimization(x.m_name) ) {
+            ASR::Subroutine_t* routine = ASR::down_cast<ASR::Subroutine_t>(
+                        ASRUtils::symbol_get_past_external(x.m_name));
+            generate_optimization_instructions(routine, x.m_args, x.n_args);
             return ;
         }
         ASR::Subroutine_t *s;

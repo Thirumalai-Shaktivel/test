@@ -1806,3 +1806,4 @@ llvm = true
 filename = "../integration_tests/flip_sign.f90"
 asr = true
 pass = "flip_sign"
+llvm = true
