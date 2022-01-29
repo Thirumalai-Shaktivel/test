@@ -3777,8 +3777,7 @@ public:
         return args;
     }
 
-    void generate_flip_sign(ASR::expr_t** m_args, size_t n_args) {
-        LFORTRAN_ASSERT(n_args == 2);
+    void generate_flip_sign(ASR::expr_t** m_args) {
         this->visit_expr_wrapper(m_args[0], true);
         llvm::Value* signal = tmp;
         LFORTRAN_ASSERT(m_args[1]->type == ASR::exprType::Var);
@@ -3798,10 +3797,9 @@ public:
     }
 
     template <typename T>
-    void generate_optimization_instructions(const T* routine, ASR::expr_t** m_args,
-                                            size_t n_args) {
+    void generate_optimization_instructions(const T* routine, ASR::expr_t** m_args) {
         if( std::string(routine->m_name).find("flipsign") != std::string::npos ) {
-            generate_flip_sign(m_args, n_args);
+            generate_flip_sign(m_args);
         } else {
             throw CodeGenError(std::string(routine->m_name) + " optimization routine not supported in LLVM backend yet.");
         }
@@ -3811,7 +3809,7 @@ public:
         if( ASRUtils::is_intrinsic_optimization(x.m_name) ) {
             ASR::Subroutine_t* routine = ASR::down_cast<ASR::Subroutine_t>(
                         ASRUtils::symbol_get_past_external(x.m_name));
-            generate_optimization_instructions(routine, x.m_args, x.n_args);
+            generate_optimization_instructions(routine, x.m_args);
             return ;
         }
         ASR::Subroutine_t *s;
