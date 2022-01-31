@@ -345,6 +345,45 @@ namespace LFortran {
             return is_slice_present(*array_ref);
         }
 
+        ASR::expr_t* create_auxiliary_variable_for_expr(ASR::expr_t* expr, std::string& name,
+            Allocator& al, SymbolTable*& current_scope, ASR::stmt_t*& assign_stmt) {
+            ASR::asr_t* expr_sym = ASR::make_Variable_t(al, expr->base.loc, current_scope, s2c(al, name),
+                                                    ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default,
+                                                    ASRUtils::expr_type(expr), ASR::abiType::Source, ASR::accessType::Public,
+                                                    ASR::presenceType::Required, false);
+            current_scope->scope[name] = ASR::down_cast<ASR::symbol_t>(expr_sym);
+            ASR::expr_t* var = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, expr->base.loc, ASR::down_cast<ASR::symbol_t>(expr_sym)));
+            assign_stmt = ASRUtils::STMT(ASR::make_Assignment_t(al, var->base.loc, var, expr, nullptr));
+            return var;
+        }
+
+        ASR::expr_t* get_fma(ASR::expr_t* arg0, ASR::expr_t* arg1, ASR::expr_t* arg2,
+            Allocator& al, ASR::TranslationUnit_t& unit, std::string& rl_path,
+            SymbolTable*& current_scope, ASR::stmt_t*& fma_op, size_t count, Location& loc,
+            ASR::ttype_t* fma_type,
+            const std::function<void (const std::string &, const Location &)> err) {
+            ASR::symbol_t *v = import_generic_procedure("fma", "lfortran_intrinsic_optimization",
+                                                        al, unit, rl_path, current_scope, arg0->base.loc);
+            Vec<ASR::expr_t*> args;
+            args.reserve(al, 4);
+            args.push_back(al, arg0);
+            args.push_back(al, arg1);
+            args.push_back(al, arg2);
+            std::string name = "~fmaresult@" + std::to_string(count);
+            ASR::asr_t* result = ASR::make_Variable_t(al, loc, current_scope, s2c(al, name),
+                ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default,
+                fma_type, ASR::abiType::Source, ASR::accessType::Public,
+                ASR::presenceType::Required, false);
+            current_scope->scope[name] = ASR::down_cast<ASR::symbol_t>(result);
+            ASR::expr_t* var = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, loc, ASR::down_cast<ASR::symbol_t>(result)));
+            args.push_back(al, var);
+            fma_op = ASRUtils::STMT(
+                        ASRUtils::symbol_resolve_external_generic_procedure_without_eval(
+                        loc, v, args, current_scope, al,
+                        err));
+            return var;
+        }
+
     }
 
 }

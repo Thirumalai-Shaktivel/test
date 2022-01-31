@@ -43,6 +43,15 @@ namespace LFortran {
 
         bool is_slice_present(const ASR::expr_t* x);
 
+        ASR::expr_t* create_auxiliary_variable_for_expr(ASR::expr_t* expr, std::string& name,
+            Allocator& al, SymbolTable*& current_scope, ASR::stmt_t*& assign_stmt);
+
+        ASR::expr_t* get_fma(ASR::expr_t* arg0, ASR::expr_t* arg1, ASR::expr_t* arg2,
+                             Allocator& al, ASR::TranslationUnit_t& unit, std::string& rl_path,
+                             SymbolTable*& current_scope, ASR::stmt_t*& fma_op, size_t count, Location& loc,
+                             ASR::ttype_t* fma_type,
+                             const std::function<void (const std::string &, const Location &)> err);
+
         template <class Derived>
         class PassVisitor: public ASR::BaseWalkVisitor<Derived> {
 
