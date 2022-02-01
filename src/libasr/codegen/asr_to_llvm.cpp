@@ -51,6 +51,8 @@
 #include <libasr/pass/nested_vars.h>
 #include <libasr/pass/print_arr.h>
 #include <libasr/pass/arr_slice.h>
+#include <libasr/pass/flip_sign.h>
+#include <libasr/pass/div_to_mul.h>
 #include <libasr/pass/class_constructor.h>
 #include <libasr/pass/unused_functions.h>
 #include <libasr/exception.h>
@@ -1415,7 +1417,6 @@ public:
                                 }
                                 case (ASR::ttypeType::Derived) : {
                                     throw CodeGenError("Pointers for Derived type not implemented yet in conversion");
-                                    break;
                                 }
                                 case (ASR::ttypeType::Logical) : {
                                     type = llvm::Type::getInt1Ty(context);
@@ -2756,6 +2757,10 @@ public:
                 tmp = lfortran_strop(left_val, right_val, "_lfortran_strcat");
                 break;
             };
+            case ASR::stropType::Repeat: {
+                tmp = lfortran_strop(left_val, right_val, "_lfortran_strrepeat");
+                break;
+            };
         }
     }
 
@@ -2772,7 +2777,7 @@ public:
         llvm::Value *left_val = tmp;
         this->visit_expr_wrapper(x.m_right, true);
         llvm::Value *right_val = tmp;
-        if (ASR::is_a<ASR::Integer_t>(*ASRUtils::type_get_past_pointer(x.m_type))) {
+        if (ASRUtils::is_integer(*x.m_type)) {
             switch (x.m_op) {
                 case ASR::binopType::Add: {
                     tmp = builder->CreateAdd(left_val, right_val);
@@ -2814,7 +2819,7 @@ public:
                     break;
                 };
             }
-        } else if (ASR::is_a<ASR::Real_t>(*ASRUtils::type_get_past_pointer(x.m_type))) {
+        } else if (ASRUtils::is_real(*x.m_type)) {
             switch (x.m_op) {
                 case ASR::binopType::Add: {
                     tmp = builder->CreateFAdd(left_val, right_val);
@@ -2850,7 +2855,7 @@ public:
                     break;
                 };
             }
-        } else if (ASR::is_a<ASR::Complex_t>(*ASRUtils::type_get_past_pointer(x.m_type))) {
+        } else if (ASRUtils::is_complex(*x.m_type)) {
             llvm::Type *type;
             int a_kind;
             a_kind = down_cast<ASR::Complex_t>(ASRUtils::type_get_past_pointer(x.m_type))->m_kind;
@@ -3377,8 +3382,8 @@ public:
             ASR::expr_t *v = x.m_values[i];
             ASR::ttype_t *t = expr_type(v);
             int a_kind = ASRUtils::extract_kind_from_ttype_t(t);
-            if (ASR::is_a<ASR::Integer_t>(*ASRUtils::type_get_past_pointer(t)) ||
-                ASR::is_a<ASR::Logical_t>(*ASRUtils::type_get_past_pointer(t)) ) {
+            if (ASRUtils::is_integer(*t) ||
+                ASR::is_a<ASR::Logical_t>(*ASRUtils::type_get_past_pointer(t))) {
                 switch( a_kind ) {
                     case 4 : {
                         fmt.push_back("%d");
@@ -3395,7 +3400,7 @@ public:
                     }
                 }
                 args.push_back(tmp);
-            } else if (ASR::is_a<ASR::Real_t>(*ASRUtils::type_get_past_pointer(t))) {
+            } else if (ASRUtils::is_real(*t)) {
                 llvm::Value *d;
                 switch( a_kind ) {
                     case 4 : {
@@ -3423,7 +3428,7 @@ public:
             } else if (t->type == ASR::ttypeType::Character) {
                 fmt.push_back("%s");
                 args.push_back(tmp);
-            } else if (ASR::is_a<ASR::Complex_t>(*ASRUtils::type_get_past_pointer(t))) {
+            } else if (ASRUtils::is_complex(*t)) {
                 llvm::Type *type, *complex_type;
                 switch( a_kind ) {
                     case 4 : {
@@ -3772,7 +3777,41 @@ public:
         return args;
     }
 
+    void generate_flip_sign(ASR::expr_t** m_args) {
+        this->visit_expr_wrapper(m_args[0], true);
+        llvm::Value* signal = tmp;
+        LFORTRAN_ASSERT(m_args[1]->type == ASR::exprType::Var);
+        ASR::Var_t* asr_var = ASR::down_cast<ASR::Var_t>(m_args[1]);
+        ASR::Variable_t* asr_variable = ASR::down_cast<ASR::Variable_t>(asr_var->m_v);
+        uint32_t x_h = get_hash((ASR::asr_t*)asr_variable);
+        llvm::Value* variable = llvm_symtab[x_h];
+        // variable = xor(shiftl(int(Nd), 63), variable)
+        ASR::ttype_t* signal_type = ASRUtils::expr_type(m_args[0]);
+        int signal_kind = ASRUtils::extract_kind_from_ttype_t(signal_type);
+        llvm::Value* num_shifts = llvm::ConstantInt::get(context, llvm::APInt(32, signal_kind * 8 - 1));
+        llvm::Value* shifted_signal = builder->CreateShl(signal, num_shifts);
+        llvm::Value* int_var = builder->CreateBitCast(builder->CreateLoad(variable), shifted_signal->getType());
+        tmp = builder->CreateXor(shifted_signal, int_var);
+        llvm::PointerType* variable_type = static_cast<llvm::PointerType*>(variable->getType());
+        builder->CreateStore(builder->CreateBitCast(tmp, variable_type->getElementType()), variable);
+    }
+
+    template <typename T>
+    void generate_optimization_instructions(const T* routine, ASR::expr_t** m_args) {
+        if( std::string(routine->m_name).find("flipsign") != std::string::npos ) {
+            generate_flip_sign(m_args);
+        } else {
+            throw CodeGenError(std::string(routine->m_name) + " optimization routine not supported in LLVM backend yet.");
+        }
+    }
+
     void visit_SubroutineCall(const ASR::SubroutineCall_t &x) {
+        if( ASRUtils::is_intrinsic_optimization(x.m_name) ) {
+            ASR::Subroutine_t* routine = ASR::down_cast<ASR::Subroutine_t>(
+                        ASRUtils::symbol_get_past_external(x.m_name));
+            generate_optimization_instructions(routine, x.m_args);
+            return ;
+        }
         ASR::Subroutine_t *s;
         std::vector<llvm::Value*> args;
         const ASR::symbol_t *proc_sym = symbol_get_past_external(x.m_name);
@@ -3988,6 +4027,8 @@ Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
     pass_replace_forall(al, asr);
     pass_replace_select_case(al, asr);
     pass_unused_functions(al, asr);
+    pass_replace_flip_sign(al, asr, rl_path);
+    pass_replace_div_to_mul(al, asr, rl_path);
     v.nested_func_types = pass_find_nested_vars(asr, context,
         v.nested_globals, v.nested_call_out, v.nesting_map);
     try {

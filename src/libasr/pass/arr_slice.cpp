@@ -16,7 +16,7 @@ using ASR::down_cast;
 using ASR::is_a;
 
 /*
-This ASR pass replaces array slice with do loops and array expression assignments. 
+This ASR pass replaces array slice with do loops and array expression assignments.
 The function `pass_replace_arr_slice` transforms the ASR tree in-place.
 
 Converts:
@@ -30,89 +30,25 @@ to:
     end do
 */
 
-class ArrSliceVisitor : public ASR::BaseWalkVisitor<ArrSliceVisitor>
+class ArrSliceVisitor : public PassUtils::PassVisitor<ArrSliceVisitor>
 {
 private:
-    Allocator &al;
     ASR::TranslationUnit_t &unit;
-    Vec<ASR::stmt_t*> arr_slice_result;
 
     ASR::expr_t* slice_var;
     bool create_slice_var;
 
     int slice_counter;
 
-    SymbolTable* current_scope;
-
     std::string rl_path;
 
 public:
-    ArrSliceVisitor(Allocator &al, ASR::TranslationUnit_t &unit,
-        const std::string &rl_path) : al{al}, unit{unit}, 
-    slice_var{nullptr}, create_slice_var{false},
-    slice_counter{0}, current_scope{nullptr}, rl_path{rl_path}
+    ArrSliceVisitor(Allocator &al, ASR::TranslationUnit_t &unit_,
+        const std::string &rl_path) : PassVisitor(al, nullptr), unit(unit_),
+    slice_var(nullptr), create_slice_var(false), slice_counter(0),
+    rl_path(rl_path)
     {
-        arr_slice_result.reserve(al, 1);
-    }
-
-    void transform_stmts(ASR::stmt_t **&m_body, size_t &n_body) {
-        Vec<ASR::stmt_t*> body;
-        body.reserve(al, n_body);
-        for (size_t i=0; i<n_body; i++) {
-            // Not necessary after we check it after each visit_stmt in every
-            // visitor method:
-            arr_slice_result.n = 0;
-            visit_stmt(*m_body[i]);
-            if (arr_slice_result.size() > 0) {
-                for (size_t j=0; j<arr_slice_result.size(); j++) {
-                    body.push_back(al, arr_slice_result[j]);
-                }
-                arr_slice_result.n = 0;
-            } else {
-                body.push_back(al, m_body[i]);
-            }
-        }
-        m_body = body.p;
-        n_body = body.size();
-    }
-
-    // TODO: Only Program and While is processed, we need to process all calls
-    // to visit_stmt().
-
-    void visit_Program(const ASR::Program_t &x) {
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        ASR::Program_t &xx = const_cast<ASR::Program_t&>(x);
-        current_scope = xx.m_symtab;
-        transform_stmts(xx.m_body, xx.n_body);
-
-        // Transform nested functions and subroutines
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Subroutine_t>(*item.second)) {
-                ASR::Subroutine_t *s = down_cast<ASR::Subroutine_t>(item.second);
-                visit_Subroutine(*s);
-            }
-            if (is_a<ASR::Function_t>(*item.second)) {
-                ASR::Function_t *s = down_cast<ASR::Function_t>(item.second);
-                visit_Function(*s);
-            }
-        }
-    }
-
-    void visit_Subroutine(const ASR::Subroutine_t &x) {
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        ASR::Subroutine_t &xx = const_cast<ASR::Subroutine_t&>(x);
-        current_scope = xx.m_symtab;
-        transform_stmts(xx.m_body, xx.n_body);
-    }
-
-    void visit_Function(const ASR::Function_t &x) {
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        ASR::Function_t &xx = const_cast<ASR::Function_t&>(x);
-        current_scope = xx.m_symtab;
-        transform_stmts(xx.m_body, xx.n_body);
+        pass_result.reserve(al, 1);
     }
 
     ASR::ttype_t* get_array_from_slice(const ASR::ArrayRef_t& x, ASR::expr_t* arr_var) {
@@ -124,14 +60,14 @@ public:
             if( x.m_args[i].m_step != nullptr ) {
                 ASR::expr_t *start = nullptr, *end = nullptr, *step = nullptr;
                 if( x.m_args[i].m_left == nullptr ) {
-                    start = PassUtils::get_bound(arr_var, i + 1, "lbound", 
+                    start = PassUtils::get_bound(arr_var, i + 1, "lbound",
                                                 al, unit, rl_path, current_scope);
                 } else {
                     start = x.m_args[i].m_left;
                 }
 
                 if( x.m_args[i].m_right == nullptr ) {
-                    end = PassUtils::get_bound(arr_var, i + 1, "ubound", 
+                    end = PassUtils::get_bound(arr_var, i + 1, "ubound",
                                                 al, unit, rl_path, current_scope);
                 } else {
                     end = x.m_args[i].m_right;
@@ -148,7 +84,7 @@ public:
                 step = PassUtils::to_int32(step, int32_type, al);
 
                 ASR::expr_t* gap = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(al, x.base.base.loc,
-                                                        end, ASR::binopType::Sub, start, 
+                                                        end, ASR::binopType::Sub, start,
                                                         int32_type, nullptr, nullptr));
                 // ASR::expr_t* slice_size = LFortran::ASRUtils::EXPR(ASR::make_BinOp_t(al, x.base.base.loc,
                 //                                                  gap, ASR::binopType::Add, const_1,
@@ -224,8 +160,8 @@ public:
             new_name_str.from_str(al, "~" + std::to_string(slice_counter) + "_slice");
             slice_counter += 1;
             char* new_var_name = (char*)new_name_str.c_str(al);
-            ASR::asr_t* slice_asr = ASR::make_Variable_t(al, x.base.base.loc, current_scope, new_var_name, 
-                                                        ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default, 
+            ASR::asr_t* slice_asr = ASR::make_Variable_t(al, x.base.base.loc, current_scope, new_var_name,
+                                                        ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default,
                                                         get_array_from_slice(x, x_arr_var), ASR::abiType::Source, ASR::accessType::Public,
                                                         ASR::presenceType::Required, false);
             ASR::symbol_t* slice_sym = ASR::down_cast<ASR::symbol_t>(slice_asr);
@@ -275,18 +211,18 @@ public:
                 doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
             }
             ASR::stmt_t* set_to_one = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_target[0], const_1, nullptr));
-            arr_slice_result.push_back(al, set_to_one);
-            arr_slice_result.push_back(al, doloop);
+            pass_result.push_back(al, set_to_one);
+            pass_result.push_back(al, doloop);
         }
     }
 
     void visit_Assignment(const ASR::Assignment_t& x) {
         this->visit_expr(*x.m_value);
         // If any slicing happened then do loop must have been created
-        // So, the current assignment should be inserted into arr_slice_result
+        // So, the current assignment should be inserted into pass_result
         // so that it doesn't get ignored.
-        if( arr_slice_result.size() > 0 ) {
-            arr_slice_result.push_back(al, const_cast<ASR::stmt_t*>(&(x.base)));
+        if( pass_result.size() > 0 ) {
+            pass_result.push_back(al, const_cast<ASR::stmt_t*>(&(x.base)));
         }
     }
 
@@ -309,7 +245,7 @@ public:
 
     void visit_Print(const ASR::Print_t& x) {
         ASR::Print_t& xx = const_cast<ASR::Print_t&>(x);
-        for( size_t i = 0; i < xx.n_values; i++ ) {        
+        for( size_t i = 0; i < xx.n_values; i++ ) {
             slice_var = nullptr;
             create_slice_var = true;
             this->visit_expr(*xx.m_values[i]);
@@ -319,10 +255,10 @@ public:
             }
         }
         // If any slicing happened then do loop must have been created
-        // So, the current print should be inserted into arr_slice_result
+        // So, the current print should be inserted into pass_result
         // so that it doesn't get ignored.
-        if( arr_slice_result.size() > 0 ) {
-            arr_slice_result.push_back(al, const_cast<ASR::stmt_t*>(&(x.base)));
+        if( pass_result.size() > 0 ) {
+            pass_result.push_back(al, const_cast<ASR::stmt_t*>(&(x.base)));
         }
     }
 };
