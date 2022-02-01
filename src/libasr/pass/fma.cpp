@@ -70,17 +70,6 @@ public:
         PassUtils::PassVisitor<FMAVisitor>::transform_stmts(xx.m_body, xx.n_body);
     }
 
-    void visit_Function(const ASR::Function_t &x) {
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        if( ASRUtils::is_intrinsic_function(&x) ) {
-            return ;
-        }
-        ASR::Function_t &xx = const_cast<ASR::Function_t&>(x);
-        current_scope = xx.m_symtab;
-        transform_stmts(xx.m_body, xx.n_body);
-    }
-
     void visit_BinOp(const ASR::BinOp_t& x_const) {
         if( x_const.m_type->type != ASR::ttypeType::Real ) {
             return ;

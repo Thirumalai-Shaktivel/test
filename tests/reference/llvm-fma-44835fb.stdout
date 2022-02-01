@@ -4,7 +4,7 @@ source_filename = "LFortran"
 %c_ptr = type { i32 }
 
 @0 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@1 = private unnamed_addr constant [7 x i8] c"%f %f\0A\00", align 1
+@1 = private unnamed_addr constant [12 x i8] c"%f %23.17f\0A\00", align 1
 
 declare i8* @__module_lfortran_intrinsic_builtin_char(i32*)
 
@@ -213,26 +213,40 @@ return:                                           ; preds = %.entry
   ret void
 }
 
+define void @__module_lfortran_intrinsic_optimization_fmar64(double* %a, double* %b, double* %c, double* %d) {
+.entry:
+  %0 = load double, double* %a, align 8
+  %1 = load double, double* %b, align 8
+  %2 = load double, double* %c, align 8
+  %3 = fmul double %1, %2
+  %4 = fadd double %0, %3
+  store double %4, double* %d, align 8
+  br label %return
+
+return:                                           ; preds = %.entry
+  ret void
+}
+
 define i32 @main() {
 .entry:
   %call_arg_value = alloca float, align 4
   %pi = alloca float, align 4
   store float 0x40091EB860000000, float* %pi, align 4
-  %s1 = alloca float, align 4
-  store float 1.000000e+00, float* %s1, align 4
-  %s2 = alloca float, align 4
-  store float 2.000000e+00, float* %s2, align 4
+  %s1 = alloca double, align 8
+  store double 1.000000e+00, double* %s1, align 8
+  %s2 = alloca double, align 8
+  store double 2.000000e+00, double* %s2, align 8
   %x = alloca float, align 4
   store float 4.000000e+00, float* %x, align 4
-  %z = alloca float, align 4
-  store float 1.000000e+00, float* %z, align 4
+  %z = alloca double, align 8
+  store double 1.000000e+00, double* %z, align 8
   %"~fma_arg@0" = alloca float, align 4
   %"~fma_arg@1" = alloca float, align 4
   %"~fma_arg@2" = alloca float, align 4
   %"~fma_arg@4" = alloca float, align 4
   %"~fmaresult@3" = alloca float, align 4
   %"~fmaresult@5" = alloca float, align 4
-  %"~fmaresult@6" = alloca float, align 4
+  %"~fmaresult@6" = alloca double, align 8
   %0 = load float, float* %x, align 4
   %1 = fmul float %0, 4.000000e+00
   store float %1, float* %"~fma_arg@0", align 4
@@ -247,14 +261,13 @@ define i32 @main() {
   call void @__module_lfortran_intrinsic_optimization_fmar32(float* %"~fmaresult@3", float* %"~fma_arg@4", float* %pi, float* %"~fmaresult@5")
   %5 = load float, float* %"~fmaresult@5", align 4
   store float %5, float* %x, align 4
-  call void @__module_lfortran_intrinsic_optimization_fmar32(float* %s1, float* %z, float* %s2, float* %"~fmaresult@6")
-  %6 = load float, float* %"~fmaresult@6", align 4
-  store float %6, float* %z, align 4
+  call void @__module_lfortran_intrinsic_optimization_fmar64(double* %s1, double* %z, double* %s2, double* %"~fmaresult@6")
+  %6 = load double, double* %"~fmaresult@6", align 8
+  store double %6, double* %z, align 8
   %7 = load float, float* %x, align 4
   %8 = fpext float %7 to double
-  %9 = load float, float* %z, align 4
-  %10 = fpext float %9 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @1, i32 0, i32 0), double %8, double %10)
+  %9 = load double, double* %z, align 8
+  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0), double %8, double %9)
   ret i32 0
 }
 

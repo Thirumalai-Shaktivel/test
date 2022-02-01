@@ -7,7 +7,7 @@ interface flipsign
 end interface
 
 interface fma
-    module procedure fmar32
+    module procedure fmar32, fmar64
 end interface
 
 contains
@@ -34,10 +34,10 @@ subroutine fmar32(a, b, c, d)
     d = a + b * c
 end subroutine
 
-! subroutine fmar64(a, b, c, d)
-!     real(real64), intent(in) :: a, b, c
-!     real(real64), intent(out) :: d
-!     d = a + b * c
-! end subroutine
+subroutine fmar64(a, b, c, d)
+    real(8), intent(in) :: a, b, c
+    real(8), intent(out) :: d
+    d = a + b * c
+end subroutine
 
 end module

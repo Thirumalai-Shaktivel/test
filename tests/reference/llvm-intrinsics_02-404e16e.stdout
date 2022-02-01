@@ -3,8 +3,41 @@ source_filename = "LFortran"
 
 %c_ptr = type { i32 }
 
+@"~fmaresult@11" = global float 0.000000e+00
+@"~fmaresult@13" = global float 0.000000e+00
+@"~fmaresult@5" = global float 0.000000e+00
+@"~fmaresult@7" = global double 0.000000e+00
+@"~fmaresult@9" = global double 0.000000e+00
 @0 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
 @1 = private unnamed_addr constant [4 x i8] c"%f\0A\00", align 1
+
+define void @fmar32(float* %a, float* %b, float* %c, float* %d) {
+.entry:
+  %0 = load float, float* %a, align 4
+  %1 = load float, float* %b, align 4
+  %2 = load float, float* %c, align 4
+  %3 = fmul float %1, %2
+  %4 = fadd float %0, %3
+  store float %4, float* %d, align 4
+  br label %return
+
+return:                                           ; preds = %.entry
+  ret void
+}
+
+define void @fmar64(double* %a, double* %b, double* %c, double* %d) {
+.entry:
+  %0 = load double, double* %a, align 8
+  %1 = load double, double* %b, align 8
+  %2 = load double, double* %c, align 8
+  %3 = fmul double %1, %2
+  %4 = fadd double %0, %3
+  store double %4, double* %d, align 8
+  br label %return
+
+return:                                           ; preds = %.entry
+  ret void
+}
 
 declare i8* @__module_lfortran_intrinsic_builtin_char(i32*)
 
@@ -79,6 +112,105 @@ return:                                           ; preds = %.entry
 }
 
 declare float @_lfortran_ssin(float)
+
+define i32 @__module_lfortran_intrinsic_math2_imodulo(i32* %x, i32* %y) {
+.entry:
+  %call_arg_value = alloca float, align 4
+  %r = alloca i32, align 4
+  %0 = load i32, i32* %x, align 4
+  %1 = load i32, i32* %x, align 4
+  %2 = sitofp i32 %1 to float
+  %3 = load i32, i32* %y, align 4
+  %4 = sitofp i32 %3 to float
+  %5 = fdiv float %2, %4
+  store float %5, float* %call_arg_value, align 4
+  %6 = call i32 @__module_lfortran_intrinsic_math2_sfloor(float* %call_arg_value)
+  %7 = load i32, i32* %y, align 4
+  %8 = mul i32 %6, %7
+  %9 = sub i32 %0, %8
+  store i32 %9, i32* %r, align 4
+  br label %return
+
+return:                                           ; preds = %.entry
+  %10 = load i32, i32* %r, align 4
+  ret i32 %10
+}
+
+define i32 @__module_lfortran_intrinsic_math2_sfloor(float* %x) {
+.entry:
+  %r = alloca i32, align 4
+  %0 = load float, float* %x, align 4
+  %1 = fcmp uge float %0, 0.000000e+00
+  br i1 %1, label %then, label %else
+
+then:                                             ; preds = %.entry
+  %2 = load float, float* %x, align 4
+  %3 = fptosi float %2 to i32
+  store i32 %3, i32* %r, align 4
+  br label %ifcont
+
+else:                                             ; preds = %.entry
+  %4 = load float, float* %x, align 4
+  %5 = fsub float %4, 1.000000e+00
+  %6 = fptosi float %5 to i32
+  store i32 %6, i32* %r, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %else, %then
+  br label %return
+
+return:                                           ; preds = %ifcont
+  %7 = load i32, i32* %r, align 4
+  ret i32 %7
+}
+
+define void @__module_lfortran_intrinsic_optimization_flipsigni32r32(i32* %signal, float* %variable) {
+.entry:
+  %call_arg_value = alloca i32, align 4
+  store i32 2, i32* %call_arg_value, align 4
+  %0 = call i32 @__module_lfortran_intrinsic_math2_imodulo(i32* %signal, i32* %call_arg_value)
+  %1 = icmp eq i32 %0, 1
+  br i1 %1, label %then, label %else
+
+then:                                             ; preds = %.entry
+  %2 = load float, float* %variable, align 4
+  %3 = fsub float 0.000000e+00, %2
+  store float %3, float* %variable, align 4
+  br label %ifcont
+
+else:                                             ; preds = %.entry
+  br label %ifcont
+
+ifcont:                                           ; preds = %else, %then
+  br label %return
+
+return:                                           ; preds = %ifcont
+  ret void
+}
+
+define void @__module_lfortran_intrinsic_optimization_flipsigni32r64(i32* %signal, double* %variable) {
+.entry:
+  %call_arg_value = alloca i32, align 4
+  store i32 2, i32* %call_arg_value, align 4
+  %0 = call i32 @__module_lfortran_intrinsic_math2_imodulo(i32* %signal, i32* %call_arg_value)
+  %1 = icmp eq i32 %0, 1
+  br i1 %1, label %then, label %else
+
+then:                                             ; preds = %.entry
+  %2 = load double, double* %variable, align 8
+  %3 = fsub double 0.000000e+00, %2
+  store double %3, double* %variable, align 8
+  br label %ifcont
+
+else:                                             ; preds = %.entry
+  br label %ifcont
+
+ifcont:                                           ; preds = %else, %then
+  br label %return
+
+return:                                           ; preds = %ifcont
+  ret void
+}
 
 define i32 @main() {
 .entry:
