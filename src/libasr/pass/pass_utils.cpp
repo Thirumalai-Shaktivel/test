@@ -227,10 +227,9 @@ namespace LFortran {
             std::string& sym = remote_sym;
             if( current_scope->scope.find(sym) != current_scope->scope.end() ) {
                 v = current_scope->scope[sym];
-            } else {
-                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
-                v = ASR::down_cast<ASR::symbol_t>(fn);
             }
+            current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
+            v = ASR::down_cast<ASR::symbol_t>(fn);
             current_scope = current_scope_copy;
             return v;
         }
@@ -364,6 +363,7 @@ namespace LFortran {
             const std::function<void (const std::string &, const Location &)> err) {
             ASR::symbol_t *v = import_generic_procedure("fma", "lfortran_intrinsic_optimization",
                                                         al, unit, rl_path, current_scope, arg0->base.loc);
+            std::cout<<"v->type: "<<v->type<<std::endl;
             Vec<ASR::expr_t*> args;
             args.reserve(al, 4);
             args.push_back(al, arg0);
