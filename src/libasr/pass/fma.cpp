@@ -51,6 +51,14 @@ public:
         pass_result.reserve(al, 1);
     }
 
+    bool is_BinOpMul(ASR::expr_t* expr) {
+        if( expr->type == ASR::exprType::BinOp ) {
+            ASR::BinOp_t* expr_binop = ASR::down_cast<ASR::BinOp_t>(expr);
+            return expr_binop->m_op == ASR::binopType::Mul;
+        }
+        return false;
+    }
+
     void visit_BinOp(const ASR::BinOp_t& x_const) {
         ASR::BinOp_t& x = const_cast<ASR::BinOp_t&>(x_const);
 
@@ -107,7 +115,7 @@ public:
                             nullptr));
         }
 
-        if( !ASR::is_a<ASR::Var_t>(first_arg) ) {
+        if( !ASR::is_a<ASR::Var_t>(*first_arg) ) {
             std::string name = "~fma_arg@" + std::to_string(count);
             ASR::stmt_t* assign_stmt;
             first_arg = PassUtils::create_auxiliary_variable_for_expr(first_arg, name, al, current_scope, assign_stmt);
@@ -115,7 +123,7 @@ public:
             count += 1;
         }
 
-        if( !ASR::is_a<ASR::Var_t>(second_arg) ) {
+        if( !ASR::is_a<ASR::Var_t>(*second_arg) ) {
             std::string name = "~fma_arg@" + std::to_string(count);
             ASR::stmt_t* assign_stmt;
             second_arg = PassUtils::create_auxiliary_variable_for_expr(second_arg, name, al, current_scope, assign_stmt);
@@ -126,9 +134,20 @@ public:
         ASR::stmt_t* fma_op;
         fma_var = PassUtils::get_fma(other_expr, first_arg, second_arg,
                                      al, unit, rl_path, current_scope, fma_op, count,
+                                     x.base.base.loc, x.m_type,
                                      [&](const std::string &msg, const Location &) { throw LFortranException(msg); });
         count += 1;
         pass_result.push_back(al, fma_op);
+    }
+
+    void visit_Assignment(const ASR::Assignment_t& x) {
+        ASR::Assignment_t& xx = const_cast<ASR::Assignment_t&>(x);
+        fma_var = nullptr;
+        visit_expr(*x.m_value);
+        if( fma_var ) {
+            xx.m_value = fma_var;
+        }
+        fma_var = nullptr;
     }
 
 };

@@ -1,10 +1,14 @@
 ! Temporary module, a subset of lfortran_intrinsic_math that works
 module lfortran_intrinsic_math2
-use, intrinsic :: iso_fortran_env, only: i32 => int32, sp => real32, dp => real64
+use, intrinsic :: iso_fortran_env, only: i32 => int32, i64 => int64, sp => real32, dp => real64
 implicit none
 
 interface abs
     module procedure iabs, sabs, dabs, cabs, zabs
+end interface
+
+interface sign
+    module procedure signi32, signi64, signr32, signr64
 end interface
 
 interface sqrt
@@ -86,6 +90,44 @@ end function
 elemental real(dp) function zabs(x) result(r)
 complex(dp), intent(in) :: x
 r = 1.0
+end function
+
+! sign -------------------------------------------------------------------------
+
+elemental integer(i32) function signi32(x, y) result(r)
+integer(i32), intent(in) :: x, y
+if ((x >= 0 .and. y >= 0) .or. (x <= 0 .and. y <= 0)) then
+    r = x
+else
+    r = -x
+end if
+end function
+
+elemental integer(i64) function signi64(x, y) result(r)
+integer(i64), intent(in) :: x, y
+if ((x >= 0 .and. y >= 0) .or. (x <= 0 .and. y <= 0)) then
+    r = x
+else
+    r = -x
+end if
+end function
+
+elemental real(sp) function signr32(x, y) result(r)
+real(sp), intent(in) :: x, y
+if ((x >= 0 .and. y >= 0) .or. (x <= 0 .and. y <= 0)) then
+    r = x
+else
+    r = -x
+end if
+end function
+
+elemental real(dp) function signr64(x, y) result(r)
+real(dp), intent(in) :: x, y
+if ((x >= 0 .and. y >= 0) .or. (x <= 0 .and. y <= 0)) then
+    r = x
+else
+    r = -x
+end if
 end function
 
 ! sqrt -------------------------------------------------------------------------

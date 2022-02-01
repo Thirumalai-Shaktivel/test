@@ -70,6 +70,7 @@ struct IntrinsicProcedures {
             {"erf", {m_math, &eval_erf, true}},
             {"erfc", {m_math, &eval_erfc, true}},
             {"abs", {m_math, &eval_abs, true}},
+            {"sign", {m_math2, &not_implemented, false}},
             {"sqrt", {m_math, &eval_sqrt, true}},
             {"gamma", {m_math, &eval_gamma, true}},
             {"log_gamma", {m_math, &eval_log_gamma, true}},
