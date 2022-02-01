@@ -191,6 +191,20 @@ return:                                           ; preds = %ifcont
   ret void
 }
 
+define void @__module_lfortran_intrinsic_optimization_fmar32(float* %a, float* %b, float* %c, float* %d) {
+.entry:
+  %0 = load float, float* %a, align 4
+  %1 = load float, float* %b, align 4
+  %2 = load float, float* %c, align 4
+  %3 = fmul float %1, %2
+  %4 = fadd float %0, %3
+  store float %4, float* %d, align 4
+  br label %return
+
+return:                                           ; preds = %.entry
+  ret void
+}
+
 define i32 @main() {
 .entry:
   %call_arg_value1 = alloca float, align 4

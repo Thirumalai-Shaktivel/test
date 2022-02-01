@@ -218,16 +218,22 @@ namespace LFortran {
                                             rl_path,
                                             [&](const std::string &msg, const Location &) { throw LFortranException(msg); }
                                             );
-
             ASR::symbol_t *t = m->m_symtab->resolve_symbol(remote_sym);
-            ASR::asr_t *fn = ASR::make_ExternalSymbol_t(al, t->base.loc, current_scope,
-                                                        s2c(al, remote_sym), t,
-                                                        s2c(al, module_name), nullptr, 0, s2c(al, remote_sym),
-                                                        ASR::accessType::Private);
-            std::string& sym = remote_sym;
+
+            std::string sym = remote_sym;
             if( current_scope->scope.find(sym) != current_scope->scope.end() ) {
                 v = current_scope->scope[sym];
+                // std::cout<<"v.pass_utils: "<<v<<std::endl;
+                if( !ASRUtils::is_intrinsic_optimization<ASR::symbol_t>(v) ) {
+                    sym += "@IntrinsicOptimization";
+                } else {
+                    return v;
+                }
             }
+            ASR::asr_t *fn = ASR::make_ExternalSymbol_t(al, t->base.loc, current_scope,
+                                                        s2c(al, sym), t,
+                                                        s2c(al, module_name), nullptr, 0, s2c(al, remote_sym),
+                                                        ASR::accessType::Private);
             current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
             v = ASR::down_cast<ASR::symbol_t>(fn);
             current_scope = current_scope_copy;
@@ -363,7 +369,7 @@ namespace LFortran {
             const std::function<void (const std::string &, const Location &)> err) {
             ASR::symbol_t *v = import_generic_procedure("fma", "lfortran_intrinsic_optimization",
                                                         al, unit, rl_path, current_scope, arg0->base.loc);
-            std::cout<<"v->type: "<<v->type<<std::endl;
+            // std::cout<<"v->type: "<<v->type<<std::endl;
             Vec<ASR::expr_t*> args;
             args.reserve(al, 4);
             args.push_back(al, arg0);
