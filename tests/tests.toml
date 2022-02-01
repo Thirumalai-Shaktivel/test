@@ -1809,6 +1809,12 @@ pass = "flip_sign"
 llvm = true
 
 [[test]]
+filename = "../integration_tests/fma.f90"
+asr = true
+pass = "fma"
+llvm = true
+
+[[test]]
 filename = "../integration_tests/div_to_mul.f90"
 asr = true
 pass = "div_to_mul"
