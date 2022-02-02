@@ -60,7 +60,6 @@ struct IntrinsicProcedures {
             {"modulo", {m_math2, &eval_modulo, true}},
             {"min", {m_math2, &eval_min, true}},
             {"max", {m_math2, &eval_max, true}},
-            {"sign", {m_math2, &not_implemented, false}},
             {"selected_int_kind", {m_kind, &eval_selected_int_kind, true}},
             {"selected_real_kind", {m_kind, &eval_selected_real_kind, true}},
             {"selected_char_kind", {m_kind, &eval_selected_char_kind, true}},
@@ -94,6 +93,7 @@ struct IntrinsicProcedures {
             {"atanh", {m_math, &eval_atanh, true}},
 
             {"atan2", {m_math, &eval_atan2, true}},
+            {"sign", {m_math, &not_implemented, false}},
 
             {"iand", {m_bit, &not_implemented, false}},
             {"ior", {m_bit, &not_implemented, false}},

@@ -1,7 +1,10 @@
 ; ModuleID = 'LFortran'
 source_filename = "LFortran"
 
-@0 = private unnamed_addr constant [12 x i8] c"%f %23.17f\0A\00", align 1
+%c_ptr = type { i32 }
+
+@0 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@1 = private unnamed_addr constant [12 x i8] c"%f %23.17f\0A\00", align 1
 
 define void @flipsigni32r32(i32* %signal, float* %variable) {
 .entry:
@@ -171,7 +174,55 @@ return2:                                          ; preds = %.entry1
   ret void
 }
 
-define float @__module_lfortran_intrinsic_math2_signr32(float* %x, float* %y) {
+declare i8* @__module_lfortran_intrinsic_builtin_char(i32*)
+
+declare void @__module_lfortran_intrinsic_iso_c_binding_c_f_pointer(%c_ptr*, i32*)
+
+define void @__module_lfortran_intrinsic_math_cpu_time(double* %t) {
+.entry:
+  call void @_lfortran_cpu_time(double* %t)
+  br label %return
+
+return:                                           ; preds = %.entry
+  ret void
+}
+
+declare void @_lfortran_cpu_time(double*)
+
+define void @__module_lfortran_intrinsic_math_dp_rand_num(double* %harvest) {
+.entry:
+  call void @_lfortran_dp_rand_num(double* %harvest)
+  br label %return
+
+return:                                           ; preds = %.entry
+  ret void
+}
+
+declare void @_lfortran_dp_rand_num(double*)
+
+define void @__module_lfortran_intrinsic_math_i32sys_clock(i32* %count, i32* %count_rate, i32* %count_max) {
+.entry:
+  call void @_lfortran_i32sys_clock(i32* %count, i32* %count_rate, i32* %count_max)
+  br label %return
+
+return:                                           ; preds = %.entry
+  ret void
+}
+
+declare void @_lfortran_i32sys_clock(i32*, i32*, i32*)
+
+define void @__module_lfortran_intrinsic_math_i64sys_clock(i64* %count, i64* %count_rate, i64* %count_max) {
+.entry:
+  call void @_lfortran_i64sys_clock(i64* %count, i64* %count_rate, i64* %count_max)
+  br label %return
+
+return:                                           ; preds = %.entry
+  ret void
+}
+
+declare void @_lfortran_i64sys_clock(i64*, i64*, i64*)
+
+define float @__module_lfortran_intrinsic_math_signr32(float* %x, float* %y) {
 .entry:
   %r = alloca float, align 4
   %0 = load float, float* %x, align 4
@@ -206,6 +257,17 @@ return:                                           ; preds = %ifcont
   ret float %14
 }
 
+define void @__module_lfortran_intrinsic_math_sp_rand_num(float* %harvest) {
+.entry:
+  call void @_lfortran_sp_rand_num(float* %harvest)
+  br label %return
+
+return:                                           ; preds = %.entry
+  ret void
+}
+
+declare void @_lfortran_sp_rand_num(float*)
+
 define i32 @main() {
 .entry:
   %call_arg_value = alloca float, align 4
@@ -231,7 +293,7 @@ define i32 @main() {
   store float %1, float* %"~fma_arg@0", align 4
   store float 5.000000e-01, float* %"~fma_arg@1", align 4
   store float 1.000000e+00, float* %call_arg_value, align 4
-  %2 = call float @__module_lfortran_intrinsic_math2_signr32(float* %call_arg_value, float* %x)
+  %2 = call float @__module_lfortran_intrinsic_math_signr32(float* %call_arg_value, float* %x)
   store float %2, float* %"~fma_arg@2", align 4
   call void @fmar32(float* %"~fma_arg@0", float* %"~fma_arg@1", float* %"~fma_arg@2", float* %"~fmaresult@3")
   %3 = load float, float* %x, align 4
@@ -246,7 +308,7 @@ define i32 @main() {
   %7 = load float, float* %x, align 4
   %8 = fpext float %7 to double
   %9 = load double, double* %z, align 8
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0), double %8, double %9)
+  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0), double %8, double %9)
   ret i32 0
 }
 
