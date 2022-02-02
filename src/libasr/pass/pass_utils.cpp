@@ -227,6 +227,7 @@ namespace LFortran {
                 if( !ASRUtils::is_intrinsic_optimization<ASR::symbol_t>(v) ) {
                     sym += "@IntrinsicOptimization";
                 } else {
+                    current_scope = current_scope_copy;
                     return v;
                 }
             }
@@ -367,6 +368,13 @@ namespace LFortran {
             SymbolTable*& current_scope, ASR::stmt_t*& fma_op, size_t count, Location& loc,
             ASR::ttype_t* fma_type,
             const std::function<void (const std::string &, const Location &)> err) {
+            std::string name = "~fmaresult@" + std::to_string(count);
+            ASR::asr_t* result = ASR::make_Variable_t(al, loc, current_scope, s2c(al, name),
+                ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default,
+                fma_type, ASR::abiType::Source, ASR::accessType::Public,
+                ASR::presenceType::Required, false);
+            current_scope->scope[name] = ASR::down_cast<ASR::symbol_t>(result);
+            ASR::expr_t* var = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, loc, ASR::down_cast<ASR::symbol_t>(result)));
             ASR::symbol_t *v = import_generic_procedure("fma", "lfortran_intrinsic_optimization",
                                                         al, unit, rl_path, current_scope, arg0->base.loc);
             // std::cout<<"v->type: "<<v->type<<std::endl;
@@ -375,13 +383,6 @@ namespace LFortran {
             args.push_back(al, arg0);
             args.push_back(al, arg1);
             args.push_back(al, arg2);
-            std::string name = "~fmaresult@" + std::to_string(count);
-            ASR::asr_t* result = ASR::make_Variable_t(al, loc, current_scope, s2c(al, name),
-                ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default,
-                fma_type, ASR::abiType::Source, ASR::accessType::Public,
-                ASR::presenceType::Required, false);
-            current_scope->scope[name] = ASR::down_cast<ASR::symbol_t>(result);
-            ASR::expr_t* var = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, loc, ASR::down_cast<ASR::symbol_t>(result)));
             args.push_back(al, var);
             fma_op = ASRUtils::STMT(
                         ASRUtils::symbol_resolve_external_generic_procedure_without_eval(

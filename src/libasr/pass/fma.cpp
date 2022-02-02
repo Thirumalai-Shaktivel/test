@@ -89,7 +89,7 @@ public:
         }
         fma_var = nullptr;
 
-        if( x.m_op == ASR::binopType::Mul || x.m_op == ASR::binopType::Div ) {
+        if( x.m_op != ASR::binopType::Add && x.m_op != ASR::binopType::Sub ) {
             return ;
         }
         ASR::expr_t *mul_expr = nullptr, *other_expr = nullptr;
