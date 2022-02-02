@@ -1,6 +1,6 @@
 ! Temporary module, a subset of lfortran_intrinsic_math that works
 module lfortran_intrinsic_math2
-use, intrinsic :: iso_fortran_env, only: i32 => int32, i64 => int64, sp => real32, dp => real64
+use, intrinsic :: iso_fortran_env, only: i32 => int32, sp => real32, dp => real64
 implicit none
 
 interface abs
