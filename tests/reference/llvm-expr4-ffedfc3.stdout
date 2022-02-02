@@ -1,37 +1,7 @@
 ; ModuleID = 'LFortran'
 source_filename = "LFortran"
 
-define float @__lfortran_evaluate_1() {
-.entry:
-  %__lfortran_evaluate_11 = alloca float, align 4
-  %__lfortran_evaluate_12 = alloca float, align 4
-  %__lfortran_evaluate_13 = alloca float, align 4
-  %__lfortran_evaluate_14 = alloca float, align 4
-  %__lfortran_evaluate_15 = alloca float, align 4
-  %__lfortran_evaluate_16 = alloca float, align 4
-  %"~fma_arg@0" = alloca float, align 4
-  %"~fma_arg@1" = alloca float, align 4
-  %"~fma_arg@2" = alloca float, align 4
-  %"~fmaresult@3" = alloca float, align 4
-  store float 5.000000e+00, float* %__lfortran_evaluate_11, align 4
-  store float 8.000000e+00, float* %__lfortran_evaluate_12, align 4
-  store float 1.600000e+01, float* %__lfortran_evaluate_13, align 4
-  store float 5.000000e+00, float* %"~fma_arg@0", align 4
-  store float 3.000000e+00, float* %"~fma_arg@1", align 4
-  store float 2.000000e+00, float* %"~fma_arg@2", align 4
-  call void @__module_lfortran_intrinsic_optimization_fmar32(float* %"~fma_arg@0", float* %"~fma_arg@1", float* %"~fma_arg@2", float* %"~fmaresult@3")
-  %0 = load float, float* %"~fmaresult@3", align 4
-  store float %0, float* %__lfortran_evaluate_14, align 4
-  store float 2.000000e+00, float* %__lfortran_evaluate_15, align 4
-  store float 6.400000e+01, float* %__lfortran_evaluate_16, align 4
-  br label %return
-
-return:                                           ; preds = %.entry
-  %1 = load float, float* %__lfortran_evaluate_16, align 4
-  ret float %1
-}
-
-define void @__module_lfortran_intrinsic_optimization_flipsigni32r32(i32* %signal, float* %variable) {
+define void @flipsigni32r32(i32* %signal, float* %variable) {
 .entry:
   %q = alloca i32, align 4
   %0 = load i32, i32* %signal, align 4
@@ -58,9 +28,36 @@ ifcont:                                           ; preds = %else, %then
 
 return:                                           ; preds = %ifcont
   ret void
+
+.entry1:                                          ; No predecessors!
+  %q2 = alloca i32, align 4
+  %9 = load i32, i32* %signal, align 4
+  %10 = udiv i32 %9, 2
+  store i32 %10, i32* %q2, align 4
+  %11 = load i32, i32* %signal, align 4
+  %12 = load i32, i32* %q2, align 4
+  %13 = mul i32 2, %12
+  %14 = sub i32 %11, %13
+  %15 = icmp eq i32 %14, 1
+  br i1 %15, label %then3, label %else4
+
+then3:                                            ; preds = %.entry1
+  %16 = load float, float* %variable, align 4
+  %17 = fsub float 0.000000e+00, %16
+  store float %17, float* %variable, align 4
+  br label %ifcont5
+
+else4:                                            ; preds = %.entry1
+  br label %ifcont5
+
+ifcont5:                                          ; preds = %else4, %then3
+  br label %return6
+
+return6:                                          ; preds = %ifcont5
+  ret void
 }
 
-define void @__module_lfortran_intrinsic_optimization_flipsigni32r64(i32* %signal, double* %variable) {
+define void @flipsigni32r64(i32* %signal, double* %variable) {
 .entry:
   %q = alloca i64, align 8
   %0 = load i32, i32* %signal, align 4
@@ -89,9 +86,38 @@ ifcont:                                           ; preds = %else, %then
 
 return:                                           ; preds = %ifcont
   ret void
+
+.entry1:                                          ; No predecessors!
+  %q2 = alloca i64, align 8
+  %11 = load i32, i32* %signal, align 4
+  %12 = udiv i32 %11, 2
+  %13 = sext i32 %12 to i64
+  store i64 %13, i64* %q2, align 4
+  %14 = load i32, i32* %signal, align 4
+  %15 = load i64, i64* %q2, align 4
+  %16 = trunc i64 %15 to i32
+  %17 = mul i32 2, %16
+  %18 = sub i32 %14, %17
+  %19 = icmp eq i32 %18, 1
+  br i1 %19, label %then3, label %else4
+
+then3:                                            ; preds = %.entry1
+  %20 = load double, double* %variable, align 8
+  %21 = fsub double 0.000000e+00, %20
+  store double %21, double* %variable, align 8
+  br label %ifcont5
+
+else4:                                            ; preds = %.entry1
+  br label %ifcont5
+
+ifcont5:                                          ; preds = %else4, %then3
+  br label %return6
+
+return6:                                          ; preds = %ifcont5
+  ret void
 }
 
-define void @__module_lfortran_intrinsic_optimization_fmar32(float* %a, float* %b, float* %c, float* %d) {
+define void @fmar32(float* %a, float* %b, float* %c, float* %d) {
 .entry:
   %0 = load float, float* %a, align 4
   %1 = load float, float* %b, align 4
@@ -103,9 +129,21 @@ define void @__module_lfortran_intrinsic_optimization_fmar32(float* %a, float* %
 
 return:                                           ; preds = %.entry
   ret void
+
+.entry1:                                          ; No predecessors!
+  %5 = load float, float* %a, align 4
+  %6 = load float, float* %b, align 4
+  %7 = load float, float* %c, align 4
+  %8 = fmul float %6, %7
+  %9 = fadd float %5, %8
+  store float %9, float* %d, align 4
+  br label %return2
+
+return2:                                          ; preds = %.entry1
+  ret void
 }
 
-define void @__module_lfortran_intrinsic_optimization_fmar64(double* %a, double* %b, double* %c, double* %d) {
+define void @fmar64(double* %a, double* %b, double* %c, double* %d) {
 .entry:
   %0 = load double, double* %a, align 8
   %1 = load double, double* %b, align 8
@@ -117,4 +155,46 @@ define void @__module_lfortran_intrinsic_optimization_fmar64(double* %a, double*
 
 return:                                           ; preds = %.entry
   ret void
+
+.entry1:                                          ; No predecessors!
+  %5 = load double, double* %a, align 8
+  %6 = load double, double* %b, align 8
+  %7 = load double, double* %c, align 8
+  %8 = fmul double %6, %7
+  %9 = fadd double %5, %8
+  store double %9, double* %d, align 8
+  br label %return2
+
+return2:                                          ; preds = %.entry1
+  ret void
+}
+
+define float @__lfortran_evaluate_1() {
+.entry:
+  %__lfortran_evaluate_11 = alloca float, align 4
+  %__lfortran_evaluate_12 = alloca float, align 4
+  %__lfortran_evaluate_13 = alloca float, align 4
+  %__lfortran_evaluate_14 = alloca float, align 4
+  %__lfortran_evaluate_15 = alloca float, align 4
+  %__lfortran_evaluate_16 = alloca float, align 4
+  %"~fma_arg@0" = alloca float, align 4
+  %"~fma_arg@1" = alloca float, align 4
+  %"~fma_arg@2" = alloca float, align 4
+  %"~fmaresult@3" = alloca float, align 4
+  store float 5.000000e+00, float* %__lfortran_evaluate_11, align 4
+  store float 8.000000e+00, float* %__lfortran_evaluate_12, align 4
+  store float 1.600000e+01, float* %__lfortran_evaluate_13, align 4
+  store float 5.000000e+00, float* %"~fma_arg@0", align 4
+  store float 3.000000e+00, float* %"~fma_arg@1", align 4
+  store float 2.000000e+00, float* %"~fma_arg@2", align 4
+  call void @fmar32(float* %"~fma_arg@0", float* %"~fma_arg@1", float* %"~fma_arg@2", float* %"~fmaresult@3")
+  %0 = load float, float* %"~fmaresult@3", align 4
+  store float %0, float* %__lfortran_evaluate_14, align 4
+  store float 2.000000e+00, float* %__lfortran_evaluate_15, align 4
+  store float 6.400000e+01, float* %__lfortran_evaluate_16, align 4
+  br label %return
+
+return:                                           ; preds = %.entry
+  %1 = load float, float* %__lfortran_evaluate_16, align 4
+  ret float %1
 }
