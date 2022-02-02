@@ -17,14 +17,16 @@ contains
 subroutine flipsigni32r32(signal, variable)
 integer(int32), intent(in) :: signal
 real(real32), intent(out) :: variable
-integer(int32) :: q = signal/2
+integer(int32) :: q
+q = signal/2
 if (signal - 2*q == 1 ) variable = -variable
 end subroutine
 
 subroutine flipsigni32r64(signal, variable)
 integer(int32), intent(in) :: signal
 real(real64), intent(out) :: variable
-integer(int64) :: q = signal/2
+integer(int64) :: q
+q = signal/2
 if (signal - 2*q == 1 ) variable = -variable
 end subroutine
 
