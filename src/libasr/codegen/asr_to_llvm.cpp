@@ -862,19 +862,21 @@ public:
             }
         }
 
+        // prototype_only = false;
+        // for (auto &item : x.m_global_scope->scope) {
+        //     if (is_a<ASR::ExternalSymbol_t>(*item.second) &&
+        //         ASRUtils::is_intrinsic_optimization(item.second)) {
+        //         ASR::symbol_t* sym = ASRUtils::symbol_get_past_external(item.second);
+        //         if (is_a<ASR::Subroutine_t>(*sym)) {
+        //             visit_Subroutine(*ASR::down_cast<ASR::Subroutine_t>(sym));
+        //         } else if (is_a<ASR::Function_t>(*sym)) {
+        //             visit_Function(*ASR::down_cast<ASR::Function_t>(sym));
+        //         }
+        //     }
+        // }
+
         prototype_only = true;
         // Generate function prototypes
-        for (auto &item : x.m_global_scope->scope) {
-            if (is_a<ASR::ExternalSymbol_t>(*item.second) &&
-                ASRUtils::is_intrinsic_optimization(item.second)) {
-                ASR::symbol_t* sym = ASRUtils::symbol_get_past_external(item.second);
-                if (is_a<ASR::Subroutine_t>(*sym)) {
-                    visit_Subroutine(*ASR::down_cast<ASR::Subroutine_t>(sym));
-                } else if (is_a<ASR::Function_t>(*sym)) {
-                    visit_Function(*ASR::down_cast<ASR::Function_t>(sym));
-                }
-            }
-        }
         for (auto &item : x.m_global_scope->scope) {
             if (is_a<ASR::Function_t>(*item.second)) {
                 visit_Function(*ASR::down_cast<ASR::Function_t>(item.second));
