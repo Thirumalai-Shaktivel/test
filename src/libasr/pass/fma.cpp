@@ -123,18 +123,6 @@ public:
         ASR::BinOp_t* mul_binop = ASR::down_cast<ASR::BinOp_t>(mul_expr);
         ASR::expr_t *first_arg = mul_binop->m_left, *second_arg = mul_binop->m_right;
 
-        // if( ASR::is_a<ASR::Var_t>(*other_expr) ) {
-        //     std::cout<<"other_expr->m_name: "<<ASRUtils::EXPR2VAR(other_expr)->m_name<<", ";
-        // }
-        // if( ASR::is_a<ASR::Var_t>(*first_arg) ) {
-        //     std::cout<<"first_arg->m_name: "<<ASRUtils::EXPR2VAR(first_arg)->m_name<<", ";
-        // }
-        // if( ASR::is_a<ASR::Var_t>(*second_arg) ) {
-        //     std::cout<<"second_arg->m_name: "<<ASRUtils::EXPR2VAR(second_arg)->m_name<<", ";
-        // }
-        // std::cout<<std::endl;
-        // std::cout<<"Arg.Types 1: "<<ASRUtils::expr_type(other_expr)->type<<" "<<ASRUtils::expr_type(first_arg)->type<<" "<<ASRUtils::expr_type(second_arg)->type<<std::endl;
-
         if( is_mul_expr_negative ) {
             first_arg = ASRUtils::EXPR(ASR::make_UnaryOp_t(al, first_arg->base.loc,
                             ASR::unaryopType::USub, first_arg, ASRUtils::expr_type(first_arg),
@@ -158,7 +146,6 @@ public:
         }
 
         ASR::stmt_t* fma_op;
-        // std::cout<<"Arg.Types: "<<ASRUtils::expr_type(other_expr)->type<<" "<<ASRUtils::expr_type(first_arg)->type<<" "<<ASRUtils::expr_type(second_arg)->type<<std::endl;
         fma_var = PassUtils::get_fma(other_expr, first_arg, second_arg,
                                      al, unit, rl_path, current_scope,
                                      fma_op, final_result, count,
@@ -169,8 +156,6 @@ public:
     }
 
     void visit_Assignment(const ASR::Assignment_t& x) {
-        // ASR::Assignment_t& xx = const_cast<ASR::Assignment_t&>(x);
-        // std::cout<<"target name: "<<ASRUtils::EXPR2VAR(x.m_target)->m_name<<std::endl;
         fma_var = x.m_target;
         visit_expr(*x.m_value);
         if( !fma_var ) {

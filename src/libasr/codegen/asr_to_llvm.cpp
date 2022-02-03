@@ -864,7 +864,6 @@ public:
 
         prototype_only = false;
         for (auto &item : x.m_global_scope->scope) {
-            // std::cout<<"item.first: "<<item.first<<" "<<ASRUtils::is_intrinsic_optimization(item.second)<<" "<<is_a<ASR::ExternalSymbol_t>(*item.second)<<std::endl;
             if (is_a<ASR::Module_t>(*item.second) &&
                 item.first.find("lfortran_intrinsic_optimization") != std::string::npos) {
                 ASR::Module_t* mod = ASR::down_cast<ASR::Module_t>(item.second);

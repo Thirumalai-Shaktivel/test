@@ -223,7 +223,6 @@ namespace LFortran {
             std::string sym = remote_sym;
             if( current_scope->scope.find(sym) != current_scope->scope.end() ) {
                 v = current_scope->scope[sym];
-                // std::cout<<"v.pass_utils: "<<v<<std::endl;
                 if( !ASRUtils::is_intrinsic_optimization<ASR::symbol_t>(v) ) {
                     sym += "@IntrinsicOptimization";
                 } else {
@@ -379,7 +378,6 @@ namespace LFortran {
             }
             ASR::symbol_t *v = import_generic_procedure("fma", "lfortran_intrinsic_optimization",
                                                         al, unit, rl_path, current_scope, arg0->base.loc);
-            // std::cout<<"v->type: "<<v->type<<std::endl;
             Vec<ASR::expr_t*> args;
             args.reserve(al, 4);
             args.push_back(al, arg0);

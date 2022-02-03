@@ -559,7 +559,6 @@ bool types_equal(const ASR::ttype_t &a, const ASR::ttype_t &b) {
             case (ASR::ttypeType::Real) : {
                 ASR::Real_t *a2 = ASR::down_cast<ASR::Real_t>(&a);
                 ASR::Real_t *b2 = ASR::down_cast<ASR::Real_t>(&b);
-                // std::cout<<"a2, b2: "<<a2->m_kind<<" "<<b2->m_kind<<std::endl;
                 if (a2->m_kind == b2->m_kind) {
                     return true;
                 } else {
@@ -606,14 +605,12 @@ bool types_equal(const ASR::ttype_t &a, const ASR::ttype_t &b) {
 template <typename T>
 bool argument_types_match(const Vec<ASR::expr_t*> &args,
         const T &sub) {
-    // std::cout<<"sub.m_name: "<<sub.m_name<<" "<<sub.n_args<<std::endl;
     if (args.size() <= sub.n_args) {
         size_t i;
         for (i = 0; i < args.size(); i++) {
             ASR::Variable_t *v = LFortran::ASRUtils::EXPR2VAR(sub.m_args[i]);
             ASR::ttype_t *arg1 = LFortran::ASRUtils::expr_type(args[i]);
             ASR::ttype_t *arg2 = v->m_type;
-            // std::cout<<"arg1->type, arg2->type, i: "<<arg1->type<<" "<<arg2->type<<" "<<i<<std::endl;
             if (!types_equal(*arg1, *arg2)) {
                 return false;
             }
@@ -677,7 +674,6 @@ ASR::asr_t* symbol_resolve_external_generic_procedure_without_eval(
             ASR::symbol_t *v, Vec<ASR::expr_t*> args,
             SymbolTable* current_scope, Allocator& al,
             const std::function<void (const std::string &, const Location &)> err) {
-    // std::cout<<"args.size: "<<args.size()<<std::endl;
     ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
     ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
     ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
