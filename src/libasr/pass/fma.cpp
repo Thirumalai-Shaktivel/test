@@ -75,6 +75,7 @@ public:
         }
         ASR::BinOp_t& x = const_cast<ASR::BinOp_t&>(x_const);
 
+        ASR::expr_t* final_result = fma_var;
         fma_var = nullptr;
         visit_expr(*x.m_left);
         if( fma_var ) {
@@ -159,7 +160,8 @@ public:
         ASR::stmt_t* fma_op;
         // std::cout<<"Arg.Types: "<<ASRUtils::expr_type(other_expr)->type<<" "<<ASRUtils::expr_type(first_arg)->type<<" "<<ASRUtils::expr_type(second_arg)->type<<std::endl;
         fma_var = PassUtils::get_fma(other_expr, first_arg, second_arg,
-                                     al, unit, rl_path, current_scope, fma_op, count,
+                                     al, unit, rl_path, current_scope,
+                                     fma_op, final_result, count,
                                      x.base.base.loc, x.m_type,
                                      [&](const std::string &msg, const Location &) { throw LFortranException(msg); });
         count += 1;
@@ -167,14 +169,13 @@ public:
     }
 
     void visit_Assignment(const ASR::Assignment_t& x) {
-        ASR::Assignment_t& xx = const_cast<ASR::Assignment_t&>(x);
+        // ASR::Assignment_t& xx = const_cast<ASR::Assignment_t&>(x);
         // std::cout<<"target name: "<<ASRUtils::EXPR2VAR(x.m_target)->m_name<<std::endl;
-        fma_var = nullptr;
+        fma_var = x.m_target;
         visit_expr(*x.m_value);
-        if( fma_var ) {
-            xx.m_value = fma_var;
+        if( !fma_var ) {
+            retain_original_stmt = true;
         }
-        retain_original_stmt = true;
         fma_var = nullptr;
     }
 

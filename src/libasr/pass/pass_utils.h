@@ -48,8 +48,8 @@ namespace LFortran {
 
         ASR::expr_t* get_fma(ASR::expr_t* arg0, ASR::expr_t* arg1, ASR::expr_t* arg2,
                              Allocator& al, ASR::TranslationUnit_t& unit, std::string& rl_path,
-                             SymbolTable*& current_scope, ASR::stmt_t*& fma_op, size_t count, Location& loc,
-                             ASR::ttype_t* fma_type,
+                             SymbolTable*& current_scope, ASR::stmt_t*& fma_op, ASR::expr_t* final_result,
+                             size_t count, Location& loc, ASR::ttype_t* fma_type,
                              const std::function<void (const std::string &, const Location &)> err);
 
         template <class Derived>

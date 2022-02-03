@@ -7,7 +7,8 @@ program fma
     real(8) :: z = 1.0
     x = (x * 4 + 0.5_4*sign(1._4, x)) - x * pi
     z = S1+z*S2
-    print *, x, z
+    if( abs(x - 3.94) > 1e-6 ) error stop
+    if( abs(z - 3.0) > 1e-6 ) error stop
 
 end program
 
