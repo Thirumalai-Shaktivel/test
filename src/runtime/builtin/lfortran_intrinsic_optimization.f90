@@ -6,6 +6,10 @@ interface flipsign
     module procedure flipsigni32r32, flipsigni32r64
 end interface
 
+interface fma
+    module procedure fmar32, fmar64
+end interface
+
 contains
 
 ! ------- flipsign procedures
@@ -13,13 +17,31 @@ contains
 subroutine flipsigni32r32(signal, variable)
 integer(int32), intent(in) :: signal
 real(real32), intent(out) :: variable
-if (modulo(signal, 2) == 1 ) variable = -variable
+integer(int32) :: q
+q = signal/2
+if (signal - 2*q == 1 ) variable = -variable
 end subroutine
 
 subroutine flipsigni32r64(signal, variable)
 integer(int32), intent(in) :: signal
 real(real64), intent(out) :: variable
-if (modulo(signal, 2) == 1 ) variable = -variable
+integer(int64) :: q
+q = signal/2
+if (signal - 2*q == 1 ) variable = -variable
+end subroutine
+
+! ------- fma procedures
+
+subroutine fmar32(a, b, c, d)
+    real(real32), intent(in) :: a, b, c
+    real(real32), intent(out) :: d
+    d = a + b * c
+end subroutine
+
+subroutine fmar64(a, b, c, d)
+    real(8), intent(in) :: a, b, c
+    real(8), intent(out) :: d
+    d = a + b * c
 end subroutine
 
 end module
