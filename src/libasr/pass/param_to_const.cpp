@@ -124,10 +124,10 @@ public:
                     asr = init_var->m_symbolic_value;
                 } else {
                     switch( init_var->m_symbolic_value->type ) {
-                        case ASR::exprType::ConstantInteger: 
+                        case ASR::exprType::ConstantInteger:
                         case ASR::exprType::ConstantReal:
                         case ASR::exprType::ConstantComplex:
-                        case ASR::exprType::ConstantLogical: 
+                        case ASR::exprType::ConstantLogical:
                         case ASR::exprType::ConstantString: {
                             asr = init_var->m_symbolic_value;
                             break;

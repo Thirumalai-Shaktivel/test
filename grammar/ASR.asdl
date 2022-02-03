@@ -183,6 +183,7 @@ stmt
     | Return()
     | Select(expr test, case_stmt* body, stmt* default)
     | Stop(expr? code)
+    | Assert(expr test, expr? msg)
     | SubroutineCall(symbol name, symbol? original_name, expr* args, expr? dt)
     | Where(expr test, stmt* body, stmt* orelse)
     | WhileLoop(expr test, stmt* body)
@@ -196,7 +197,9 @@ expr
     | UnaryOp(unaryop op, expr operand, ttype type, expr? value)
         -- Such as: (x, y+z), (3.0, 2.0) generally not known at compile time
     | ComplexConstructor(expr re, expr im, ttype type, expr? value)
+    | NamedExpr(expr target, expr value, ttype type)
     | Compare(expr left, cmpop op, expr right, ttype type, expr? value, expr? overloaded)
+    | IfExp(expr test, expr body, expr orelse, ttype type)
     | FunctionCall(symbol name, symbol? original_name, expr* args,
             keyword* keywords, ttype type, expr? value, expr? dt)
     | DerivedTypeConstructor(symbol dt_sym, expr* args, ttype type)
@@ -207,7 +210,9 @@ expr
     | ConstantReal(float r, ttype type)
     | ConstantComplex(float re, float im, ttype type)
     | ConstantLogical(bool value, ttype type)
+    | ConstantSet(expr* elements, ttype type)
     | ConstantString(string s, ttype type)
+    | ConstantDictionary(expr* keys, expr* values, ttype type)
     | BOZ(int v, boz boz_type, ttype? type)
     | Var(symbol v)
     | ArrayRef(symbol v, array_index* args, ttype type, expr? value)
@@ -229,7 +234,9 @@ ttype
     | Logical(int kind, dimension* dims)
     | Derived(symbol derived_type, dimension* dims)
     | Class(symbol class_type, dimension* dims)
+    | Dict(ttype key_type, ttype value_type)
     | Pointer(ttype type)
+    | Set(ttype type)
 
 boolop = And | Or | Xor | NEqv | Eqv
 
@@ -237,7 +244,7 @@ binop = Add | Sub | Mul | Div | Pow
 
 unaryop = Invert | Not | UAdd | USub
 
-strop = Concat
+strop = Concat | Repeat
 
 cmpop = Eq | NotEq | Lt | LtE | Gt | GtE
 

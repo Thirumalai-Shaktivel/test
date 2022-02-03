@@ -318,6 +318,21 @@ static inline bool is_intrinsic_function(const ASR::Function_t *fn) {
     return false;
 }
 
+// Returns true if the Function is intrinsic, otherwise false
+template <typename T>
+static inline bool is_intrinsic_optimization(const T *routine) {
+    ASR::symbol_t *sym = (ASR::symbol_t*)routine;
+    if( ASR::is_a<ASR::ExternalSymbol_t>(*sym) ) {
+        ASR::ExternalSymbol_t* ext_sym = ASR::down_cast<ASR::ExternalSymbol_t>(sym);
+        return (std::string(ext_sym->m_module_name).find("lfortran_intrinsic_optimization") != std::string::npos);
+    }
+    ASR::Module_t *m = get_sym_module0(sym);
+    if (m != nullptr) {
+        return (std::string(m->m_name).find("lfortran_intrinsic_optimization") != std::string::npos);
+    }
+    return false;
+}
+
 // Returns true if all arguments have a `value`
 static inline bool all_args_have_value(const Vec<ASR::expr_t*> &args) {
     for (auto &a : args) {
@@ -385,6 +400,24 @@ static inline bool all_args_evaluated(const Vec<ASR::array_index_t> &args) {
         if( !(is_m_left_const && is_m_right_const && is_m_step_const) ) {
             return false;
         }
+    }
+    return true;
+}
+
+template <typename T>
+static inline bool extract_value(ASR::expr_t* value_expr, T& value) {
+    if( !is_value_constant(value_expr) ) {
+        return false;
+    }
+
+    switch( value_expr->type ) {
+        case ASR::exprType::ConstantReal: {
+            ASR::ConstantReal_t* const_real = ASR::down_cast<ASR::ConstantReal_t>(value_expr);
+            value = (T) const_real->m_r;
+            break;
+        }
+        default:
+            return false;
     }
     return true;
 }
@@ -527,6 +560,26 @@ static inline int extract_kind_from_ttype_t(const ASR::ttype_t* type) {
 
 static inline bool is_pointer(ASR::ttype_t *x) {
     return ASR::is_a<ASR::Pointer_t>(*x);
+}
+
+static inline bool is_integer(ASR::ttype_t &x) {
+    return ASR::is_a<ASR::Integer_t>(*type_get_past_pointer(&x));
+}
+
+static inline bool is_real(ASR::ttype_t &x) {
+    return ASR::is_a<ASR::Real_t>(*type_get_past_pointer(&x));
+}
+
+static inline bool is_character(ASR::ttype_t &x) {
+    return ASR::is_a<ASR::Character_t>(*type_get_past_pointer(&x));
+}
+
+static inline bool is_complex(ASR::ttype_t &x) {
+    return ASR::is_a<ASR::Complex_t>(*type_get_past_pointer(&x));
+}
+
+static inline bool is_logical(ASR::ttype_t &x) {
+    return ASR::is_a<ASR::Logical_t>(*type_get_past_pointer(&x));
 }
 
 inline bool is_array(ASR::ttype_t *x) {
@@ -702,6 +755,17 @@ inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
 
                 return ASRUtils::is_same_type_pointer(x, y);
             }
+
+int select_generic_procedure(const Vec<ASR::expr_t*> &args,
+        const ASR::GenericProcedure_t &p, Location loc,
+        const std::function<void (const std::string &, const Location &)> err);
+
+ASR::asr_t* symbol_resolve_external_generic_procedure_without_eval(
+            const Location &loc,
+            ASR::symbol_t *v, Vec<ASR::expr_t*> args,
+            SymbolTable* current_scope, Allocator& al,
+            const std::function<void (const std::string &, const Location &)> err);
+
 } // namespace ASRUtils
 
 } // namespace LFortran

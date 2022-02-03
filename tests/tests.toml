@@ -724,6 +724,10 @@ asr = true
 filename = "../integration_tests/derived_types_07.f90"
 asr = true
 
+[[test]]
+filename = "../integration_tests/derived_types_08.f90"
+asr = true
+
 
 [[test]]
 filename = "fn2.f90"
@@ -1808,3 +1812,14 @@ filename = "../integration_tests/nullify_02.f90"
 ast = true
 asr = true
 llvm = true
+
+[[test]]
+filename = "../integration_tests/flip_sign.f90"
+asr = true
+pass = "flip_sign"
+llvm = true
+
+[[test]]
+filename = "../integration_tests/div_to_mul.f90"
+asr = true
+pass = "div_to_mul"
