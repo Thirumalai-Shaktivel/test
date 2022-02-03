@@ -854,9 +854,11 @@ public:
                 ASR::GenericProcedure_t *p = ASR::down_cast<ASR::GenericProcedure_t>(original_sym);
                 int idx;
                 if( x.n_member == 1 ) {
-                    idx = select_generic_procedure(args_with_mdt, *p, x.base.base.loc);
+                    idx = ASRUtils::select_generic_procedure(args_with_mdt, *p, x.base.base.loc,
+                            [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
                 } else {
-                    idx = select_generic_procedure(args, *p, x.base.base.loc);
+                    idx = ASRUtils::select_generic_procedure(args, *p, x.base.base.loc,
+                            [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
                 }
                 // Create ExternalSymbol for procedures in different modules.
                 final_sym = p->m_procs[idx];
@@ -875,7 +877,8 @@ public:
                 LFORTRAN_ASSERT(!ASR::is_a<ASR::ExternalSymbol_t>(*final_sym))
                 if (ASR::is_a<ASR::GenericProcedure_t>(*final_sym)) {
                     ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(final_sym);
-                    int idx = select_generic_procedure(args, *g, x.base.base.loc);
+                    int idx = ASRUtils::select_generic_procedure(args, *g, x.base.base.loc,
+                                [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
                     // FIXME
                     // Create ExternalSymbol for the final subroutine here
                     final_sym = g->m_procs[idx];

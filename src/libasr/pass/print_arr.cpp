@@ -13,7 +13,7 @@ using ASR::down_cast;
 using ASR::is_a;
 
 /*
-This ASR pass replaces array slice with do loops and array expression assignments. 
+This ASR pass replaces array slice with do loops and array expression assignments.
 The function `pass_replace_print_arr` transforms the ASR tree in-place.
 
 Converts:
@@ -27,80 +27,17 @@ to:
     end do
 */
 
-class PrintArrVisitor : public ASR::BaseWalkVisitor<PrintArrVisitor>
+class PrintArrVisitor : public PassUtils::PassVisitor<PrintArrVisitor>
 {
 private:
-    Allocator &al;
     ASR::TranslationUnit_t &unit;
-    Vec<ASR::stmt_t*> print_arr_result;
-    SymbolTable* current_scope;
     std::string rl_path;
 public:
-    PrintArrVisitor(Allocator &al, ASR::TranslationUnit_t &unit,
-        const std::string &rl_path) : al{al}, unit{unit},
-    current_scope{nullptr}, rl_path{rl_path} {
-        print_arr_result.reserve(al, 1);
+    PrintArrVisitor(Allocator &al, ASR::TranslationUnit_t &unit_,
+        const std::string &rl_path_) : PassVisitor(al, nullptr), unit(unit_),
+    rl_path(rl_path_) {
+        pass_result.reserve(al, 1);
 
-    }
-
-    void transform_stmts(ASR::stmt_t **&m_body, size_t &n_body) {
-        Vec<ASR::stmt_t*> body;
-        body.reserve(al, n_body);
-        for (size_t i=0; i<n_body; i++) {
-            // Not necessary after we check it after each visit_stmt in every
-            // visitor method:
-            print_arr_result.n = 0;
-            visit_stmt(*m_body[i]);
-            if (print_arr_result.size() > 0) {
-                for (size_t j=0; j<print_arr_result.size(); j++) {
-                    body.push_back(al, print_arr_result[j]);
-                }
-                print_arr_result.n = 0;
-            } else {
-                body.push_back(al, m_body[i]);
-            }
-        }
-        m_body = body.p;
-        n_body = body.size();
-    }
-
-    // TODO: Only Program and While is processed, we need to process all calls
-    // to visit_stmt().
-
-    void visit_Program(const ASR::Program_t &x) {
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        ASR::Program_t &xx = const_cast<ASR::Program_t&>(x);
-        current_scope = xx.m_symtab;
-        transform_stmts(xx.m_body, xx.n_body);
-
-        // Transform nested functions and subroutines
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Subroutine_t>(*item.second)) {
-                ASR::Subroutine_t *s = down_cast<ASR::Subroutine_t>(item.second);
-                visit_Subroutine(*s);
-            }
-            if (is_a<ASR::Function_t>(*item.second)) {
-                ASR::Function_t *s = down_cast<ASR::Function_t>(item.second);
-                visit_Function(*s);
-            }
-        }
-    }
-
-    void visit_Subroutine(const ASR::Subroutine_t &x) {
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        ASR::Subroutine_t &xx = const_cast<ASR::Subroutine_t&>(x);
-        current_scope = xx.m_symtab;
-        transform_stmts(xx.m_body, xx.n_body);
-    }
-
-    void visit_Function(const ASR::Function_t &x) {
-        // FIXME: this is a hack, we need to pass in a non-const `x`,
-        // which requires to generate a TransformVisitor.
-        ASR::Function_t &xx = const_cast<ASR::Function_t&>(x);
-        current_scope = xx.m_symtab;
-        transform_stmts(xx.m_body, xx.n_body);
     }
 
     void visit_Print(const ASR::Print_t& x) {
@@ -135,8 +72,8 @@ public:
                 }
                 doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
             }
-            print_arr_result.push_back(al, doloop);
-            print_arr_result.push_back(al, empty_print_endl);
+            pass_result.push_back(al, doloop);
+            pass_result.push_back(al, empty_print_endl);
         }
     }
 
