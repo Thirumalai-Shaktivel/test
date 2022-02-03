@@ -810,6 +810,12 @@ public:
             v_expr = LFortran::ASRUtils::EXPR(v_var);
             original_sym = resolve_deriv_type_proc(x.base.base.loc, to_lower(x.m_name),
                 to_lower(x.m_member[0].m_name), scope);
+            // if( original_sym->type == ASR::symbolType::ClassProcedure ) {
+            //     ASR::ClassProcedure_t* class_proc = ASR::down_cast<ASR::ClassProcedure_t>(original_sym);
+            //     sub_name = to_lower(class_proc->m_proc_name);
+            //     original_sym = current_scope->resolve_symbol(sub_name);
+            //     LFORTRAN_ASSERT(original_sym);
+            // }
         } else {
             original_sym = current_scope->resolve_symbol(sub_name);
         }
