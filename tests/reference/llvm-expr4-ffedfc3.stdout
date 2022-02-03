@@ -180,21 +180,18 @@ define float @__lfortran_evaluate_1() {
   %"~fma_arg@0" = alloca float, align 4
   %"~fma_arg@1" = alloca float, align 4
   %"~fma_arg@2" = alloca float, align 4
-  %"~fmaresult@3" = alloca float, align 4
   store float 5.000000e+00, float* %__lfortran_evaluate_11, align 4
   store float 8.000000e+00, float* %__lfortran_evaluate_12, align 4
   store float 1.600000e+01, float* %__lfortran_evaluate_13, align 4
   store float 5.000000e+00, float* %"~fma_arg@0", align 4
   store float 3.000000e+00, float* %"~fma_arg@1", align 4
   store float 2.000000e+00, float* %"~fma_arg@2", align 4
-  call void @fmar32(float* %"~fma_arg@0", float* %"~fma_arg@1", float* %"~fma_arg@2", float* %"~fmaresult@3")
-  %0 = load float, float* %"~fmaresult@3", align 4
-  store float %0, float* %__lfortran_evaluate_14, align 4
+  call void @fmar32(float* %"~fma_arg@0", float* %"~fma_arg@1", float* %"~fma_arg@2", float* %__lfortran_evaluate_14)
   store float 2.000000e+00, float* %__lfortran_evaluate_15, align 4
   store float 6.400000e+01, float* %__lfortran_evaluate_16, align 4
   br label %return
 
 return:                                           ; preds = %.entry
-  %1 = load float, float* %__lfortran_evaluate_16, align 4
-  ret float %1
+  %0 = load float, float* %__lfortran_evaluate_16, align 4
+  ret float %0
 }

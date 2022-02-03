@@ -263,7 +263,6 @@ define i32 @main() {
   %"~fma_arg@6" = alloca float, align 4
   %"~fmaresult@2" = alloca float, align 4
   %"~fmaresult@4" = alloca float, align 4
-  %"~fmaresult@7" = alloca float, align 4
   store float 0x3FDAE147A0000000, float* %x, align 4
   store float 0x3FD6666660000000, float* %y, align 4
   store float 0x4022333340000000, float* %myreal, align 4
@@ -282,7 +281,7 @@ define i32 @main() {
   store float %4, float* %"~fma_arg@5", align 4
   %5 = call float @__module_lfortran_intrinsic_math_scos(float* %theta)
   store float %5, float* %"~fma_arg@6", align 4
-  call void @fmar32(float* %a, float* %"~fma_arg@5", float* %"~fma_arg@6", float* %"~fmaresult@7")
+  call void @fmar32(float* %a, float* %"~fma_arg@5", float* %"~fma_arg@6", float* %"~fmaresult@4")
   %6 = load float, float* %myreal, align 4
   %7 = fmul float %6, 0x4012666660000000
   store float %7, float* %myreal, align 4
