@@ -4027,7 +4027,8 @@ public:
 
 Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
         diag::Diagnostics &diagnostics,
-        llvm::LLVMContext &context, Allocator &al, Platform platform,
+        llvm::LLVMContext &context, Allocator &al,
+        Platform platform, bool fast,
         const std::string &rl_path,
         const std::string &run_fn)
 {
@@ -4041,13 +4042,17 @@ Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
     pass_replace_arr_slice(al, asr, rl_path);
     pass_replace_array_op(al, asr, rl_path);
     pass_replace_print_arr(al, asr, rl_path);
-    pass_replace_flip_sign(al, asr, rl_path);
-    pass_replace_div_to_mul(al, asr, rl_path);
-    pass_replace_fma(al, asr, rl_path);
     pass_replace_do_loops(al, asr);
     pass_replace_forall(al, asr);
     pass_replace_select_case(al, asr);
     pass_unused_functions(al, asr);
+
+    if( fast ) {
+        pass_replace_flip_sign(al, asr, rl_path);
+        pass_replace_div_to_mul(al, asr, rl_path);
+        pass_replace_fma(al, asr, rl_path);
+    }
+
     v.nested_func_types = pass_find_nested_vars(asr, context,
         v.nested_globals, v.nested_call_out, v.nesting_map);
     try {
