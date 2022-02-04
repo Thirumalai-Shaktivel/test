@@ -55,7 +55,10 @@ def main():
         x86 = test.get("x86", False)
         bin_ = test.get("bin", False)
         pass_ = test.get("pass", None)
-        if pass_ and pass_ not in ["do_loops", "global_stmts", "flip_sign", "div_to_mul"]:
+        llvm_optimization_pass = test.get("llvm_optimization_pass", False)
+        optimization_passes = ["flip_sign", "div_to_mul", "fma"]
+        if pass_ and (pass_ not in ["do_loops", "global_stmts"] and
+                      pass_ not in optimization_passes):
             raise Exception("Unknown pass: %s" % pass_)
 
         print(color(style.bold)+"TEST:"+color(style.reset), filename)
@@ -119,6 +122,13 @@ def main():
                 print("    * llvm   SKIPPED as requested")
             else:
                 run_test("llvm", "lfortran --no-color --show-llvm {infile} -o {outfile}",
+                        filename, update_reference, extra_args)
+
+        if llvm_optimization_pass:
+            if no_llvm:
+                print("    * llvm   SKIPPED as requested")
+            else:
+                run_test("llvm_optimization_pass", "lfortran --fast=true --no-color --show-llvm {infile} -o {outfile}",
                         filename, update_reference, extra_args)
 
         if cpp:
