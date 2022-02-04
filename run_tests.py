@@ -124,13 +124,6 @@ def main():
                 run_test("llvm", "lfortran --no-color --show-llvm {infile} -o {outfile}",
                         filename, update_reference, extra_args)
 
-        if llvm_optimization_pass:
-            if no_llvm:
-                print("    * llvm   SKIPPED as requested")
-            else:
-                run_test("llvm_optimization_pass", "lfortran --fast=true --no-color --show-llvm {infile} -o {outfile}",
-                        filename, update_reference, extra_args)
-
         if cpp:
             run_test("cpp", "lfortran --no-color --show-cpp {infile}",
                     filename, update_reference, extra_args)
