@@ -39,13 +39,11 @@ private:
 
     std::string rl_path;
 
-    size_t count;
-
     ASR::expr_t* fma_var;
 
 public:
     FMAVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_, const std::string& rl_path_) : PassVisitor(al_, nullptr), unit(unit_),
-    rl_path(rl_path_), count(0), fma_var(nullptr)
+    rl_path(rl_path_), fma_var(nullptr)
     {
         pass_result.reserve(al, 1);
     }
@@ -58,13 +56,13 @@ public:
         return false;
     }
 
-    void visit_Subroutine(const ASR::Subroutine_t &x) {
+    void visit_Function(const ASR::Function_t &x) {
         // FIXME: this is a hack, we need to pass in a non-const `x`,
         // which requires to generate a TransformVisitor.
-        if( ASRUtils::is_intrinsic_optimization<ASR::Subroutine_t>(&x) ) {
+        if( ASRUtils::is_intrinsic_optimization<ASR::Function_t>(&x) ) {
             return ;
         }
-        ASR::Subroutine_t &xx = const_cast<ASR::Subroutine_t&>(x);
+        ASR::Function_t &xx = const_cast<ASR::Function_t&>(x);
         current_scope = xx.m_symtab;
         PassUtils::PassVisitor<FMAVisitor>::transform_stmts(xx.m_body, xx.n_body);
     }
@@ -75,7 +73,6 @@ public:
         }
         ASR::BinOp_t& x = const_cast<ASR::BinOp_t&>(x_const);
 
-        ASR::expr_t* final_result = fma_var;
         fma_var = nullptr;
         visit_expr(*x.m_left);
         if( fma_var ) {
@@ -112,14 +109,6 @@ public:
                             nullptr));
         }
 
-        if( !ASR::is_a<ASR::Var_t>(*other_expr) ) {
-            std::string name = "~fma_arg@" + std::to_string(count);
-            ASR::stmt_t* assign_stmt;
-            other_expr = PassUtils::create_auxiliary_variable_for_expr(other_expr, name, al, current_scope, assign_stmt);
-            pass_result.push_back(al, assign_stmt);
-            count += 1;
-        }
-
         ASR::BinOp_t* mul_binop = ASR::down_cast<ASR::BinOp_t>(mul_expr);
         ASR::expr_t *first_arg = mul_binop->m_left, *second_arg = mul_binop->m_right;
 
@@ -129,37 +118,16 @@ public:
                             nullptr));
         }
 
-        if( !ASR::is_a<ASR::Var_t>(*first_arg) ) {
-            std::string name = "~fma_arg@" + std::to_string(count);
-            ASR::stmt_t* assign_stmt;
-            first_arg = PassUtils::create_auxiliary_variable_for_expr(first_arg, name, al, current_scope, assign_stmt);
-            pass_result.push_back(al, assign_stmt);
-            count += 1;
-        }
-
-        if( !ASR::is_a<ASR::Var_t>(*second_arg) ) {
-            std::string name = "~fma_arg@" + std::to_string(count);
-            ASR::stmt_t* assign_stmt;
-            second_arg = PassUtils::create_auxiliary_variable_for_expr(second_arg, name, al, current_scope, assign_stmt);
-            pass_result.push_back(al, assign_stmt);
-            count += 1;
-        }
-
-        ASR::stmt_t* fma_op;
         fma_var = PassUtils::get_fma(other_expr, first_arg, second_arg,
-                                     al, unit, rl_path, current_scope,
-                                     fma_op, final_result, count,
-                                     x.base.base.loc, x.m_type,
+                                     al, unit, rl_path, current_scope, x.base.base.loc,
                                      [&](const std::string &msg, const Location &) { throw LFortranException(msg); });
-        count += 1;
-        pass_result.push_back(al, fma_op);
     }
 
     void visit_Assignment(const ASR::Assignment_t& x) {
-        fma_var = x.m_target;
+        ASR::Assignment_t& xx = const_cast<ASR::Assignment_t&>(x);
         visit_expr(*x.m_value);
-        if( !fma_var ) {
-            retain_original_stmt = true;
+        if( fma_var ) {
+            xx.m_value = fma_var;
         }
         fma_var = nullptr;
     }

@@ -364,31 +364,18 @@ namespace LFortran {
 
         ASR::expr_t* get_fma(ASR::expr_t* arg0, ASR::expr_t* arg1, ASR::expr_t* arg2,
             Allocator& al, ASR::TranslationUnit_t& unit, std::string& rl_path,
-            SymbolTable*& current_scope, ASR::stmt_t*& fma_op, ASR::expr_t* final_result,
-            size_t count, Location& loc, ASR::ttype_t* fma_type,
+            SymbolTable*& current_scope, Location& loc,
             const std::function<void (const std::string &, const Location &)> err) {
-            if( !final_result ) {
-                std::string name = "~fmaresult@" + std::to_string(count);
-                ASR::asr_t* result = ASR::make_Variable_t(al, loc, current_scope, s2c(al, name),
-                    ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default,
-                    fma_type, ASR::abiType::Source, ASR::accessType::Public,
-                    ASR::presenceType::Required, false);
-                current_scope->scope[name] = ASR::down_cast<ASR::symbol_t>(result);
-                final_result = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, loc, ASR::down_cast<ASR::symbol_t>(result)));
-            }
             ASR::symbol_t *v = import_generic_procedure("fma", "lfortran_intrinsic_optimization",
                                                         al, unit, rl_path, current_scope, arg0->base.loc);
             Vec<ASR::expr_t*> args;
-            args.reserve(al, 4);
+            args.reserve(al, 3);
             args.push_back(al, arg0);
             args.push_back(al, arg1);
             args.push_back(al, arg2);
-            args.push_back(al, final_result);
-            fma_op = ASRUtils::STMT(
+            return ASRUtils::EXPR(
                         ASRUtils::symbol_resolve_external_generic_procedure_without_eval(
-                        loc, v, args, current_scope, al,
-                        err));
-            return final_result;
+                        loc, v, args, current_scope, al, err));
         }
 
     }

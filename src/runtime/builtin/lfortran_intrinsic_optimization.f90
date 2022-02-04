@@ -32,16 +32,14 @@ end subroutine
 
 ! ------- fma procedures
 
-subroutine fmar32(a, b, c, d)
+elemental real(real32) function fmar32(a, b, c) result(d)
     real(real32), intent(in) :: a, b, c
-    real(real32), intent(out) :: d
     d = a + b * c
-end subroutine
+end function
 
-subroutine fmar64(a, b, c, d)
-    real(8), intent(in) :: a, b, c
-    real(8), intent(out) :: d
+elemental real(real64) function fmar64(a, b, c) result(d)
+    real(real64), intent(in) :: a, b, c
     d = a + b * c
-end subroutine
+end function
 
 end module
