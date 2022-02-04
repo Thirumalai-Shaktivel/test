@@ -41,9 +41,13 @@ private:
 
     ASR::expr_t* fma_var;
 
+    // To make sure that FMA is applied only for
+    // the nodes implemented in this class
+    bool from_fma;
+
 public:
     FMAVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_, const std::string& rl_path_) : PassVisitor(al_, nullptr), unit(unit_),
-    rl_path(rl_path_), fma_var(nullptr)
+    rl_path(rl_path_), fma_var(nullptr), from_fma(false)
     {
         pass_result.reserve(al, 1);
     }
@@ -68,6 +72,11 @@ public:
     }
 
     void visit_BinOp(const ASR::BinOp_t& x_const) {
+        if( !from_fma ) {
+            return ;
+        }
+
+        from_fma = true;
         if( x_const.m_type->type != ASR::ttypeType::Real ) {
             return ;
         }
@@ -121,15 +130,31 @@ public:
         fma_var = PassUtils::get_fma(other_expr, first_arg, second_arg,
                                      al, unit, rl_path, current_scope, x.base.base.loc,
                                      [&](const std::string &msg, const Location &) { throw LFortranException(msg); });
+        from_fma = false;
     }
 
     void visit_Assignment(const ASR::Assignment_t& x) {
+        from_fma = true;
         ASR::Assignment_t& xx = const_cast<ASR::Assignment_t&>(x);
+        fma_var = nullptr;
         visit_expr(*x.m_value);
         if( fma_var ) {
             xx.m_value = fma_var;
         }
         fma_var = nullptr;
+        from_fma = false;
+    }
+
+    void visit_UnaryOp(const ASR::UnaryOp_t& x) {
+        from_fma = true;
+        ASR::UnaryOp_t& xx = const_cast<ASR::UnaryOp_t&>(x);
+        fma_var = nullptr;
+        visit_expr(*x.m_operand);
+        if( fma_var ) {
+            xx.m_operand = fma_var;
+        }
+        fma_var = nullptr;
+        from_fma = false;
     }
 
 };

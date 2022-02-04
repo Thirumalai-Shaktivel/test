@@ -123,58 +123,6 @@ return6:                                          ; preds = %ifcont5
   ret void
 }
 
-define void @fmar32(float* %a, float* %b, float* %c, float* %d) {
-.entry:
-  %0 = load float, float* %a, align 4
-  %1 = load float, float* %b, align 4
-  %2 = load float, float* %c, align 4
-  %3 = fmul float %1, %2
-  %4 = fadd float %0, %3
-  store float %4, float* %d, align 4
-  br label %return
-
-return:                                           ; preds = %.entry
-  ret void
-
-.entry1:                                          ; No predecessors!
-  %5 = load float, float* %a, align 4
-  %6 = load float, float* %b, align 4
-  %7 = load float, float* %c, align 4
-  %8 = fmul float %6, %7
-  %9 = fadd float %5, %8
-  store float %9, float* %d, align 4
-  br label %return2
-
-return2:                                          ; preds = %.entry1
-  ret void
-}
-
-define void @fmar64(double* %a, double* %b, double* %c, double* %d) {
-.entry:
-  %0 = load double, double* %a, align 8
-  %1 = load double, double* %b, align 8
-  %2 = load double, double* %c, align 8
-  %3 = fmul double %1, %2
-  %4 = fadd double %0, %3
-  store double %4, double* %d, align 8
-  br label %return
-
-return:                                           ; preds = %.entry
-  ret void
-
-.entry1:                                          ; No predecessors!
-  %5 = load double, double* %a, align 8
-  %6 = load double, double* %b, align 8
-  %7 = load double, double* %c, align 8
-  %8 = fmul double %6, %7
-  %9 = fadd double %5, %8
-  store double %9, double* %d, align 8
-  br label %return2
-
-return2:                                          ; preds = %.entry1
-  ret void
-}
-
 declare i8* @__module_lfortran_intrinsic_builtin_char(i32*)
 
 declare void @__module_lfortran_intrinsic_iso_c_binding_c_f_pointer(%c_ptr*, i32*)

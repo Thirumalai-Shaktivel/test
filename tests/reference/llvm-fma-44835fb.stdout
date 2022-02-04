@@ -123,8 +123,9 @@ return6:                                          ; preds = %ifcont5
   ret void
 }
 
-define void @fmar32(float* %a, float* %b, float* %c, float* %d) {
+define float @fmar32(float* %a, float* %b, float* %c) {
 .entry:
+  %d = alloca float, align 4
   %0 = load float, float* %a, align 4
   %1 = load float, float* %b, align 4
   %2 = load float, float* %c, align 4
@@ -134,23 +135,27 @@ define void @fmar32(float* %a, float* %b, float* %c, float* %d) {
   br label %return
 
 return:                                           ; preds = %.entry
-  ret void
+  %5 = load float, float* %d, align 4
+  ret float %5
 
 .entry1:                                          ; No predecessors!
-  %5 = load float, float* %a, align 4
-  %6 = load float, float* %b, align 4
-  %7 = load float, float* %c, align 4
-  %8 = fmul float %6, %7
-  %9 = fadd float %5, %8
-  store float %9, float* %d, align 4
-  br label %return2
+  %d2 = alloca float, align 4
+  %6 = load float, float* %a, align 4
+  %7 = load float, float* %b, align 4
+  %8 = load float, float* %c, align 4
+  %9 = fmul float %7, %8
+  %10 = fadd float %6, %9
+  store float %10, float* %d2, align 4
+  br label %return3
 
-return2:                                          ; preds = %.entry1
-  ret void
+return3:                                          ; preds = %.entry1
+  %11 = load float, float* %d2, align 4
+  ret float %11
 }
 
-define void @fmar64(double* %a, double* %b, double* %c, double* %d) {
+define double @fmar64(double* %a, double* %b, double* %c) {
 .entry:
+  %d = alloca double, align 8
   %0 = load double, double* %a, align 8
   %1 = load double, double* %b, align 8
   %2 = load double, double* %c, align 8
@@ -160,19 +165,22 @@ define void @fmar64(double* %a, double* %b, double* %c, double* %d) {
   br label %return
 
 return:                                           ; preds = %.entry
-  ret void
+  %5 = load double, double* %d, align 8
+  ret double %5
 
 .entry1:                                          ; No predecessors!
-  %5 = load double, double* %a, align 8
-  %6 = load double, double* %b, align 8
-  %7 = load double, double* %c, align 8
-  %8 = fmul double %6, %7
-  %9 = fadd double %5, %8
-  store double %9, double* %d, align 8
-  br label %return2
+  %d2 = alloca double, align 8
+  %6 = load double, double* %a, align 8
+  %7 = load double, double* %b, align 8
+  %8 = load double, double* %c, align 8
+  %9 = fmul double %7, %8
+  %10 = fadd double %6, %9
+  store double %10, double* %d2, align 8
+  br label %return3
 
-return2:                                          ; preds = %.entry1
-  ret void
+return3:                                          ; preds = %.entry1
+  %11 = load double, double* %d2, align 8
+  ret double %11
 }
 
 declare i8* @__module_lfortran_intrinsic_builtin_char(i32*)
@@ -323,7 +331,12 @@ declare void @_lfortran_sp_rand_num(float*)
 
 define i32 @main() {
 .entry:
-  %call_arg_value2 = alloca double, align 8
+  %call_arg_value7 = alloca double, align 8
+  %call_arg_value6 = alloca float, align 4
+  %call_arg_value5 = alloca float, align 4
+  %call_arg_value4 = alloca float, align 4
+  %call_arg_value3 = alloca float, align 4
+  %call_arg_value2 = alloca float, align 4
   %call_arg_value1 = alloca float, align 4
   %call_arg_value = alloca float, align 4
   %pi = alloca float, align 4
@@ -336,30 +349,28 @@ define i32 @main() {
   store float 4.000000e+00, float* %x, align 4
   %z = alloca double, align 8
   store double 1.000000e+00, double* %z, align 8
-  %"~fma_arg@0" = alloca float, align 4
-  %"~fma_arg@1" = alloca float, align 4
-  %"~fma_arg@2" = alloca float, align 4
-  %"~fma_arg@4" = alloca float, align 4
-  %"~fmaresult@3" = alloca float, align 4
   %0 = load float, float* %x, align 4
   %1 = fmul float %0, 4.000000e+00
-  store float %1, float* %"~fma_arg@0", align 4
-  store float 5.000000e-01, float* %"~fma_arg@1", align 4
-  store float 1.000000e+00, float* %call_arg_value, align 4
-  %2 = call float @__module_lfortran_intrinsic_math_signr32(float* %call_arg_value, float* %x)
-  store float %2, float* %"~fma_arg@2", align 4
-  call void @fmar32(float* %"~fma_arg@0", float* %"~fma_arg@1", float* %"~fma_arg@2", float* %"~fmaresult@3")
-  %3 = load float, float* %x, align 4
-  %4 = fsub float 0.000000e+00, %3
-  store float %4, float* %"~fma_arg@4", align 4
-  call void @fmar32(float* %"~fmaresult@3", float* %"~fma_arg@4", float* %pi, float* %x)
-  call void @fmar64(double* %s1, double* %z, double* %s2, double* %z)
-  %5 = load float, float* %x, align 4
-  %6 = fsub float %5, 0x400F851EC0000000
-  store float %6, float* %call_arg_value1, align 4
-  %7 = call float @__module_lfortran_intrinsic_math_sabs(float* %call_arg_value1)
-  %8 = fcmp ugt float %7, 0x3EB0C6F7A0000000
-  br i1 %8, label %then, label %else
+  store float %1, float* %call_arg_value, align 4
+  store float 5.000000e-01, float* %call_arg_value1, align 4
+  store float 1.000000e+00, float* %call_arg_value2, align 4
+  %2 = call float @__module_lfortran_intrinsic_math_signr32(float* %call_arg_value2, float* %x)
+  store float %2, float* %call_arg_value3, align 4
+  %3 = call float @fmar32(float* %call_arg_value, float* %call_arg_value1, float* %call_arg_value3)
+  store float %3, float* %call_arg_value4, align 4
+  %4 = load float, float* %x, align 4
+  %5 = fsub float 0.000000e+00, %4
+  store float %5, float* %call_arg_value5, align 4
+  %6 = call float @fmar32(float* %call_arg_value4, float* %call_arg_value5, float* %pi)
+  store float %6, float* %x, align 4
+  %7 = call double @fmar64(double* %s1, double* %z, double* %s2)
+  store double %7, double* %z, align 8
+  %8 = load float, float* %x, align 4
+  %9 = fsub float %8, 0x400F851EC0000000
+  store float %9, float* %call_arg_value6, align 4
+  %10 = call float @__module_lfortran_intrinsic_math_sabs(float* %call_arg_value6)
+  %11 = fcmp ugt float %10, 0x3EB0C6F7A0000000
+  br i1 %11, label %then, label %else
 
 then:                                             ; preds = %.entry
   call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0))
@@ -370,22 +381,22 @@ else:                                             ; preds = %.entry
   br label %ifcont
 
 ifcont:                                           ; preds = %else, %then
-  %9 = load double, double* %z, align 8
-  %10 = fsub double %9, 3.000000e+00
-  store double %10, double* %call_arg_value2, align 8
-  %11 = call double @__module_lfortran_intrinsic_math_dabs(double* %call_arg_value2)
-  %12 = fcmp ugt double %11, 0x3EB0C6F7A0B5ED8D
-  br i1 %12, label %then3, label %else4
+  %12 = load double, double* %z, align 8
+  %13 = fsub double %12, 3.000000e+00
+  store double %13, double* %call_arg_value7, align 8
+  %14 = call double @__module_lfortran_intrinsic_math_dabs(double* %call_arg_value7)
+  %15 = fcmp ugt double %14, 0x3EB0C6F7A0B5ED8D
+  br i1 %15, label %then8, label %else9
 
-then3:                                            ; preds = %ifcont
+then8:                                            ; preds = %ifcont
   call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @2, i32 0, i32 0))
   call void @exit(i32 1)
-  br label %ifcont5
+  br label %ifcont10
 
-else4:                                            ; preds = %ifcont
-  br label %ifcont5
+else9:                                            ; preds = %ifcont
+  br label %ifcont10
 
-ifcont5:                                          ; preds = %else4, %then3
+ifcont10:                                         ; preds = %else9, %then8
   ret i32 0
 }
 

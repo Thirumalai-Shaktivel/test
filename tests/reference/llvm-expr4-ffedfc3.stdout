@@ -117,8 +117,9 @@ return6:                                          ; preds = %ifcont5
   ret void
 }
 
-define void @fmar32(float* %a, float* %b, float* %c, float* %d) {
+define float @fmar32(float* %a, float* %b, float* %c) {
 .entry:
+  %d = alloca float, align 4
   %0 = load float, float* %a, align 4
   %1 = load float, float* %b, align 4
   %2 = load float, float* %c, align 4
@@ -128,23 +129,27 @@ define void @fmar32(float* %a, float* %b, float* %c, float* %d) {
   br label %return
 
 return:                                           ; preds = %.entry
-  ret void
+  %5 = load float, float* %d, align 4
+  ret float %5
 
 .entry1:                                          ; No predecessors!
-  %5 = load float, float* %a, align 4
-  %6 = load float, float* %b, align 4
-  %7 = load float, float* %c, align 4
-  %8 = fmul float %6, %7
-  %9 = fadd float %5, %8
-  store float %9, float* %d, align 4
-  br label %return2
+  %d2 = alloca float, align 4
+  %6 = load float, float* %a, align 4
+  %7 = load float, float* %b, align 4
+  %8 = load float, float* %c, align 4
+  %9 = fmul float %7, %8
+  %10 = fadd float %6, %9
+  store float %10, float* %d2, align 4
+  br label %return3
 
-return2:                                          ; preds = %.entry1
-  ret void
+return3:                                          ; preds = %.entry1
+  %11 = load float, float* %d2, align 4
+  ret float %11
 }
 
-define void @fmar64(double* %a, double* %b, double* %c, double* %d) {
+define double @fmar64(double* %a, double* %b, double* %c) {
 .entry:
+  %d = alloca double, align 8
   %0 = load double, double* %a, align 8
   %1 = load double, double* %b, align 8
   %2 = load double, double* %c, align 8
@@ -154,44 +159,48 @@ define void @fmar64(double* %a, double* %b, double* %c, double* %d) {
   br label %return
 
 return:                                           ; preds = %.entry
-  ret void
+  %5 = load double, double* %d, align 8
+  ret double %5
 
 .entry1:                                          ; No predecessors!
-  %5 = load double, double* %a, align 8
-  %6 = load double, double* %b, align 8
-  %7 = load double, double* %c, align 8
-  %8 = fmul double %6, %7
-  %9 = fadd double %5, %8
-  store double %9, double* %d, align 8
-  br label %return2
+  %d2 = alloca double, align 8
+  %6 = load double, double* %a, align 8
+  %7 = load double, double* %b, align 8
+  %8 = load double, double* %c, align 8
+  %9 = fmul double %7, %8
+  %10 = fadd double %6, %9
+  store double %10, double* %d2, align 8
+  br label %return3
 
-return2:                                          ; preds = %.entry1
-  ret void
+return3:                                          ; preds = %.entry1
+  %11 = load double, double* %d2, align 8
+  ret double %11
 }
 
 define float @__lfortran_evaluate_1() {
 .entry:
+  %call_arg_value2 = alloca float, align 4
+  %call_arg_value1 = alloca float, align 4
+  %call_arg_value = alloca float, align 4
   %__lfortran_evaluate_11 = alloca float, align 4
   %__lfortran_evaluate_12 = alloca float, align 4
   %__lfortran_evaluate_13 = alloca float, align 4
   %__lfortran_evaluate_14 = alloca float, align 4
   %__lfortran_evaluate_15 = alloca float, align 4
   %__lfortran_evaluate_16 = alloca float, align 4
-  %"~fma_arg@0" = alloca float, align 4
-  %"~fma_arg@1" = alloca float, align 4
-  %"~fma_arg@2" = alloca float, align 4
   store float 5.000000e+00, float* %__lfortran_evaluate_11, align 4
   store float 8.000000e+00, float* %__lfortran_evaluate_12, align 4
   store float 1.600000e+01, float* %__lfortran_evaluate_13, align 4
-  store float 5.000000e+00, float* %"~fma_arg@0", align 4
-  store float 3.000000e+00, float* %"~fma_arg@1", align 4
-  store float 2.000000e+00, float* %"~fma_arg@2", align 4
-  call void @fmar32(float* %"~fma_arg@0", float* %"~fma_arg@1", float* %"~fma_arg@2", float* %__lfortran_evaluate_14)
+  store float 5.000000e+00, float* %call_arg_value, align 4
+  store float 3.000000e+00, float* %call_arg_value1, align 4
+  store float 2.000000e+00, float* %call_arg_value2, align 4
+  %0 = call float @fmar32(float* %call_arg_value, float* %call_arg_value1, float* %call_arg_value2)
+  store float %0, float* %__lfortran_evaluate_14, align 4
   store float 2.000000e+00, float* %__lfortran_evaluate_15, align 4
   store float 6.400000e+01, float* %__lfortran_evaluate_16, align 4
   br label %return
 
 return:                                           ; preds = %.entry
-  %0 = load float, float* %__lfortran_evaluate_16, align 4
-  ret float %0
+  %1 = load float, float* %__lfortran_evaluate_16, align 4
+  ret float %1
 }
