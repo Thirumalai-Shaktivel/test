@@ -517,13 +517,8 @@ public:
                 doloop = LFortran::ASRUtils::STMT(ASR::make_DoLoop_t(al, x.base.base.loc, head, doloop_body.p, doloop_body.size()));
             }
             ASR::stmt_t* set_to_one = LFortran::ASRUtils::STMT(ASR::make_Assignment_t(al, x.base.base.loc, idx_vars_value[0], const_1, nullptr));
-<<<<<<< HEAD
             pass_result.push_back(al, set_to_one);
             pass_result.push_back(al, doloop);
-=======
-            array_op_result.push_back(al, set_to_one);
-            array_op_result.push_back(al, doloop);
->>>>>>> 67ce2c95a (Added support for keyword argument handling in ASR)
         } else if( (rank_left == 0 && rank_right > 0) ||
                    (rank_right == 0 && rank_left > 0) ) {
             result_var = result_var_copy;
