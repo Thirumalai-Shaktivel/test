@@ -1642,6 +1642,7 @@ public:
         kwargs_vec.reserve(al, n_optional);
         for (size_t i = 0; i < n_optional; i++) {
             ASR::keyword_t kwarg;
+            kwarg.loc = loc;
             kwarg.m_arg = s2c(al, optional_args[i]);
             kwarg.m_value = nullptr;
             kwargs_vec.push_back(al, kwarg);
