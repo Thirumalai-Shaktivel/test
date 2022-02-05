@@ -46,7 +46,7 @@
                         (Integer 4 []) () ()) ())])] 
                Source 
                Public 
-               Implementation () .false. .false.), 
+               Implementation () .false. .false. 0), 
          h: 
             (Subroutine 
                (SymbolTable 
@@ -91,6 +91,6 @@
                         (Integer 4 []) () ()) ())])] 
                Source 
                Public 
-               Implementation () .false. .false.)
+               Implementation () .false. .false. 0)
       }) 
    [])
