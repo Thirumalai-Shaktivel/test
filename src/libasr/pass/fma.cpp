@@ -29,7 +29,7 @@ Converts:
 
 to:
 
-    call fma(a, b, c, d)
+    d = fma(a, b, c)
 
 */
 class FMAVisitor : public PassUtils::PassVisitor<FMAVisitor>
