@@ -137,7 +137,7 @@ void map2c(size_t type, int64_t m_kind, std::string &ctype, std::string &bindc_t
      nptype = "np.cdouble";
    }
    else {
-     throw CodeGenError("pywrap encountered a type which can not be wrapped");
+     throw LFortranException("pywrap encountered a type which can not be wrapped");
    }
 }
 
@@ -661,6 +661,125 @@ void dtype_init(std::string pxd_fname, std::string module_name, std::string type
   
 }
 
+void get_arg_dimension(const ASR::dimension_t &x, const ASR::Subroutine_t &s, std::string name)
+{
+  std::string err = "Problem getting dimensions for subroutine argument "+name+".";
+  long int dim_start;
+  
+  /*
+  WORK IN PROGRESS!!!
+   
+  Ultimately, we need to use recursion to get the dimension.
+  3 cases.
+  
+  (1) Constant dimension (In current module or external). (easy)
+  (2) Defined by subroutine variable argument.
+      - Could be a normal integer (easy)
+      - Could be an array reference (hard)
+      - Could be an derived type reference (hard)
+  (3) Defined in a module. (hard)
+      - Could be a normal integer (easy-ish)
+      - Could be an array reference
+      - Could be an derived type reference
+  
+  This can get really complicated when the dimension is a web.
+  I think (2) and (3) are actually tied together. Example:
+  
+  (my is derived type in a module somewhere)
+  integer, intent(in) :: n2
+  integer, intent(in) :: a(my%n1(n2))
+  
+   We will need to solve with recursion
+   
+   I think we will always need to make a call before calling the subroutine
+   call to get the dimensions for cases (2) and (3). This call will pass in all relevant dimension
+   arguments, bring into scope the relevant modules, and return the dimensions of a variable.
+   
+   subroutine get_dims_for_subroutine(var1, d) bind(c)
+     use mymod, only: my
+     integer(c_int32_t), intent(in) :: var1
+     integer(c_int64_t), intent(out) :: d(1)
+     d(1) = my%n1(var1)
+   end subroutine
+   
+   then 
+   
+   subroutine subroutine_wrapper(var1, d1, var2) bind(c)
+     use mymod, only: sub => the_subroutine
+     ...
+     ...
+     
+     call sub(var1, var2)
+   end subroutine
+
+   
+  */
+  
+  // if it is a constant number, then just collect that
+  if (x.m_end->type == ASR::ConstantInteger){
+    ASR::ConstantInteger_t *a = down_cast<ASR::ConstantInteger_t>(x.m_end);
+    dim_start = a->m_n;
+  }
+  // else it is a variable
+  else if (x.m_end->type == ASR::Var){
+    ASR::Var_t *a = down_cast<ASR::Var_t>(x.m_end);
+    if (a->m_v->type == ASR::Variable){
+      ASR::Variable_t *a1 = down_cast<ASR::Variable_t>(a->m_v);
+      // if it a constant variable
+      if (a1->m_value){
+        if (a1->m_value->type == ASR::ConstantInteger){
+          ASR::ConstantInteger_t *a2 = down_cast<ASR::ConstantInteger_t>(a1->m_value);
+          dim_start = a2->m_n;
+        }
+        else {
+          throw LFortranException(err);
+        }
+      }
+      // it is not a constant variable
+      else {
+        // Where does the variable come from?
+        if (a1->m_parent_symtab->asr_owner->type == ASR::symbol){
+          ASR::symbol_t *v = down_cast<ASR::symbol_t>(a1->m_parent_symtab->asr_owner);
+          if (v->type == ASR::Subroutine){
+            ASR::Subroutine_t *s1 = down_cast<ASR::Subroutine_t>(v);
+            if (s1 == &s){
+              std::cout << "dimension is defined by another variable" << std::endl;
+              // Yay! good thing.
+            }
+            else {
+              throw LFortranException(err);
+            }
+          }
+          else {
+            throw LFortranException(err+" The variable's dimension is not definied within "
+            +" a subroutine. It might be defined within a module. This is hard to wrap.");
+          }
+        }
+        else {
+          std::cout << "This should never print?" << std::endl;
+          throw LFortranException(err);
+        }
+        
+      }
+    }
+    else {
+      // can end up here if a dimension is an external symbol
+      throw LFortranException(err+" The variable's dimension is defined by"
+      +" an external variable in another module. This is hard to wrap.");
+    }
+  }
+  else {
+    // can end up here if dimension is member of derived type or an array reference
+    // OR a array reference in a derived type member. Or any complicated string of those things
+    // we need to use recursion to get the variable and its origin
+    throw LFortranException(err+" The variable's dimension is defined by"
+    +" a mysterious variable. This is hard to wrap.");
+  }
+  
+  
+  
+}
+
 size_t get_variable_dimension(const ASR::dimension_t &x, std::string name)
 {
   std::string err = "Problem getting dimensions for variable "+name;
@@ -682,19 +801,19 @@ size_t get_variable_dimension(const ASR::dimension_t &x, std::string name)
           dim_start = d_start2->m_n;
         }
         else {
-          throw CodeGenError(err);
+          throw LFortranException(err);
         }
       }
       else {
-        throw CodeGenError(err);
+        throw LFortranException(err);
       }
     }
     else {
-      throw CodeGenError(err);
+      throw LFortranException(err);
     }
   }
   else {
-    throw CodeGenError(err);
+    throw LFortranException(err);
   }
   
   
@@ -713,19 +832,19 @@ size_t get_variable_dimension(const ASR::dimension_t &x, std::string name)
           dim_end = d_end2->m_n;
         }
         else {
-          throw CodeGenError(err);
+          throw LFortranException(err);
         }
       }
       else {
-        throw CodeGenError(err);
+        throw LFortranException(err);
       }
     }
     else {
-      throw CodeGenError(err);
+      throw LFortranException(err);
     }
   }
   else {
-    throw CodeGenError(err);
+    throw LFortranException(err);
   }
 
   size_t res = (dim_end - dim_start + 1);
@@ -868,6 +987,7 @@ public:
     for (auto &item : x.m_symtab->scope) {
       if (is_a<ASR::Subroutine_t>(*item.second)){
         ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
+        std::cout << "Skipping Subroutine: " << s->m_name << std::endl;
         // PyFiles f = wrap_Subroutine(*s);
         
         
@@ -1046,7 +1166,7 @@ public:
       return f;
     }
     else {
-      throw CodeGenError("pywrap encountered an unknown variable type.");
+      throw LFortranException("pywrap encountered an unknown variable type.");
     }
     
     if (x.m_type->type == ASR::Derived){
@@ -1055,7 +1175,6 @@ public:
       }
       std::cout << "Wrapping: " << v.name << std::endl;
       // dtype1(v, f90_tmp, chdr_tmp, pxd_tmp, pyx_tmp);
-      
     }
     else {
     
@@ -1081,8 +1200,7 @@ public:
       intrinsic3(v, f90_tmp, chdr_tmp, pxd_tmp, pyx_tmp);
     }
     else {
-      // std::cout << "Skipping " << v.name << std::endl;
-      throw CodeGenError("Type not supported!");
+      throw LFortranException("Type not supported!");
     }
     
     } // if derived
@@ -1133,7 +1251,7 @@ public:
                 // get dimensions
                 v[i].dims.resize(tmp->n_dims);
                 for (size_t j = 0; j < tmp->n_dims; j++){
-                  
+                  get_arg_dimension(tmp->m_dims[j], x, v[i].name);
                 }
               }
             }
@@ -1148,12 +1266,12 @@ public:
           std::cout<< var->m_name <<std::endl;
         }
         else {
-          throw CodeGenError(err);
+          throw LFortranException(err);
         }
         
       }
       else {
-        throw CodeGenError(err);
+        throw LFortranException(err);
       }
     }
     
@@ -1161,8 +1279,6 @@ public:
     return f;
   }
   
-  
-
 };
 
 

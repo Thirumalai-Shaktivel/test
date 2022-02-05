@@ -499,11 +499,16 @@ int python_wrapper(const std::string &infile, const std::string &module,
   auto pyx_fname  = prefix  + ".pyx";
   
   std::string f90, chdr, pxd, pyx;
-  std::tie(f90, chdr, pxd, pyx) = LFortran::asr_to_py(*asr, module);
-  std::ofstream(f90_fname)  << f90;
-  std::ofstream(chdr_fname) << chdr;
-  std::ofstream(pxd_fname)  << pxd;
-  std::ofstream(pyx_fname)  << pyx;
+  try{
+    std::tie(f90, chdr, pxd, pyx) = LFortran::asr_to_py(*asr, module);
+    std::ofstream(f90_fname)  << f90;
+    std::ofstream(chdr_fname) << chdr;
+    std::ofstream(pxd_fname)  << pxd;
+    std::ofstream(pyx_fname)  << pyx;
+  }
+  catch (const LFortran::LFortranException &e) {
+      std::cout << "LFortran pywrap error: " << e.msg() << std::endl;
+  }
   
   return 0;
 }
