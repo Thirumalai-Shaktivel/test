@@ -6,7 +6,6 @@
 #include <libasr/asr_utils.h>
 #include <libasr/string_utils.h>
 
-
 namespace LFortran{
   
 namespace {
