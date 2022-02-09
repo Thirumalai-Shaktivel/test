@@ -64,12 +64,13 @@ public:
             return nullptr;
         }
         ASR::FunctionCall_t* func_call = ASR::down_cast<ASR::FunctionCall_t>(expr);
-        if( !ASR::is_a<ASR::GenericProcedure_t>(*(func_call->m_name)) ) {
+        ASR::symbol_t* func_sym = ASRUtils::symbol_get_past_external(func_call->m_name);
+        if( !ASR::is_a<ASR::Function_t>(*func_sym) ) {
             return nullptr;
         }
-        ASR::GenericProcedure_t* func = ASR::down_cast<ASR::GenericProcedure_t>(
-                ASRUtils::symbol_get_past_external(func_call->m_name));
-        if( std::string(func->m_name) != "sign" ) {
+        ASR::Function_t* func = ASR::down_cast<ASR::Function_t>(func_sym);
+        if( ASRUtils::is_intrinsic_function(func) &&
+            std::string(func->m_name).find("sign") == std::string::npos ) {
             return nullptr;
         }
         ASR::expr_t *arg0 = func_call->m_args[0], *arg1 = func_call->m_args[1];
