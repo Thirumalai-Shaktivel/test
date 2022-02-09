@@ -7,7 +7,7 @@
 #include <libasr/pass/pass_utils.h>
 
 #include <vector>
-#include <utility>
+#include <string>
 
 
 namespace LFortran {
@@ -51,6 +51,34 @@ public:
         pass_result.reserve(al, 1);
     }
 
+    bool is_value_one(ASR::expr_t* expr) {
+        double value;
+        if( ASRUtils::is_value_constant(expr, value) ) {
+            return value == 1.0;
+        }
+        return false;
+    }
+
+    ASR::expr_t* is_extract_sign(ASR::expr_t* expr) {
+        if( !ASR::is_a<ASR::FunctionCall_t>(*expr) ) {
+            return nullptr;
+        }
+        ASR::FunctionCall_t* func_call = ASR::down_cast<ASR::FunctionCall_t>(expr);
+        if( !ASR::is_a<ASR::GenericProcedure_t>(*(func_call->m_name)) ) {
+            return nullptr;
+        }
+        ASR::GenericProcedure_t* func = ASR::down_cast<ASR::GenericProcedure_t>(
+                ASRUtils::symbol_get_past_external(func_call->m_name));
+        if( std::string(func->m_name) != "sign" ) {
+            return nullptr;
+        }
+        ASR::expr_t *arg0 = func_call->m_args[0], *arg1 = func_call->m_args[1];
+        if( !is_value_one(arg0) ) {
+            return nullptr;
+        }
+        return arg1;
+    }
+
     void visit_BinOp(const ASR::BinOp_t& x_const) {
         if( !from_sign_from_value ) {
             return ;
@@ -77,6 +105,17 @@ public:
         }
 
         ASR::expr_t *first_arg = nullptr, *second_arg = nullptr;
+
+        first_arg = is_extract_sign(x.m_left);
+        second_arg = is_extract_sign(x.m_right);
+
+        if( second_arg ) {
+            first_arg = x.m_left;
+        } else if( first_arg ) {
+            second_arg = x.m_right;
+        } else {
+            return ;
+        }
 
         sign_from_value_var = PassUtils::get_sign_from_value(first_arg, second_arg,
                                      al, unit, rl_path, current_scope, x.base.base.loc,
