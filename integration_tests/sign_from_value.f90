@@ -5,6 +5,9 @@ program flip_sign
     x = 5.5
 
     x = x * sign(1._4, eps)
-    if (abs(x - (-5.5)) > eps) error stop
+    if (abs(x - 5.5) > eps) error stop
+
+    x = x * sign(1._4, -eps)
+    if (abs(x + 5.5) > eps) error stop
 
 end program
