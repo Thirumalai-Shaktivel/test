@@ -776,7 +776,7 @@ inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
                 return ASRUtils::is_same_type_pointer(x, y);
             }
 
-int select_generic_procedure(const Vec<ASR::expr_t*> &args,
+int select_generic_procedure(const Vec<ASR::call_arg_t> &args,
         const ASR::GenericProcedure_t &p, Location loc,
         const std::function<void (const std::string &, const Location &)> err);
 

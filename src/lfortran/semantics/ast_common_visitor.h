@@ -711,7 +711,7 @@ public:
                         ASR::accessType::Private
                         ));
                     current_scope->scope[unique_name] = new_es;
-                    Vec<ASR::expr_t*> args;
+                    Vec<ASR::call_arg_t> args;
                     args.reserve(al, fc->n_args);
                     for (size_t i=0; i < fc->n_args; i++) {
                         ASR::expr_t *arg = fc->m_args[i];
@@ -746,7 +746,10 @@ public:
                                 arg = ASR::down_cast<ASR::expr_t>(ASR::make_Var_t(al, arg->base.loc, new_v));
                             }
                         }
-                        args.push_back(al, arg);
+                        ASR::call_arg_t call_arg;
+                        call_arg.loc = arg->base.loc;
+                        call_arg.m_value = arg;
+                        args.push_back(al, call_arg);
                     }
                     ASR::expr_t *new_len_expr = ASR::down_cast<ASR::expr_t>(ASR::make_FunctionCall_t(
                         al, fc->base.base.loc, new_es, nullptr, args.p, args.n, fc->m_keywords, fc->n_keywords, fc->m_type, fc->m_value, fc->m_dt));
@@ -802,7 +805,7 @@ public:
 
     ASR::asr_t* symbol_resolve_external_generic_procedure(
                 const Location &loc,
-                ASR::symbol_t *v, Vec<ASR::expr_t*> args) {
+                ASR::symbol_t *v, Vec<ASR::call_arg_t>& args) {
         ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
         ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
         ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
@@ -863,7 +866,8 @@ public:
                 AST::fnarg_t* m_args, size_t n_args,
                     ASR::symbol_t *v,
                     ASR::expr_t *v_expr) {
-        Vec<ASR::expr_t*> args = visit_expr_list(m_args, n_args);
+        Vec<ASR::call_arg_t> args;
+        visit_expr_list(m_args, n_args, args);
         ASR::ttype_t *type = nullptr;
         ASR::ClassProcedure_t *v_class_proc = ASR::down_cast<ASR::ClassProcedure_t>(v);
         type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(v_class_proc->m_proc)->m_return_var)->m_type;
@@ -873,7 +877,7 @@ public:
     }
 
     ASR::asr_t* create_GenericProcedure(const Location &loc,
-                Vec<ASR::expr_t*>& args,
+                Vec<ASR::call_arg_t>& args,
                 Vec<ASR::keyword_t>& kwargs,
                     ASR::symbol_t *v) {
         if (ASR::is_a<ASR::ExternalSymbol_t>(*v)) {
@@ -898,7 +902,7 @@ public:
     }
 
     ASR::asr_t* create_Function(const Location &loc,
-                Vec<ASR::expr_t*>& args,
+                Vec<ASR::call_arg_t>& args,
                 Vec<ASR::keyword_t>& kwargs,
                     ASR::symbol_t *v) {
         ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
@@ -940,7 +944,7 @@ public:
     // If `fn` is intrinsic, it will also try to evaluate it into the `value`
     // member of the returned `FunctionCall`.
     ASR::asr_t* create_FunctionCall(const Location &loc,
-                ASR::symbol_t *v, Vec<ASR::expr_t*>& args,
+                ASR::symbol_t *v, Vec<ASR::call_arg_t>& args,
                 Vec<ASR::keyword_t>& kwargs) {
         ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
         if (ASR::is_a<ASR::Function_t>(*f2)) {
@@ -1587,6 +1591,19 @@ public:
             asr_list.push_back(al, expr);
         }
         return asr_list;
+    }
+
+    void visit_expr_list(AST::fnarg_t *ast_list, size_t n, Vec<ASR::call_arg_t>& call_args) {
+        call_args.reserve(al, n);
+        for (size_t i = 0; i < n; i++) {
+            LFORTRAN_ASSERT(ast_list[i].m_end != nullptr);
+            this->visit_expr(*ast_list[i].m_end);
+            ASR::expr_t *expr = LFortran::ASRUtils::EXPR(tmp);
+            ASR::call_arg_t call_arg;
+            call_arg.loc = expr->base.loc;
+            call_arg.m_value = expr;
+            call_args.push_back(al, call_arg);
+        }
     }
 
     std::vector<std::string> convert_fn_args_to_string(

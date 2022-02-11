@@ -277,11 +277,14 @@ namespace LFortran {
                                                unit, rl_path, current_scope, arr_expr->base.loc);
             ASR::ExternalSymbol_t* v_ext = ASR::down_cast<ASR::ExternalSymbol_t>(v);
             ASR::Function_t* mfn = ASR::down_cast<ASR::Function_t>(v_ext->m_external);
-            Vec<ASR::expr_t*> args;
+            Vec<ASR::call_arg_t> args;
             args.reserve(al, 2);
-            args.push_back(al, arr_expr);
+            ASR::call_arg_t arg0, arg1;
+            arg0.loc = arr_expr->base.loc, arg0.m_value = arr_expr;
+            args.push_back(al, arg0);
             ASR::expr_t* const_1 = LFortran::ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, arr_expr->base.loc, dim, LFortran::ASRUtils::expr_type(mfn->m_args[1])));
-            args.push_back(al, const_1);
+            arg1.loc = const_1->base.loc, arg1.m_value = const_1;
+            args.push_back(al, arg1);
             ASR::ttype_t *type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(
                                         LFortran::ASRUtils::symbol_get_past_external(v))->m_return_var)->m_type;
             return LFortran::ASRUtils::EXPR(ASR::make_FunctionCall_t(al, arr_expr->base.loc, v, nullptr,

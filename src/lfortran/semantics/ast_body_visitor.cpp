@@ -811,7 +811,8 @@ public:
         if (!original_sym) {
             original_sym = resolve_intrinsic_function(x.base.base.loc, sub_name);
         }
-        Vec<ASR::expr_t*> args = visit_expr_list(x.m_args, x.n_args);
+        Vec<ASR::call_arg_t> args;
+        visit_expr_list(x.m_args, x.n_args, args);
         if (x.n_keywords > 0) {
             ASR::symbol_t* f2 = LFortran::ASRUtils::symbol_get_past_external(original_sym);
             if (ASR::is_a<ASR::Subroutine_t>(*f2)) {
@@ -827,10 +828,12 @@ public:
                     x.base.base.loc);
             }
         }
-        Vec<ASR::expr_t*> args_with_mdt;
+        Vec<ASR::call_args_t> args_with_mdt;
         if( x.n_member == 1 ) {
             args_with_mdt.reserve(al, x.n_args + 1);
-            args_with_mdt.push_back(al, v_expr);
+            ASR::call_arg_t v_expr_call_arg;
+            v_expr_call_arg.loc = v_expr->base.loc, v_expr_call_arg.m_value = v_expr;
+            args_with_mdt.push_back(al, v_expr_call_arg);
             for( size_t i = 0; i < args.size(); i++ ) {
                 args_with_mdt.push_back(al, args[i]);
             }
