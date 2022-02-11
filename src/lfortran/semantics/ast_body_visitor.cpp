@@ -665,8 +665,8 @@ public:
         Vec<ASR::symbol_t*> del_syms;
         del_syms.reserve(al, 1);
         for( size_t i = 0; i < subrout_call->n_args; i++ ) {
-            if( subrout_call->m_args[i]->type == ASR::exprType::Var ) {
-                const ASR::Var_t* arg_var = ASR::down_cast<ASR::Var_t>(subrout_call->m_args[i]);
+            if( subrout_call->m_args[i].m_value->type == ASR::exprType::Var ) {
+                const ASR::Var_t* arg_var = ASR::down_cast<ASR::Var_t>(subrout_call->m_args[i].m_value);
                 const ASR::symbol_t* sym = LFortran::ASRUtils::symbol_get_past_external(arg_var->m_v);
                 if( sym->type == ASR::symbolType::Variable ) {
                     ASR::Variable_t* var = ASR::down_cast<ASR::Variable_t>(sym);
@@ -828,7 +828,7 @@ public:
                     x.base.base.loc);
             }
         }
-        Vec<ASR::call_args_t> args_with_mdt;
+        Vec<ASR::call_arg_t> args_with_mdt;
         if( x.n_member == 1 ) {
             args_with_mdt.reserve(al, x.n_args + 1);
             ASR::call_arg_t v_expr_call_arg;

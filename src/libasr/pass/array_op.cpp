@@ -623,7 +623,7 @@ public:
             current_scope->scope.find(x_name) != current_scope->scope.end() &&
             current_scope->scope[x_name]->type == ASR::symbolType::Subroutine ) {
             if( result_var == nullptr ) {
-                result_var = create_var(result_var_num, "_func_call_res", x.base.base.loc, x.m_args[x.n_args - 1]);
+                result_var = create_var(result_var_num, "_func_call_res", x.base.base.loc, x.m_args[x.n_args - 1].m_value);
                 result_var_num += 1;
             }
             Vec<ASR::call_arg_t> s_args;

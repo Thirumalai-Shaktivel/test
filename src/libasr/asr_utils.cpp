@@ -680,7 +680,7 @@ int select_generic_procedure(const Vec<ASR::call_arg_t>& args,
 
 ASR::asr_t* symbol_resolve_external_generic_procedure_without_eval(
             const Location &loc,
-            ASR::symbol_t *v, Vec<ASR::call_arg_t> args,
+            ASR::symbol_t *v, Vec<ASR::call_arg_t>& args,
             SymbolTable* current_scope, Allocator& al,
             const std::function<void (const std::string &, const Location &)> err) {
     ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);

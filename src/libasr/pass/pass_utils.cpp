@@ -299,10 +299,13 @@ namespace LFortran {
                               const std::function<void (const std::string &, const Location &)> err) {
             ASR::symbol_t *v = import_generic_procedure("flipsign", "lfortran_intrinsic_optimization",
                                                         al, unit, rl_path, current_scope, arg0->base.loc);
-            Vec<ASR::expr_t*> args;
+            Vec<ASR::call_arg_t> args;
             args.reserve(al, 2);
-            args.push_back(al, arg0);
-            args.push_back(al, arg1);
+            ASR::call_arg_t arg0_, arg1_;
+            arg0_.loc = arg0->base.loc, arg0_.m_value = arg0;
+            args.push_back(al, arg0_);
+            arg1_.loc = arg1->base.loc, arg1_.m_value = arg1;
+            args.push_back(al, arg1_);
             return ASRUtils::STMT(
                     ASRUtils::symbol_resolve_external_generic_procedure_without_eval(
                         arg0->base.loc, v, args, current_scope, al,
@@ -371,11 +374,15 @@ namespace LFortran {
             const std::function<void (const std::string &, const Location &)> err) {
             ASR::symbol_t *v = import_generic_procedure("fma", "lfortran_intrinsic_optimization",
                                                         al, unit, rl_path, current_scope, arg0->base.loc);
-            Vec<ASR::expr_t*> args;
+            Vec<ASR::call_arg_t> args;
             args.reserve(al, 3);
-            args.push_back(al, arg0);
-            args.push_back(al, arg1);
-            args.push_back(al, arg2);
+            ASR::call_arg_t arg0_, arg1_, arg2_;
+            arg0_.loc = arg0->base.loc, arg0_.m_value = arg0;
+            args.push_back(al, arg0_);
+            arg1_.loc = arg1->base.loc, arg1_.m_value = arg1;
+            args.push_back(al, arg1_);
+            arg2_.loc = arg2->base.loc, arg2_.m_value = arg2;
+            args.push_back(al, arg2_);
             return ASRUtils::EXPR(
                         ASRUtils::symbol_resolve_external_generic_procedure_without_eval(
                         loc, v, args, current_scope, al, err));
@@ -387,10 +394,13 @@ namespace LFortran {
             const std::function<void (const std::string &, const Location &)> err) {
             ASR::symbol_t *v = import_generic_procedure("sign_from_value", "lfortran_intrinsic_optimization",
                                                         al, unit, rl_path, current_scope, arg0->base.loc);
-            Vec<ASR::expr_t*> args;
+            Vec<ASR::call_arg_t> args;
             args.reserve(al, 2);
-            args.push_back(al, arg0);
-            args.push_back(al, arg1);
+            ASR::call_arg_t arg0_, arg1_;
+            arg0_.loc = arg0->base.loc, arg0_.m_value = arg0;
+            args.push_back(al, arg0_);
+            arg1_.loc = arg1->base.loc, arg1_.m_value = arg1;
+            args.push_back(al, arg1_);
             return ASRUtils::EXPR(
                         ASRUtils::symbol_resolve_external_generic_procedure_without_eval(
                         loc, v, args, current_scope, al, err));

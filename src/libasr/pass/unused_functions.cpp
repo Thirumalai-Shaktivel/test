@@ -97,7 +97,7 @@ public:
             }
         }
         for (size_t i=0; i<x.n_args; i++) {
-            visit_expr(*x.m_args[i]);
+            visit_expr(*(x.m_args[i].m_value));
         }
         for (size_t i=0; i<x.n_keywords; i++) {
             visit_keyword(x.m_keywords[i]);
