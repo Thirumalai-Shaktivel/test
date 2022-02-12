@@ -288,7 +288,7 @@ namespace LFortran {
             ASR::ttype_t *type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(
                                         LFortran::ASRUtils::symbol_get_past_external(v))->m_return_var)->m_type;
             return LFortran::ASRUtils::EXPR(ASR::make_FunctionCall_t(al, arr_expr->base.loc, v, nullptr,
-                                                args.p, args.size(), nullptr, 0, type, nullptr, nullptr));
+                                                args.p, args.size(), type, nullptr, nullptr));
         }
 
 

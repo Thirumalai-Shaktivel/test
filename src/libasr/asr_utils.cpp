@@ -342,7 +342,7 @@ bool use_overloaded(ASR::expr_t* left, ASR::expr_t* right,
                             right_call_arg.loc = right->base.loc, right_call_arg.m_value = right;
                             a_args.push_back(al, right_call_arg);
                             asr = ASR::make_FunctionCall_t(al, loc, curr_scope->scope[std::string(func->m_name)], orig_sym,
-                                                            a_args.p, 2, nullptr, 0,
+                                                            a_args.p, 2,
                                                             ASRUtils::expr_type(func->m_return_var),
                                                             nullptr, nullptr);
                         }
@@ -480,7 +480,7 @@ bool use_overloaded(ASR::expr_t* left, ASR::expr_t* right,
                             right_call_arg.loc = right->base.loc, right_call_arg.m_value = right;
                             a_args.push_back(al, right_call_arg);
                             asr = ASR::make_FunctionCall_t(al, loc, curr_scope->scope[std::string(func->m_name)], orig_sym,
-                                                            a_args.p, 2, nullptr, 0,
+                                                            a_args.p, 2,
                                                             ASRUtils::expr_type(func->m_return_var),
                                                             nullptr, nullptr);
                         }
@@ -727,7 +727,7 @@ ASR::asr_t* symbol_resolve_external_generic_procedure_without_eval(
     } else {
         return ASR::make_FunctionCall_t(al, loc, final_sym,
                                         v, args.p, args.size(),
-                                        nullptr, 0, return_type,
+                                        return_type,
                                         nullptr, nullptr);
     }
 }
