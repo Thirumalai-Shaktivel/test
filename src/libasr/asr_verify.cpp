@@ -413,8 +413,8 @@ public:
                 if( type_sym->type == ASR::symbolType::DerivedType ) {
                     ASR::DerivedType_t* der_type = ASR::down_cast<ASR::DerivedType_t>(type_sym);
                     parent = der_type->m_parent;
-                    break;
                 }
+                break;
             }
             default :
                 require(false,
