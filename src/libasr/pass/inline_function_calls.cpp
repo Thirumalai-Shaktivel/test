@@ -3,7 +3,7 @@
 #include <libasr/exception.h>
 #include <libasr/asr_utils.h>
 #include <libasr/asr_verify.h>
-#include <libasr/pass/inline_functions_call.h>
+#include <libasr/pass/inline_functions_calls.h>
 #include <libasr/pass/pass_utils.h>
 
 #include <vector>
@@ -150,7 +150,7 @@ public:
 
 };
 
-void pass_replace_inline_function_call(Allocator &al, ASR::TranslationUnit_t &unit,
+void pass_replace_inline_function_calls(Allocator &al, ASR::TranslationUnit_t &unit,
                                        const std::string& rl_path) {
     InlineFunctionCallVisitor v(al, unit, rl_path);
     v.visit_TranslationUnit(unit);

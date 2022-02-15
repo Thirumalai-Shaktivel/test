@@ -5,7 +5,7 @@
 
 namespace LFortran {
 
-    void pass_inline_function_call(Allocator &al, ASR::TranslationUnit_t &unit, const std::string& rl_path);
+    void pass_inline_function_calls(Allocator &al, ASR::TranslationUnit_t &unit, const std::string& rl_path);
 
 } // namespace LFortran
 
