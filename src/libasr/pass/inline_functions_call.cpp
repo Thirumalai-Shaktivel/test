@@ -52,7 +52,7 @@ private:
 
     bool from_inline_function_call;
 
-    std::map<uint64_t, ASR::expr_t*> arg2value;
+    std::map<uint64_t, ASR::symbol_t*> arg2value;
 
     std::string current_routine;
 
@@ -75,9 +75,20 @@ public:
         current_routine.clear();
     }
 
+    void visit_Var(const ASR::Var_t& x) {
+        ASR::Var_t& xx = const_cast<ASR::Var_t&>(x);
+        if( arg2value.find(get_hash(x.m_v)) != arg2value.end() ) {
+            xx.m_v = arg2value[get_hash(x.m_v)];
+        }
+    }
+
     void visit_FunctionCall(const ASR::FunctionCall_t& x) {
-        ASR::symbol_t* routine = ASRUtils::symbol_get_past_external(x.m_name);
-        if( !ASR::is_a<ASR::Function_t>(*routine) ) {
+        if( !from_inline_function_call ) {
+            return ;
+        }
+        ASR::symbol_t* routine = x.m_name;
+        if( ASR::is_a<ASR::ExternalSymbol_t>(*routine) ||
+            !ASR::is_a<ASR::Function_t>(*routine) ) {
             return ;
         }
 
@@ -86,13 +97,46 @@ public:
             return ;
         }
 
-        for( auto& itr : func->m_symtab->scope ) {
-            arg2value[itr.second]
+        ASR::expr_t* return_var = nullptr;
+        arg2value.clear();
+        for( size_t i = 0; i < func->n_args + 1; i++ ) {
+            ASR::expr_t *func_margs_i = nullptr, *x_m_args_i = nullptr;
+            if( i < func->n_args ) {
+                func_margs_i = func->m_args[i];
+                x_m_args_i = x.m_args[i];
+            } else {
+                func_margs_i = func->m_return_var;
+                x_m_args_i = nullptr;
+            }
+            if( !ASR::is_a<ASR::Var_t>(func_margs_i) ) {
+                return ;
+            }
+            ASR::Var_t* arg_var = ASR::down_cast<ASR::Var_t>(func_margs_i);
+            // TODO: Expand to other symbol types, Function, Subroutine, ExternalSymbol
+            if( !ASR::is_a<ASR::Variable_t>(arg_var->m_v) ) {
+                return ;
+            }
+            ASR::Variable_t* arg_variable = ASR::down_cast<ASR::Variable_t>(arg_var->m_v);
+            std::string arg_name = std::string(arg_variable->m_name) + "@" + std::string(func->m_name);
+            ASR::stmt_t* assign_stmt = nullptr;
+            ASR::expr_t* call_arg_var = PassUtils::create_auxiliary_variable_for_expr(x.m_args[i], arg_name, al, current_scope, assign_stmt);
+            if( assign_stmt ) {
+                pass_result.push_back(al, assign_stmt);
+                return_var = call_arg_var;
+            }
+            arg2value[get_hash(arg_var->m_v)] = ASR::down_cast<ASR::Var_t>(call_arg_var)->m_v;
         }
+
+        for( size_t i = 0; i < func->n_body; i++ ) {
+            visit_stmt(*func->m_body[i]);
+            pass_result.push_back(al, func->m_body[i]);
+        }
+        function_result_var = return_var;
     }
 
     void visit_Assignment(const ASR::Assignment_t& x) {
         from_inline_function_call = true;
+        retain_original_stmt = true;
         ASR::Assignment_t& xx = const_cast<ASR::Assignment_t&>(x);
         function_result_var = nullptr;
         visit_expr(*x.m_value);
@@ -101,6 +145,7 @@ public:
         }
         function_result_var = nullptr;
         from_inline_function_call = false;
+        retain_original_stmt = false;
     }
 
 };

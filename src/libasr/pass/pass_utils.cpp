@@ -356,9 +356,13 @@ namespace LFortran {
                                                     ASR::intentType::Local, nullptr, nullptr, ASR::storage_typeType::Default,
                                                     ASRUtils::expr_type(expr), ASR::abiType::Source, ASR::accessType::Public,
                                                     ASR::presenceType::Required, false);
-            current_scope->scope[name] = ASR::down_cast<ASR::symbol_t>(expr_sym);
+            if( current_scope->scope.find(name) != current_scope->scope.end() ) {
+                current_scope->scope[name] = ASR::down_cast<ASR::symbol_t>(expr_sym);
+            }
             ASR::expr_t* var = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, expr->base.loc, ASR::down_cast<ASR::symbol_t>(expr_sym)));
-            assign_stmt = ASRUtils::STMT(ASR::make_Assignment_t(al, var->base.loc, var, expr, nullptr));
+            if( expr ) {
+                assign_stmt = ASRUtils::STMT(ASR::make_Assignment_t(al, var->base.loc, var, expr, nullptr));
+            }
             return var;
         }
 
