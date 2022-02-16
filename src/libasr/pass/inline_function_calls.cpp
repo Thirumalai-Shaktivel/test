@@ -110,7 +110,6 @@ public:
         }
 
         ASR::expr_t* return_var = nullptr;
-        arg2value.clear();
         for( size_t i = 0; i < func->n_args + 1; i++ ) {
             std::cout<<"loop.i "<<i<<std::endl;
             ASR::expr_t *func_margs_i = nullptr, *x_m_args_i = nullptr;
@@ -155,6 +154,7 @@ public:
         function_result_var = return_var;
         inlined_functions.insert(std::make_pair(std::string(func->m_name), current_scope));
         std::cout<<"FunctionCall.out"<<std::endl;
+        arg2value.clear();
     }
 
     void visit_Assignment(const ASR::Assignment_t& x) {
