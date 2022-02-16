@@ -30,7 +30,7 @@
 #include <libasr/pass/flip_sign.h>
 #include <libasr/pass/div_to_mul.h>
 #include <libasr/pass/fma.h>
-#include <libasr/pass/inline_functions_calls.h>
+#include <libasr/pass/inline_function_calls.h>
 #include <libasr/pass/sign_from_value.h>
 #include <libasr/asr_utils.h>
 #include <libasr/asr_verify.h>
@@ -579,8 +579,8 @@ int emit_asr(const std::string &infile,
                 LFortran::pass_replace_fma(al, *asr, LFortran::get_runtime_library_dir());
                 break;
             }
-            case (ASRPass::inline_function_calls) {
-                LFortran::pass_replace_inline_function_calls(al, *asr, LFortran::get_runtime_library_dir());
+            case (ASRPass::inline_function_calls) : {
+                LFortran::pass_inline_function_calls(al, *asr, LFortran::get_runtime_library_dir());
                 break;
             }
             case (ASRPass::sign_from_value) : {
@@ -1432,7 +1432,7 @@ int main(int argc, char *argv[])
             } else if (arg_pass == "fma") {
                 passes.push_back(ASRPass::fma);
             } else if (arg_pass == "inline_function_calls") {
-                passes.push_back(ASRPass::inline_function_calls)
+                passes.push_back(ASRPass::inline_function_calls);
             } else if (arg_pass == "sign_from_value") {
                 passes.push_back(ASRPass::sign_from_value);
             } else if (arg_pass == "div_to_mul") {
