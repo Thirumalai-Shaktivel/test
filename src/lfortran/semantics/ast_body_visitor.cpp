@@ -396,46 +396,82 @@ public:
         for( size_t i = 0; i < x.n_args; i++ ) {
             ASR::alloc_arg_t new_arg;
             new_arg.loc = x.base.base.loc;
-            this->visit_expr(*(x.m_args[i].m_end));
+            if( x.m_args[i].m_end && !x.m_args[i].m_start && !x.m_args[i].m_step ) {
+                this->visit_expr(*(x.m_args[i].m_end));
+            } else if( x.m_args[i].m_start && !x.m_args[i].m_end && x.m_args[i].m_step ) {
+                this->visit_expr(*(x.m_args[i].m_step));
+            }
             // Assume that tmp is an `ArrayRef`
             ASR::expr_t* tmp_stmt = LFortran::ASRUtils::EXPR(tmp);
-            ASR::ArrayRef_t* array_ref = ASR::down_cast<ASR::ArrayRef_t>(tmp_stmt);
-            new_arg.m_a = array_ref->m_v;
-            Vec<ASR::dimension_t> dims_vec;
-            dims_vec.reserve(al, array_ref->n_args);
-            for( size_t j = 0; j < array_ref->n_args; j++ ) {
-                ASR::dimension_t new_dim;
-                new_dim.loc = array_ref->m_args[j].loc;
-                ASR::expr_t* m_left = array_ref->m_args[j].m_left;
-                if( m_left != nullptr ) {
-                    new_dim.m_start = m_left;
-                } else {
-                    new_dim.m_start = const_1;
+            if( ASR::is_a<ASR::ArrayRef_t>(*tmp_stmt) ) {
+                ASR::ArrayRef_t* array_ref = ASR::down_cast<ASR::ArrayRef_t>(tmp_stmt);
+                new_arg.m_a = array_ref->m_v;
+                Vec<ASR::dimension_t> dims_vec;
+                dims_vec.reserve(al, array_ref->n_args);
+                for( size_t j = 0; j < array_ref->n_args; j++ ) {
+                    ASR::dimension_t new_dim;
+                    new_dim.loc = array_ref->m_args[j].loc;
+                    ASR::expr_t* m_left = array_ref->m_args[j].m_left;
+                    if( m_left != nullptr ) {
+                        new_dim.m_start = m_left;
+                    } else {
+                        new_dim.m_start = const_1;
+                    }
+                    ASR::expr_t* m_right = array_ref->m_args[j].m_right;
+                    new_dim.m_end = m_right;
+                    dims_vec.push_back(al, new_dim);
                 }
-                ASR::expr_t* m_right = array_ref->m_args[j].m_right;
-                new_dim.m_end = m_right;
-                dims_vec.push_back(al, new_dim);
+                new_arg.m_dims = dims_vec.p;
+                new_arg.n_dims = dims_vec.size();
+                alloc_args_vec.push_back(al, new_arg);
+            } else if( ASR::is_a<ASR::Var_t>(*tmp_stmt) ) {
+                ASR::Var_t* array_var = ASR::down_cast<ASR::Var_t>(tmp_stmt);
+                new_arg.m_a = array_var->m_v;
+                new_arg.m_dims = nullptr;
+                new_arg.n_dims = 0;
+                alloc_args_vec.push_back(al, new_arg);
             }
-            new_arg.m_dims = dims_vec.p;
-            new_arg.n_dims = dims_vec.size();
-            alloc_args_vec.push_back(al, new_arg);
         }
 
-        // Only one arg should be present
-        if( x.n_keywords > 1 ||
-          ( x.n_keywords == 1 && to_lower(x.m_keywords[0].m_arg) != "stat") ) {
+        bool cond = x.n_keywords == 0;
+        bool stat_cond = false, errmsg_cond = false;
+        ASR::expr_t *stat = nullptr, *errmsg = nullptr;
+        if( x.n_keywords >= 1 ) {
+            stat_cond = !stat_cond && (to_lower(x.m_keywords[0].m_arg) == "stat");
+            errmsg_cond = !errmsg_cond && (to_lower(x.m_keywords[0].m_arg) == "errmsg");
+            cond = cond || (stat_cond || errmsg_cond);
+            if( stat_cond ) {
+                this->visit_expr(*(x.m_keywords[0].m_value));
+                stat = LFortran::ASRUtils::EXPR(tmp);
+            } else if( errmsg_cond ) {
+                this->visit_expr(*(x.m_keywords[0].m_value));
+                errmsg = LFortran::ASRUtils::EXPR(tmp);
+            }
+        }
+
+        if( x.n_keywords == 2 ) {
+            stat_cond = !stat_cond && (to_lower(x.m_keywords[1].m_arg) == "stat");
+            errmsg_cond = !errmsg_cond && (to_lower(x.m_keywords[1].m_arg) == "errmsg");
+            cond = cond && (stat_cond || errmsg_cond);
+            if( stat_cond ) {
+                this->visit_expr(*(x.m_keywords[1].m_value));
+                stat = LFortran::ASRUtils::EXPR(tmp);
+            } else if( errmsg_cond ) {
+                this->visit_expr(*(x.m_keywords[1].m_value));
+                errmsg = LFortran::ASRUtils::EXPR(tmp);
+            }
+        }
+
+
+        if( !cond ) {
             throw SemanticError("`allocate` statement only "
-                                "accepts one keyword argument,"
-                                "`stat`", x.base.base.loc);
+                                "accepts two keyword arguments,"
+                                "`stat` and `errmsg`", x.base.base.loc);
         }
-        ASR::expr_t* stat = nullptr;
-        if( x.n_keywords == 1 ) {
-            this->visit_expr(*(x.m_keywords[0].m_value));
-            stat = LFortran::ASRUtils::EXPR(tmp);
-        }
+
         tmp = ASR::make_Allocate_t(al, x.base.base.loc,
                                     alloc_args_vec.p, alloc_args_vec.size(),
-                                    stat);
+                                    stat, errmsg);
     }
 
 // If there are allocatable variables in the local scope it inserts an ImplicitDeallocate node
@@ -665,8 +701,8 @@ public:
         Vec<ASR::symbol_t*> del_syms;
         del_syms.reserve(al, 1);
         for( size_t i = 0; i < subrout_call->n_args; i++ ) {
-            if( subrout_call->m_args[i]->type == ASR::exprType::Var ) {
-                const ASR::Var_t* arg_var = ASR::down_cast<ASR::Var_t>(subrout_call->m_args[i]);
+            if( subrout_call->m_args[i].m_value->type == ASR::exprType::Var ) {
+                const ASR::Var_t* arg_var = ASR::down_cast<ASR::Var_t>(subrout_call->m_args[i].m_value);
                 const ASR::symbol_t* sym = LFortran::ASRUtils::symbol_get_past_external(arg_var->m_v);
                 if( sym->type == ASR::symbolType::Variable ) {
                     ASR::Variable_t* var = ASR::down_cast<ASR::Variable_t>(sym);
@@ -811,26 +847,26 @@ public:
         if (!original_sym) {
             original_sym = resolve_intrinsic_function(x.base.base.loc, sub_name);
         }
-        Vec<ASR::expr_t*> args = visit_expr_list(x.m_args, x.n_args);
+        Vec<ASR::call_arg_t> args;
+        visit_expr_list(x.m_args, x.n_args, args);
         if (x.n_keywords > 0) {
             ASR::symbol_t* f2 = LFortran::ASRUtils::symbol_get_past_external(original_sym);
             if (ASR::is_a<ASR::Subroutine_t>(*f2)) {
                 ASR::Subroutine_t *f = ASR::down_cast<ASR::Subroutine_t>(f2);
-                Vec<ASR::keyword_t> kwargs;
-                kwargs.reserve(al, 0);
                 visit_kwargs(args, x.m_keywords, x.n_keywords,
-                    f->m_args, f->n_args, x.base.base.loc, f,
-                    kwargs);
+                    f->m_args, f->n_args, x.base.base.loc, f);
             } else {
                 throw SemanticError(
                     "Keyword arguments are not implemented for generic subroutines yet",
                     x.base.base.loc);
             }
         }
-        Vec<ASR::expr_t*> args_with_mdt;
+        Vec<ASR::call_arg_t> args_with_mdt;
         if( x.n_member == 1 ) {
             args_with_mdt.reserve(al, x.n_args + 1);
-            args_with_mdt.push_back(al, v_expr);
+            ASR::call_arg_t v_expr_call_arg;
+            v_expr_call_arg.loc = v_expr->base.loc, v_expr_call_arg.m_value = v_expr;
+            args_with_mdt.push_back(al, v_expr_call_arg);
             for( size_t i = 0; i < args.size(); i++ ) {
                 args_with_mdt.push_back(al, args[i]);
             }

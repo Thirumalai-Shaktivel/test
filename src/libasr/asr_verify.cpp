@@ -335,7 +335,7 @@ public:
                 x.base.base.loc);
         }
         for (size_t i=0; i<x.n_args; i++) {
-            visit_expr(*x.m_args[i]);
+            visit_expr(*(x.m_args[i].m_value));
         }
     }
 
@@ -407,6 +407,15 @@ public:
                 parent = der_type->m_parent;
                 break;
             }
+            case (ASR::ttypeType::Class): {
+                type_sym = ASR::down_cast<ASR::Class_t>(t2)->m_class_type;
+                type_sym = ASRUtils::symbol_get_past_external(type_sym);
+                if( type_sym->type == ASR::symbolType::DerivedType ) {
+                    ASR::DerivedType_t* der_type = ASR::down_cast<ASR::DerivedType_t>(type_sym);
+                    parent = der_type->m_parent;
+                }
+                break;
+            }
             default :
                 require(false,
                     "m_dt::m_v::m_type must point to a Derived type",
@@ -440,10 +449,9 @@ public:
             }
         }
         for (size_t i=0; i<x.n_args; i++) {
-            visit_expr(*x.m_args[i]);
-        }
-        for (size_t i=0; i<x.n_keywords; i++) {
-            visit_keyword(x.m_keywords[i]);
+            if( x.m_args[i].m_value ) {
+                visit_expr(*(x.m_args[i].m_value));
+            }
         }
         SymbolTable *parent_symtab = current_symtab;
         current_symtab = ASRUtils::symbol_symtab(x.m_name);
