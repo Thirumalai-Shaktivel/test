@@ -9,7 +9,6 @@
 #include <vector>
 #include <map>
 #include <utility>
-#include <set>
 
 
 namespace LFortran {
@@ -53,17 +52,17 @@ private:
 
     bool from_inline_function_call;
 
-    std::map<uint64_t, ASR::symbol_t*> arg2value;
+    std::map<std::string, ASR::symbol_t*> arg2value;
 
     std::string current_routine;
 
-    std::set<std::pair<std::string, SymbolTable*> > inlined_functions;
+    PassUtils::NodeDuplicator node_duplicator;
 
 public:
     InlineFunctionCallVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_,
                               const std::string& rl_path_) : PassVisitor(al_, nullptr),
     unit(unit_), rl_path(rl_path_), function_result_var(nullptr),
-    from_inline_function_call(false), current_routine("")
+    from_inline_function_call(false), current_routine(""), node_duplicator(al_)
     {
         pass_result.reserve(al, 1);
     }
@@ -82,11 +81,12 @@ public:
         std::cout<<"Var.in"<<std::endl;
         ASR::Var_t& xx = const_cast<ASR::Var_t&>(x);
         ASR::Variable_t* x_var = ASR::down_cast<ASR::Variable_t>(x.m_v);
+        std::string x_var_name = std::string(x_var->m_name);
         std::cout<<"x_var: "<<x_var->m_name<<std::endl;
-        if( arg2value.find(get_hash(x.m_v)) != arg2value.end() ) {
-            x_var = ASR::down_cast<ASR::Variable_t>(arg2value[get_hash(x.m_v)]);
+        if( arg2value.find(x_var_name) != arg2value.end() ) {
+            x_var = ASR::down_cast<ASR::Variable_t>(arg2value[x_var_name]);
             std::cout<<"replacing Var "<<x_var->m_name<<std::endl;
-            xx.m_v = arg2value[get_hash(x.m_v)];
+            xx.m_v = arg2value[x_var_name];
             x_var = ASR::down_cast<ASR::Variable_t>(x.m_v);
             std::cout<<"replaced Var "<<x_var->m_name<<std::endl;
         }
@@ -115,7 +115,7 @@ public:
             ASR::expr_t *func_margs_i = nullptr, *x_m_args_i = nullptr;
             if( i < func->n_args ) {
                 func_margs_i = func->m_args[i];
-                x_m_args_i = x.m_args[i];
+                x_m_args_i = x.m_args[i].m_value;
             } else {
                 func_margs_i = func->m_return_var;
                 x_m_args_i = nullptr;
@@ -143,16 +143,16 @@ public:
                 pass_result.push_back(al, assign_stmt);
             }
             std::cout<<"inserting: "<<arg_variable_name<<std::endl;
-            arg2value[get_hash(func->m_symtab->scope[arg_variable_name])] = ASR::down_cast<ASR::Var_t>(call_arg_var)->m_v;
+            arg2value[arg_variable_name] = ASR::down_cast<ASR::Var_t>(call_arg_var)->m_v;
             std::cout<<"loop.i out "<<i<<std::endl;
         }
 
         for( size_t i = 0; i < func->n_body; i++ ) {
-            visit_stmt(*func->m_body[i]);
-            pass_result.push_back(al, func->m_body[i]);
+            ASR::stmt_t* m_body_copy = node_duplicator.duplicate_stmt(func->m_body[i]);
+            visit_stmt(*m_body_copy);
+            pass_result.push_back(al, m_body_copy);
         }
         function_result_var = return_var;
-        inlined_functions.insert(std::make_pair(std::string(func->m_name), current_scope));
         std::cout<<"FunctionCall.out"<<std::endl;
         arg2value.clear();
     }
@@ -173,13 +173,6 @@ public:
         std::cout<<"Assignment_t.out"<<std::endl;
     }
 
-    void remove_inlined_functions() {
-        for( auto& itr : inlined_functions ) {
-            std::cout<<itr.first<<" "<<itr.second->scope[itr.first]<<std::endl;
-            itr.second->scope.erase(itr.first);
-        }
-    }
-
 };
 
 void pass_inline_function_calls(Allocator &al, ASR::TranslationUnit_t &unit,
@@ -187,7 +180,6 @@ void pass_inline_function_calls(Allocator &al, ASR::TranslationUnit_t &unit,
     std::cout<<"pass_inline_function_calls"<<std::endl;
     InlineFunctionCallVisitor v(al, unit, rl_path);
     v.visit_TranslationUnit(unit);
-    v.remove_inlined_functions();
     LFORTRAN_ASSERT(asr_verify(unit));
 }
 

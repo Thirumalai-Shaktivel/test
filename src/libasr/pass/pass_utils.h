@@ -181,6 +181,137 @@ namespace LFortran {
 
         };
 
+        class NodeDuplicator {
+            private:
+
+                Allocator& al;
+
+            public:
+
+                NodeDuplicator(Allocator& al_) : al(al_) {}
+
+                ASR::stmt_t* duplicate_stmt(ASR::stmt_t* x) {
+                    if( !x ) {
+                        return nullptr;
+                    }
+
+                    switch( x->type ) {
+                        case ASR::stmtType::Assignment: {
+                            return duplicate_Assignment(ASR::down_cast<ASR::Assignment_t>(x));
+                        }
+                        case ASR::stmtType::If: {
+                            return duplicate_If(ASR::down_cast<ASR::If_t>(x));
+                        }
+                        default: {
+                            LFORTRAN_ASSERT_MSG(false, "Duplication of " + std::to_string(x->type) + " statement is not supported yet.");
+                        }
+                    }
+                }
+
+                ASR::expr_t* duplicate_expr(ASR::expr_t* x) {
+                    if( !x ) {
+                        return nullptr;
+                    }
+
+                    switch( x->type ) {
+                        case ASR::exprType::BinOp: {
+                            return duplicate_BinOp(ASR::down_cast<ASR::BinOp_t>(x));
+                        }
+                        case ASR::exprType::Var: {
+                            return duplicate_Var(ASR::down_cast<ASR::Var_t>(x));
+                        }
+                        case ASR::exprType::BoolOp: {
+                            return duplicate_BoolOp(ASR::down_cast<ASR::BoolOp_t>(x));
+                        }
+                        case ASR::exprType::Compare: {
+                            return duplicate_Compare(ASR::down_cast<ASR::Compare_t>(x));
+                        }
+                        case ASR::exprType::UnaryOp: {
+                            return duplicate_UnaryOp(ASR::down_cast<ASR::UnaryOp_t>(x));
+                        }
+                        case ASR::exprType::ConstantInteger: {
+
+                        }
+                        case ASR::exprType::ConstantReal: {
+                            return x;
+                        }
+                        default: {
+                            LFORTRAN_ASSERT_MSG(false, "Duplication of " + std::to_string(x->type) + " expression is not supported yet.");
+                        }
+                    }
+                }
+
+                ASR::expr_t* duplicate_Var(ASR::Var_t* x) {
+                    return ASRUtils::EXPR(ASR::make_Var_t(al, x->base.base.loc, x->m_v));
+                }
+
+                ASR::expr_t* duplicate_Compare(ASR::Compare_t* x) {
+                    ASR::expr_t *m_left = nullptr, *m_right = nullptr;
+                    ASR::expr_t *m_value = nullptr, *m_overloaded = nullptr;
+                    m_left = duplicate_expr(x->m_left);
+                    m_right = duplicate_expr(x->m_right);
+                    m_value = duplicate_expr(x->m_value);
+                    m_overloaded = duplicate_expr(x->m_overloaded);
+                    return ASRUtils::EXPR(ASR::make_Compare_t(al, x->base.base.loc,
+                                m_left, x->m_op, m_right, x->m_type, m_value, m_overloaded));
+                }
+
+                ASR::expr_t* duplicate_UnaryOp(ASR::UnaryOp_t* x) {
+                    ASR::expr_t *m_operand = nullptr;
+                    ASR::expr_t *m_value = nullptr;
+                    m_operand = duplicate_expr(x->m_operand);
+                    m_value = duplicate_expr(x->m_value);
+                    return ASRUtils::EXPR(ASR::make_UnaryOp_t(al, x->base.base.loc,
+                                x->m_op, m_operand, x->m_type, m_value));
+                }
+
+                ASR::expr_t* duplicate_BoolOp(ASR::BoolOp_t* x) {
+                    ASR::expr_t *m_left = nullptr, *m_right = nullptr;
+                    ASR::expr_t *m_value = nullptr;
+                    m_left = duplicate_expr(x->m_left);
+                    m_right = duplicate_expr(x->m_right);
+                    m_value = duplicate_expr(x->m_value);
+                    return ASRUtils::EXPR(ASR::make_BoolOp_t(al, x->base.base.loc,
+                                m_left, x->m_op, m_right, x->m_type, m_value));
+                }
+
+                ASR::expr_t* duplicate_BinOp(ASR::BinOp_t* x) {
+                    ASR::expr_t *m_left = nullptr, *m_right = nullptr;
+                    ASR::expr_t *m_value = nullptr, *m_overloaded = nullptr;
+                    m_left = duplicate_expr(x->m_left);
+                    m_right = duplicate_expr(x->m_right);
+                    m_value = duplicate_expr(x->m_value);
+                    m_overloaded = duplicate_expr(x->m_overloaded);
+                    return ASRUtils::EXPR(ASR::make_BinOp_t(al, x->base.base.loc,
+                                m_left, x->m_op, m_right, x->m_type, m_value, m_overloaded));
+                }
+
+                ASR::stmt_t* duplicate_Assignment(ASR::Assignment_t* x) {
+                    ASR::expr_t *m_target = nullptr, *m_value = nullptr, *m_overloaded = nullptr;
+                    m_target = duplicate_expr(m_target);
+                    m_value = duplicate_expr(m_value);
+                    m_overloaded = duplicate_expr(m_overloaded);
+                    return ASRUtils::STMT(ASR::make_Assignment_t(
+                        al, x->base.base.loc, x->m_target, x->m_value, x->m_overloaded));
+                }
+
+                ASR::stmt_t* duplicate_If(ASR::If_t* x) {
+                    ASR::expr_t *m_test = nullptr;
+                    Vec<ASR::stmt_t*> m_body, m_orelse;
+                    m_body.reserve(al, x->n_body);
+                    m_orelse.reserve(al, x->n_orelse);
+                    m_test = duplicate_expr(x->m_test);
+                    for( size_t i = 0; i < x->n_body; i++ ) {
+                        m_body.push_back(al, duplicate_stmt(x->m_body[i]));
+                    }
+                    for( size_t i = 0; i < x->n_orelse; i++ ) {
+                        m_orelse.push_back(al, duplicate_stmt(x->m_orelse[i]));
+                    }
+                    return ASRUtils::STMT(ASR::make_If_t(al, x->base.base.loc,
+                            m_test, m_body.p, x->n_body, m_orelse.p, x->n_orelse));
+                }
+        };
+
     }
 
 } // namespace LFortran

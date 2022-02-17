@@ -57,6 +57,7 @@
 #include <libasr/pass/sign_from_value.h>
 #include <libasr/pass/class_constructor.h>
 #include <libasr/pass/unused_functions.h>
+#include <libasr/pass/inline_function_calls.h>
 #include <libasr/exception.h>
 #include <libasr/asr_utils.h>
 #include <libasr/codegen/llvm_utils.h>
@@ -4082,6 +4083,7 @@ Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
 
     // Uncomment for debugging the ASR after the transformation
     // std::cout << pickle(asr) << std::endl;
+    pass_inline_function_calls(al, asr, rl_path);
     pass_replace_class_constructor(al, asr);
     pass_replace_implied_do_loops(al, asr, rl_path);
     pass_replace_arr_slice(al, asr, rl_path);
