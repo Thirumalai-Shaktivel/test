@@ -50,7 +50,7 @@ private:
 
     ASR::expr_t* function_result_var;
 
-    bool from_inline_function_call;
+    bool from_inline_function_call, inlining_function;
 
     std::map<std::string, ASR::symbol_t*> arg2value;
 
@@ -62,7 +62,8 @@ public:
     InlineFunctionCallVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_,
                               const std::string& rl_path_) : PassVisitor(al_, nullptr),
     unit(unit_), rl_path(rl_path_), function_result_var(nullptr),
-    from_inline_function_call(false), current_routine(""), node_duplicator(al_)
+    from_inline_function_call(false), inlining_function(false),
+    current_routine(""), node_duplicator(al_)
     {
         pass_result.reserve(al, 1);
     }
@@ -102,10 +103,10 @@ public:
         Vec<ASR::stmt_t*> pass_result_local;
         pass_result_local.reserve(al, 1);
         std::cout<<"FunctionCall.in"<<std::endl;
-        if( !from_inline_function_call ) {
+        if( !from_inline_function_call || inlining_function ) {
             return ;
         }
-        ASR::symbol_t* routine = ASRUtils::symbol_get_past_external(x.m_name);
+        ASR::symbol_t* routine = x.m_name;
         if( !ASR::is_a<ASR::Function_t>(*routine) ) {
             return ;
         }
@@ -155,17 +156,62 @@ public:
             std::cout<<"loop.i out "<<i<<std::endl;
         }
 
+        bool success = true;
+        std::vector<std::pair<ASR::expr_t*, ASR::symbol_t*>> exprs_to_be_visited;
+        for( auto& itr : func->m_symtab->scope ) {
+            std::cout<<"func_symtab: "<<itr.first<<std::endl;
+            ASR::Variable_t* func_var = ASR::down_cast<ASR::Variable_t>(itr.second);
+            std::string func_var_name = itr.first;
+            if( arg2value.find(func_var_name) == arg2value.end() ) {
+                std::cout<<"not found: "<<func_var_name<<std::endl;
+                std::string local_var_name = func_var_name + "@" + std::string(func->m_name);
+                node_duplicator.success = true;
+                ASR::expr_t *m_symbolic_value = node_duplicator.duplicate_expr(func_var->m_symbolic_value);
+                if( !node_duplicator.success ) {
+                    success = false;
+                    break;
+                }
+                node_duplicator.success = true;
+                ASR::expr_t *m_value = node_duplicator.duplicate_expr(func_var->m_value);
+                if( !node_duplicator.success ) {
+                    success = false;
+                    break;
+                }
+                ASR::symbol_t* local_var = (ASR::symbol_t*) ASR::make_Variable_t(
+                                                al, func_var->base.base.loc, current_scope,
+                                                s2c(al, local_var_name), ASR::intentType::Local,
+                                                nullptr, nullptr, ASR::storage_typeType::Default,
+                                                func_var->m_type, ASR::abiType::Source, ASR::accessType::Public,
+                                                ASR::presenceType::Required, false);
+                current_scope->scope[local_var_name] = local_var;
+                arg2value[func_var_name] = local_var;
+                if( m_symbolic_value ) {
+                    exprs_to_be_visited.push_back(std::make_pair(m_symbolic_value, local_var));
+                }
+                if( m_value ) {
+                    exprs_to_be_visited.push_back(std::make_pair(m_value, local_var));
+                }
+            }
+        }
+
+        for( size_t i = 0; i < exprs_to_be_visited.size() && success; i++ ) {
+            ASR::expr_t* value = exprs_to_be_visited[i].first;
+            visit_expr(*value);
+            ASR::symbol_t* variable = exprs_to_be_visited[i].second;
+            ASR::expr_t* var = LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, variable->base.loc, variable));
+            ASR::stmt_t* assign_stmt = ASRUtils::STMT(ASR::make_Assignment_t(al, var->base.loc, var, value, nullptr));
+            pass_result_local.push_back(al, assign_stmt);
+        }
+
         Vec<ASR::stmt_t*> func_copy;
         func_copy.reserve(al, func->n_body);
-        bool success = true;
-        for( size_t i = 0; i < func->n_body; i++ ) {
+        for( size_t i = 0; i < func->n_body && success; i++ ) {
             node_duplicator.success = true;
             ASR::stmt_t* m_body_copy = node_duplicator.duplicate_stmt(func->m_body[i]);
             if( node_duplicator.success ) {
                 func_copy.push_back(al, m_body_copy);
             } else {
                 success = false;
-                break;
             }
         }
 
@@ -174,13 +220,12 @@ public:
             for( size_t i = 0; i < pass_result_local.size(); i++ ) {
                 pass_result.push_back(al, pass_result_local[i]);
             }
-            bool from_inline_function_call_copy = from_inline_function_call;
-            from_inline_function_call = false;
+            inlining_function = true;
             for( size_t i = 0; i < func->n_body; i++ ) {
                 visit_stmt(*func_copy[i]);
                 pass_result.push_back(al, func_copy[i]);
             }
-            from_inline_function_call = from_inline_function_call_copy;
+            inlining_function = false;
             function_result_var = return_var;
         } else {
             for( auto& itr : arg2value ) {

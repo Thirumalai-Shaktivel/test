@@ -20,7 +20,8 @@ contains
 
     integer function f(a) result(b)
     integer, intent(in) :: a
-    b = a + 1
+    integer :: x = 2
+    b = a + x
     end function
 
     real function f_real(a) result(b)
