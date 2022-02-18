@@ -116,11 +116,11 @@ namespace LFortran {
                     for (auto &item : x.m_symtab->scope) {
                         if (ASR::is_a<ASR::Subroutine_t>(*item.second)) {
                             ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
-                            visit_Subroutine(*s);
+                            self().visit_Subroutine(*s);
                         }
                         if (ASR::is_a<ASR::Function_t>(*item.second)) {
                             ASR::Function_t *s = ASR::down_cast<ASR::Function_t>(item.second);
-                            visit_Function(*s);
+                            self().visit_Function(*s);
                         }
                     }
                 }
@@ -152,8 +152,6 @@ namespace LFortran {
                 }
 
                 void visit_Subroutine(const ASR::Subroutine_t &x) {
-                    // FIXME: this is a hack, we need to pass in a non-const `x`,
-                    // which requires to generate a TransformVisitor.
                     if( ASRUtils::is_intrinsic_optimization<ASR::Subroutine_t>(&x) ) {
                         return ;
                     }
@@ -171,8 +169,6 @@ namespace LFortran {
                 }
 
                 void visit_Function(const ASR::Function_t &x) {
-                    // FIXME: this is a hack, we need to pass in a non-const `x`,
-                    // which requires to generate a TransformVisitor.
                     if( ASRUtils::is_intrinsic_optimization<ASR::Function_t>(&x) ) {
                         return ;
                     }
@@ -188,7 +184,9 @@ namespace LFortran {
 
             public:
 
-                NodeDuplicator(Allocator& al_) : al(al_) {}
+                bool success;
+
+                NodeDuplicator(Allocator& al_) : al(al_), success(false) {}
 
                 ASR::stmt_t* duplicate_stmt(ASR::stmt_t* x) {
                     if( !x ) {
@@ -229,6 +227,10 @@ namespace LFortran {
                         case ASR::exprType::UnaryOp: {
                             return duplicate_UnaryOp(ASR::down_cast<ASR::UnaryOp_t>(x));
                         }
+                        case ASR::exprType::FunctionCall: {
+                            success = false;
+                            return nullptr;
+                        }
                         case ASR::exprType::ConstantInteger: {
 
                         }
@@ -243,6 +245,27 @@ namespace LFortran {
 
                 ASR::expr_t* duplicate_Var(ASR::Var_t* x) {
                     return ASRUtils::EXPR(ASR::make_Var_t(al, x->base.base.loc, x->m_v));
+                }
+
+                ASR::expr_t* duplicate_FunctionCall(ASR::FunctionCall_t* x) {
+                    if( !ASR::is_a<ASR::Function_t>(*(x->m_name)) ) {
+                        success = false;
+                        return nullptr;
+                    }
+                    Vec<ASR::call_arg_t> m_args;
+                    m_args.reserve(al, x->n_args);
+                    for( size_t i = 0; i < x->n_args; i++ ) {
+                        ASR::call_arg_t call_arg;
+                        call_arg.m_value = duplicate_expr(x->m_args[i].m_value);
+                        call_arg.loc = x->m_args[i].loc;
+                        m_args.push_back(al, call_arg);
+                    }
+                    ASR::expr_t *m_value = nullptr, *m_dt = nullptr;
+                    m_value = duplicate_expr(x->m_value);
+                    m_dt = duplicate_expr(x->m_dt);
+                    return ASRUtils::EXPR(ASR::make_FunctionCall_t(al, x->base.base.loc,
+                            x->m_name, x->m_original_name, m_args.p, x->n_args, x->m_type,
+                            m_value, m_dt));
                 }
 
                 ASR::expr_t* duplicate_Compare(ASR::Compare_t* x) {
@@ -287,12 +310,13 @@ namespace LFortran {
                 }
 
                 ASR::stmt_t* duplicate_Assignment(ASR::Assignment_t* x) {
-                    ASR::expr_t *m_target = nullptr, *m_value = nullptr, *m_overloaded = nullptr;
-                    m_target = duplicate_expr(m_target);
-                    m_value = duplicate_expr(m_value);
-                    m_overloaded = duplicate_expr(m_overloaded);
+                    ASR::expr_t *m_target = nullptr, *m_value = nullptr;
+                    ASR::stmt_t *m_overloaded = nullptr;
+                    m_target = duplicate_expr(x->m_target);
+                    m_value = duplicate_expr(x->m_value);
+                    m_overloaded = duplicate_stmt(x->m_overloaded);
                     return ASRUtils::STMT(ASR::make_Assignment_t(
-                        al, x->base.base.loc, x->m_target, x->m_value, x->m_overloaded));
+                        al, x->base.base.loc, m_target, m_value, m_overloaded));
                 }
 
                 ASR::stmt_t* duplicate_If(ASR::If_t* x) {
@@ -310,6 +334,7 @@ namespace LFortran {
                     return ASRUtils::STMT(ASR::make_If_t(al, x->base.base.loc,
                             m_test, m_body.p, x->n_body, m_orelse.p, x->n_orelse));
                 }
+
         };
 
     }
