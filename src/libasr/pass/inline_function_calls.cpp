@@ -59,11 +59,14 @@ private:
     PassUtils::NodeDuplicator node_duplicator;
 
 public:
+
+    bool function_inlined;
+
     InlineFunctionCallVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_,
                               const std::string& rl_path_) : PassVisitor(al_, nullptr),
     unit(unit_), rl_path(rl_path_), function_result_var(nullptr),
     from_inline_function_call(false), inlining_function(false),
-    current_routine(""), node_duplicator(al_)
+    current_routine(""), node_duplicator(al_), function_inlined(false)
     {
         pass_result.reserve(al, 1);
     }
@@ -218,6 +221,7 @@ public:
                 current_scope->scope.erase(std::string(auxiliary_var->m_name));
             }
         }
+        function_inlined = success;
         arg2value.clear();
     }
 
@@ -258,7 +262,11 @@ public:
 void pass_inline_function_calls(Allocator &al, ASR::TranslationUnit_t &unit,
                                        const std::string& rl_path) {
     InlineFunctionCallVisitor v(al, unit, rl_path);
-    v.visit_TranslationUnit(unit);
+    v.function_inlined = true;
+    while( v.function_inlined ) {
+        v.function_inlined = false;
+        v.visit_TranslationUnit(unit);
+    }
     LFORTRAN_ASSERT(asr_verify(unit));
 }
 
