@@ -231,6 +231,9 @@ namespace LFortran {
                             success = false;
                             return nullptr;
                         }
+                        case ASR::exprType::ImplicitCast: {
+                            return duplicate_ImplicitCast(ASR::down_cast<ASR::ImplicitCast_t>(x));
+                        }
                         case ASR::exprType::ConstantInteger: {
 
                         }
@@ -247,25 +250,12 @@ namespace LFortran {
                     return ASRUtils::EXPR(ASR::make_Var_t(al, x->base.base.loc, x->m_v));
                 }
 
-                ASR::expr_t* duplicate_FunctionCall(ASR::FunctionCall_t* x) {
-                    if( !ASR::is_a<ASR::Function_t>(*(x->m_name)) ) {
-                        success = false;
-                        return nullptr;
-                    }
-                    Vec<ASR::call_arg_t> m_args;
-                    m_args.reserve(al, x->n_args);
-                    for( size_t i = 0; i < x->n_args; i++ ) {
-                        ASR::call_arg_t call_arg;
-                        call_arg.m_value = duplicate_expr(x->m_args[i].m_value);
-                        call_arg.loc = x->m_args[i].loc;
-                        m_args.push_back(al, call_arg);
-                    }
-                    ASR::expr_t *m_value = nullptr, *m_dt = nullptr;
+                ASR::expr_t* duplicate_ImplicitCast(ASR::ImplicitCast_t* x) {
+                    ASR::expr_t *m_arg = nullptr, *m_value = nullptr;
+                    m_arg = duplicate_expr(x->m_arg);
                     m_value = duplicate_expr(x->m_value);
-                    m_dt = duplicate_expr(x->m_dt);
-                    return ASRUtils::EXPR(ASR::make_FunctionCall_t(al, x->base.base.loc,
-                            x->m_name, x->m_original_name, m_args.p, x->n_args, x->m_type,
-                            m_value, m_dt));
+                    return ASRUtils::EXPR(ASR::make_ImplicitCast_t(al, x->base.base.loc, m_arg,
+                        x->m_kind, x->m_type, m_value));
                 }
 
                 ASR::expr_t* duplicate_Compare(ASR::Compare_t* x) {

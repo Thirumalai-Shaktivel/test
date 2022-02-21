@@ -69,40 +69,31 @@ public:
     }
 
     void visit_Function(const ASR::Function_t &x) {
-        std::cout<<"current_routine: "<<x.m_name<<std::endl;
         // FIXME: this is a hack, we need to pass in a non-const `x`,
         // which requires to generate a TransformVisitor.
         ASR::Function_t &xx = const_cast<ASR::Function_t&>(x);
         current_routine = std::string(xx.m_name);
         PassUtils::PassVisitor<InlineFunctionCallVisitor>::visit_Function(x);
         current_routine.clear();
-        std::cout<<std::endl;
     }
 
     void visit_Var(const ASR::Var_t& x) {
-        std::cout<<"Var.in"<<std::endl;
         ASR::Var_t& xx = const_cast<ASR::Var_t&>(x);
         ASR::Variable_t* x_var = ASR::down_cast<ASR::Variable_t>(x.m_v);
         std::string x_var_name = std::string(x_var->m_name);
-        std::cout<<"x_var: "<<x_var->m_name<<std::endl;
         if( arg2value.find(x_var_name) != arg2value.end() ) {
             x_var = ASR::down_cast<ASR::Variable_t>(arg2value[x_var_name]);
-            std::cout<<"replacing Var "<<x_var->m_name<<std::endl;
             if( current_scope->scope.find(std::string(x_var->m_name)) != current_scope->scope.end() ) {
                 xx.m_v = arg2value[x_var_name];
             }
             x_var = ASR::down_cast<ASR::Variable_t>(x.m_v);
-            std::cout<<"replaced Var "<<x_var->m_name<<std::endl;
         }
-        std::cout<<"Var.out"<<std::endl;
     }
 
     void visit_FunctionCall(const ASR::FunctionCall_t& x) {
-        std::cout<<"current_routine: "<<x.m_name<<std::endl;
         arg2value.clear();
         Vec<ASR::stmt_t*> pass_result_local;
         pass_result_local.reserve(al, 1);
-        std::cout<<"FunctionCall.in"<<std::endl;
         if( !from_inline_function_call || inlining_function ) {
             return ;
         }
@@ -118,7 +109,6 @@ public:
 
         ASR::expr_t* return_var = nullptr;
         for( size_t i = 0; i < func->n_args + 1; i++ ) {
-            std::cout<<"loop.i "<<i<<std::endl;
             ASR::expr_t *func_margs_i = nullptr, *x_m_args_i = nullptr;
             if( i < func->n_args ) {
                 func_margs_i = func->m_args[i];
@@ -151,19 +141,15 @@ public:
             if( assign_stmt ) {
                 pass_result_local.push_back(al, assign_stmt);
             }
-            std::cout<<"inserting: "<<arg_variable_name<<std::endl;
             arg2value[arg_variable_name] = ASR::down_cast<ASR::Var_t>(call_arg_var)->m_v;
-            std::cout<<"loop.i out "<<i<<std::endl;
         }
 
         bool success = true;
         std::vector<std::pair<ASR::expr_t*, ASR::symbol_t*>> exprs_to_be_visited;
         for( auto& itr : func->m_symtab->scope ) {
-            std::cout<<"func_symtab: "<<itr.first<<std::endl;
             ASR::Variable_t* func_var = ASR::down_cast<ASR::Variable_t>(itr.second);
             std::string func_var_name = itr.first;
             if( arg2value.find(func_var_name) == arg2value.end() ) {
-                std::cout<<"not found: "<<func_var_name<<std::endl;
                 std::string local_var_name = func_var_name + "@" + std::string(func->m_name);
                 node_duplicator.success = true;
                 ASR::expr_t *m_symbolic_value = node_duplicator.duplicate_expr(func_var->m_symbolic_value);
@@ -215,7 +201,6 @@ public:
             }
         }
 
-        std::cout<<"success: "<<success<<std::endl;
         if( success ) {
             for( size_t i = 0; i < pass_result_local.size(); i++ ) {
                 pass_result.push_back(al, pass_result_local[i]);
@@ -233,7 +218,6 @@ public:
                 current_scope->scope.erase(std::string(auxiliary_var->m_name));
             }
         }
-        std::cout<<"FunctionCall.out"<<std::endl;
         arg2value.clear();
     }
 
@@ -255,10 +239,6 @@ public:
     }
 
     void visit_Assignment(const ASR::Assignment_t& x) {
-        std::cout<<"Assignment_t.in"<<std::endl;
-        for(auto& itr : arg2value) {
-            std::cout<<"arg2value: "<<itr.first<<" : "<<itr.second<<std::endl;
-        }
         from_inline_function_call = true;
         retain_original_stmt = true;
         ASR::Assignment_t& xx = const_cast<ASR::Assignment_t&>(x);
@@ -271,14 +251,12 @@ public:
         }
         function_result_var = nullptr;
         from_inline_function_call = false;
-        std::cout<<"Assignment_t.out"<<std::endl;
     }
 
 };
 
 void pass_inline_function_calls(Allocator &al, ASR::TranslationUnit_t &unit,
                                        const std::string& rl_path) {
-    std::cout<<"pass_inline_function_calls"<<std::endl;
     InlineFunctionCallVisitor v(al, unit, rl_path);
     v.visit_TranslationUnit(unit);
     LFORTRAN_ASSERT(asr_verify(unit));

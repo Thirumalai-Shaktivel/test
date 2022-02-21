@@ -4083,7 +4083,6 @@ Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
 
     // Uncomment for debugging the ASR after the transformation
     // std::cout << pickle(asr) << std::endl;
-    pass_inline_function_calls(al, asr, rl_path);
     pass_replace_class_constructor(al, asr);
     pass_replace_implied_do_loops(al, asr, rl_path);
     pass_replace_arr_slice(al, asr, rl_path);
@@ -4099,6 +4098,7 @@ Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
         pass_replace_sign_from_value(al, asr, rl_path);
         pass_replace_div_to_mul(al, asr, rl_path);
         pass_replace_fma(al, asr, rl_path);
+        pass_inline_function_calls(al, asr, rl_path);
     }
 
     v.nested_func_types = pass_find_nested_vars(asr, context,
