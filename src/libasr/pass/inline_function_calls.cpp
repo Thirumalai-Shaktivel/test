@@ -16,12 +16,6 @@ namespace LFortran {
 using ASR::down_cast;
 using ASR::is_a;
 
-// Platform dependent fast unique hash:
-uint64_t static get_hash(ASR::symbol_t *node)
-{
-    return (uint64_t)((ASR::asr_t*)node);
-}
-
 /*
 
 This ASR pass replaces function calls expressions with the body of the function
@@ -44,7 +38,6 @@ to:
 class InlineFunctionCallVisitor : public PassUtils::PassVisitor<InlineFunctionCallVisitor>
 {
 private:
-    ASR::TranslationUnit_t &unit;
 
     std::string rl_path;
 
@@ -62,9 +55,8 @@ public:
 
     bool function_inlined;
 
-    InlineFunctionCallVisitor(Allocator &al_, ASR::TranslationUnit_t &unit_,
-                              const std::string& rl_path_) : PassVisitor(al_, nullptr),
-    unit(unit_), rl_path(rl_path_), function_result_var(nullptr),
+    InlineFunctionCallVisitor(Allocator &al_, const std::string& rl_path_) : PassVisitor(al_, nullptr),
+    rl_path(rl_path_), function_result_var(nullptr),
     from_inline_function_call(false), inlining_function(false),
     current_routine(""), node_duplicator(al_), function_inlined(false)
     {
@@ -261,7 +253,7 @@ public:
 
 void pass_inline_function_calls(Allocator &al, ASR::TranslationUnit_t &unit,
                                        const std::string& rl_path) {
-    InlineFunctionCallVisitor v(al, unit, rl_path);
+    InlineFunctionCallVisitor v(al, rl_path);
     v.function_inlined = true;
     while( v.function_inlined ) {
         v.function_inlined = false;
