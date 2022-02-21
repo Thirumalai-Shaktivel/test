@@ -204,6 +204,8 @@ namespace LFortran {
                             LFORTRAN_ASSERT_MSG(false, "Duplication of " + std::to_string(x->type) + " statement is not supported yet.");
                         }
                     }
+
+                    return nullptr;
                 }
 
                 ASR::expr_t* duplicate_expr(ASR::expr_t* x) {
@@ -244,6 +246,8 @@ namespace LFortran {
                             LFORTRAN_ASSERT_MSG(false, "Duplication of " + std::to_string(x->type) + " expression is not supported yet.");
                         }
                     }
+
+                    return nullptr;
                 }
 
                 ASR::expr_t* duplicate_Var(ASR::Var_t* x) {
