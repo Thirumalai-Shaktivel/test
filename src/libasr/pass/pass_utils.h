@@ -234,9 +234,7 @@ namespace LFortran {
                         case ASR::exprType::ImplicitCast: {
                             return duplicate_ImplicitCast(ASR::down_cast<ASR::ImplicitCast_t>(x));
                         }
-                        case ASR::exprType::ConstantInteger: {
-
-                        }
+                        case ASR::exprType::ConstantInteger:
                         case ASR::exprType::ConstantReal: {
                             return x;
                         }
