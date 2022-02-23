@@ -413,14 +413,14 @@ class ExprStmtDuplicatorVisitor(ASDLVisitor):
         self.duplicate_expr = []
         self.is_stmt = False
         self.is_expr = False
+        self.is_product = False
         super(ExprStmtDuplicatorVisitor, self).__init__(stream, data)
 
     def visitModule(self, mod):
         self.emit("/" + "*"*78 + "/")
         self.emit("// Expression and statement Duplicator class")
         self.emit("")
-        self.emit("class ExprStmtDuplicator :")
-        self.emit("{")
+        self.emit("class ExprStmtDuplicator {")
         self.emit("private:")
         self.emit("    Allocator& al;")
         self.emit("")
@@ -476,12 +476,25 @@ class ExprStmtDuplicatorVisitor(ASDLVisitor):
                 self.visit(tp, *args)
 
     def visitProduct(self, prod, name):
-        self.make_visitor(name, prod.fields)
+        pass
 
     def visitConstructor(self, cons, _):
         self.make_visitor(cons.name, cons.fields)
 
     def make_visitor(self, name, fields):
+        if name == "FunctionCall" or name == "SubroutineCall":
+            if self.is_stmt:
+                self.duplicate_stmt.append(("    case ASR::stmtType::%s: {" % name, 2))
+                self.duplicate_stmt.append(("    success = false;", 3))
+                self.duplicate_stmt.append(("    return nullptr;", 3))
+                self.duplicate_stmt.append(("    }", 2))
+            elif self.is_expr:
+                self.duplicate_expr.append(("    case ASR::exprType::%s: {" % name, 2))
+                self.duplicate_expr.append(("    success = false;", 3))
+                self.duplicate_expr.append(("    return nullptr;", 3))
+                self.duplicate_expr.append(("    }", 2))
+            return None
+
         self.emit("")
         self.emit("ASR::asr_t* duplicate_%s(%s_t* x) {" % (name, name), 1)
         self.used = False
@@ -491,39 +504,42 @@ class ExprStmtDuplicatorVisitor(ASDLVisitor):
             for node_arg in ret_value:
                 arguments.append(node_arg)
         if not self.used:
-            # Note: a better solution would be to change `&x` to `& /* x */`
-            # above, but we would need to change emit to return a string.
-            self.emit("if (x) { } // Suppress unused warning", 2)
+            self.emit("return (asr_t*)x;", 2)
         else:
             node_arg_str = ', '.join(arguments)
             self.emit("return make_%s_t(al, x->base.base.loc, %s);" %(name, node_arg_str), 2)
-            if self.is_stmt:
-                self.duplicate_stmt.append(("    case ASR::stmtType::%s: {" % name, 2))
-                self.duplicate_stmt.append(("    return down_cast<ASR::stmt_t>(duplicate_%s(down_cast<ASR::%s_t>(x)));" % (name, name), 3))
-                self.duplicate_stmt.append(("    }", 2))
-            elif self.is_expr:
-                self.duplicate_expr.append(("    case ASR::exprType::%s: {" % name, 2))
-                self.duplicate_expr.append(("    return down_cast<ASR::expr_t>(duplicate_%s(down_cast<ASR::%s_t>(x)));" % (name, name), 3))
-                self.duplicate_expr.append(("    }", 2))
+        if self.is_stmt:
+            self.duplicate_stmt.append(("    case ASR::stmtType::%s: {" % name, 2))
+            self.duplicate_stmt.append(("    return down_cast<ASR::stmt_t>(duplicate_%s(down_cast<ASR::%s_t>(x)));" % (name, name), 3))
+            self.duplicate_stmt.append(("    }", 2))
+        elif self.is_expr:
+            self.duplicate_expr.append(("    case ASR::exprType::%s: {" % name, 2))
+            self.duplicate_expr.append(("    return down_cast<ASR::expr_t>(duplicate_%s(down_cast<ASR::%s_t>(x)));" % (name, name), 3))
+            self.duplicate_expr.append(("    }", 2))
         self.emit("}", 1)
         self.emit("")
 
     def visitField(self, field):
         arguments = None
-        if field.type == "expr" or field.type == "stmt":
-            cast_stmt = "down_cast<" + field.type + "_t>"
+        if field.type == "expr" or field.type == "stmt" or field.type == "symbol":
             level = 2
             if field.seq:
                 self.used = True
                 self.emit("Vec<%s_t*> m_%s;" % (field.type, field.name), level)
                 self.emit("m_%s.reserve(al, x->n_%s);" % (field.name, field.name), level)
                 self.emit("for (size_t i = 0; i < x->n_%s; i++) {" % field.name, level)
-                self.emit("    m_%s.push_back(al, %s(duplicate_%s(x->m_%s[i])));" % (field.name, cast_stmt, field.type, field.name), level)
+                if field.type == "symbol":
+                    self.emit("    m_%s.push_back(al, x->m_%s[i]);" % (field.name, field.name), level)
+                else:
+                    self.emit("    m_%s.push_back(al, duplicate_%s(x->m_%s[i]));" % (field.name, field.type, field.name), level)
                 self.emit("}", level)
                 arguments = ("m_" + field.name + ".p", "x->n_" + field.name)
             else:
                 self.used = True
-                self.emit("%s_t* m_%s = %s(duplicate_%s(x->m_%s));" % (field.type, field.name, cast_stmt, field.type, field.name), level)
+                if field.type == "symbol":
+                    self.emit("%s_t* m_%s = x->m_%s;" % (field.type, field.name, field.name), level)
+                else:
+                    self.emit("%s_t* m_%s = duplicate_%s(x->m_%s);" % (field.type, field.name, field.type, field.name), level)
                 arguments = ("m_" + field.name, )
         else:
             if field.seq:
@@ -1401,8 +1417,7 @@ FOOT = r"""} // namespace LFortran::%(MOD)s
 visitors = [ASTNodeVisitor0, ASTNodeVisitor1, ASTNodeVisitor,
         ASTVisitorVisitor1, ASTVisitorVisitor1b, ASTVisitorVisitor2,
         ASTWalkVisitorVisitor, PickleVisitorVisitor,
-        SerializationVisitorVisitor, DeserializationVisitorVisitor,
-        ExprStmtDuplicatorVisitor]
+        SerializationVisitorVisitor, DeserializationVisitorVisitor]
 
 
 def main(argv):
@@ -1426,13 +1441,24 @@ def main(argv):
         "mod": mod.name.lower(),
         "types": types_,
     }
+    is_asr = "ASR" in def_file
     fp = open(out_file, "w")
     try:
         fp.write(HEAD % subs)
         for visitor in visitors:
             visitor(fp, data).visit(mod)
             fp.write("\n\n")
-        fp.write(FOOT % subs)
+        if not is_asr:
+            fp.write(FOOT % subs)
+    finally:
+        if not is_asr:
+            fp.close()
+
+    try:
+        if is_asr:
+            ExprStmtDuplicatorVisitor(fp, data).visit(mod)
+            fp.write("\n\n")
+            fp.write(FOOT % subs)
     finally:
         fp.close()
 

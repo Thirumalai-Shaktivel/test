@@ -49,7 +49,7 @@ private:
 
     std::string current_routine;
 
-    PassUtils::NodeDuplicator node_duplicator;
+    ASR::ExprStmtDuplicator node_duplicator;
 
 public:
 
