@@ -448,12 +448,16 @@ class ExprStmtDuplicatorVisitor(ASDLVisitor):
         self.duplicate_stmt.append(('    LFORTRAN_ASSERT_MSG(false, "Duplication of " + std::to_string(x->type) + " statement is not supported yet.");', 3))
         self.duplicate_stmt.append(("    }", 2))
         self.duplicate_stmt.append(("    }", 1))
+        self.duplicate_stmt.append(("", 0))
+        self.duplicate_stmt.append(("    return nullptr;", 1))
         self.duplicate_stmt.append(("    }", 0))
 
         self.duplicate_expr.append(("    default: {", 2))
         self.duplicate_expr.append(('    LFORTRAN_ASSERT_MSG(false, "Duplication of " + std::to_string(x->type) + " expression is not supported yet.");', 3))
         self.duplicate_expr.append(("    }", 2))
         self.duplicate_expr.append(("    }", 1))
+        self.duplicate_expr.append(("", 0))
+        self.duplicate_expr.append(("    return nullptr;", 1))
         self.duplicate_expr.append(("    }", 0))
         for line, level in self.duplicate_stmt:
             self.emit(line, level=level)
