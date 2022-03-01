@@ -315,7 +315,11 @@ std::string fix_continuation(const std::string &s, LocationManager &lm,
     //                lm.in_size.push_back(pos-lm.in_start[lm.in_start.size()-1]);
                     // Move `pos`
                     pos = pos2;
-                    if (s[pos] == '&') pos++;
+                    if (s[pos] == '&') {
+                        pos++;
+                    } else {
+                        out += " ";
+                    }
                     // Start a new interval (just the starts, the size will be
                     // filled in later)
                     lm.out_start.push_back(out.size());
