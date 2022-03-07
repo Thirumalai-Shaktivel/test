@@ -790,6 +790,7 @@ public:
                 new_dims.reserve(al, t->n_dims);
                 for( size_t i = 1; i < func_calls.size(); i += 2 ) {
                     ASR::dimension_t new_dim;
+                    new_dim.loc = func_calls[i]->base.loc;
                     new_dim.m_start = func_calls[i];
                     new_dim.m_end = func_calls[i + 1];
                     new_dims.push_back(al, new_dim);
@@ -804,6 +805,7 @@ public:
                 new_dims.reserve(al, t->n_dims);
                 for( size_t i = 0; i < func_calls.size(); i += 2 ) {
                     ASR::dimension_t new_dim;
+                    new_dim.loc = func_calls[i]->base.loc;
                     new_dim.m_start = func_calls[i];
                     new_dim.m_end = func_calls[i + 1];
                     new_dims.push_back(al, new_dim);
@@ -818,6 +820,7 @@ public:
                 new_dims.reserve(al, t->n_dims);
                 for( size_t i = 0; i < func_calls.size(); i += 2 ) {
                     ASR::dimension_t new_dim;
+                    new_dim.loc = func_calls[i]->base.loc;
                     new_dim.m_start = func_calls[i];
                     new_dim.m_end = func_calls[i + 1];
                     new_dims.push_back(al, new_dim);
