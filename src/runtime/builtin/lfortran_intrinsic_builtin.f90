@@ -8,6 +8,11 @@ interface
     integer, optional :: kind
     end function
 
+    subroutine move_alloc(from, to)
+    integer, allocatable, intent(inout) :: from
+    integer, allocatable, intent(out) :: to
+    end subroutine
+
     integer function shape(x)
     integer, intent(in) :: x(:)
     end function
@@ -20,12 +25,6 @@ interface
     integer function ubound(x, dim)
     integer, intent(in) :: x(:)
     integer, intent(in) :: dim
-    end function
-
-    integer function merge(tsource, fsource, mask)
-    integer, intent(in) :: tsource(:)
-    integer, intent(in) :: fsource(:)
-    logical, intent(in) :: mask
     end function
 
     integer function max(a, b)
