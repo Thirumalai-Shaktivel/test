@@ -48,7 +48,7 @@ struct IntrinsicProcedures {
             // So we shouldn't even encounter them here
             {"int", {m_builtin, &eval_int, false}},
             {"real", {m_builtin, &not_implemented, false}},
-            {"merge", {m_math2, &not_implemented, false}},
+            {"any", {m_builtin, &not_implemented, false}},
 
             // Require evaluated arguments
             {"aimag", {m_math, &eval_aimag, true}},
@@ -60,6 +60,7 @@ struct IntrinsicProcedures {
             {"modulo", {m_math2, &eval_modulo, true}},
             {"min", {m_math2, &eval_min, true}},
             {"max", {m_math2, &eval_max, true}},
+            {"merge", {m_math2, &not_implemented, false}},
             {"selected_int_kind", {m_kind, &eval_selected_int_kind, true}},
             {"selected_real_kind", {m_kind, &eval_selected_real_kind, true}},
             {"selected_char_kind", {m_kind, &eval_selected_char_kind, true}},
@@ -108,6 +109,8 @@ struct IntrinsicProcedures {
             // left unevaluated in body visitor
             {"trim", {m_string, &not_implemented, false}},
             {"len_trim", {m_string, &not_implemented, false}},
+            {"adjustl", {m_string, &not_implemented, false}},
+            {"len_adjustl", {m_string, &not_implemented, false}},
             {"repeat", {m_string, &not_implemented, false}},
             {"new_line", {m_string, &eval_new_line, false}},
 
@@ -125,6 +128,7 @@ struct IntrinsicProcedures {
             {"achar", {m_builtin, &eval_achar, false}},
             {"len", {m_builtin, &eval_len, false}},
             {"size", {m_builtin, &not_implemented, false}},
+            {"move_alloc", {m_builtin, &not_implemented, false}},
             {"shape", {m_builtin, &not_implemented, false}},
             {"present", {m_builtin, &not_implemented, false}},
             {"lbound", {m_builtin, &not_implemented, false}},
