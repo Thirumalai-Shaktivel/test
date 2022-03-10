@@ -397,37 +397,37 @@ r = 1.7976931348623157d308
 ! r = 2**1024 * (1 - 2**-53)
 end function
 
-elemental integer(i8) function mergei8(tsource, fsource, mask) result(r)
+integer(i8) function mergei8(tsource, fsource, mask) result(r)
 integer(i8), intent(in) :: tsource(:)
 integer(i8), intent(in) :: fsource(:)
 logical, intent(in) :: mask
 end function
 
-elemental integer(i16) function mergei16(tsource, fsource, mask) result(r)
+integer(i16) function mergei16(tsource, fsource, mask) result(r)
 integer(i16), intent(in) :: tsource(:)
 integer(i16), intent(in) :: fsource(:)
 logical, intent(in) :: mask
 end function
 
-elemental integer(i32) function mergei32(tsource, fsource, mask) result(r)
+integer(i32) function mergei32(tsource, fsource, mask) result(r)
 integer(i32), intent(in) :: tsource(:)
 integer(i32), intent(in) :: fsource(:)
 logical, intent(in) :: mask
 end function
 
-elemental integer(i64) function mergei64(tsource, fsource, mask) result(r)
+integer(i64) function mergei64(tsource, fsource, mask) result(r)
 integer(i64), intent(in) :: tsource(:)
 integer(i64), intent(in) :: fsource(:)
 logical, intent(in) :: mask
 end function
 
-elemental real(sp) function merger32(tsource, fsource, mask) result(r)
+real(sp) function merger32(tsource, fsource, mask) result(r)
 real(sp), intent(in) :: tsource(:)
 real(sp), intent(in) :: fsource(:)
 logical, intent(in) :: mask
 end function
 
-elemental real(dp) function merger64(tsource, fsource, mask) result(r)
+real(dp) function merger64(tsource, fsource, mask) result(r)
 real(dp), intent(in) :: tsource(:)
 real(dp), intent(in) :: fsource(:)
 logical, intent(in) :: mask
