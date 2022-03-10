@@ -24,6 +24,8 @@ private:
   static const int complex_to_complex = ASR::cast_kindType::ComplexToComplex;
   static const int complex_to_real = ASR::cast_kindType::ComplexToReal;
   static const int real_to_real = ASR::cast_kindType::RealToReal;
+  static const int logical_to_integer = ASR::cast_kindType::LogicalToInteger;
+  static const int logical_to_real = ASR::cast_kindType::LogicalToReal;
   //! Stores the variable part of error messages to be passed to SemanticError.
   static constexpr const char *type_names[num_types][2] = {
       {"Integer", "Integer Pointer"},
@@ -59,7 +61,7 @@ private:
        default_case},
 
       // Logical
-      {default_case, default_case, default_case, default_case, default_case,
+      {logical_to_integer, logical_to_real, default_case, default_case, default_case,
        default_case},
 
       // Derived
