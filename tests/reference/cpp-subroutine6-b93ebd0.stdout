@@ -84,6 +84,12 @@ float real(const Kokkos::View<const int*> &x, int kind)
     return real;
 }
 
+int reshape(const Kokkos::View<const int*> &x, const Kokkos::View<const int*> &shape_vec)
+{
+    int r;
+    return r;
+}
+
 int shape(const Kokkos::View<const int*> &x)
 {
     int shape;
