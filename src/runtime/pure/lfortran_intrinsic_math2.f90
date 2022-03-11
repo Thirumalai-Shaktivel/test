@@ -36,7 +36,8 @@ interface mod
 end interface
 
 interface merge
-    module procedure mergei8, mergei16, mergei32, mergei64, merger32, merger64
+    ! module procedure mergei8, mergei16, mergei32, mergei64, merger32, merger64
+    module procedure merger64
 end interface
 
 interface min
@@ -397,70 +398,85 @@ r = 1.7976931348623157d308
 ! r = 2**1024 * (1 - 2**-53)
 end function
 
-function mergei8(tsource, fsource, mask) result(r)
-integer(i8), intent(in) :: tsource(:)
-integer(i8), intent(in) :: fsource(:)
-logical, intent(in) :: mask(:)
-integer(i8), intent(out) :: r(shape(tsource))
-integer(i8) :: int_mask(shape(tsource)), not_int_mask(shape(tsource))
-int_mask = mask
-not_int_mask = .not. mask
-r = tsource * int_mask + fsource * (not_int_mask)
-end function
+! function mergei8(tsource, fsource, mask) result(r)
+! integer(i8), intent(in) :: tsource(:)
+! integer(i8), intent(in) :: fsource(:)
+! logical, intent(in) :: mask(:)
+! integer(i8), intent(out) :: r(size(tsource))
+! integer(i8) :: int_mask(shape(tsource))
+! r = reshape(r, shape(tsource))
+! int_mask = mask
+! not_int_mask = .not. mask
+! r = tsource * int_mask + fsource * (not_int_mask)
+! end function
 
-function mergei16(tsource, fsource, mask) result(r)
-integer(i16), intent(in) :: tsource(:)
-integer(i16), intent(in) :: fsource(:)
-logical, intent(in) :: mask
-integer(i16), intent(out) :: r(shape(tsource))
-integer(i16) :: int_mask(shape(tsource)), not_int_mask(shape(tsource))
-int_mask = mask
-not_int_mask = .not. mask
-r = tsource * int_mask + fsource * (not_int_mask)
-end function
+! function mergei16(tsource, fsource, mask) result(r)
+! integer(i16), intent(in) :: tsource(:)
+! integer(i16), intent(in) :: fsource(:)
+! logical, intent(in) :: mask
+! integer(i16), intent(out) :: r(size(tsource))
+! r = reshape(r, shape(tsource))
+! integer(i16) :: int_mask(shape(tsource)), not_int_mask(shape(tsource))
+! int_mask = mask
+! not_int_mask = .not. mask
+! r = tsource * int_mask + fsource * (not_int_mask)
+! end function
 
-function mergei32(tsource, fsource, mask) result(r)
-integer(i32), intent(in) :: tsource(:)
-integer(i32), intent(in) :: fsource(:)
-logical, intent(in) :: mask(:)
-integer(i32), intent(out) :: r(shape(tsource))
-integer(i32) :: int_mask(shape(tsource)), not_int_mask(shape(tsource))
-int_mask = mask
-not_int_mask = .not. mask
-r = tsource * int_mask + fsource * (not_int_mask)
-end function
+! function mergei32(tsource, fsource, mask) result(r)
+! integer(i32), intent(in) :: tsource(:)
+! integer(i32), intent(in) :: fsource(:)
+! logical, intent(in) :: mask(:)
+! integer(i32), intent(out) :: r(size(tsource))
+! r = reshape(r, shape(tsource))
+! integer(i32) :: int_mask(shape(tsource)), not_int_mask(shape(tsource))
+! int_mask = mask
+! not_int_mask = .not. mask
+! r = tsource * int_mask + fsource * (not_int_mask)
+! end function
 
-function mergei64(tsource, fsource, mask) result(r)
-integer(i64), intent(in) :: tsource(:)
-integer(i64), intent(in) :: fsource(:)
-logical, intent(in) :: mask(:)
-integer(i64), intent(out) :: r(shape(tsource))
-integer(i64) :: int_mask(shape(tsource)), not_int_mask(shape(tsource))
-int_mask = mask
-not_int_mask = .not. mask
-r = tsource * int_mask + fsource * (not_int_mask)
-end function
+! function mergei64(tsource, fsource, mask) result(r)
+! integer(i64), intent(in) :: tsource(:)
+! integer(i64), intent(in) :: fsource(:)
+! logical, intent(in) :: mask(:)
+! integer(i64), intent(out) :: r(size(tsource))
+! r = reshape(r, shape(tsource))
+! integer(i64) :: int_mask(shape(tsource)), not_int_mask(shape(tsource))
+! int_mask = mask
+! not_int_mask = .not. mask
+! r = tsource * int_mask + fsource * (not_int_mask)
+! end function
 
-function merger32(tsource, fsource, mask) result(r)
-real(sp), intent(in) :: tsource(:)
-real(sp), intent(in) :: fsource(:)
-logical, intent(in) :: mask(:)
-real(sp), intent(out) :: r(shape(tsource))
-integer(i8) :: int_mask(shape(tsource)), not_int_mask(shape(tsource))
-int_mask = mask
-not_int_mask = .not. mask
-r = tsource * int_mask + fsource * (not_int_mask)
-end function
+! function merger32(tsource, fsource, mask) result(r)
+! real(sp), intent(in) :: tsource(:)
+! real(sp), intent(in) :: fsource(:)
+! logical, intent(in) :: mask(:)
+! real(sp), intent(out) :: r(size(tsource))
+! r = reshape(r, shape(tsource))
+! integer(i8) :: int_mask(shape(tsource)), not_int_mask(shape(tsource))
+! int_mask = mask
+! not_int_mask = .not. mask
+! r = tsource * int_mask + fsource * (not_int_mask)
+! end function
 
 function merger64(tsource, fsource, mask) result(r)
-real(dp), intent(in) :: tsource(:)
-real(dp), intent(in) :: fsource(:)
-logical, intent(in) :: mask(:)
-real(dp), intent(out) :: r(shape(tsource))
-integer(i8) :: int_mask(shape(tsource)), not_int_mask(shape(tsource))
-int_mask = mask
-not_int_mask = .not. mask
-r = tsource * int_mask + fsource * (not_int_mask)
+    real(dp), intent(in) :: tsource(:)
+    real(dp), intent(in) :: fsource(:)
+    logical, intent(in) :: mask(:)
+    real(dp) :: r(size(tsource))
+    real(dp) :: real_mask(size(tsource))
+    logical :: mask_vec(size(tsource))
+    integer :: i
+    r = reshape(r, shape(tsource))
+    mask_vec = reshape(mask, shape(mask_vec))
+    do i = 1, size(tsource)
+        if( mask_vec(i) ) then
+            real_mask(i) = 1.0_dp
+        else
+            real_mask(i) = 0.0_dp
+        end if
+    end do
+    mask_vec = reshape(mask_vec, shape(tsource))
+    r = tsource * real_mask + fsource * (1.0_dp - real_mask)
 end function
 
 end module

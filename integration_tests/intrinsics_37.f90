@@ -1,7 +1,8 @@
 program intrinsics_37
-real :: tsource(2, 3), fsource(2, 3), ar1(2, 3), ar2(2, 3)
+real(8) :: tsource(2, 3), fsource(2, 3), ar1(2, 3), ar2(2, 3)
 logical :: mask(2, 3)
-integer(8) :: not_int_mask(2, 3), int_mask(2, 3)
+real(8) :: real_mask(2, 3)
+integer :: i, j
 
 tsource(1, 1) = 1
 tsource(1, 2) = 4
@@ -24,11 +25,18 @@ mask(2, 1) = .true.
 mask(2, 2) = .true.
 mask(2, 3) = .false.
 
-int_mask = mask
-not_int_mask = .not. mask
+do i = 1, ubound(mask, 1)
+    do j = 1, ubound(mask, 2)
+        if( mask(i, j) ) then
+            real_mask(i, j) = 1.0_8
+        else
+            real_mask(i, j) = 0.0_8
+        end if
+    end do
+end do
 
 ar1 = merge(tsource, fsource, mask)
-ar2 = tsource * int_mask + fsource * not_int_mask
+ar2 = tsource * real_mask + fsource * (1.0_4 - real_mask)
 
 print *, ar1 - ar2
 
