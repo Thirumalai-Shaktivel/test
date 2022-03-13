@@ -87,6 +87,19 @@ symbol
     | Subroutine(symbol_table symtab, identifier name, expr* args, stmt* body,
         abi abi, access access, deftype deftype, string? bindc_name, bool pure,
         bool module)
+
+-- restrictions is a list of Restriction
+-- fn is a list of TempaltedFunction
+
+    | Template(type_parameter *type_parameters,
+        symbol *restrictions, symbol *fn)
+    | Restriction(type_parameter *type_parameters, symbol *fn)
+    | TemplatedFunction(symbol_table symtab, identifier name, expr* args,
+        type_parameter *type_parameters,
+        stmt* body,
+        expr return_var, abi abi, access access, deftype deftype,
+        string? bindc_name)
+
     | Function(symbol_table symtab, identifier name, expr* args, stmt* body,
         expr return_var, abi abi, access access, deftype deftype,
         string? bindc_name)
@@ -236,6 +249,9 @@ expr
 --  -2 ... character(:), allocatable (possibly we might use -1 for that also)
 --  -3 ... character(n+3), i.e., a runtime expression stored in `len_expr`
 
+type_parameter
+    = TypeParameter(identifier name)
+
 ttype
     = Integer(int kind, dimension* dims)
     | Real(int kind, dimension* dims)
@@ -247,6 +263,7 @@ ttype
     | Dict(ttype key_type, ttype value_type)
     | Pointer(ttype type)
     | Set(ttype type)
+    | Generic(type_parameter sym, dimension* dims)
 
 boolop = And | Or | Xor | NEqv | Eqv
 
