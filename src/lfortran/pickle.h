@@ -20,6 +20,9 @@ namespace LFortran {
     std::string pickle(ASR::TranslationUnit_t &asr, bool colors=false,
             bool indent=false, bool show_intrinsic_modules=false);
 
+    // ASR to Haskell
+    std::string asr_to_haskell(ASR::TranslationUnit_t &asr, bool colors=false,
+            bool indent=false, bool show_intrinsic_modules=false);
 }
 
 #endif // LFORTRAN_PICKLE_H

@@ -270,4 +270,13 @@ std::string pickle(LFortran::ASR::TranslationUnit_t &asr, bool colors, bool inde
     return pickle((ASR::asr_t &)asr, colors, indent, show_intrinsic_modules);
 }
 
+std::string asr_to_haskell(LFortran::ASR::TranslationUnit_t &asr, bool colors, bool indent, bool show_intrinsic_modules) {
+    ASRPickleVisitor v;
+    v.use_colors = colors;
+    v.indent = indent;
+    v.show_intrinsic_modules = show_intrinsic_modules;
+    v.visit_asr((ASR::asr_t &)asr);
+    return v.get_str();
+}
+
 }
