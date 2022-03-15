@@ -1,0 +1,334 @@
+ABS (A) E Absolute value.
+ACHAR (I [, KIND]) E Character from ASCII code value.
+ACOS (X) E Arccosine (inverse cosine) function.
+ACOSH (X) E Inverse hyperbolic cosine function.
+ADJUSTL (STRING) E Left-justified string value.
+ADJUSTR (STRING) E Right-justified string value.
+AIMAG (Z) E Imaginary part of a complex number.
+AINT (A [, KIND]) E Truncation toward 0 to a whole number.
+ALL (MASK) or (MASK, DIM) T Array reduced by .AND. operator.
+ALLOCATED (ARRAY) or (SCALAR) I Allocation status of allocatable variable.
+ANINT (A [, KIND]) E Nearest whole number.
+ANY (MASK) or (MASK, DIM) T Array reduced by .OR. operator.
+ASIN (X) E Arcsine (inverse sine) function.
+ASINH (X) E Inverse hyperbolic sine function.
+ASSOCIATED (POINTER [, TARGET]) I Pointer association status inquiry.
+ATAN (X) or (Y, X) E Arctangent (inverse tangent) function.
+ATAN2 (Y, X) E Arctangent (inverse tangent) function.
+ATANH (X) E Inverse hyperbolic tangent function.
+ATOMIC_ADD (ATOM, VALUE [, STAT]) A Atomic addition.
+ATOMIC_AND (ATOM, VALUE [, STAT]) A Atomic bitwise AND.
+ATOMIC_CAS (ATOM, OLD, COMPARE,
+VALUE [, STAT])
+A Atomic compare and swap.
+ATOMIC_DEFINE (ATOM, VALUE [, STAT]) A Define a variable atomically.
+ATOMIC_FETCH_-
+ADD
+(ATOM, VALUE, OLD
+[, STAT])
+A Atomic fetch and add.
+ATOMIC_FETCH_-
+AND
+(ATOM, VALUE, OLD
+[, STAT])
+A Atomic fetch and bitwise AND.
+ATOMIC_FETCH_-
+OR
+(ATOM, VALUE, OLD
+[, STAT])
+A Atomic fetch and bitwise OR.
+ATOMIC_FETCH_-
+XOR
+(ATOM, VALUE, OLD
+[, STAT])
+A Atomic fetch and bitwise exclusive OR.
+ATOMIC_OR (ATOM, VALUE [, STAT]) A Atomic bitwise OR.
+ATOMIC_REF (VALUE, ATOM [, STAT]) A Reference a variable atomically.
+ATOMIC_XOR (ATOM, VALUE [, STAT]) A Atomic bitwise exclusive OR.
+BESSEL_J0 (X) E Bessel function of the 1
+st kind, order 0.
+BESSEL_J1 (X) E Bessel function of the 1
+st kind, order 1.
+BESSEL_JN (N, X) E Bessel function of the 1
+st kind, order N.
+BESSEL_JN (N1, N2, X) T Bessel functions of the 1
+st kind.
+BESSEL_Y0 (X) E Bessel function of the 2
+nd kind, order 0.
+BESSEL_Y1 (X) E Bessel function of the 2
+nd kind, order 1.
+BESSEL_YN (N, X) E Bessel function of the 2
+nd kind, order N.
+BESSEL_YN (N1, N2, X) T Bessel functions of the 2
+nd kind.
+BGE (I, J) E Bitwise greater than or equal to.
+BGT (I, J) E Bitwise greater than.
+BIT_SIZE (I) I Number of bits in integer model 16.3.
+BLE (I, J) E Bitwise less than or equal to.
+BLT (I, J) E Bitwise less than.
+BTEST (I, POS) E Test single bit in an integer.
+CEILING (A [, KIND]) E Least integer greater than or equal to A.
+CHAR (I [, KIND]) E Character from code value.
+CMPLX (X [, KIND]) or
+(X [, Y, KIND])
+E Conversion to complex type.
+CO_BROADCAST (A, SOURCE_IMAGE [,
+STAT, ERRMSG])
+C Broadcast value to images.
+CO_MAX (A [, RESULT_IMAGE,
+STAT, ERRMSG])
+C Compute maximum value across images.
+CO_MIN (A [, RESULT_IMAGE,
+STAT, ERRMSG])
+C Compute minimum value across images.
+CO_REDUCE (A, OPERATION [,
+RESULT_IMAGE, STAT,
+ERRMSG])
+C Generalized reduction across images.
+CO_SUM (A [, RESULT_IMAGE,
+STAT, ERRMSG])
+C Compute sum across images.
+COMMAND_ARGUMENT_COUNT
+( ) T Number of command arguments.
+CONJG (Z) E Conjugate of a complex number.
+COS (X) E Cosine function.
+COSH (X) E Hyperbolic cosine function.
+COSHAPE (COARRAY [, KIND]) I Sizes of codimensions of a coarray.
+COUNT (MASK [, DIM, KIND]) T Logical array reduced by counting true
+values.
+CPU_TIME (TIME) S Processor time used.
+CSHIFT (ARRAY, SHIFT [, DIM]) T Circular shift of an array.
+DATE_AND_TIME ([DATE, TIME, ZONE,
+VALUES])
+S Date and time.
+DBLE (A) E Conversion to double precision real.
+DIGITS (X) I Significant digits in numeric model.
+DIM (X, Y) E Maximum of X − Y and zero.
+DOT_PRODUCT (VECTOR_A,
+VECTOR_B)
+T Dot product of two vectors.
+DPROD (X, Y) E Double precision real product.
+DSHIFTL (I, J, SHIFT) E Combined left shift.
+DSHIFTR (I, J, SHIFT) E Combined right shift.
+EOSHIFT (ARRAY, SHIFT [,
+BOUNDARY, DIM])
+T End-off shift of the elements of an array.
+EPSILON (X) I Model number that is small compared
+to 1.
+ERF (X) E Error function.
+ERFC (X) E Complementary error function.
+ERFC_SCALED (X) E Scaled complementary error function.
+EVENT_QUERY (EVENT, COUNT [, STAT]) S Query event count.
+EXECUTE_COMMAND_LINE
+(COMMAND [, WAIT,
+EXITSTAT, CMDSTAT,
+CMDMSG])
+S Execute a command line.
+EXP (X) E Exponential function.
+EXPONENT (X) E Exponent of floating-point number.
+EXTENDS_TYPE_-
+OF
+(A, MOLD) I Dynamic type extension inquiry.
+FAILED_IMAGES ([TEAM, KIND]) T Indices of failed images.
+FINDLOC (ARRAY, VALUE, DIM [,
+MASK, KIND, BACK]) or
+(ARRAY, VALUE [, MASK,
+KIND, BACK])
+T Location(s) of a specified value.
+FLOOR (A [, KIND]) E Greatest integer less than or equal to A.
+FRACTION (X) E Fractional part of number.
+GAMMA (X) E Gamma function.
+GET_COMMAND ([COMMAND, LENGTH,
+STATUS, ERRMSG])
+S Get program invocation command.
+GET_COMMAND_-
+ARGUMENT
+(NUMBER [, VALUE,
+LENGTH, STATUS,
+ERRMSG])
+S Get program invocation argument.
+GET_ENVIRONMENT_VARIABLE
+(NAME [, VALUE,
+LENGTH, STATUS,
+TRIM_NAME, ERRMSG])
+S Get environment variable.
+GET_TEAM ([LEVEL]) T Team.
+HUGE (X) I Largest model number.
+HYPOT (X, Y) E Euclidean distance function.
+IACHAR (C [, KIND]) E ASCII code value for character.
+IALL (ARRAY, DIM [, MASK]) or
+(ARRAY [, MASK])
+T Array reduced by IAND function.
+IAND (I, J) E Bitwise AND.
+IANY (ARRAY, DIM [, MASK]) or
+(ARRAY [, MASK])
+T Array reduced by IOR function.
+IBCLR (I, POS) E I with bit POS replaced by zero.
+IBITS (I, POS, LEN) E Specified sequence of bits.
+IBSET (I, POS) E I with bit POS replaced by one.
+ICHAR (C [, KIND]) E Code value for character.
+IEOR (I, J) E Bitwise exclusive OR.
+IMAGE_INDEX (COARRAY, SUB) or
+(COARRAY, SUB, TEAM)
+or (COARRAY, SUB,
+TEAM_NUMBER)
+T Image index from cosubscripts.
+IMAGE_STATUS (IMAGE [, TEAM]) E Image execution state.
+INDEX (STRING, SUBSTRING [,
+BACK, KIND])
+E Character string search.
+INT (A [, KIND]) E Conversion to integer type.
+IOR (I, J) E Bitwise inclusive OR.
+IPARITY (ARRAY, DIM [, MASK]) or
+(ARRAY [, MASK])
+T Array reduced by IEOR function.
+ISHFT (I, SHIFT) E Logical shift.
+ISHFTC (I, SHIFT [, SIZE]) E Circular shift of the rightmost bits.
+IS_CONTIGUOUS (ARRAY) I Array contiguity test (8.5.7).
+IS_IOSTAT_END (I) E IOSTAT value test for end of file.
+IS_IOSTAT_EOR (I) E IOSTAT value test for end of record.
+KIND (X) I Value of the kind type parameter of X.
+LBOUND (ARRAY [, DIM, KIND]) I Lower bound(s).
+LCOBOUND (COARRAY [, DIM, KIND]) I Lower cobound(s) of a coarray.
+LEADZ (I) E Number of leading zero bits.
+LEN (STRING [, KIND]) I Length of a character entity.
+LEN_TRIM (STRING [, KIND]) E Length without trailing blanks.
+LGE (STRING_A, STRING_B) E ASCII greater than or equal.
+LGT (STRING_A, STRING_B) E ASCII greater than.
+LLE (STRING_A, STRING_B) E ASCII less than or equal.
+LLT (STRING_A, STRING_B) E ASCII less than.
+LOG (X) E Natural logarithm.
+LOG_GAMMA (X) E Logarithm of the absolute value of the
+gamma function.
+LOG10 (X) E Common logarithm.
+LOGICAL (L [, KIND]) E Conversion between kinds of logical.
+MASKL (I [, KIND]) E Left justified mask.
+MASKR (I [, KIND]) E Right justified mask.
+MATMUL (MATRIX_A, MATRIX_B) T Matrix multiplication.
+MAX (A1, A2 [, A3, ...]) E Maximum value.
+MAXEXPONENT (X) I Maximum exponent of a real model.
+MAXLOC (ARRAY, DIM [, MASK,
+KIND, BACK]) or (ARRAY
+[, MASK, KIND, BACK])
+T Location(s) of maximum value.
+MAXVAL (ARRAY, DIM [, MASK]) or
+(ARRAY [, MASK])
+T Maximum value(s) of array.
+MERGE (TSOURCE, FSOURCE,
+MASK)
+E Expression value selection.
+MERGE_BITS (I, J, MASK) E Merge of bits under mask.
+MIN (A1, A2 [, A3, ...]) E Minimum value.
+MINEXPONENT (X) I Minimum exponent of a real model.
+MINLOC (ARRAY, DIM [, MASK,
+KIND, BACK]) or (ARRAY
+[, MASK, KIND, BACK])
+T Location(s) of minimum value.
+MINVAL (ARRAY, DIM [, MASK]) or
+(ARRAY [, MASK])
+T Minimum value(s) of array.
+MOD (A, P) E Remainder function.
+MODULO (A, P) E Modulo function.
+MOVE_ALLOC (FROM, TO [, STAT,
+ERRMSG])
+PS Move an allocation.
+MVBITS (FROM, FROMPOS, LEN,
+TO, TOPOS)
+ES Copy a sequence of bits.
+NEAREST (X, S) E Adjacent machine number.
+NEW_LINE (A) I Newline character.
+NINT (A [, KIND]) E Nearest integer.
+NORM2 (X) or (X, DIM) T L2 norm of an array.
+NOT (I) E Bitwise complement.
+NULL ([MOLD]) T Disassociated pointer or unallocated allocatable entity.
+NUM_IMAGES ( ) or (TEAM) or (TEAM_-
+NUMBER)
+T Number of images.
+OUT_OF_RANGE (X, MOLD [, ROUND]) E Whether a value cannot be converted
+safely.
+PACK (ARRAY, MASK [,
+VECTOR])
+T Array packed into a vector.
+PARITY (MASK) or (MASK, DIM) T Array reduced by .NEQV. operator.
+POPCNT (I) E Number of one bits.
+POPPAR (I) E Parity expressed as 0 or 1.
+PRECISION (X) I Decimal precision of a real model.
+PRESENT (A) I Presence of optional argument.
+PRODUCT (ARRAY, DIM [, MASK]) or
+(ARRAY [, MASK])
+T Array reduced by multiplication.
+RADIX (X) I Base of a numeric model.
+RANDOM_INIT (REPEATABLE, IMAGE_-
+DISTINCT)
+S Pseudorandom number generator initialization.
+RANDOM_NUMBER (HARVEST) S Generate pseudorandom number(s).
+RANDOM_SEED ([SIZE, PUT, GET]) S Pseudorandom number generator control.
+RANGE (X) I Decimal exponent range of a numeric
+model (16.4).
+RANK (A) I Rank of a data object.
+REAL (A [, KIND]) E Conversion to real type.
+REDUCE (ARRAY, OPERATION,
+DIM [, MASK, IDENTITY,
+ORDERED]) or (ARRAY,
+OPERATION [, MASK,
+IDENTITY, ORDERED])
+T General reduction of array
+REPEAT (STRING, NCOPIES) T Repetitive string concatenation.
+RESHAPE (SOURCE, SHAPE [, PAD,
+ORDER])
+T Arbitrary shape array construction.
+RRSPACING (X) E Reciprocal of relative spacing of model
+numbers.
+SAME_TYPE_AS (A, B) I Dynamic type equality test.
+SCALE (X, I) E Real number scaled by radix power.
+SCAN (STRING, SET [, BACK,
+KIND])
+E Character set membership search.
+SELECTED_CHAR_-
+KIND
+(NAME) T Character kind selection.
+SELECTED_INT_-
+KIND
+(R) T Integer kind selection.
+SELECTED_REAL_-
+KIND
+([P, R, RADIX]) T Real kind selection.
+SET_EXPONENT (X, I) E Real value with specified exponent.
+SHAPE (SOURCE [, KIND]) I Shape of an array or a scalar.
+SHIFTA (I, SHIFT) E Right shift with fill.
+SHIFTL (I, SHIFT) E Left shift.
+SHIFTR (I, SHIFT) E Right shift.
+SIGN (A, B) E Magnitude of A with the sign of B.
+SIN (X) E Sine function.
+SINH (X) E Hyperbolic sine function.
+SIZE (ARRAY [, DIM, KIND]) I Size of an array or one extent.
+SPACING (X) E Spacing of model numbers.
+SPREAD (SOURCE, DIM, NCOPIES) T Value replicated in a new dimension.
+SQRT (X) E Square root.
+STOPPED_IMAGES ([TEAM, KIND]) T Indices of stopped images.
+STORAGE_SIZE (A [, KIND]) I Storage size in bits.
+SUM (ARRAY, DIM [, MASK]) or
+(ARRAY [, MASK])
+T Array reduced by addition.
+SYSTEM_CLOCK ([COUNT, COUNT_RATE,
+COUNT_MAX])
+S Query system clock.
+TAN (X) E Tangent function.
+TANH (X) E Hyperbolic tangent function.
+TEAM_NUMBER ([TEAM]) T Team number.
+THIS_IMAGE ([TEAM]) T Index of the invoking image.
+THIS_IMAGE (COARRAY [, TEAM]) or
+(COARRAY, DIM [,
+TEAM])
+T Cosubscript(s) for this image.
+TINY (X) I Smallest positive model number.
+TRAILZ (I) E Number of trailing zero bits.
+TRANSFER (SOURCE, MOLD [, SIZE]) T Transfer physical representation.
+TRANSPOSE (MATRIX) T Transpose of an array of rank two.
+TRIM (STRING) T String without trailing blanks.
+UBOUND (ARRAY [, DIM, KIND]) I Upper bound(s).
+UCOBOUND (COARRAY [, DIM, KIND]) I Upper cobound(s) of a coarray.
+UNPACK (VECTOR, MASK, FIELD) T Vector unpacked into an array.
+VERIFY (STRING, SET [, BACK,
+KIND])
+E Character set non-membership search.
