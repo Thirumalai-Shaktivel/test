@@ -1022,7 +1022,7 @@ class HaskellVisitorVisitor(ASDLVisitor):
                     self.emit(          'tmp2 = 1;',level+1)
                     self.emit(          'inc_indent();',level+1)
                     self.emit(      '}', level)
-                    self.emit(      's.append("{");', level)
+                    self.emit(      's.append("[");', level)
                     self.emit('{', level)
                     self.emit('    size_t i = 0;', level)
                     self.emit('    for (auto &a : x.m_%s->scope) {' % field.name, level)
@@ -1030,8 +1030,9 @@ class HaskellVisitorVisitor(ASDLVisitor):
                     self.emit(          's.append("\\n"+indtd);', level+1)
                     self.emit(          'inc_indent();',level+1)
                     self.emit(      '}', level)
-                    self.emit('      s.append(a.first + ": ");', level)
+                    self.emit('      s.append("(\\\"" + a.first + "\\\", ");', level)
                     self.emit('        this->visit_symbol(*a.second);', level)
+                    self.emit('        s.append(")");', level)
                     self.emit('        if (i < x.m_%s->scope.size()-1) { ' % field.name, level)
                     self.emit('            s.append(", ");', level)
                     self.emit('            if(indent) {', level)
@@ -1050,7 +1051,7 @@ class HaskellVisitorVisitor(ASDLVisitor):
                     self.emit(          'tmp2++;', level+1)
                     self.emit(          's.append("\\n"+indtd);', level+1)
                     self.emit(      '}', level)
-                    self.emit(      's.append("})");', level)
+                    self.emit(      's.append("])");', level)
                     self.emit(      'if(indent) dec_indent();', level)
             elif field.type == "string" and not field.seq:
                 if field.opt:
