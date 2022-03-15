@@ -1014,6 +1014,13 @@ class HaskellVisitorVisitor(ASDLVisitor):
                     self.emit('s.append("SymbolTable");', level)
                     self.emit('s.append(" ");', level)
                     self.emit(      'if(indent) s.append("\\n"+indtd);', level)
+                    self.emit(      'if (x.m_%s->parent) {' % field.name, level)
+                    self.emit(          's.append("(Just " + x.m_%s->parent->get_counter() + ")");'
+                            % field.name, level+1)
+                    self.emit(      '} else {', level)
+                    self.emit(          's.append("(Nothing)");', level+1)
+                    self.emit(      '}', level)
+                    self.emit(      's.append(" ");', level)
                     self.emit(      's.append(x.m_%s->get_counter());' % field.name, level)
                     self.emit(      's.append(" ");', level)
                     self.emit(      'if(indent) {',level)
