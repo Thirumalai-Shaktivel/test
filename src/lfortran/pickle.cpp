@@ -273,7 +273,7 @@ std::string pickle(LFortran::ASR::TranslationUnit_t &asr, bool colors, bool inde
 // Haskell
 
 class ASRHaskellVisitor :
-    public LFortran::ASR::PickleBaseVisitor<ASRHaskellVisitor>
+    public LFortran::ASR::HaskellBaseVisitor<ASRHaskellVisitor>
 {
 public:
     bool show_intrinsic_modules;
@@ -333,7 +333,7 @@ public:
             s.append(x.m_name);
             s.append(")");
         } else {
-            LFortran::ASR::PickleBaseVisitor<ASRHaskellVisitor>::visit_Module(x);
+            LFortran::ASR::HaskellBaseVisitor<ASRHaskellVisitor>::visit_Module(x);
         };
     }
 };
