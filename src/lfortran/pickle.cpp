@@ -285,33 +285,13 @@ public:
     void visit_symbol(const ASR::symbol_t &x) {
         s.append(LFortran::ASRUtils::symbol_parent_symtab(&x)->get_counter());
         s.append(" ");
-        if (use_colors) {
-            s.append(color(fg::yellow));
-        }
         s.append(LFortran::ASRUtils::symbol_name(&x));
-        if (use_colors) {
-            s.append(color(fg::reset));
-        }
     }
     void visit_ConstantInteger(const ASR::ConstantInteger_t &x) {
         s.append("(");
-        if (use_colors) {
-            s.append(color(style::bold));
-            s.append(color(fg::magenta));
-        }
         s.append("ConstantInteger");
-        if (use_colors) {
-            s.append(color(fg::reset));
-            s.append(color(style::reset));
-        }
         s.append(" ");
-        if (use_colors) {
-            s.append(color(fg::cyan));
-        }
         s.append(std::to_string(x.m_n));
-        if (use_colors) {
-            s.append(color(fg::reset));
-        }
         s.append(" ");
         this->visit_ttype(*x.m_type);
         s.append(")");
@@ -320,15 +300,7 @@ public:
         if (!show_intrinsic_modules &&
                     startswith(x.m_name, "lfortran_intrinsic_")) {
             s.append("(");
-            if (use_colors) {
-                s.append(color(style::bold));
-                s.append(color(fg::magenta));
-            }
             s.append("IntrinsicModule");
-            if (use_colors) {
-                s.append(color(fg::reset));
-                s.append(color(style::reset));
-            }
             s.append(" ");
             s.append(x.m_name);
             s.append(")");
@@ -338,9 +310,8 @@ public:
     }
 };
 
-std::string asr_to_haskell(LFortran::ASR::TranslationUnit_t &asr, bool colors, bool indent, bool show_intrinsic_modules) {
+std::string asr_to_haskell(LFortran::ASR::TranslationUnit_t &asr, bool indent, bool show_intrinsic_modules) {
     ASRHaskellVisitor v;
-    v.use_colors = colors;
     v.indent = indent;
     v.show_intrinsic_modules = show_intrinsic_modules;
     v.visit_asr((ASR::asr_t &)asr);

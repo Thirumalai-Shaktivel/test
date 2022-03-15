@@ -634,7 +634,7 @@ int emit_haskell(const std::string &infile,
     LFortran::ASR::TranslationUnit_t* asr = r.result;
 
     Allocator al(64*1024*1024);
-    std::cout << LFortran::asr_to_haskell(*asr, compiler_options.use_colors, compiler_options.indent,
+    std::cout << LFortran::asr_to_haskell(*asr, compiler_options.indent,
             with_intrinsic_modules) << std::endl;
     return 0;
 }

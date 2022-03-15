@@ -848,13 +848,12 @@ class HaskellVisitorVisitor(ASDLVisitor):
         self.emit(  "Derived& self() { return static_cast<Derived&>(*this); }", 1)
         self.emit("public:")
         self.emit(  "std::string s, indtd;", 1)
-        self.emit(  "bool use_colors;", 1)
         self.emit(  "bool indent, start_line = true;", 1)
         self.emit(  "int indent_level = 0, indent_spaces = 3, lvl = 0;", 1)
         self.emit(  "int tmp = 0, tmp1 = 0, tmp2 = 2;", 1)
         self.emit(  "int curly[2000], round[2000];", 1)
         self.emit("public:")
-        self.emit(  "HaskellBaseVisitor() : use_colors(false), indent(false) { s.reserve(100000); }", 1)
+        self.emit(  "HaskellBaseVisitor() : indent(false) { s.reserve(100000); }", 1)
         self.emit(  "void inc_indent() {", 1)
         self.emit(      "indent_level++;", 2)
         self.emit(      "indtd = std::string(indent_level*indent_spaces, ' ');",2)
@@ -901,25 +900,12 @@ class HaskellVisitorVisitor(ASDLVisitor):
         self.emit(          '}', 3)
         self.emit(      '}', 2)
         self.emit(      's.append("(");', 2)
-        subs = {
-            "Assignment": "=",
-            "Associate": "=>",
-        }
-        if name in subs:
-            name = subs[name]
         if cons:
-            self.emit(    'if (use_colors) {', 2)
-            self.emit(        's.append(color(style::bold));', 3)
-            self.emit(        's.append(color(fg::magenta));', 3)
-            self.emit(    '}', 2)
             self.emit(    's.append("%s");' % name, 2)
-            self.emit(    'if (use_colors) {', 2)
-            self.emit(        's.append(color(fg::reset));', 3)
-            self.emit(        's.append(color(style::reset));', 3)
-            self.emit(    '}', 2)
             if len(fields) > 0:
                 self.emit(    's.append(" ");', 2)
         self.used = False
+        #if (len(fields) == 0): self.emit(    's.append("Nothing");', 2)
         for n, field in enumerate(fields):
             self.visitField(field, cons)
             if n < len(fields) - 1:
@@ -938,20 +924,12 @@ class HaskellVisitorVisitor(ASDLVisitor):
 
     def make_simple_sum_visitor(self, name, types):
         self.emit("void visit_%s(const %s &x) {" % (name, name), 1)
-        self.emit(    'if (use_colors) {', 2)
-        self.emit(        's.append(color(style::bold));', 3)
-        self.emit(        's.append(color(fg::green));', 3)
-        self.emit(    '}', 2)
         self.emit(    'switch (x) {', 2)
         for tp in types:
             self.emit(    'case (%s::%s) : {' % (name, tp.name), 3)
             self.emit(      'if(indent) s.append("\\n"+indtd);',4)
             self.emit(      's.append("%s");' % (tp.name), 4)
             self.emit(     ' break; }',3)
-        self.emit(    '}', 2)
-        self.emit(    'if (use_colors) {', 2)
-        self.emit(        's.append(color(fg::reset));', 3)
-        self.emit(        's.append(color(style::reset));', 3)
         self.emit(    '}', 2)
         self.emit("}", 1)
 
@@ -981,7 +959,7 @@ class HaskellVisitorVisitor(ASDLVisitor):
                 self.emit("if (x.m_%s) {" % field.name, 2)
                 self.emit(template, 3)
                 self.emit("} else {", 2)
-                self.emit(    's.append("()");', 3)
+                self.emit(    's.append("(Nothing)");', 3)
                 self.emit("}", 2)
             else:
                 self.emit(template, level)
@@ -1001,7 +979,7 @@ class HaskellVisitorVisitor(ASDLVisitor):
                         self.emit("if (x.m_%s) {" % field.name, 2)
                         self.emit(    's.append(x.m_%s);' % field.name, 3)
                         self.emit("} else {", 2)
-                        self.emit(    's.append("()");', 3)
+                        self.emit(    's.append("(Nothing)");', 3)
                         self.emit("}", 2)
                     else:
                         self.emit('if(indent) s.append("\\n"+indtd);', 2)
@@ -1033,13 +1011,7 @@ class HaskellVisitorVisitor(ASDLVisitor):
                     self.emit(          'inc_indent();',level+1)
                     self.emit(      '}', level)
                     self.emit(      's.append("(");', level)
-                    self.emit('if (use_colors) {', level)
-                    self.emit(    's.append(color(fg::yellow));', level+1)
-                    self.emit('}', level)
                     self.emit('s.append("SymbolTable");', level)
-                    self.emit('if (use_colors) {', level)
-                    self.emit(    's.append(color(fg::reset));', level+1)
-                    self.emit('}', level)
                     self.emit('s.append(" ");', level)
                     self.emit(      'if(indent) s.append("\\n"+indtd);', level)
                     self.emit(      's.append(x.m_%s->get_counter());' % field.name, level)
@@ -1085,7 +1057,7 @@ class HaskellVisitorVisitor(ASDLVisitor):
                     self.emit("if (x.m_%s) {" % field.name, 2)
                     self.emit(    's.append("\\"" + std::string(x.m_%s) + "\\"");' % field.name, 3)
                     self.emit("} else {", 2)
-                    self.emit(    's.append("()");', 3)
+                    self.emit(    's.append("(Nothing)");', 3)
                     self.emit("}", 2)
                 else:
                     self.emit('s.append("\\"" + std::string(x.m_%s) + "\\"");' % field.name, 2)
@@ -1094,7 +1066,7 @@ class HaskellVisitorVisitor(ASDLVisitor):
                     self.emit("if (x.m_%s) {" % field.name, 2)
                     self.emit(    's.append(std::to_string(x.m_%s));' % field.name, 3)
                     self.emit("} else {", 2)
-                    self.emit(    's.append("()");', 3)
+                    self.emit(    's.append("(Nothing)");', 3)
                     self.emit("}", 2)
                 else:
                     self.emit('s.append(std::to_string(x.m_%s));' % field.name, 2)
@@ -1102,9 +1074,9 @@ class HaskellVisitorVisitor(ASDLVisitor):
                 self.emit('s.append(std::to_string(x.m_%s));' % field.name, 2)
             elif field.type == "bool" and not field.seq and not field.opt:
                 self.emit("if (x.m_%s) {" % field.name, 2)
-                self.emit(    's.append(".true.");', 3)
+                self.emit(    's.append("True");', 3)
                 self.emit("} else {", 2)
-                self.emit(    's.append(".false.");', 3)
+                self.emit(    's.append("False");', 3)
                 self.emit("}", 2)
             elif field.type in self.data.simple_types:
                 if field.opt:
