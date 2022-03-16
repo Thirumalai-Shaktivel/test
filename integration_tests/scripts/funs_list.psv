@@ -1,0 +1,201 @@
+Intrinsic Procedure|Arguments|Class|Description
+abs|(a)|E|Absolute value
+achar|(i [, kind])|E|Character from ascii code value
+acos|(x)|E|Arccosine (inverse cosine) function
+acosh|(x)|E|Inverse hyperbolic cosine function
+adjustl|(string)|E|Left-justified string value
+adjustr|(string)|E|Right-justified string value
+aimag|(z)|E|Imaginary part of a complex number
+aint|(a [, kind])|E|Truncation toward 0 to a whole number
+all|(mask) or (mask, dim)|T|Array reduced by .and. operator
+allocated|(array) or (scalar)|I|Allocation status of allocatable variable
+anint|(a [, kind])|E|Nearest whole number
+any|(mask) or (mask, dim)|T|Array reduced by .or. operator
+asin|(x)|E|Arcsine (inverse sine) function
+asinh|(x)|E|Inverse hyperbolic sine function
+associated|(pointer [, target])|I|Pointer association status inquiry
+atan|(x) or (y, x)|E|Arctangent (inverse tangent) function
+atan2|(y, x)|E|Arctangent (inverse tangent) function
+atanh|(x)|E|Inverse hyperbolic tangent function
+atomic_add|(atom, value [, stat])|A|Atomic addition
+atomic_and|(atom, value [, stat])|A|Atomic bitwise and
+atomic_cas|(atom, old, compare, value [, stat])|A|Atomic compare and swap
+atomic_define|(atom, value [, stat])|A|Define a variable atomically
+atomic_fetch_add|(atom, value, old [, stat])|A|Atomic fetch and add
+atomic_fetch_and|(atom, value, old [, stat])|A|Atomic fetch and bitwise and
+atomic_fetch_or|(atom, value, old [, stat])|A|Atomic fetch and bitwise or
+atomic_fetch_xor|(atom, value, old [, stat])|A|Atomic fetch and bitwise exclusive or
+atomic_or|(atom, value [, stat])|A|Atomic bitwise or
+atomic_ref|(value, atom [, stat])|A|Reference a variable atomically
+atomic_xor|(atom, value [, stat])|A|Atomic bitwise exclusive or
+bessel_j0|(x)|E|Bessel function of the 1 st kind, order 0
+bessel_j1|(x)|E|Bessel function of the 1 st kind, order 1
+bessel_jn|(n, x)|E|Bessel function of the 1 st kind, order n
+bessel_jn|(n1, n2, x)|T|Bessel functions of the 1 st kind
+bessel_y0|(x)|E|Bessel function of the 2 nd kind, order 0
+bessel_y1|(x)|E|Bessel function of the 2 nd kind, order 1
+bessel_yn|(n, x)|E|Bessel function of the 2 nd kind, order n
+bessel_yn|(n1, n2, x)|T|Bessel functions of the 2 nd kind
+bge|(i, j)|E|Bitwise greater than or equal to
+bgt|(i, j)|E|Bitwise greater than
+bit_size|(i)|I|Number of bits in integer model 16.3
+ble|(i, j)|E|Bitwise less than or equal to
+blt|(i, j)|E|Bitwise less than
+btest|(i, pos)|E|Test single bit in an integer
+ceiling|(a [, kind])|E|Least integer greater than or equal to a
+char|(i [, kind])|E|Character from code value
+cmplx|(x [, kind]) or (x [, y, kind])|E|Conversion to complex type
+co_broadcast|(a, source_image [, stat, errmsg])|C|Broadcast value to images
+co_max|(a [, result_image, stat, errmsg])|C|Compute maximum value across images
+co_min|(a [, result_image, stat, errmsg])|C|Compute minimum value across images
+co_reduce|(a, operation [, result_image, stat, errmsg])|C|Generalized reduction across images
+co_sum|(a [, result_image, stat, errmsg])|C|Compute sum across images
+command_argument_count|( )|T|Number of command arguments
+conjg|(z)|E|Conjugate of a complex number
+cos|(x)|E|Cosine function
+cosh|(x)|E|Hyperbolic cosine function
+coshape|(coarray [, kind])|I|Sizes of codimensions of a coarray
+count|(mask [, dim, kind])|T|Logical array reduced by counting true values
+cpu_time|(time)|S|Processor time used
+cshift|(array, shift [, dim])|T|Circular shift of an array
+date_and_time|([date, time, zone, values])|S|Date and time
+dble|(a)|E|Conversion to double precision real
+digits|(x)|I|Significant digits in numeric model
+dim|(x, y)|E|Maximum of x − y and zero
+dot_product|(vector_a, vector_b)|T|Dot product of two vectors
+dprod|(x, y)|E|Double precision real product
+dshiftl|(i, j, shift)|E|Combined left shift
+dshiftr|(i, j, shift)|E|Combined right shift
+eoshift|(array, shift [, boundary, dim])|T|End-off shift of the elements of an array
+epsilon|(x)|I|Model number that is small compared to 1
+erf|(x)|E|Error function
+erfc|(x)|E|Complementary error function
+erfc_scaled|(x)|E|Scaled complementary error function
+event_query|(event, count [, stat])|S|Query event count
+execute_command_line|(command [, wait, exitstat, cmdstat, cmdmsg])|S|Execute a command line
+exp|(x)|E|Exponential function
+exponent|(x)|E|Exponent of floating-point number
+extends_type_of|(a, mold)|I|Dynamic type extension inquiry
+failed_images|([team, kind])|T|Indices of failed images
+findloc|(array, value, dim [, mask, kind, back]) or (array, value [, mask, kind, back])|T|Location(s) of a specified value
+floor|(a [, kind])|E|Greatest integer less than or equal to a
+fraction|(x)|E|Fractional part of number
+gamma|(x)|E|Gamma function
+get_command|([command, length, status, errmsg])|S|Get program invocation command
+get_command_argument|(number [, value, length, status, errmsg])|S|Get program invocation argument
+get_environment_variable|(name [, value, length, status, trim_name, errmsg])|S|Get environment variable
+get_team|([level])|T|Team
+huge|(x)|I|Largest model number
+hypot|(x, y)|E|Euclidean distance function
+iachar|(c [, kind])|E|Ascii code value for character
+iall|(array, dim [, mask]) or (array [, mask])|T|Array reduced by iand function
+iand|(i, j)|E|Bitwise and
+iany|(array, dim [, mask]) or (array [, mask])|T|Array reduced by ior function
+ibclr|(i, pos)|E|I with bit pos replaced by zero
+ibits|(i, pos, len)|E|Specified sequence of bits
+ibset|(i, pos)|E|I with bit pos replaced by one
+ichar|(c [, kind])|E|Code value for character
+ieor|(i, j)|E|Bitwise exclusive or
+image_index|(coarray, sub) or (coarray, sub, team) or (coarray, sub, team_number)|T|Image index from cosubscripts
+image_status|(image [, team])|E|Image execution state
+index|(string, substring [, back, kind])|E|Character string search
+int|(a [, kind])|E|Conversion to integer type
+ior|(i, j)|E|Bitwise inclusive or
+iparity|(array, dim [, mask]) or (array [, mask])|T|Array reduced by ieor function
+ishft|(i, shift)|E|Logical shift
+ishftc|(i, shift [, size])|E|Circular shift of the rightmost bits
+is_contiguous|(array)|I|Array contiguity test (8.5.7)
+is_iostat_end|(i)|E|Iostat value test for end of file
+is_iostat_eor|(i)|E|Iostat value test for end of record
+kind|(x)|I|Value of the kind type parameter of x
+lbound|(array [, dim, kind])|I|Lower bound(s)
+lcobound|(coarray [, dim, kind])|I|Lower cobound(s) of a coarray
+leadz|(i)|E|Number of leading zero bits
+len|(string [, kind])|I|Length of a character entity
+len_trim|(string [, kind])|E|Length without trailing blanks
+lge|(string_a, string_b)|E|Ascii greater than or equal
+lgt|(string_a, string_b)|E|Ascii greater than
+lle|(string_a, string_b)|E|Ascii less than or equal
+llt|(string_a, string_b)|E|Ascii less than
+log|(x)|E|Natural logarithm
+log_gamma|(x)|E|Logarithm of the absolute value of the gamma function
+log10|(x)|E|Common logarithm
+logical|(l [, kind])|E|Conversion between kinds of logical
+maskl|(i [, kind])|E|Left justified mask
+maskr|(i [, kind])|E|Right justified mask
+matmul|(matrix_a, matrix_b)|T|Matrix multiplication
+max|(a1, a2 [, a3, ...])|E|Maximum value
+maxexponent|(x)|I|Maximum exponent of a real model
+maxloc|(array, dim [, mask, kind, back]) or (array [, mask, kind, back])|T|Location(s) of maximum value
+maxval|(array, dim [, mask]) or (array [, mask])|T|Maximum value(s) of array
+merge|(tsource, fsource, mask)|E|Expression value selection
+merge_bits|(i, j, mask)|E|Merge of bits under mask
+min|(a1, a2 [, a3, ...])|E|Minimum value
+minexponent|(x)|I|Minimum exponent of a real model
+minloc|(array, dim [, mask, kind, back]) or (array [, mask, kind, back])|T|Location(s) of minimum value
+minval|(array, dim [, mask]) or (array [, mask])|T|Minimum value(s) of array
+mod|(a, p)|E|Remainder function
+modulo|(a, p)|E|Modulo function
+move_alloc|(from, to [, stat, errmsg])|PS|Move an allocation
+mvbits|(from, frompos, len, to, topos)|ES|Copy a sequence of bits
+nearest|(x, s)|E|Adjacent machine number
+new_line|(a)|I|Newline character
+nint|(a [, kind])|E|Nearest integer
+norm2|(x) or (x, dim)|T|L2 norm of an array
+not|(i)|E|Bitwise complement
+null|([mold])|T|Disassociated pointer or unallocated allocatable entity
+num_images|( ) or (team) or (team_- number)|T|Number of images
+out_of_range|(x, mold [, round])|E|Whether a value cannot be converted safely
+pack|(array, mask [, vector])|T|Array packed into a vector
+parity|(mask) or (mask, dim)|T|Array reduced by .neqv. operator
+popcnt|(i)|E|Number of one bits
+poppar|(i)|E|Parity expressed as 0 or 1
+precision|(x)|I|Decimal precision of a real model
+present|(a)|I|Presence of optional argument
+product|(array, dim [, mask]) or (array [, mask])|T|Array reduced by multiplication
+radix|(x)|I|Base of a numeric model
+random_init|(repeatable, image_- distinct)|S|Pseudorandom number generator initialization
+random_number|(harvest)|S|Generate pseudorandom number(s)
+random_seed|([size, put, get])|S|Pseudorandom number generator control
+range|(x)|I|Decimal exponent range of a numeric model (16.4)
+rank|(a)|I|Rank of a data object
+real|(a [, kind])|E|Conversion to real type
+reduce|(array, operation, dim [, mask, identity, ordered]) or (array, operation [, mask, identity, ordered])|T|General reduction of array repeat (string, ncopies) t repetitive string concatenation
+reshape|(source, shape [, pad, order])|T|Arbitrary shape array construction
+rrspacing|(x)|E|Reciprocal of relative spacing of model numbers
+same_type_as|(a, b)|I|Dynamic type equality test
+scale|(x, i)|E|Real number scaled by radix power
+scan|(string, set [, back, kind])|E|Character set membership search
+selected_char_kind|(name)|T|Character kind selection
+selected_int_kind|(r)|T|Integer kind selection
+selected_real_kind|([p, r, radix])|T|Real kind selection
+set_exponent|(x, i)|E|Real value with specified exponent
+shape|(source [, kind])|I|Shape of an array or a scalar
+shifta|(i, shift)|E|Right shift with fill
+shiftl|(i, shift)|E|Left shift
+shiftr|(i, shift)|E|Right shift
+sign|(a, b)|E|Magnitude of a with the sign of b
+sin|(x)|E|Sine function
+sinh|(x)|E|Hyperbolic sine function
+size|(array [, dim, kind])|I|Size of an array or one extent
+spacing|(x)|E|Spacing of model numbers
+spread|(source, dim, ncopies)|T|Value replicated in a new dimension
+sqrt|(x)|E|Square root
+stopped_images|([team, kind])|T|Indices of stopped images
+storage_size|(a [, kind])|I|Storage size in bits
+sum|(array, dim [, mask]) or (array [, mask])|T|Array reduced by addition
+system_clock|([count, count_rate, count_max])|S|Query system clock
+tan|(x)|E|Tangent function
+tanh|(x)|E|Hyperbolic tangent function
+team_number|([team])|T|Team number
+this_image|([team])|T|Index of the invoking image
+this_image|(coarray [, team]) or (coarray, dim [, team])|T|Cosubscript(s) for this image
+tiny|(x)|I|Smallest positive model number
+trailz|(i)|E|Number of trailing zero bits
+transfer|(source, mold [, size])|T|Transfer physical representation
+transpose|(matrix)|T|Transpose of an array of rank two
+trim|(string)|T|String without trailing blanks
+ubound|(array [, dim, kind])|I|Upper bound(s)
+ucobound|(coarray [, dim, kind])|I|Upper cobound(s) of a coarray
+unpack|(vector, mask, field)|T|Vector unpacked into an array
+verify|(string, set [, back, kind])|E|Character set non-membership search.
