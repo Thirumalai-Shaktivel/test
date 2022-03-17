@@ -170,6 +170,9 @@ RUN(NAME arrays_09 LABELS gfortran)
 RUN(NAME arrays_10 LABELS gfortran)
 RUN(NAME arrays_11 LABELS gfortran llvm cpp)
 
+RUN(NAME arrays_intrin_01 LABELS gfortran) # minval, maxval
+RUN(NAME arrays_intrin_02 LABELS gfortran) # all, any
+
 RUN(NAME reserved_01 LABELS gfortran)
 RUN(NAME reserved_02 LABELS gfortran llvm)
 RUN(NAME reserved_03 LABELS gfortran)
@@ -232,6 +235,7 @@ RUN(NAME intrinsics_34 LABELS gfortran llvm)
 RUN(NAME intrinsics_35 LABELS gfortran)
 RUN(NAME intrinsics_36 LABELS gfortran llvm)
 RUN(NAME intrinsics_37 LABELS gfortran)
+RUN(NAME intrinsics_39 LABELS gfortran)
 RUN(NAME intrinsics_open_close_read_write LABELS gfortran)
 
 RUN(NAME parameter_01 LABELS gfortran)
