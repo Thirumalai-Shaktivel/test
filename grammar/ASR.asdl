@@ -270,7 +270,6 @@ cast_kind
     | IntegerToLogical
     | ComplexToComplex
     | ComplexToReal
-    | LogicalToInteger
 
 dimension = (expr? start, expr? end)
 
