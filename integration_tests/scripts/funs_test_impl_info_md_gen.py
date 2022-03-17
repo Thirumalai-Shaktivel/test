@@ -1,10 +1,10 @@
 """
-This file generates a psv which lists all the intrinsic functions in fortran along with the basic tests 
+This file generates a markdown table which lists all the intrinsic functions in fortran along with the basic tests 
 and implementation status of each intrinsic function. For each intrinsic function, it also lists all the test files which
 test the intrinsic function and for each test file, it also mentions if the test file is supported in llvm or not
 
-Input: funs_list.psv, test_file_compilers_info.psv, all the test files inside the 'integration_tests' directory
-Output: test_impl_info.psv
+Input: funs_list.psv, test_file_compilers_info.psv, integration_tests/*.f90
+Output: funs_test_impl_info.md
 """
 
 import re
@@ -16,8 +16,10 @@ integration_tests_loc = ".."
 test_files = []
 not_in_cache_makelist = []
 test_file_compilers_info = pd.read_csv("test_file_compilers_info.psv", sep = "|").set_index("File Name")
-funs_list = pd.read_csv("funs_list.psv", sep = "|")
-funs_list.loc[144, "Intrinsic Procedure"] = "null" # pandas is converting the function name null to nan, so the null is restored here
+funs_test_impl_info = pd.read_csv("funs_list.psv", sep = "|")
+
+# while reading the funs_list.psv, pandas is converting the function name `null` to `nan`, so the `null` is restored back here
+funs_test_impl_info.loc[144, "Intrinsic Procedure"] = "null"
 
 def is_fortran_file(file_name):
     return len(file_name) > 4 and file_name[-4:] == ".f90"
@@ -32,7 +34,7 @@ def get_tested_in_files(func_name):
         with open(f"{integration_tests_loc}/{test_file_name}.f90", "r") as test_file:
 
             # regex to search for function call, a non-word character followed by the function name followed by '('
-            pattern_func_name = f"[^\w]{func_name}\("
+            pattern_func_name = f"\W{func_name}\("
             if re.findall(pattern_func_name, test_file.read()):
                 tested_in_files.append(test_file_name)
     return tested_in_files
@@ -58,14 +60,16 @@ def get_llvm_supp_info_info(tested_in_files):
     return test_in_files_llvm_supp_info, is_basic_test, is_basic_impl
 
 
-# for each function in the funs_list, find which all files it is tested in along with whether the files support llvm or no
-for i in range(funs_list.shape[0]):
-    tested_in_files = get_tested_in_files(funs_list.loc[i, "Intrinsic Procedure"])
+# for each function in the funs_test_impl_info, find which all files it is tested in along with whether the files support llvm or not
+for i in range(funs_test_impl_info.shape[0]):
+    tested_in_files = get_tested_in_files(funs_test_impl_info.loc[i, "Intrinsic Procedure"])
     llvm_supp_info, is_basic_test, is_basic_impl = get_llvm_supp_info_info(tested_in_files)
-    funs_list.loc[i, "Tested in, llvm status"] = "\n".join(llvm_supp_info)
-    funs_list.loc[i, "Basic Tests"] = ["", ":white_check_mark:"][int(is_basic_test)]
-    funs_list.loc[i, "Basic Impl"] = ["", ":white_check_mark:"][int(is_basic_impl)]
+    funs_test_impl_info.loc[i, "Tested in, llvm status"] = "\n".join(llvm_supp_info)
+    funs_test_impl_info.loc[i, "Basic Tests"] = ["", ":white_check_mark:"][int(is_basic_test)]
+    funs_test_impl_info.loc[i, "Basic Impl"] = ["", ":white_check_mark:"][int(is_basic_impl)]
 
-funs_list.to_csv("test_impl_info.psv", sep = "|", index = False)
+funs_test_impl_info.index = range(1, funs_test_impl_info.shape[0] + 1) # indexing is changed to start from 1 instead of 0
+with open("funs_test_impl_info.md", "w") as funs_test_impl_info_md_file:
+    funs_test_impl_info_md_file.write(funs_test_impl_info.to_markdown()) # saving to markdown file
 
-print("files not in cache make list: ", sorted(not_in_cache_makelist))
+print("files not in cache make list: ", sorted(not_in_cache_makelist)) # these files test some intrinsic function but they are not registered in CMakeLists.txt

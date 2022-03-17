@@ -1,8 +1,8 @@
 """
-This file parsers the 'CMakeLists.txt' file present in 'integration_tests' directory and generates a psv of the list of test files
+This file parses the 'CMakeLists.txt' file present in 'integration_tests' directory and generates a psv of the list of test files
 and their supported compilers
 
-Input: CMakeLists.txt
+Input: integration_tests/CMakeLists.txt
 Output: test_file_compilers_info.psv
 """
 
