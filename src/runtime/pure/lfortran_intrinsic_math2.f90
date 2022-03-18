@@ -401,42 +401,42 @@ function mergei8(tsource, fsource, mask) result(r)
     integer(i8), intent(in) :: tsource(:)
     integer(i8), intent(in) :: fsource(:)
     logical, intent(in) :: mask(:)
-    integer(i8) :: r(size(tsource))
+    integer(i8) :: r
 end function
 
 function mergei16(tsource, fsource, mask) result(r)
     integer(i16), intent(in) :: tsource(:)
     integer(i16), intent(in) :: fsource(:)
     logical, intent(in) :: mask(:)
-    integer(i16) :: r(size(tsource))
+    integer(i16) :: r
 end function
 
 function mergei32(tsource, fsource, mask) result(r)
     integer(i32), intent(in) :: tsource(:)
     integer(i32), intent(in) :: fsource(:)
     logical, intent(in) :: mask(:)
-    integer(i32) :: r(size(tsource))
+    integer(i32) :: r
 end function
 
 function mergei64(tsource, fsource, mask) result(r)
     integer(i64), intent(in) :: tsource(:)
     integer(i64), intent(in) :: fsource(:)
     logical, intent(in) :: mask(:)
-    integer(i64) :: r(size(tsource))
+    integer(i64) :: r
 end function
 
 function merger32(tsource, fsource, mask) result(r)
     real(sp), intent(in) :: tsource(:)
     real(sp), intent(in) :: fsource(:)
     logical, intent(in) :: mask(:)
-    real(sp) :: r(size(tsource))
+    real(sp) :: r
 end function
 
 function merger64(tsource, fsource, mask) result(r)
     real(dp), intent(in) :: tsource(:)
     real(dp), intent(in) :: fsource(:)
     logical, intent(in) :: mask(:)
-    real(dp) :: r(size(tsource))
+    real(dp) :: r
 end function
 
 end module
