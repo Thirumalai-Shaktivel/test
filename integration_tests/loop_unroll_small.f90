@@ -26,7 +26,7 @@ program loop_unroll_small
 contains
 
     subroutine print_subrout(x)
-        integer :: x
+        integer, intent(in) :: x
         print *, x
     end subroutine
 
