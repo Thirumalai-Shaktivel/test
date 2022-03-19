@@ -6,7 +6,7 @@
 namespace LFortran {
 
     void pass_loop_unroll(Allocator &al, ASR::TranslationUnit_t &unit,
-                          const std::string& rl_path, size_t unroll_factor=SIZE_T_MAX);
+                          const std::string& rl_path, int64_t unroll_factor=32);
 
 } // namespace LFortran
 
