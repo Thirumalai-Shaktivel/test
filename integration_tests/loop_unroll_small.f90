@@ -1,4 +1,4 @@
-program loop_unroll
+program loop_unroll_small
 
     implicit none
     integer :: i, first, last, array(4), x
