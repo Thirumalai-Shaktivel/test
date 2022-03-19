@@ -1845,6 +1845,11 @@ asr = true
 pass = "fma"
 
 [[test]]
+filename = "../integration_tests/loop_unroll.f90"
+asr = true
+pass = "loop_unroll"
+
+[[test]]
 filename = "../integration_tests/div_to_mul.f90"
 asr = true
 pass = "div_to_mul"

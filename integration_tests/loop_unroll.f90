@@ -1,21 +1,26 @@
 program loop_unroll
 
     implicit none
-    integer :: i, first, last, array(16), x
+    integer :: i, first, last, array(4), x
 
-    do i = 1, 16
+    do i = 1, 4
         array(i) = i
     end do
 
     first = 1
-    last = 16
+    last = 4
     do i = first, last
         array(i) = array(i) + i
     end do
 
-    do i = 1, 16
+    do i = 1, 4
         x = array(i)
         call print_subrout(x)
+    end do
+
+    do i = 1, 4
+        x = array(i)
+        if( x /= 2 * i ) error stop
     end do
 
 contains
