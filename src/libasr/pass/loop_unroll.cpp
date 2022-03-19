@@ -56,7 +56,7 @@ public:
             !ASRUtils::is_value_constant(x_inc, _inc) ) {
             return ;
         }
-        int64_t loop_size = std::ceilf( ((float) (_end - _start + 1)) / ((float) _inc) );
+        int64_t loop_size = std::ceil( ((float) (_end - _start + 1)) / ((float) _inc) );
         int64_t unroll_factor_ = std::min(unroll_factor, loop_size);
         bool create_unrolled_loop = unroll_factor_ < loop_size;
         int64_t new_end = unroll_factor_ * (loop_size / unroll_factor_);
