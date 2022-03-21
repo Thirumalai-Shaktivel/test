@@ -486,19 +486,6 @@ class ExprStmtDuplicatorVisitor(ASDLVisitor):
         self.make_visitor(cons.name, cons.fields)
 
     def make_visitor(self, name, fields):
-        if name == "FunctionCall" or name == "SubroutineCall":
-            if self.is_stmt:
-                self.duplicate_stmt.append(("    case ASR::stmtType::%s: {" % name, 2))
-                self.duplicate_stmt.append(("    success = false;", 3))
-                self.duplicate_stmt.append(("    return nullptr;", 3))
-                self.duplicate_stmt.append(("    }", 2))
-            elif self.is_expr:
-                self.duplicate_expr.append(("    case ASR::exprType::%s: {" % name, 2))
-                self.duplicate_expr.append(("    success = false;", 3))
-                self.duplicate_expr.append(("    return nullptr;", 3))
-                self.duplicate_expr.append(("    }", 2))
-            return None
-
         self.emit("")
         self.emit("ASR::asr_t* duplicate_%s(%s_t* x) {" % (name, name), 1)
         self.used = False
