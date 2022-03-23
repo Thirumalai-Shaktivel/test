@@ -110,17 +110,26 @@ public:
             }
 
             ASR::ExternalSymbol_t* called_sym_ext = ASR::down_cast<ASR::ExternalSymbol_t>(x.m_name);
+            ASR::symbol_t* f_sym = ASRUtils::symbol_get_past_external(called_sym_ext->m_external);
+            ASR::Function_t* f = ASR::down_cast<ASR::Function_t>(f_sym);
+
+            // Never inline intrinsic functions
+            if( ASRUtils::is_intrinsic_function2(f) ) {
+                return ;
+            }
+
             // std::cout<<"called_sym_ext: "<<called_sym_ext->m_name<<std::endl;
             // std::cout<<"called_sym_original: "<<x.m_original_name<<std::endl;
             ASR::symbol_t* called_sym = x.m_name;
-            ASR::symbol_t* called_sym_original = x.m_original_name;
+
+            // TODO: Hanlde later
+            // ASR::symbol_t* called_sym_original = x.m_original_name;
+
             ASR::FunctionCall_t& xx = const_cast<ASR::FunctionCall_t&>(x);
             std::string called_sym_name = std::string(called_sym_ext->m_name);
             std::string new_sym_name_str = current_scope->get_unique_name(called_sym_name);
             char* new_sym_name = s2c(al, new_sym_name_str);
             if( current_scope->scope.find(new_sym_name_str) == current_scope->scope.end() ) {
-                ASR::symbol_t* f_sym = ASRUtils::symbol_get_past_external(called_sym_ext->m_external);
-                ASR::Function_t* f = ASR::down_cast<ASR::Function_t>(f_sym);
                 ASR::Module_t *m = ASR::down_cast2<ASR::Module_t>(f->m_symtab->parent->asr_owner);
                 char *modname = m->m_name;
                 ASR::symbol_t* new_sym = ASR::down_cast<ASR::symbol_t>(ASR::make_ExternalSymbol_t(
