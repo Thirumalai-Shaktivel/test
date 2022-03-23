@@ -512,15 +512,23 @@ class ExprStmtDuplicatorVisitor(ASDLVisitor):
 
     def visitField(self, field):
         arguments = None
-        if field.type == "expr" or field.type == "stmt" or field.type == "symbol":
+        if field.type == "expr" or field.type == "stmt" or field.type == "symbol" or field.type == "call_arg":
             level = 2
             if field.seq:
                 self.used = True
-                self.emit("Vec<%s_t*> m_%s;" % (field.type, field.name), level)
+                pointer_char = ''
+                if field.type != "call_arg":
+                    pointer_char = '*'
+                self.emit("Vec<%s_t%s> m_%s;" % (field.type, pointer_char, field.name), level)
                 self.emit("m_%s.reserve(al, x->n_%s);" % (field.name, field.name), level)
                 self.emit("for (size_t i = 0; i < x->n_%s; i++) {" % field.name, level)
                 if field.type == "symbol":
                     self.emit("    m_%s.push_back(al, x->m_%s[i]);" % (field.name, field.name), level)
+                elif field.type == "call_arg":
+                    self.emit("    ASR::call_arg_t call_arg_copy;", level)
+                    self.emit("    call_arg_copy.loc = x->m_%s[i].loc;"%(field.name), level)
+                    self.emit("    call_arg_copy.m_value = duplicate_expr(x->m_%s[i].m_value);"%(field.name), level)
+                    self.emit("    m_%s.push_back(al, call_arg_copy);"%(field.name), level)
                 else:
                     self.emit("    m_%s.push_back(al, duplicate_%s(x->m_%s[i]));" % (field.name, field.type, field.name), level)
                 self.emit("}", level)

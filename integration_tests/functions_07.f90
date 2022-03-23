@@ -1,39 +1,35 @@
-module second_layer
+module first_layer
 implicit none
 
 contains
 
-    real(4) function signr32(x, y) result(r)
-        real(4), intent(in) :: x, y
-        r = x
-        if ((x >= 0.0 .and. y >= 0.0) .or. (x <= 0.0 .and. y <= 0.0)) then
-            r = x
-        else
-            r = -x
-        end if
+    real function f_real(u) result(v)
+        real, intent(in) :: u
+        v = u + 1.0
     end function
+
 end module
 
-module first_layer
-use second_layer
+module third_layer
+use first_layer
 implicit none
 
 contains
 
-    real function f_real(a) result(b)
+    real function f_real_extra(a) result(b)
         real, intent(in) :: a
-        b = a + signr32(1.0, a)
+        b = f_real(a)
     end function
 
 end module
 
 program functions_01
-use first_layer
+use third_layer
 implicit none
 
     real :: p = 5, q
 
-    q = f_real(p)
+    q = f_real_extra(p)
     print *, q
 
 end program
