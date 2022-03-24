@@ -1,35 +1,48 @@
-module first_layer
+module a
 implicit none
 
 contains
 
-    real function f_real(u) result(v)
+    real function f_a(u) result(v)
         real, intent(in) :: u
         v = u + 1.0
     end function
 
 end module
 
-module third_layer
-use first_layer
+module b
+use a
 implicit none
 
 contains
 
-    real function f_real_extra(a) result(b)
-        real, intent(in) :: a
-        b = f_real(a)
+    real function f_b(x) result(y)
+        real, intent(in) :: x
+        y = f_a(x) + 1.0
     end function
 
 end module
 
-program functions_01
-use third_layer
+module c
+use b
+implicit none
+
+contains
+
+    real function f_c(w) result(z)
+        real, intent(in) :: w
+        z = f_b(w) + 1.0
+    end function
+
+end module
+
+program functions_07
+use c
 implicit none
 
     real :: p = 5, q
 
-    q = f_real_extra(p)
+    q = f_c(p)
     print *, q
 
 end program
