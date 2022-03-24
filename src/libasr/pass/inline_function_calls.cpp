@@ -53,6 +53,7 @@ private:
 
     bool inline_external_symbol_calls;
 
+
     ASR::ExprStmtDuplicator node_duplicator;
 
 public:
@@ -67,6 +68,10 @@ public:
     node_duplicator(al_), function_inlined(false)
     {
         pass_result.reserve(al, 1);
+    }
+
+    void configure_node_duplicator(bool allow_procedure_calls_) {
+        node_duplicator.allow_procedure_calls = allow_procedure_calls_;
     }
 
     void visit_Function(const ASR::Function_t &x) {
@@ -363,11 +368,10 @@ void pass_inline_function_calls(Allocator &al, ASR::TranslationUnit_t &unit,
                                 const std::string& rl_path,
                                 bool inline_external_symbol_calls) {
     InlineFunctionCallVisitor v(al, rl_path, inline_external_symbol_calls);
-    v.function_inlined = true;
-    while( v.function_inlined ) {
-        v.function_inlined = false;
-        v.visit_TranslationUnit(unit);
-    }
+    v.configure_node_duplicator(false);
+    v.visit_TranslationUnit(unit);
+    v.configure_node_duplicator(true);
+    v.visit_TranslationUnit(unit);
     LFORTRAN_ASSERT(asr_verify(unit));
 }
 

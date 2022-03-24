@@ -426,8 +426,9 @@ class ExprStmtDuplicatorVisitor(ASDLVisitor):
         self.emit("")
         self.emit("public:")
         self.emit("    bool success;")
+        self.emit("    bool allow_procedure_calls;")
         self.emit("")
-        self.emit("    ExprStmtDuplicator(Allocator& al_) : al(al_), success(false) {}")
+        self.emit("    ExprStmtDuplicator(Allocator& al_) : al(al_), success(false), allow_procedure_calls(true) {}")
         self.emit("")
         self.duplicate_stmt.append(("    ASR::stmt_t* duplicate_stmt(ASR::stmt_t* x) {", 0))
         self.duplicate_stmt.append(("    if( !x ) {", 1))
@@ -501,10 +502,20 @@ class ExprStmtDuplicatorVisitor(ASDLVisitor):
             self.emit("return make_%s_t(al, x->base.base.loc, %s);" %(name, node_arg_str), 2)
         if self.is_stmt:
             self.duplicate_stmt.append(("    case ASR::stmtType::%s: {" % name, 2))
+            if name == "SubroutineCall":
+                self.duplicate_stmt.append(("    if( !allow_procedure_calls ) {", 3))
+                self.duplicate_stmt.append(("    success = false;", 4))
+                self.duplicate_stmt.append(("    return nullptr;", 4))
+                self.duplicate_stmt.append(("    }", 3))
             self.duplicate_stmt.append(("    return down_cast<ASR::stmt_t>(duplicate_%s(down_cast<ASR::%s_t>(x)));" % (name, name), 3))
             self.duplicate_stmt.append(("    }", 2))
         elif self.is_expr:
             self.duplicate_expr.append(("    case ASR::exprType::%s: {" % name, 2))
+            if name == "FunctionCall":
+                self.duplicate_expr.append(("    if( !allow_procedure_calls ) {", 3))
+                self.duplicate_expr.append(("    success = false;", 4))
+                self.duplicate_expr.append(("    return nullptr;", 4))
+                self.duplicate_expr.append(("    }", 3))
             self.duplicate_expr.append(("    return down_cast<ASR::expr_t>(duplicate_%s(down_cast<ASR::%s_t>(x)));" % (name, name), 3))
             self.duplicate_expr.append(("    }", 2))
         self.emit("}", 1)
