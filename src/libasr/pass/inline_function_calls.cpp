@@ -164,9 +164,11 @@ public:
             }
         }
 
-        // Avoid inlining current function call if its a recursion.
+        // Avoid inlining current function call if its a recursion
+        // or if its a intrinsic function
         ASR::Function_t* func = ASR::down_cast<ASR::Function_t>(routine);
-        if( std::string(func->m_name) == current_routine ) {
+        if( ASRUtils::is_intrinsic_function2(func) ||
+            std::string(func->m_name) == current_routine ) {
             return ;
         }
 
