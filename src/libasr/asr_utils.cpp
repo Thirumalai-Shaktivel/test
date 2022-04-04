@@ -550,6 +550,7 @@ bool types_equal(const ASR::ttype_t &a, const ASR::ttype_t &b) {
             case (ASR::ttypeType::Integer) : {
                 ASR::Integer_t *a2 = ASR::down_cast<ASR::Integer_t>(&a);
                 ASR::Integer_t *b2 = ASR::down_cast<ASR::Integer_t>(&b);
+                std::cout<<"int kinds: "<<a2->m_kind<<" "<<b2->m_kind<<std::endl;
                 if (a2->m_kind == b2->m_kind) {
                     return true;
                 } else {
@@ -590,6 +591,7 @@ bool types_equal(const ASR::ttype_t &a, const ASR::ttype_t &b) {
             case (ASR::ttypeType::Character) : {
                 ASR::Character_t *a2 = ASR::down_cast<ASR::Character_t>(&a);
                 ASR::Character_t *b2 = ASR::down_cast<ASR::Character_t>(&b);
+                std::cout<<"char kinds: "<<a2->m_kind<<" "<<b2->m_kind<<std::endl;
                 if (a2->m_kind == b2->m_kind) {
                     return true;
                 } else {
@@ -612,6 +614,7 @@ bool argument_types_match(const Vec<ASR::call_arg_t>& args,
             ASR::Variable_t *v = LFortran::ASRUtils::EXPR2VAR(sub.m_args[i]);
             ASR::ttype_t *arg1 = LFortran::ASRUtils::expr_type(args[i].m_value);
             ASR::ttype_t *arg2 = v->m_type;
+            std::cout<<"i: "<<i<<", "<<arg1->type<<" "<<arg2->type<<std::endl;
             if (!types_equal(*arg1, *arg2)) {
                 return false;
             }
@@ -640,6 +643,7 @@ bool select_func_subrout(const ASR::symbol_t* proc, const Vec<ASR::call_arg_t>& 
     } else if (ASR::is_a<ASR::Function_t>(*proc)) {
         ASR::Function_t *fn
             = ASR::down_cast<ASR::Function_t>(proc);
+        std::cout<<"matching args for: "<<fn->m_name<<std::endl;
         if (argument_types_match(args, *fn)) {
             result = true;
         }
