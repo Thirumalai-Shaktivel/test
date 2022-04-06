@@ -124,7 +124,7 @@ struct IntrinsicProcedures {
             {"ibset", {m_bit, &eval_ibset, true}},
             {"btest", {m_bit, &not_implemented, false}},
             // Elemental function
-            {"ishft", {m_bit, &eval_ishft, false}},
+            {"ishft", {m_bit, &eval_ishft, true}},
 
             // These will fail if used in symbol table visitor, but will be
             // left unevaluated in body visitor
