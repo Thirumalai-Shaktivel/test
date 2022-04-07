@@ -14,9 +14,9 @@ namespace LFortran {
 
 // depth-first graph traversal
 void visit(
-    std::string const& a, 
+    std::string const& a,
     std::map<std::string, std::vector<std::string>> const& deps,
-    std::unordered_set<std::string>& visited, 
+    std::unordered_set<std::string>& visited,
     std::vector<std::string>& result
 ) {
     visited.insert(a);
