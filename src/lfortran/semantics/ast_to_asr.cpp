@@ -49,7 +49,7 @@ Result<ASR::TranslationUnit_t*> ast_to_asr(Allocator &al,
         } else {
             return res.error;
         }
-        LFORTRAN_ASSERT(asr_verify(*tu));
+        // LFORTRAN_ASSERT(asr_verify(*tu));
     }
     return tu;
 }
