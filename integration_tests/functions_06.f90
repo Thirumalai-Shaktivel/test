@@ -34,10 +34,10 @@ program functions_06
     implicit none
 
     character(len=5) :: string = "  abc"
-    print *, trim_wrapper(string)
+    print *, trim_wrapper(string) ! to be handeled
 
-    print *, int_return(string)
+    print *, int_return(string) ! to be fixed
 
-    print *, real_return(string)
+    print *, real_return(string) ! to be fixed
 
 end program
