@@ -435,7 +435,6 @@ public:
         require(x.m_name,
             "FunctionCall::m_name must be present",
             x.base.base.loc);
-        std::cout<<"FunctionCall: "<<ASRUtils::symbol_name(x.m_name)<<std::endl;
         if (x.m_dt) {
             SymbolTable *symtab = get_dt_symtab(x.m_dt, x.base.base.loc);
             require(symtab_in_scope(symtab, x.m_name),
@@ -462,8 +461,10 @@ public:
             }
         }
         SymbolTable *parent_symtab = current_symtab;
-        current_symtab = ASRUtils::symbol_symtab(x.m_name);
-        if (current_symtab == nullptr) current_symtab = parent_symtab;
+        if( x.m_type->type != ASR::ttypeType::Character ) {
+            current_symtab = ASRUtils::symbol_symtab(x.m_name);
+            if (current_symtab == nullptr) current_symtab = parent_symtab;
+        }
         visit_ttype(*x.m_type);
         current_symtab = parent_symtab;
     }

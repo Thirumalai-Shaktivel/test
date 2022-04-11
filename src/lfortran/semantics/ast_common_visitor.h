@@ -733,7 +733,6 @@ public:
                     Vec<ASR::call_arg_t> args;
                     args.reserve(al, fc->n_args);
                     if( !is_len_expr && is_external_func ) {
-                        std::cout<<"!is_len_expr && is_external_func"<<std::endl;
                         for (size_t i=0; i < fc->n_args; i++) {
                             ASR::expr_t *arg = fc->m_args[i].m_value;
                             if (ASR::is_a<ASR::Var_t>(*arg)) {
@@ -773,14 +772,12 @@ public:
                             args.push_back(al, call_arg);
                         }
                     } else if( is_len_expr && !is_external_func ) {
-                        std::cout<<"is_len_expr && !is_external_func "<<orig_func->m_name;
                         for (size_t i = 0; i < fc->n_args; i++) {
                             ASR::expr_t *arg = fc->m_args[i].m_value;
                             size_t arg_idx = i;
                             bool idx_found = false;
                             if (ASR::is_a<ASR::Var_t>(*arg)) {
                                 std::string arg_name = ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v);
-                                std::cout<<" arg_name: "<<arg_name<<std::endl;
                                 for( size_t j = 0; j < orig_func->n_args && !idx_found; j++ ) {
                                     if( ASR::is_a<ASR::Var_t>(*(orig_func->m_args[j])) ) {
                                         std::string arg_name_2 = std::string(ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
@@ -789,18 +786,16 @@ public:
                                     }
                                 }
                             }
-                            std::cout<<" "<<arg_idx<<" "<<idx_found<<std::endl;
                             ASR::call_arg_t call_arg;
                             call_arg.loc = arg->base.loc;
                             if( idx_found ) {
-                                call_arg.m_value = orig_args[arg_idx].m_value;
-                            } else {
-                                call_arg.m_value = arg;
+                                std::string orig_arg_name = ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_args[arg_idx].m_value)->m_v);
+                                arg = ASR::down_cast<ASR::expr_t>(ASR::make_Var_t(al, arg->base.loc, current_scope->resolve_symbol(orig_arg_name)));
                             }
+                            call_arg.m_value = arg;
                             args.push_back(al, call_arg);
                         }
                     } else if( is_len_expr && is_external_func ) {
-                        std::cout<<"is_len_expr && is_external_func "<<orig_func->m_name<<std::endl;
                         // To be handled
                     }
                     ASR::expr_t *new_call_expr = ASR::down_cast<ASR::expr_t>(ASR::make_FunctionCall_t(

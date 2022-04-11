@@ -41,23 +41,23 @@ contains
     lhs%raw = rhs
     end subroutine assign_char_to_string
 
-    elemental function len_string(string) result(length)
-            type(string_type), intent(in) :: string
+    elemental function len_string(string3) result(length)
+            type(string_type), intent(in) :: string3
             integer :: length
 
-            if (allocated(string%raw)) then
-                length = len(string%raw)
+            if (allocated(string3%raw)) then
+                length = len(string3%raw)
             else
                 length = 0
             end if
 
     end function len_string
 
-    elemental function adjustl_string(string) result(adjusted_string)
-    type(string_type), intent(in) :: string
+    elemental function adjustl_string(string1) result(adjusted_string)
+    type(string_type), intent(in) :: string1
     type(string_type) :: adjusted_string
 
-    adjusted_string%raw = adjustl(maybe(string))
+    adjusted_string%raw = adjustl(maybe(string1))
 
     end function adjustl_string
 
