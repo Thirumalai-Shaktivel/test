@@ -694,8 +694,9 @@ public:
     }
 
     void fix_function_calls_ttype_t(std::vector<ASR::expr_t*>& func_calls,
-                                    Vec<ASR::call_arg_t>& orig_args, bool len_expr_present=false,
-                                    ASR::Function_t* orig_func=nullptr, bool is_external_func=false) {
+                                    Vec<ASR::call_arg_t>& orig_args,
+                                    ASR::Function_t* orig_func=nullptr,
+                                    bool is_external_func=false) {
         for( size_t i = 0; i < func_calls.size(); i++ ) {
             ASR::expr_t* potential_call = func_calls[i];
             if (potential_call) {
@@ -793,7 +794,7 @@ public:
                 ASR::Character_t *t = ASR::down_cast<ASR::Character_t>(return_type);
                 func_calls.push_back(t->m_len_expr);
                 fill_func_calls_ttype_t(func_calls, t->m_dims, t->n_dims);
-                fix_function_calls_ttype_t(func_calls, args, true, f, is_external_func_);
+                fix_function_calls_ttype_t(func_calls, args, f, is_external_func_);
                 Vec<ASR::dimension_t> new_dims;
                 new_dims.reserve(al, t->n_dims);
                 for( size_t i = 1; i < func_calls.size(); i += 2 ) {
@@ -812,7 +813,7 @@ public:
             case ASR::ttypeType::Integer: {
                 ASR::Integer_t *t = ASR::down_cast<ASR::Integer_t>(return_type);
                 fill_func_calls_ttype_t(func_calls, t->m_dims, t->n_dims);
-                fix_function_calls_ttype_t(func_calls, args, false, f, is_external_func_);
+                fix_function_calls_ttype_t(func_calls, args, f, is_external_func_);
                 Vec<ASR::dimension_t> new_dims;
                 new_dims.reserve(al, t->n_dims);
                 for( size_t i = 0; i < func_calls.size(); i += 2 ) {
@@ -827,7 +828,7 @@ public:
             case ASR::ttypeType::Real: {
                 ASR::Real_t *t = ASR::down_cast<ASR::Real_t>(return_type);
                 fill_func_calls_ttype_t(func_calls, t->m_dims, t->n_dims);
-                fix_function_calls_ttype_t(func_calls, args, false, f, is_external_func_);
+                fix_function_calls_ttype_t(func_calls, args, f, is_external_func_);
                 Vec<ASR::dimension_t> new_dims;
                 new_dims.reserve(al, t->n_dims);
                 for( size_t i = 0; i < func_calls.size(); i += 2 ) {
