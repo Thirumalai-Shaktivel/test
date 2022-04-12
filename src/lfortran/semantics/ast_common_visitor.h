@@ -693,11 +693,10 @@ public:
         }
     }
 
-    void fix_function_calls_ttype_t(std::vector<ASR::expr_t*>& func_calls, const Location& loc,
+    void fix_function_calls_ttype_t(std::vector<ASR::expr_t*>& func_calls,
                                     Vec<ASR::call_arg_t>& orig_args, bool len_expr_present=false,
                                     ASR::Function_t* orig_func=nullptr, bool is_external_func=false) {
         for( size_t i = 0; i < func_calls.size(); i++ ) {
-            bool is_len_expr = len_expr_present && (i == 0);
             ASR::expr_t* potential_call = func_calls[i];
             if (potential_call) {
                 if (ASR::is_a<ASR::FunctionCall_t>(*potential_call)) {
@@ -732,56 +731,12 @@ public:
                     }
                     Vec<ASR::call_arg_t> args;
                     args.reserve(al, fc->n_args);
-                    // if( !is_len_expr && is_external_func ) {
-                    //     for (size_t i=0; i < fc->n_args; i++) {
-                    //         ASR::expr_t *arg = fc->m_args[i].m_value;
-                    //         if (ASR::is_a<ASR::Var_t>(*arg)) {
-                    //             ASR::Var_t *var = ASR::down_cast<ASR::Var_t>(arg);
-                    //             if (ASR::is_a<ASR::Variable_t>(*var->m_v)) {
-                    //                 ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(var->m_v);
-                    //                 ASR::symbol_t *new_v;
-                    //                 std::string unique_name = current_scope->get_unique_name(v->m_name);
-                    //                 Str s; s.from_str_view(unique_name);
-                    //                 char *unique_name_c = s.c_str(al);
-                    //                 LFORTRAN_ASSERT(current_scope->scope.find(unique_name) == current_scope->scope.end());
-
-                    //                 Vec<char*> scope_names0 = ASRUtils::get_scope_names(al, v->m_parent_symtab);
-                    //                 LFORTRAN_ASSERT(scope_names0.size() >= 1)
-                    //                 char *modname = scope_names0[scope_names0.size()-1];
-                    //                 Vec<char*>  scope_names;
-                    //                 scope_names.reserve(al, scope_names0.size()-1);
-                    //                 for (size_t i=0; i < scope_names0.size()-1; i++) {
-                    //                     scope_names.push_back(al, scope_names0[scope_names0.size()-i-2]);
-                    //                 }
-                    //                 new_v = ASR::down_cast<ASR::symbol_t>(ASR::make_ExternalSymbol_t(
-                    //                     al, v->base.base.loc,
-                    //                     /* a_symtab */ current_scope,
-                    //                     /* a_name */ unique_name_c,
-                    //                     (ASR::symbol_t*)v,
-                    //                     modname, scope_names.p, scope_names.size(),
-                    //                     v->m_name,
-                    //                     ASR::accessType::Private
-                    //                     ));
-                    //                 current_scope->scope[unique_name] = new_v;
-                    //                 arg = ASR::down_cast<ASR::expr_t>(ASR::make_Var_t(al, arg->base.loc, new_v));
-                    //             }
-                    //         }
-                    //         ASR::call_arg_t call_arg;
-                    //         call_arg.loc = arg->base.loc;
-                    //         call_arg.m_value = arg;
-                    //         args.push_back(al, call_arg);
-                    //     }
-                    // } else
-                    // if( is_len_expr ) {
                     for (size_t i = 0; i < fc->n_args; i++) {
                         ASR::expr_t *arg = fc->m_args[i].m_value;
                         size_t arg_idx = i;
                         bool idx_found = false;
-                        // std::cout<<"arg: "<<arg<<std::endl;
                         if (ASR::is_a<ASR::Var_t>(*arg)) {
-                            // std::cout<<"arg->m_v: "<<ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v)<<std::endl;
                             std::string arg_name = ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v);
-                            // std::cout<<"orig_func: "<<orig_func<<std::endl;
                             for( size_t j = 0; j < orig_func->n_args && !idx_found; j++ ) {
                                 if( ASR::is_a<ASR::Var_t>(*(orig_func->m_args[j])) ) {
                                     std::string arg_name_2 = std::string(ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
@@ -798,7 +753,6 @@ public:
                         call_arg.m_value = arg;
                         args.push_back(al, call_arg);
                     }
-                    // }
                     ASR::expr_t *new_call_expr = ASR::down_cast<ASR::expr_t>(ASR::make_FunctionCall_t(
                         al, fc->base.base.loc, new_es, nullptr, args.p, args.n, fc->m_type, fc->m_value, fc->m_dt));
                     func_calls[i] = new_call_expr;
@@ -806,11 +760,8 @@ public:
                     ASR::expr_t *arg = potential_call;
                     size_t arg_idx = 0;
                     bool idx_found = false;
-                    // std::cout<<"arg: "<<arg<<std::endl;
                     if (ASR::is_a<ASR::Var_t>(*arg)) {
-                        // std::cout<<"arg->m_v: "<<ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v)<<std::endl;
                         std::string arg_name = ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v);
-                        // std::cout<<"orig_func: "<<orig_func<<std::endl;
                         for( size_t j = 0; j < orig_func->n_args && !idx_found; j++ ) {
                             if( ASR::is_a<ASR::Var_t>(*(orig_func->m_args[j])) ) {
                                 std::string arg_name_2 = std::string(ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
