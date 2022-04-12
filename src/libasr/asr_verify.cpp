@@ -461,10 +461,8 @@ public:
             }
         }
         SymbolTable *parent_symtab = current_symtab;
-        if( x.m_type->type != ASR::ttypeType::Character ) {
-            current_symtab = ASRUtils::symbol_symtab(x.m_name);
-            if (current_symtab == nullptr) current_symtab = parent_symtab;
-        }
+        current_symtab = ASRUtils::symbol_symtab(x.m_name);
+        if (current_symtab == nullptr) current_symtab = parent_symtab;
         visit_ttype(*x.m_type);
         current_symtab = parent_symtab;
     }
