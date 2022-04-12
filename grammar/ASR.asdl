@@ -201,35 +201,60 @@ stmt
 
 
 expr
-    = BoolOp(expr left, boolop op, expr right, ttype type, expr? value)
-    | BinOp(expr left, binop op, expr right, ttype type, expr? value, expr? overloaded)
+    = LogicalBinOp(expr left, logicalbinop op, expr right, ttype type, expr? value)
+    | ConstantLogical(bool value, ttype type)
+
+
+    | IntegerBinOp(expr left, integerbinop op, expr right, ttype type, expr? value)
+    | ConstantInteger(int n, ttype type)
+    | BOZ(int v, boz boz_type, ttype? type)
+
+
+    | RealBinOp(expr left, realbinop op, expr right, ttype type, expr? value)
+    | ConstantReal(float r, ttype type)
+
+
+    | ComplexBinOp(expr left, complexbinop op, expr right, ttype type, expr? value)
+    | ConstantComplex(float re, float im, ttype type)
+    | ComplexConstructor(expr re, expr im, ttype type, expr? value)
+    | ComplexRe(symbol arg)
+    | ComplexIm(symbol arg)
+
+
     | StrOp(expr left, strop op, expr right, ttype type, expr? value)
+    | ConstantString(string s, ttype type)
+    | StringLen(expr arg)
+
+
+    | ArrayRef(symbol v, array_index* args, ttype type, expr? value)
+    | ArraySize(symbol v, expr? dim)
+    | ConstantArray(expr* args, ttype type)
+    | ArrayReshape(symbol v, expr* shape, expr* order)
+    | ArrayUBound(symbol v, expr dim)
+    | ArrayLBound(symbol v, expr dim)
+    | ArrayShape(symbol v)
+
+
+    | DerivedTypeConstructor(symbol dt_sym, expr* args, ttype type)
+    | DerivedRef(expr v, symbol m, ttype type, expr? value)
+
+
+    | OverloadedOperator(expr left, overloadedop op, expr right, ttype type, expr? value, expr? overloaded)
     | UnaryOp(unaryop op, expr operand, ttype type, expr? value)
         -- Such as: (x, y+z), (3.0, 2.0) generally not known at compile time
-    | ComplexConstructor(expr re, expr im, ttype type, expr? value)
     | NamedExpr(expr target, expr value, ttype type)
     | Compare(expr left, cmpop op, expr right, ttype type, expr? value, expr? overloaded)
     | IfExp(expr test, expr body, expr orelse, ttype type)
     | FunctionCall(symbol name, symbol? original_name,
             call_arg* args, ttype type, expr? value, expr? dt)
-    | DerivedTypeConstructor(symbol dt_sym, expr* args, ttype type)
-    | ConstantArray(expr* args, ttype type)
     | ImpliedDoLoop(expr* values, expr var, expr start, expr end,
                     expr? increment, ttype type, expr? value)
-    | ConstantInteger(int n, ttype type)
-    | ConstantReal(float r, ttype type)
-    | ConstantComplex(float re, float im, ttype type)
-    | ConstantLogical(bool value, ttype type)
+
     | ConstantSet(expr* elements, ttype type)
     | ConstantTuple(expr* elements, ttype type)
-    | ConstantString(string s, ttype type)
     | ConstantDictionary(expr* keys, expr* values, ttype type)
-    | BOZ(int v, boz boz_type, ttype? type)
     | Var(symbol v)
-    | ArrayRef(symbol v, array_index* args, ttype type, expr? value)
-    | DerivedRef(expr v, symbol m, ttype type, expr? value)
-    | ImplicitCast(expr arg, cast_kind kind, ttype type, expr? value)
-    | ExplicitCast(expr arg, cast_kind kind, ttype type, expr? value)
+    | Cast(expr arg, cast_kind kind, ttype type, expr? value)
 
 -- `len` in Character:
 -- >=0 ... the length of the string, known at compile time
