@@ -803,8 +803,25 @@ public:
                         al, fc->base.base.loc, new_es, nullptr, args.p, args.n, fc->m_type, fc->m_value, fc->m_dt));
                     func_calls[i] = new_call_expr;
                 } else {
-                    if( is_len_expr ) {
-                        throw SemanticError("Currently only FunctionCall is supported in character's len expression in ExternalSymbol, found " + std::to_string(potential_call->type), loc);
+                    ASR::expr_t *arg = potential_call;
+                    size_t arg_idx = 0;
+                    bool idx_found = false;
+                    // std::cout<<"arg: "<<arg<<std::endl;
+                    if (ASR::is_a<ASR::Var_t>(*arg)) {
+                        // std::cout<<"arg->m_v: "<<ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v)<<std::endl;
+                        std::string arg_name = ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v);
+                        // std::cout<<"orig_func: "<<orig_func<<std::endl;
+                        for( size_t j = 0; j < orig_func->n_args && !idx_found; j++ ) {
+                            if( ASR::is_a<ASR::Var_t>(*(orig_func->m_args[j])) ) {
+                                std::string arg_name_2 = std::string(ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
+                                arg_idx = j;
+                                idx_found = arg_name_2 == arg_name;
+                            }
+                        }
+                    }
+
+                    if( idx_found ) {
+                        func_calls[i] = orig_args[arg_idx].m_value;
                     }
                 }
             }
@@ -835,7 +852,11 @@ public:
                     new_dim.m_end = func_calls[i + 1];
                     new_dims.push_back(al, new_dim);
                 }
-                return ASRUtils::TYPE(ASR::make_Character_t(al, loc, t->m_kind, t->m_len, func_calls[0], new_dims.p, new_dims.size()));
+                int64_t a_len = t->m_len;
+                if( func_calls[0] ) {
+                    a_len = ASRUtils::extract_len<SemanticError>(func_calls[0], loc);
+                }
+                return ASRUtils::TYPE(ASR::make_Character_t(al, loc, t->m_kind, a_len, func_calls[0], new_dims.p, new_dims.size()));
             }
             case ASR::ttypeType::Integer: {
                 ASR::Integer_t *t = ASR::down_cast<ASR::Integer_t>(return_type);
