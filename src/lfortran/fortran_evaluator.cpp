@@ -3,6 +3,7 @@
 
 #include <lfortran/fortran_evaluator.h>
 #include <libasr/codegen/asr_to_cpp.h>
+#include <libasr/codegen/asr_to_wasm.h>
 #include <lfortran/ast_to_src.h>
 #include <libasr/exception.h>
 #include <lfortran/ast.h>
@@ -361,11 +362,34 @@ Result<std::string> FortranEvaluator::get_cpp(const std::string &code,
     }
 }
 
+Result<std::string> FortranEvaluator::get_wasm(const std::string &code,
+    LocationManager &lm, diag::Diagnostics &diagnostics)
+{
+    // Src -> AST -> ASR
+    SymbolTable *old_symbol_table = symbol_table;
+    symbol_table = nullptr;
+    Result<ASR::TranslationUnit_t*> asr = get_asr2(code, lm, diagnostics);
+    symbol_table = old_symbol_table;
+    if (asr.ok) {
+        return get_wasm2(*asr.result, diagnostics);
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
+        return asr.error;
+    }
+}
+
 Result<std::string> FortranEvaluator::get_cpp2(ASR::TranslationUnit_t &asr,
         diag::Diagnostics &diagnostics)
 {
     // ASR -> C++
     return asr_to_cpp(al, asr, diagnostics);
+}
+
+Result<std::string> FortranEvaluator::get_wasm2(ASR::TranslationUnit_t &asr,
+        diag::Diagnostics &diagnostics)
+{
+    // ASR -> WASM
+    return asr_to_wasm(al, asr, diagnostics);
 }
 
 Result<std::string> FortranEvaluator::get_fmt(const std::string &code,

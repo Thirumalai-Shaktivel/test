@@ -78,6 +78,8 @@ public:
         diag::Diagnostics &diagnostics);
     Result<std::string> get_wasm(const std::string &code, LocationManager &lm,
         diag::Diagnostics &diagnostics);
+    Result<std::string> get_wasm2(ASR::TranslationUnit_t &asr,
+        diag::Diagnostics &diagnostics);
     Result<std::string> get_cpp(const std::string &code, LocationManager &lm,
         diag::Diagnostics &diagnostics);
     Result<std::string> get_cpp2(ASR::TranslationUnit_t &asr,
