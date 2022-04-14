@@ -723,6 +723,25 @@ int emit_asm(const std::string &infile, CompilerOptions &compiler_options)
     }
 }
 
+int emit_wasm(const std::string &infile, CompilerOptions &compiler_options)
+{
+    std::string input = read_file(infile);
+
+    LFortran::FortranEvaluator fe(compiler_options);
+    LFortran::LocationManager lm;
+    LFortran::diag::Diagnostics diagnostics;
+    lm.in_filename = infile;
+    LFortran::Result<std::string> wasm = fe.get_wasm(input, lm, diagnostics);
+    std::cerr << diagnostics.render(input, lm, compiler_options);
+    if (wasm.ok) {
+        std::cout << wasm.result;
+        return 0;
+    } else {
+        LFORTRAN_ASSERT(diagnostics.has_error())
+        return 1;
+    }
+}
+
 int compile_to_object_file(const std::string &infile,
         const std::string &outfile,
         bool assembly,

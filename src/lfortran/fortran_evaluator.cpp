@@ -250,8 +250,7 @@ Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr3(
 }
 
 Result<std::string> FortranEvaluator::get_llvm(
-    const std::string &code, LocationManager &lm, diag::Diagnostics &diagnostics
-    )
+    const std::string &code, LocationManager &lm, diag::Diagnostics &diagnostics)
 {
     Result<std::unique_ptr<LLVMModule>> res = get_llvm2(code, lm, diagnostics);
     if (res.ok) {
