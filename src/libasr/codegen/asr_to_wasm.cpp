@@ -55,24 +55,19 @@ public:
 
 };
 
-
-
-
-
-
-
-    Result<std::string> asr_to_wasm(Allocator &al, ASR::TranslationUnit_t &asr,
-        diag::Diagnostics &diagnostics){
-            pass_unused_functions(al, asr);
-            ASRToWASMVisitor v(diagnostics);
-            try {
-                v.visit_asr((ASR::asr_t &)asr);
-            } catch (const CodeGenError &e) {
-                diagnostics.diagnostics.push_back(e.d);
-                return Error();
-            } catch (const Abort &) {
-                return Error();
-            }
-            return v.src;
-        }
+Result<std::string> asr_to_wasm(Allocator &al, ASR::TranslationUnit_t &asr,
+    diag::Diagnostics &diagnostics){
+    pass_unused_functions(al, asr);
+    ASRToWASMVisitor v(diagnostics);
+    try {
+        v.visit_asr((ASR::asr_t &)asr);
+    } catch (const CodeGenError &e) {
+        diagnostics.diagnostics.push_back(e.d);
+        return Error();
+    } catch (const Abort &) {
+        return Error();
+    }
+    return v.src;
 }
+
+} // namespace LFortran
