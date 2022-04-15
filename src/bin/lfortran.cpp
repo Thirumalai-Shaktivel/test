@@ -1218,6 +1218,7 @@ int main(int argc, char *argv[])
         bool arg_no_color = false;
         bool show_llvm = false;
         bool show_cpp = false;
+        bool show_wasm = false;
         bool show_asm = false;
         bool time_report = false;
         bool static_link = false;
@@ -1271,6 +1272,7 @@ int main(int argc, char *argv[])
         app.add_option("--pass", arg_pass, "Apply the ASR pass and show ASR (implies --show-asr)");
         app.add_flag("--show-llvm", show_llvm, "Show LLVM IR for the given file and exit");
         app.add_flag("--show-cpp", show_cpp, "Show C++ translation source for the given file and exit");
+        app.add_flag("--show-wasm", show_wasm, "Show WASM for the given file and exit");
         app.add_flag("--show-asm", show_asm, "Show assembly for the given file and exit");
         app.add_flag("--show-stacktrace", compiler_options.show_stacktrace, "Show internal stacktrace on compiler errors");
         app.add_flag("--symtab-only", compiler_options.symtab_only, "Only create symbol tables in ASR (skip executable stmt)");
@@ -1499,6 +1501,9 @@ int main(int argc, char *argv[])
         }
         if (show_cpp) {
             return emit_cpp(arg_file, compiler_options);
+        }
+        if (show_wasm) {
+            return emit_wasm(arg_file, compiler_options);
         }
         if (arg_S) {
             if (backend == Backend::llvm) {
