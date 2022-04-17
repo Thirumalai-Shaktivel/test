@@ -30,55 +30,20 @@ class Abort {};
 
 }  // namespace
 
-using ASR::down_cast;
-using ASR::down_cast2;
-using ASR::is_a;
-
-using LFortran::ASRUtils::determine_module_dependencies;
-using LFortran::ASRUtils::EXPR2FUN;
-using LFortran::ASRUtils::EXPR2SUB;
 using LFortran::ASRUtils::EXPR2VAR;
-using LFortran::ASRUtils::expr_type;
-using LFortran::ASRUtils::intent_local;
-using LFortran::ASRUtils::intent_return_var;
-using LFortran::ASRUtils::is_arg_dummy;
-using LFortran::ASRUtils::symbol_get_past_external;
 
-// Platform dependent fast unique hash:
-uint64_t static get_hash(ASR::asr_t *node) { return (uint64_t)node; }
-
-struct SymbolInfo {
-    bool needs_declaration = true;
-    bool intrinsic_function = false;
-};
 
 class ASRToWASMVisitor : public ASR::BaseVisitor<ASRToWASMVisitor> {
    public:
     diag::Diagnostics &diag;
 
-    std::map<uint64_t, BinaryenExpressionRef *>
-        binaryen_symtab;  // binaryen_symtab_value
-    // std::map<char*, BinaryenExpressionRef *>
-    //     binaryen_symtab;  // binaryen_symtab_value
-
-    BinaryenExpressionRef src;
+    std::map<std::string, int> get_var_index;
+    std::map<std::string, BinaryenType> get_func_return_type;
+    ASR::Variable_t *return_var;
+    BinaryenType return_type;
+    BinaryenExpressionRef expr_src;
 
     BinaryenModuleRef binaryen_module;
-
-    bool intrinsic_module = false;
-    const ASR::Function_t *current_function = nullptr;
-    const ASR::intentType intent_local =
-        ASR::intentType::Local;  // local variable (not a dummy argument)
-    const ASR::intentType intent_in =
-        ASR::intentType::In;  // dummy argument, intent(in)
-    const ASR::intentType intent_out =
-        ASR::intentType::Out;  // dummy argument, intent(out)
-    const ASR::intentType intent_inout =
-        ASR::intentType::InOut;  // dummy argument, intent(inout)
-    const ASR::intentType intent_return_var =
-        ASR::intentType::ReturnVar;  // return variable of a function
-    const ASR::intentType intent_unspecified =
-        ASR::intentType::Unspecified;  // dummy argument, ambiguous intent
 
     ASRToWASMVisitor(diag::Diagnostics &diag) : diag{diag} {}
 
@@ -94,93 +59,102 @@ class ASRToWASMVisitor : public ASR::BaseVisitor<ASRToWASMVisitor> {
         }
     }
 
-    void declare_var(const ASR::Variable_t &x) {
-        const ASR::Variable_t *v = &x;
-        if (v->m_intent == intent_local || v->m_intent == intent_return_var ||
-            !v->m_intent) {
-            switch (v->m_type->type) {
-                case (ASR::ttypeType::Integer): {
-                    ASR::Integer_t *v_type =
-                        LFortran::ASR::down_cast<ASR::Integer_t>(v->m_type);
-                    if (v_type->n_dims > 0) {
-                        throw CodeGenError(
-                            "Declare Var: Array types not yet supported");
-                    } else {
-                        src = BinaryenGlobalGet(binaryen_module, x.m_name, BinaryenInt32());
-                        std::cout << "name = " << x.m_name << "\n";
-                    }
-                    break;
-                }
-                default:
-                    throw CodeGenError(
-                        "Declare Var: Only Integer types currently supported");
+    void visit_Program(const ASR::Program_t &x) {
+        for (auto &item : x.m_symtab->scope) {
+            if (ASR::is_a<ASR::Subroutine_t>(*item.second)) {
+                throw CodeGenError("Sub Routine not yet supported");
             }
-        }
-        else{
-            src = nullptr;
-            throw CodeGenError("Declare Var: Not a local variable or return variable");
+            if (ASR::is_a<ASR::Function_t>(*item.second)) {
+                ASR::Function_t *s =
+                    ASR::down_cast<ASR::Function_t>(item.second);
+                visit_Function(*s);  // function themselves add to module and it
+                                     // also sets expr_src = NULL
+            }
         }
     }
 
-    void visit_Program(const ASR::Program_t &x) {
-        std::vector<BinaryenExpressionRef> childrens;
+    void visit_Function(const ASR::Function_t &x) {
+        return_var = LFortran::ASRUtils::EXPR2VAR(x.m_return_var);
+        if (ASRUtils::is_integer(*return_var->m_type)) {
+            bool is_int =
+                ASR::down_cast<ASR::Integer_t>(return_var->m_type)->m_kind == 4;
+            if (is_int) {
+                return_type = BinaryenTypeInt32();
+            } else {
+                return_type = BinaryenTypeInt64();
+            }
+        } else {
+            throw CodeGenError("Return type not supported");
+        }
+
+        std::vector<BinaryenType> func_params;
+        int curIdx = 0;
+        for (size_t i = 0; i < x.n_args; i++) {
+            ASR::Variable_t *arg = LFortran::ASRUtils::EXPR2VAR(x.m_args[i]);
+            LFORTRAN_ASSERT(LFortran::ASRUtils::is_arg_dummy(arg->m_intent));
+            if (arg->m_type->type == ASR::ttypeType::Integer) {
+                // checking for array is currently omitted
+                func_params.push_back(BinaryenTypeInt32());
+                get_var_index[arg->m_name] = curIdx++;
+            } else {
+                throw CodeGenError(
+                    "Parameters other than integer not yet supported");
+            }
+        }
+
+        std::vector<BinaryenType> func_local_vars;
+
         for (auto &item : x.m_symtab->scope) {
             if (ASR::is_a<ASR::Variable_t>(*item.second)) {
                 ASR::Variable_t *v =
                     ASR::down_cast<ASR::Variable_t>(item.second);
-                declare_var(*v);
-                childrens.push_back(src);
+                if (v->m_intent == LFortran::ASRUtils::intent_local ||
+                    v->m_intent == LFortran::ASRUtils::intent_return_var) {
+                    if (v->m_type->type == ASR::ttypeType::Integer) {
+                        func_local_vars.push_back(BinaryenTypeInt32());
+                        get_var_index[v->m_name] = curIdx++;
+                    } else {
+                        throw CodeGenError(
+                            "Variables other than integer not yet supported");
+                    }
+                }
             }
         }
 
-        // inner statements of main program
+        std::vector<BinaryenExpressionRef> body_children;
+
         for (size_t i = 0; i < x.n_body; i++) {
-            std::cout << "Statement " << i + 1 << "\n";
             this->visit_stmt(*x.m_body[i]);
-            childrens.push_back(src);
+            body_children.push_back(expr_src);
         }
 
-        BinaryenExpressionRef *body_children =
-            new BinaryenExpressionRef[childrens.size()];
-        for (size_t i = 0; i < childrens.size(); i++) {
-            body_children[i] = childrens[i];
-        }
+        // check if body_child.size() > 0 or not
+        BinaryenExpressionRef func_body_block =
+            BinaryenBlock(binaryen_module, "body_block", body_children.data(),
+                          body_children.size(), return_type);
 
-        BinaryenExpressionRef main_body_block = BinaryenBlock(
-            binaryen_module, "main_body_block", body_children, x.n_body, NULL);
+        BinaryenFunctionRef func = BinaryenAddFunction(
+            binaryen_module, x.m_name,
+            BinaryenTypeCreate(func_params.data(), func_params.size()),
+            return_type, func_local_vars.data(), func_local_vars.size(),
+            func_body_block);
 
-        BinaryenFunctionRef binaryen_main = BinaryenAddFunction(
-            binaryen_module, "binaryen_main", {}, {}, NULL, 0, main_body_block);
-    }
+        get_func_return_type[x.m_name] = return_type;
 
-    void visit_ConstantInteger(const ASR::ConstantInteger_t &x) {
-        int64_t val = x.m_n;
-        int a_kind = ((ASR::Integer_t *)(&(x.m_type->base)))->m_kind;
-        switch (a_kind) {
-            case 4: {
-                src = BinaryenConst(binaryen_module, BinaryenLiteralInt32(val));
-                std::cout << "This is constant integer = " << val << "\n";
-                break;
-            }
-            default: {
-                throw CodeGenError(
-                    "Constant Integer: Only kind 4 currently supported");
-            }
-        }
-    }
+        BinaryenAddFunctionExport(binaryen_module, x.m_name, x.m_name);
 
-     void visit_Var(const ASR::Var_t &x) {
-        const ASR::symbol_t *s = ASRUtils::symbol_get_past_external(x.m_v);
-        std::string name = ASR::down_cast<ASR::Variable_t>(s)->m_name;
-        src = BinaryenGlobalGet(binaryen_module, name.c_str(), BinaryenInt32());
+        expr_src = nullptr;
     }
 
     void visit_Assignment(const ASR::Assignment_t &x) {
         this->visit_expr(*x.m_value);
+        BinaryenExpressionRef value = expr_src;
+        // this->visit_expr(*x.m_target);
+        // BinaryenExpressionRef target = expr_src;
         if (ASR::is_a<ASR::Var_t>(*x.m_target)) {
             ASR::Variable_t *asr_target = EXPR2VAR(x.m_target);
-            src = BinaryenGlobalSet(binaryen_module, asr_target->m_name, src);
-            std::cout << "name is " << asr_target->m_name << " and " << x.m_target << "\n";
+            expr_src = BinaryenLocalSet(binaryen_module,
+                                        get_var_index[asr_target->m_name], value);
         } else if (ASR::is_a<ASR::ArrayRef_t>(*x.m_target)) {
             throw CodeGenError("Assignment: Arrays not yet supported");
         } else {
@@ -190,30 +164,33 @@ class ASRToWASMVisitor : public ASR::BaseVisitor<ASRToWASMVisitor> {
 
     void visit_BinOp(const ASR::BinOp_t &x) {
         this->visit_expr(*x.m_left);
-        BinaryenExpressionRef left_val = src;
+        BinaryenExpressionRef left_val = expr_src;
         this->visit_expr(*x.m_right);
-        BinaryenExpressionRef right_val = src;
+        BinaryenExpressionRef right_val = expr_src;
         if (ASRUtils::is_integer(*x.m_type)) {
             switch (x.m_op) {
                 case ASR::binopType::Add: {
-                    src = BinaryenBinary(binaryen_module, BinaryenAddInt32(),
-                                         left_val, right_val);
-                    std::cout << "I returned this\n";
+                    expr_src =
+                        BinaryenBinary(binaryen_module, BinaryenAddInt32(),
+                                       left_val, right_val);
                     break;
                 };
                 case ASR::binopType::Sub: {
-                    src = BinaryenBinary(binaryen_module, BinaryenSubInt32(),
-                                         left_val, right_val);
+                    expr_src =
+                        BinaryenBinary(binaryen_module, BinaryenSubInt32(),
+                                       left_val, right_val);
                     break;
                 };
                 case ASR::binopType::Mul: {
-                    src = BinaryenBinary(binaryen_module, BinaryenMulInt32(),
-                                         left_val, right_val);
+                    expr_src =
+                        BinaryenBinary(binaryen_module, BinaryenMulInt32(),
+                                       left_val, right_val);
                     break;
                 };
                 case ASR::binopType::Div: {
-                    src = BinaryenBinary(binaryen_module, BinaryenDivUInt32(),
-                                         left_val, right_val);
+                    expr_src =
+                        BinaryenBinary(binaryen_module, BinaryenDivUInt32(),
+                                       left_val, right_val);
                     break;
                 };
                 default:
@@ -223,6 +200,58 @@ class ASRToWASMVisitor : public ASR::BaseVisitor<ASRToWASMVisitor> {
         } else {
             throw CodeGenError("Binop: Only Integer type implemented");
         }
+    }
+
+    void visit_Var(const ASR::Var_t &x) {
+        const ASR::symbol_t *s = ASRUtils::symbol_get_past_external(x.m_v);
+        auto v = ASR::down_cast<ASR::Variable_t>(s);
+        BinaryenType var_type;
+        switch (v->m_type->type) {
+            case ASR::ttypeType::Integer:
+                // currently omitting for 64 bit integers
+                var_type = BinaryenTypeInt32();
+                break;
+
+            default:
+                throw CodeGenError("Variable type not supported");
+        }
+        expr_src =
+            BinaryenLocalGet(binaryen_module, get_var_index[v->m_name], var_type);
+    }
+
+    void visit_Return(const ASR::Return_t & /* x */) {
+        expr_src = BinaryenLocalGet(binaryen_module,
+                                    get_var_index[return_var->m_name], return_type);
+    }
+
+    void visit_ConstantInteger(const ASR::ConstantInteger_t &x) {
+        int64_t val = x.m_n;
+        int a_kind = ((ASR::Integer_t *)(&(x.m_type->base)))->m_kind;
+        switch (a_kind) {
+            case 4: {
+                expr_src =
+                    BinaryenConst(binaryen_module, BinaryenLiteralInt32(val));
+                break;
+            }
+            default: {
+                throw CodeGenError(
+                    "Constant Integer: Only kind 4 currently supported");
+            }
+        }
+    }
+
+    void visit_FunctionCall(const ASR::FunctionCall_t &x) {
+        ASR::Function_t *fn = ASR::down_cast<ASR::Function_t>(
+            LFortran::ASRUtils::symbol_get_past_external(x.m_name));
+
+        std::vector<BinaryenExpressionRef> func_arguments;
+        int curIdx = 0;
+        for (size_t i = 0; i < x.n_args; i++) {
+            visit_expr(*x.m_args[i].m_value);
+            func_arguments.push_back(expr_src);
+        }
+
+        expr_src = BinaryenCall(binaryen_module, fn->m_name, func_arguments.data(), func_arguments.size(), get_func_return_type[std::string(fn->m_name)]);
     }
 };
 
