@@ -87,15 +87,15 @@ if (WITH_LLVM)
     target_link_libraries(asr p::llvm)
 endif()
 
-add_library(binaryen SHARED IMPORTED GLOBAL)
+# add_library(binaryen SHARED IMPORTED GLOBAL)
 
-SET_TARGET_PROPERTIES(binaryen PROPERTIES
-    LABELS LIBRARY
-    IMPORTED_LOCATION /home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/libbinaryen.so
-    INTERFACE_INCLUDE_DIRECTORIES /home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/codegen
-)
-
-target_link_libraries(asr binaryen)
+# SET_TARGET_PROPERTIES(binaryen PROPERTIES
+#     LABELS LIBRARY
+#     IMPORTED_LOCATION /home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/libbinaryen.so
+#     INTERFACE_INCLUDE_DIRECTORIES /home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/codegen
+# )
+# target_link_libraries(asr pthread)
+# target_link_libraries(asr binaryen)
 
 
 

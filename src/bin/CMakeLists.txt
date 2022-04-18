@@ -165,3 +165,15 @@ endif()
 
 add_executable(cpptranslate cpptranslate.cpp)
 target_link_libraries(cpptranslate lfortran_lib)
+
+
+add_library(binaryen SHARED IMPORTED GLOBAL)
+
+SET_TARGET_PROPERTIES(binaryen PROPERTIES
+    LABELS LIBRARY
+    IMPORTED_LOCATION /home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/libbinaryen.so
+    INTERFACE_INCLUDE_DIRECTORIES /home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/codegen
+)
+
+add_executable(wasm_demo wasm_demo.cpp)
+target_link_libraries(wasm_demo lfortran_lib pthread binaryen)
