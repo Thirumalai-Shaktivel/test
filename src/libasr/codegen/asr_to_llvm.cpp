@@ -4247,6 +4247,44 @@ public:
         pop_nested_stack(s);
     }
 
+    void visit_ArraySize(const ASR::ArraySize_t& x) {
+        uint32_t h = get_hash((ASR::asr_t*)x.m_v);
+        llvm::Value* llvm_arg = llvm_symtab[h];
+        llvm::Value* dim_des_val = arr_descr->get_pointer_to_dimension_descriptor_array(llvm_arg);
+        llvm::Value* rank = arr_descr->get_rank(llvm_arg);
+        llvm::Value* llvm_size = builder->CreateAlloca(getIntType(ASRUtils::extract_kind_from_ttype_t(x.m_type)), nullptr);
+        builder->CreateStore(llvm::ConstantInt::get(context, llvm::APInt(32, 1)), llvm_size);
+
+        llvm::BasicBlock *loophead = llvm::BasicBlock::Create(context, "loop.head");
+        llvm::BasicBlock *loopbody = llvm::BasicBlock::Create(context, "loop.body");
+        llvm::BasicBlock *loopend = llvm::BasicBlock::Create(context, "loop.end");
+        this->current_loophead = loophead;
+        this->current_loopend = loopend;
+
+        llvm::Value* r = builder->CreateAlloca(getIntType(4), nullptr);
+        builder->CreateStore(llvm::ConstantInt::get(context, llvm::APInt(32, 0)), r);
+        // head
+        start_new_block(loophead);
+        llvm::Value *cond = builder->CreateICmpSLT(CreateLoad(r), rank);
+        builder->CreateCondBr(cond, loopbody, loopend);
+
+        // body
+        start_new_block(loopbody);
+        llvm::Value* r_val = CreateLoad(r);
+        llvm::Value* ret_val = CreateLoad(llvm_size);
+        llvm::Value* dim_size = arr_descr->get_dimension_size(dim_des_val, r_val);
+        ret_val = builder->CreateMul(ret_val, dim_size);
+        builder->CreateStore(ret_val, llvm_size);
+        r_val = builder->CreateAdd(r_val, llvm::ConstantInt::get(context, llvm::APInt(32, 1)));
+        builder->CreateStore(r_val, r);
+        builder->CreateBr(loophead);
+
+        // end
+        start_new_block(loopend);
+
+        tmp = CreateLoad(llvm_size);
+    }
+
 };
 
 
