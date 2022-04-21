@@ -4248,8 +4248,8 @@ public:
     }
 
     void visit_ArraySize(const ASR::ArraySize_t& x) {
-        uint32_t h = get_hash((ASR::asr_t*)x.m_v);
-        llvm::Value* llvm_arg = llvm_symtab[h];
+        visit_expr_wrapper(x.m_v);
+        llvm::Value* llvm_arg = tmp;
         llvm::Value* dim_des_val = arr_descr->get_pointer_to_dimension_descriptor_array(llvm_arg);
         llvm::Value* rank = arr_descr->get_rank(llvm_arg);
         llvm::Value* llvm_size = builder->CreateAlloca(getIntType(ASRUtils::extract_kind_from_ttype_t(x.m_type)), nullptr);

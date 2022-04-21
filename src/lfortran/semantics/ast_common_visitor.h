@@ -1177,8 +1177,6 @@ public:
                                 x.base.base.loc);
         }
 
-        ASR::expr_t* v_Var = nullptr;
-        ASR::symbol_t* v = nullptr;
         ASR::expr_t* dim = nullptr;
         ASR::expr_t* kind = nullptr;
         ASR::ttype_t* type = ASRUtils::TYPE(ASR::make_Integer_t(
@@ -1187,14 +1185,17 @@ public:
 
         LFORTRAN_ASSERT(x.m_args[0].m_end != nullptr);
         this->visit_expr(*x.m_args[0].m_end);
-        v_Var = ASRUtils::EXPR(tmp);
-        v = ASR::down_cast<ASR::Var_t>(v_Var)->m_v;
+        ASR::expr_t* v_Var = ASRUtils::EXPR(tmp);
         AST::expr_t *dim_expr = nullptr, *kind_expr = nullptr;
         if( x.n_keywords == 0 ) {
-            dim_expr = x.m_args[1].m_end;
-            kind_expr = x.m_args[2].m_end;
-            LFORTRAN_ASSERT(dim_expr != nullptr);
-            LFORTRAN_ASSERT(kind_expr != nullptr);
+            if( x.n_args >= 2 ) {
+                dim_expr = x.m_args[1].m_end;
+                LFORTRAN_ASSERT(dim_expr != nullptr);
+            }
+            if( x.n_args >= 3 ) {
+                kind_expr = x.m_args[2].m_end;
+                LFORTRAN_ASSERT(kind_expr != nullptr);
+            }
         } else if( x.n_keywords == 1 ) {
             if( std::string(x.m_keywords[0].m_arg) == "dim" ) {
                 dim_expr = x.m_keywords[0].m_value;
@@ -1256,7 +1257,7 @@ public:
                                     4, type));
         }
 
-        return ASR::make_ArraySize_t(al, x.base.base.loc, v, dim, kind, type, nullptr);
+        return ASR::make_ArraySize_t(al, x.base.base.loc, v_Var, dim, kind, type, nullptr);
     }
 
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
