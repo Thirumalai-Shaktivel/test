@@ -531,6 +531,7 @@ public:
     ASR::Module_t *current_module = nullptr;
     Vec<char *> current_module_dependencies;
     IntrinsicProcedures intrinsic_procedures;
+    IntrinsicProceduresAsASRNodes intrinsic_procedures_as_asr_nodes;
 
     CommonVisitor(Allocator &al, SymbolTable *symbol_table,
             diag::Diagnostics &diagnostics)
@@ -1168,6 +1169,96 @@ public:
         return member;
     }
 
+    ASR::asr_t* create_ArraySize(const AST::FuncCallOrArray_t& x) {
+        if( !(x.n_args + x.n_keywords <= 3 && x.n_args >= 1)  ) {
+            throw SemanticError("Array size only needs the array "
+                                "and optionally the dimension and "
+                                "the result kind.",
+                                x.base.base.loc);
+        }
+
+        ASR::expr_t* v_Var = nullptr;
+        ASR::symbol_t* v = nullptr;
+        ASR::expr_t* dim = nullptr;
+        ASR::expr_t* kind = nullptr;
+        ASR::ttype_t* type = ASRUtils::TYPE(ASR::make_Integer_t(
+                                                al, x.base.base.loc, 4,
+                                                nullptr, 0));;
+
+        LFORTRAN_ASSERT(x.m_args[0].m_end != nullptr);
+        this->visit_expr(*x.m_args[0].m_end);
+        v_Var = ASRUtils::EXPR(tmp);
+        v = ASR::down_cast<ASR::Var_t>(v_Var)->m_v;
+        AST::expr_t *dim_expr = nullptr, *kind_expr = nullptr;
+        if( x.n_keywords == 0 ) {
+            dim_expr = x.m_args[1].m_end;
+            kind_expr = x.m_args[2].m_end;
+            LFORTRAN_ASSERT(dim_expr != nullptr);
+            LFORTRAN_ASSERT(kind_expr != nullptr);
+        } else if( x.n_keywords == 1 ) {
+            if( std::string(x.m_keywords[0].m_arg) == "dim" ) {
+                dim_expr = x.m_keywords[0].m_value;
+                if( x.n_args != 1 ) {
+                    throw SemanticError("dim argument has been "
+                                        "specified both as keyword "
+                                        "and positional argument.",
+                                        x.base.base.loc);
+                }
+            } else if( std::string(x.m_keywords[0].m_arg) == "kind" ) {
+                kind_expr = x.m_keywords[0].m_value;
+                if( x.n_args > 2 ) {
+                    throw SemanticError("kind argument has been "
+                                        "specified both as keyword "
+                                        "and positional argument.",
+                                        x.base.base.loc);
+                }
+                if( x.n_args == 2 ) {
+                    dim_expr = x.m_args[1].m_end;
+                    LFORTRAN_ASSERT(dim_expr != nullptr);
+                }
+            }
+        } else if( x.n_keywords == 2 ) {
+            if( x.n_args > 1 ) {
+                throw SemanticError("dim or kind or both arguments has been "
+                                    "specified both as keyword "
+                                    "and positional arguments.",
+                                    x.base.base.loc);
+            }
+            std::string keyword0_name = x.m_keywords[0].m_arg;
+            std::string keyword1_name = x.m_keywords[1].m_arg;
+            LFORTRAN_ASSERT(keyword0_name != keyword1_name);
+            if( keyword0_name == "dim" && keyword1_name == "kind" ) {
+                dim_expr = x.m_keywords[0].m_value;
+                kind_expr = x.m_keywords[1].m_value;
+            } else if( keyword0_name == "kind" && keyword1_name == "dim" ) {
+                dim_expr = x.m_keywords[1].m_value;
+                kind_expr = x.m_keywords[0].m_value;
+            } else {
+                throw SemanticError("Unrecognized keyword arguments, " +
+                                    keyword0_name + " and " + keyword1_name +
+                                    ".", x.base.base.loc);
+            }
+        }
+        if( dim_expr ) {
+            this->visit_expr(*dim_expr);
+            dim = ASRUtils::EXPR(tmp);
+        }
+        if( kind_expr ) {
+            this->visit_expr(*kind_expr);
+            kind = ASRUtils::EXPR(tmp);
+            if( ASRUtils::expr_value(kind) ) {
+                type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                        ASR::down_cast<ASR::ConstantInteger_t>(kind)->m_n ,
+                                        nullptr, 0));
+            }
+        } else {
+            kind = ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc,
+                                    4, type));
+        }
+
+        return ASR::make_ArraySize_t(al, x.base.base.loc, v, dim, kind, type, nullptr);
+    }
+
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
         SymbolTable *scope = current_scope;
         std::string var_name = to_lower(x.m_func);
@@ -1185,6 +1276,12 @@ public:
             v = current_scope->resolve_symbol(var_name);
         }
         if (!v) {
+            if( intrinsic_procedures_as_asr_nodes.is_intrinsic_present_in_ASR(var_name) ) {
+                if( var_name == "size" ) {
+                    tmp = create_ArraySize(x);
+                }
+                return ;
+            }
             v = resolve_intrinsic_function(x.base.base.loc, var_name);
         }
         ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
