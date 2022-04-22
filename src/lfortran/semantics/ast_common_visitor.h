@@ -1209,24 +1209,16 @@ public:
                 }
             } else if( std::string(x.m_keywords[0].m_arg) == "kind" ) {
                 kind_expr = x.m_keywords[0].m_value;
-                if( x.n_args > 2 ) {
-                    throw SemanticError("kind argument has been "
-                                        "specified both as keyword "
-                                        "and positional argument.",
-                                        x.base.base.loc);
-                }
                 if( x.n_args == 2 ) {
                     dim_expr = x.m_args[1].m_end;
                     LFORTRAN_ASSERT(dim_expr != nullptr);
                 }
+            } else {
+                throw SemanticError("Unrecognized keyword argument, " +
+                                    std::string(x.m_keywords[0].m_arg) +
+                                    ".", x.base.base.loc);
             }
         } else if( x.n_keywords == 2 ) {
-            if( x.n_args > 1 ) {
-                throw SemanticError("dim or kind or both arguments has been "
-                                    "specified both as keyword "
-                                    "and positional arguments.",
-                                    x.base.base.loc);
-            }
             std::string keyword0_name = x.m_keywords[0].m_arg;
             std::string keyword1_name = x.m_keywords[1].m_arg;
             LFORTRAN_ASSERT(keyword0_name != keyword1_name);
