@@ -4248,9 +4248,20 @@ public:
     }
 
     void visit_ArraySize(const ASR::ArraySize_t& x) {
+        if( x.m_value ) {
+            visit_expr_wrapper(x.m_value, true);
+            return ;
+        }
         visit_expr_wrapper(x.m_v);
         llvm::Value* llvm_arg = tmp;
         llvm::Value* dim_des_val = arr_descr->get_pointer_to_dimension_descriptor_array(llvm_arg);
+        if( x.m_dim ) {
+            visit_expr_wrapper(x.m_dim, true);
+            int kind = ASRUtils::extract_kind_from_ttype_t(ASRUtils::expr_type(x.m_dim));
+            tmp = builder->CreateSub(tmp, llvm::ConstantInt::get(context, llvm::APInt(kind * 8, 1)));
+            tmp = arr_descr->get_dimension_size(dim_des_val, tmp);
+            return ;
+        }
         llvm::Value* rank = arr_descr->get_rank(llvm_arg);
         llvm::Value* llvm_size = builder->CreateAlloca(getIntType(ASRUtils::extract_kind_from_ttype_t(x.m_type)), nullptr);
         builder->CreateStore(llvm::ConstantInt::get(context, llvm::APInt(32, 1)), llvm_size);

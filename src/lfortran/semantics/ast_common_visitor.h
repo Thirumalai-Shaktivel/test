@@ -1171,7 +1171,9 @@ public:
 
     ASR::asr_t* create_ArraySize(const AST::FuncCallOrArray_t& x) {
         if( !(x.n_args + x.n_keywords <= 3 && x.n_args >= 1)  ) {
-            throw SemanticError("Array size only needs the array "
+            throw SemanticError("Incorrect number of arguments "
+                                "to the array size() intrinsic "
+                                "function; It accepts the array "
                                 "and optionally the dimension and "
                                 "the result kind.",
                                 x.base.base.loc);
@@ -1252,12 +1254,9 @@ public:
                                         ASR::down_cast<ASR::ConstantInteger_t>(kind)->m_n ,
                                         nullptr, 0));
             }
-        } else {
-            kind = ASRUtils::EXPR(ASR::make_ConstantInteger_t(al, x.base.base.loc,
-                                    4, type));
         }
 
-        return ASR::make_ArraySize_t(al, x.base.base.loc, v_Var, dim, kind, type, nullptr);
+        return ASR::make_ArraySize_t(al, x.base.base.loc, v_Var, dim, type, nullptr);
     }
 
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {

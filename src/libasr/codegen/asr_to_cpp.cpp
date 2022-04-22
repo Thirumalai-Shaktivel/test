@@ -525,7 +525,7 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
     void visit_ArraySize(const ASR::ArraySize_t& x) {
         visit_expr(*x.m_v);
         std::string var_name = src;
-        std::string args;
+        std::string args = "";
         if (x.m_dim == nullptr) {
             args = "0";
         } else {
@@ -534,10 +534,7 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
                 args += src + "-1";
                 args += ", ";
             }
-            if( x.m_kind ) {
-                visit_expr(*x.m_kind);
-                args += src + "-1";
-            }
+            args += std::to_string(ASRUtils::extract_kind_from_ttype_t(x.m_type)) + "-1";
         }
         src = var_name + ".extent(" + args + ")";
     }
