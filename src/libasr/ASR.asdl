@@ -249,7 +249,7 @@ expr
 
     | ArrayItem(symbol v, expr* args, ttype type, expr? value)
     | ArraySection(symbol v, array_index* args, ttype type, expr? value)
-    | ArraySize(symbol v, expr? dim)
+    | ArraySize(expr v, expr? dim, ttype type, expr? value)
     | ArrayConstant(expr* args, ttype type)
     | ArrayReshape(symbol v, expr* shape, expr* order)
     | ArrayUBound(symbol v, expr dim)
