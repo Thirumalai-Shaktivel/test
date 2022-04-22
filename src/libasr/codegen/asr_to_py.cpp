@@ -6,503 +6,1288 @@
 #include <libasr/asr_utils.h>
 #include <libasr/string_utils.h>
 
-
-/*
- * 
- * This back-end generates wrapper code that allows Fortran to automatically be called from Python.
- * It also generates a C header file, so I suppose it indirectly generates C wrappers as well.
- * Currently, it outputs Cython, rather than the Python C API directly - much easier to implement.
- * The actual output files are:
- *  - a .h file, containing C-language function declarations *  
- *  - a .pxd file, basically containing the same information as the .h file, but in Cython's format.
- *  - a .pyx file, which is a Cython file that includes the actual python-callable wrapper functions.
- *
- *  Currently, this back-end only wraps functions that are marked "bind (c)" in the Fortran source.
- *  At some later point we will offer the functionality to generate bind (c) wrapper functions for
- *  normal Fortran subprograms, but for now, we don't offer this functionality.
- *
- *  --- H. Snyder, Aug 2021 
- *  
- * */
-
-
-/*  
- * The following technique is called X-macros, if you don't recognize it.
- * You should be able to look it up under that name for an explanation.
- */
-
-#define CTYPELIST \
-    _X(ASR::Integer_t, 1, "int8_t" ) \
-    _X(ASR::Integer_t, 2, "int16_t" ) \
-    _X(ASR::Integer_t, 4, "int32_t" ) \
-    _X(ASR::Integer_t, 8, "int64_t" ) \
-    \
-    _X(ASR::Real_t,    4, "float" ) \
-    _X(ASR::Real_t,    8, "double" ) \
-    \
-    _X(ASR::Complex_t, 4, "float _Complex" ) \
-    _X(ASR::Complex_t, 8, "double _Complex" ) \
-    \
-    _X(ASR::Logical_t, 1,   "_Bool" ) \
-    _X(ASR::Character_t, 1, "char" ) 
-
-
-/*
- * We will use this list instead, once the ASR has symbolic kind information.
-
-#define CTYPELIST_FUTURE \
-    _X(ASR::Integer_t, "c_int",           "int"   ) \
-    _X(ASR::Integer_t, "c_short",         "short" ) \
-    _X(ASR::Integer_t, "c_long",          "long"  ) \
-    _X(ASR::Integer_t, "c_long_long",     "long long" ) \
-    _X(ASR::Integer_t, "c_signed_char",   "signed char" ) \
-    _X(ASR::Integer_t, "c_size_t",        "size_t" ) \
-    \
-    _X(ASR::Integer_t, "c_int8_t",        "int8_t" ) \
-    _X(ASR::Integer_t, "c_int16_t",       "int16_t" ) \
-    _X(ASR::Integer_t, "c_int32_t",       "int32_t" ) \
-    _X(ASR::Integer_t, "c_int64_t",       "int64_t" ) \
-    \
-    _X(ASR::Integer_t, "c_int_least8_t",  "int_least8_t" ) \
-    _X(ASR::Integer_t, "c_int_least16_t", "int_least16_t" ) \
-    _X(ASR::Integer_t, "c_int_least32_t", "int_least32_t" ) \
-    _X(ASR::Integer_t, "c_int_least64_t", "int_least64_t" ) \
-    \
-    _X(ASR::Integer_t, "c_int_fast8_t",   "int_fast8_t" ) \
-    _X(ASR::Integer_t, "c_int_fast16_t",  "int_fast16_t" ) \
-    _X(ASR::Integer_t, "c_int_fast32_t",  "int_fast32_t" ) \
-    _X(ASR::Integer_t, "c_int_fast64_t",  "int_fast64_t" ) \
-    \
-    _X(ASR::Integer_t, "c_intmax_t",      "intmax_t" ) \
-    _X(ASR::Integer_t, "c_intptr_t",      "intptr_t" ) \
-    _X(ASR::Integer_t, "c_ptrdiff_t",     "ptrdiff_t" ) \
-    \
-    _X(ASR::Real_t,    "c_float",         "float" ) \
-    _X(ASR::Real_t,    "c_double",        "double" ) \
-    _X(ASR::Real_t,    "c_long_double",   "long double" ) \
-    \
-    _X(ASR::Complex_t, "c_float_complex", "float _Complex" ) \
-    _X(ASR::Complex_t, "c_double_complex", "double _Complex" ) \
-    _X(ASR::Complex_t, "c_long_double_complex", "long double _Complex" ) \
-    \
-    _X(ASR::Logical_t, "c_bool",          "_Bool" ) \
-    _X(ASR::Character_t, "c_char",        "char" ) 
- */ 
-
-namespace LFortran {
-
+namespace LFortran{
+  
 namespace {
 
-    // Local exception that is only used in this file to exit the visitor
-    // pattern and caught later (not propagated outside)
-    class CodeGenError
-    {
-    public:
-        diag::Diagnostic d;
-    public:
-        CodeGenError(const std::string &msg)
-            : d{diag::Diagnostic(msg, diag::Level::Error, diag::Stage::CodeGen)}
-        { }
-    };
+  // Local exception that is only used in this file to exit the visitor
+  // pattern and caught later (not propagated outside)
+  class CodeGenError
+  {
+  public:
+    diag::Diagnostic d;
+  public:
+    CodeGenError(const std::string &msg)
+      : d{diag::Diagnostic(msg, diag::Level::Error, diag::Stage::CodeGen)}
+    { }
+  };
 
 }
 
 using ASR::is_a;
 using ASR::down_cast;
-using ASR::down_cast2;
+// using ASR::down_cast2;
+
+struct Dimension
+{
+  bool fixed;
+  size_t start_d;
+  size_t end_d;
+  std::string start_n;
+  std::string end_n;
+};
+
+struct PyArgVar
+{
+  std::string name; // variable name
+  
+  std::string base_ftype; // e.g. integer or real
+  std::string bindc_type; // e.g. c_int32_t
+  std::string ctype; // e.g. int32_t
+  std::string nptype; // e.g. np.int32
+  
+  ASR::intentType m_intent; // local, in, out, inout, unspecified
+  ASR::storage_typeType m_storage; // allocatable, default
+  bool assumed_shape; // no dimension information
+  ASR::presenceType m_presence; // required, optional
+  bool m_value_attr; // True if passed by value
+  
+  size_t n_dims; // number of dimensions
+  std::vector<Dimension> dims; // dimensions
+};
+  
+struct PyModVar
+{  
+  std::string pxd_fname;
+  std::string module_name;
+  
+  std::string name; // variable name
+  bool derived; // True if attribute of derived type
+  std::string derived_name; // name of parent derived type, if attribute of derived type
+  std::string base_ftype; // e.g. integer or real
+  std::string bindc_type; // e.g. c_int32_t
+  std::string ctype; // e.g. int32_t
+  std::string nptype; // e.g. np.int32
+  ASR::storage_typeType m_storage; // allocatable, parameter, default
+  size_t n_dims; // number of dimensions
+  std::vector<size_t> dims; // dimensions (if n_dim > 1 and not allocatable)
+}; 
+
+struct PyFiles
+{
+  std::string f90 = "";
+  std::string chdr = "";
+  std::string pxd = "";
+  std::string pyx = "";
+};
+  
+  
+// map between ASR types, iso_c_binding types, C types, and numpy types
+void map2c(size_t type, int64_t m_kind, std::string &ctype, std::string &bindc_type, std::string &nptype){
+   
+   if (type == ASR::Integer && m_kind == 1){
+     ctype = "int8_t";
+     bindc_type = "c_int8_t";
+     nptype = "np.int8";
+   }
+   else if (type == ASR::Integer && m_kind == 2){
+     ctype = "int16_t";
+     bindc_type = "c_int16_t";
+     nptype = "np.int16";
+   }
+   else if (type == ASR::Integer && m_kind == 4){
+     ctype = "int32_t";
+     bindc_type = "c_int32_t";
+     nptype = "np.int32";
+   }
+   else if (type == ASR::Integer && m_kind == 8){
+     ctype = "int64_t";
+     bindc_type = "c_int64_t";
+     nptype = "np.int64";
+   }
+   else if (type == ASR::Real && m_kind == 4){
+     ctype = "float";
+     bindc_type = "c_float";
+     nptype = "np.float32";
+   }
+   else if (type == ASR::Real && m_kind == 8){
+     ctype = "double";
+     bindc_type = "c_double";
+     nptype = "np.float64";
+   } 
+   else if (type == ASR::Real && m_kind == 16){
+     ctype = "long double";
+     bindc_type = "c_long_double";
+     nptype = "np.longdouble";
+   }
+   else if (type == ASR::Logical){
+     ctype = "bool";
+     bindc_type = "c_bool";
+     nptype = "np.bool_";
+   }
+   else if (type == ASR::Complex && m_kind == 4){
+     ctype = "float complex";
+     bindc_type = "c_float_complex";
+     nptype = "np.csingle";
+   }
+   else if (type == ASR::Complex && m_kind == 8){
+     ctype = "double complex";
+     bindc_type = "c_double_complex";
+     nptype = "np.cdouble";
+   }
+   else {
+     throw LFortranException("pywrap encountered a type which can not be wrapped");
+   }
+}
+
+// Generates getter and setters for integer, real, complex of any size (e.g. single precision)
+void intrinsic1(PyModVar v, std::string &f90_tmp, 
+  std::string &chdr_tmp, std::string &pxd_tmp, std::string &pyx_tmp)
+{
+  
+  std::string getter_name;
+  std::string setter_name;
+  std::string a_name;
+  if (v.derived){
+    getter_name = v.module_name+"_"+v.derived_name+"_"+v.name+"_get";
+    setter_name = v.module_name+"_"+v.derived_name+"_"+v.name+"_set";
+    a_name = "t%"+v.name;
+  }
+  else {
+    getter_name = v.module_name+"_"+v.name+"_get";
+    setter_name = v.module_name+"_"+v.name+"_set";
+    a_name = "a";
+  }
+  
+  //////////////////
+  // _wrapper.f90 //
+  //////////////////
+  
+  // f90 getter //
+  if (v.derived){
+    f90_tmp =  "  subroutine "+getter_name+"(ptr, var) bind(c)\n";
+    f90_tmp += "    use "+v.module_name+", only: dtype => "+v.derived_name+"\n";
+    f90_tmp += "    type(c_ptr), intent(in) :: ptr\n";
+  }
+  else {
+    f90_tmp =  "  subroutine "+getter_name+"(var) bind(c)\n";
+    f90_tmp += "    use "+v.module_name+", only: a => "+v.name+"\n";
+  }
+  f90_tmp += "    "+v.base_ftype+"("+v.bindc_type+"), intent(out) :: var\n";
+  if (v.derived){
+    f90_tmp += "    type(dtype), pointer :: t\n";
+    f90_tmp += "    call c_f_pointer(ptr, t)\n";
+  }
+  if (v.m_storage == ASR::Allocatable){
+    f90_tmp += "    if (allocated("+a_name+")) then\n";
+    f90_tmp += "      var = "+a_name+"\n";
+    f90_tmp += "    endif\n";
+  }
+  else{
+    f90_tmp += "    var = "+a_name+"\n";
+  }
+  f90_tmp += "  end subroutine\n\n";
+  
+  // f90 setter //
+  if (v.m_storage != ASR::Parameter){
+    if (v.derived){
+      f90_tmp +=  "  subroutine "+setter_name+"(ptr, var) bind(c)\n";
+      f90_tmp += "    use "+v.module_name+", only: dtype => "+v.derived_name+"\n";
+      f90_tmp += "    type(c_ptr), intent(in) :: ptr\n";
+    }
+    else {
+      f90_tmp += "  subroutine "+setter_name+"(var) bind(c)\n";
+      f90_tmp += "    use "+v.module_name+", only: a => "+v.name+"\n";
+    }
+    f90_tmp += "    "+v.base_ftype+"("+v.bindc_type+"), intent(in) :: var\n";
+    if (v.derived){
+      f90_tmp += "    type(dtype), pointer :: t\n";
+      f90_tmp += "    call c_f_pointer(ptr, t)\n";
+    }
+    if (v.m_storage == ASR::Allocatable){
+      f90_tmp += "    if (.not. allocated("+a_name+")) then\n";
+      f90_tmp += "      allocate("+a_name+")\n";
+      f90_tmp += "    endif\n";
+    }
+    f90_tmp += "    "+a_name+" = var\n";
+    f90_tmp += "  end subroutine\n\n";
+  }
+  
+  //////////////
+  // C header //
+  //////////////
+  chdr_tmp = "void "+getter_name+"(";
+  if (v.derived){
+    chdr_tmp += "void *ptr, ";
+  }
+  chdr_tmp += v.ctype+" *var);\n";
+  if (v.m_storage != ASR::Parameter){
+    chdr_tmp += "void "+setter_name+"(";
+    if (v.derived){
+      chdr_tmp += "void *ptr, ";
+    }
+    chdr_tmp += v.ctype+" *var);\n";
+  }
+  
+  ///////////////////
+  // Cython header //
+  ///////////////////
+  pxd_tmp = "  cdef void "+getter_name+"(";
+  if (v.derived){
+    pxd_tmp += "void *ptr, ";
+  }
+  pxd_tmp += v.ctype+" *var);\n";
+  if (v.m_storage != ASR::Parameter){
+    pxd_tmp += "  cdef void "+setter_name+"(";
+    if (v.derived){
+      pxd_tmp += "void *ptr, ";
+    }
+    pxd_tmp += v.ctype+" *var);\n";
+  }
+  
+  ////////////////
+  // Cython pyx //
+  ////////////////
+  pyx_tmp =  "  property "+v.name+":\n";
+  pyx_tmp += "    def __get__(self):\n";
+  pyx_tmp += "      cdef "+v.ctype+" var\n";
+  if (v.derived){
+    pyx_tmp += "      "+v.pxd_fname+"."+getter_name+"(&self._ptr, &var)\n";
+  } 
+  else {
+     pyx_tmp += "      "+v.pxd_fname+"."+getter_name+"(&var)\n";
+  }
+  pyx_tmp += "      return var\n";
+  if (v.m_storage != ASR::Parameter){
+    pyx_tmp += "    def __set__(self, "+v.ctype+" var):\n";
+    if (v.derived){
+      pyx_tmp += "      "+v.pxd_fname+"."+setter_name+"(&self._ptr, &var)\n";
+    }
+    else {
+      pyx_tmp += "      "+v.pxd_fname+"."+setter_name+"(&var)\n";
+    }
+  }
+  pyx_tmp += "\n";
+  
+}
+
+// Generates getter and setters for integer, real, complex of any size (e.g. single precision)
+// for fixed size arrays.
+void intrinsic2(PyModVar v, std::string &f90_tmp, 
+  std::string &chdr_tmp, std::string &pxd_tmp, std::string &pyx_tmp)
+{
+  
+  std::string getter_name;
+  std::string setter_name;
+  std::string a_name;
+  if (v.derived){
+    getter_name = v.module_name+"_"+v.derived_name+"_"+v.name+"_get";
+    setter_name = v.module_name+"_"+v.derived_name+"_"+v.name+"_set";
+    a_name = "t%"+v.name;
+  }
+  else {
+    getter_name = v.module_name+"_"+v.name+"_get";
+    setter_name = v.module_name+"_"+v.name+"_set";
+    a_name = "a";
+  }
+  
+  //////////////////
+  // _wrapper.f90 //
+  //////////////////
+  
+  // f90 getter //
+  if (v.derived){
+    f90_tmp =  "  subroutine "+getter_name+"(ptr, var) bind(c)\n";
+    f90_tmp += "    use "+v.module_name+", only: dtype => "+v.derived_name+"\n";
+    f90_tmp += "    type(c_ptr), intent(in) :: ptr\n";
+  }
+  else {
+    f90_tmp =  "  subroutine "+getter_name+"(var) bind(c)\n";
+    f90_tmp += "    use "+v.module_name+", only: a => "+v.name+"\n";
+  }
+  f90_tmp += "    "+v.base_ftype+"("+v.bindc_type+"), intent(out) :: var(";
+  for (size_t i = 0; i < v.n_dims; i++){
+    if (i == v.n_dims-1){
+      f90_tmp += std::to_string(v.dims[i])+")\n";
+    }
+    else {
+      f90_tmp += std::to_string(v.dims[i])+",";
+    }
+  }
+  if (v.derived){
+    f90_tmp += "    type(dtype), pointer :: t\n";
+    f90_tmp += "    call c_f_pointer(ptr, t)\n";
+  }
+  f90_tmp += "    var = "+a_name+"\n";
+  f90_tmp += "  end subroutine\n\n";
+  
+  // f90 setter //
+  if (v.m_storage != ASR::Parameter){
+    if (v.derived){
+      f90_tmp +=  "  subroutine "+setter_name+"(ptr, var) bind(c)\n";
+      f90_tmp += "    use "+v.module_name+", only: dtype => "+v.derived_name+"\n";
+      f90_tmp += "    type(c_ptr), intent(in) :: ptr\n";
+    }
+    else {
+      f90_tmp += "  subroutine "+setter_name+"(var) bind(c)\n";
+      f90_tmp += "    use "+v.module_name+", only: a => "+v.name+"\n";
+    }
+    f90_tmp += "    "+v.base_ftype+"("+v.bindc_type+"), intent(in) :: var(";
+    for (size_t i = 0; i < v.n_dims; i++){
+      if (i == v.n_dims-1){
+        f90_tmp += std::to_string(v.dims[i])+")\n";
+      }
+      else {
+        f90_tmp += std::to_string(v.dims[i])+",";
+      }
+    }
+    if (v.derived){
+      f90_tmp += "    type(dtype), pointer :: t\n";
+      f90_tmp += "    call c_f_pointer(ptr, t)\n";
+    }
+    f90_tmp += "    "+a_name+" = var\n";
+    f90_tmp += "  end subroutine\n\n";
+  }
+  
+  //////////////
+  // C header //
+  //////////////
+  chdr_tmp = "void "+getter_name+"(";
+  if (v.derived){
+    chdr_tmp += "void *ptr, ";
+  }
+  chdr_tmp += v.ctype+" *var);\n";
+  if (v.m_storage != ASR::Parameter){
+    chdr_tmp += "void "+setter_name+"(";
+    if (v.derived){
+      chdr_tmp += "void *ptr, ";
+    }
+    chdr_tmp += v.ctype+" *var);\n";
+  }
+  
+  ///////////////////
+  // Cython header //
+  ///////////////////
+  pxd_tmp = "  cdef void "+getter_name+"(";
+  if (v.derived){
+    pxd_tmp += "void *ptr, ";
+  }
+  pxd_tmp += v.ctype+" *var);\n";
+  if (v.m_storage != ASR::Parameter){
+    pxd_tmp += "  cdef void "+setter_name+"(";
+    if (v.derived){
+      pxd_tmp += "void *ptr, ";
+    }
+    pxd_tmp += v.ctype+" *var);\n";
+  }
+  
+  ////////////////
+  // Cython pyx //
+  ////////////////  
+  pyx_tmp =  "  property "+v.name+":\n";
+  pyx_tmp += "    def __get__(self):\n";
+  pyx_tmp += "      cdef ndarray var = np.empty((";
+  for (size_t i = 0; i < v.n_dims; i++){
+    if (i == v.n_dims-1){
+      pyx_tmp += std::to_string(v.dims[i])+",)";
+    }
+    else {
+      pyx_tmp += std::to_string(v.dims[i])+",";
+    }
+  }
+  pyx_tmp += ", "+v.nptype+", order='F')\n";
+  if (v.derived){
+    pyx_tmp += "      "+v.pxd_fname+"."+getter_name+"(&self._ptr, <"+v.ctype+" *>var.data)\n";
+  } 
+  else {
+    pyx_tmp += "      "+v.pxd_fname+"."+getter_name+"(<"+v.ctype+" *>var.data)\n";
+  }
+  pyx_tmp += "      return var\n";
+  if (v.m_storage != ASR::Parameter){
+    pyx_tmp += "    def __set__(self, ndarray["+v.ctype+", ndim="+std::to_string(v.n_dims)+"] var_in):\n";
+    pyx_tmp += "      cdef ndarray var = np.asfortranarray(var_in)\n";
+    pyx_tmp += "      cdef ndarray d = np.empty((var.ndim,), np.int64)\n";
+    pyx_tmp += "      for i in range(var.ndim):\n";
+    pyx_tmp += "        d[i] = var.shape[i]\n";
+    pyx_tmp += "      if (";
+    for (size_t i = 0; i < v.n_dims; i++){
+      pyx_tmp += std::to_string(v.dims[i])+",";
+    }
+    pyx_tmp += ") != tuple(d):\n";
+    pyx_tmp += "        raise ValueError('"+v.name+" has the wrong shape')\n";
+    if (v.derived){
+      pyx_tmp += "      "+v.pxd_fname+"."+setter_name+"(&self._ptr, <"+v.ctype+" *>var.data)\n";
+    } 
+    else {
+      pyx_tmp += "      "+v.pxd_fname+"."+setter_name+"(<"+v.ctype+" *>var.data)\n";
+    }
+  }
+  pyx_tmp += "\n";
+  
+}  
+
+// Generates getter and setters for integer, real, complex of any size (e.g. single precision)
+// for allocatable arrays
+void intrinsic3(PyModVar v, std::string &f90_tmp, 
+    std::string &chdr_tmp, std::string &pxd_tmp, std::string &pyx_tmp){
+      
+    std::string getter_name;
+    std::string setter_name;
+    std::string a_name;
+    if (v.derived){
+      getter_name = v.module_name+"_"+v.derived_name+"_"+v.name+"_get";
+      setter_name = v.module_name+"_"+v.derived_name+"_"+v.name+"_set";
+      a_name = "t%"+v.name;
+    }
+    else {
+      getter_name = v.module_name+"_"+v.name+"_get";
+      setter_name = v.module_name+"_"+v.name+"_set";
+      a_name = "a";
+    }
+    
+    //////////////////
+    // _wrapper.f90 //
+    //////////////////
+    
+    // f90 get size //
+    if (v.derived){
+      f90_tmp =  "  subroutine "+getter_name+"_size(ptr, d) bind(c)\n";
+      f90_tmp += "    use "+v.module_name+", only: dtype => "+v.derived_name+"\n";
+      f90_tmp += "    type(c_ptr), intent(in) :: ptr\n";
+    }
+    else {
+      f90_tmp =  "  subroutine "+getter_name+"_size(d) bind(c)\n";
+      f90_tmp += "    use "+v.module_name+", only: a => "+v.name+"\n";
+    }
+    f90_tmp += "    integer(c_int64_t), intent(out) :: d("+std::to_string(v.n_dims)+")\n";
+    if (v.derived){
+      f90_tmp += "    type(dtype), pointer :: t\n";
+      f90_tmp += "    call c_f_pointer(ptr, t)\n";
+    }
+    f90_tmp += "    if (allocated("+a_name+")) then\n";
+    f90_tmp += "      d = shape("+a_name+")\n";
+    f90_tmp += "    else\n";
+    f90_tmp += "      d = 0\n";
+    f90_tmp += "    endif\n";
+    f90_tmp += "  end subroutine\n\n";  
+    
+    // f90 getter //
+    if (v.derived){
+      f90_tmp += "  subroutine "+getter_name+"(ptr, d, var) bind(c)\n";
+      f90_tmp += "    use "+v.module_name+", only: dtype => "+v.derived_name+"\n";
+      f90_tmp += "    type(c_ptr), intent(in) :: ptr\n";
+    }
+    else {
+      f90_tmp += "  subroutine "+getter_name+"(d, var) bind(c)\n";
+      f90_tmp += "    use "+v.module_name+", only: a => "+v.name+"\n";
+    }
+    f90_tmp += "    integer(c_int64_t), intent(in) :: d("+std::to_string(v.n_dims)+")\n";
+    f90_tmp += "    "+v.base_ftype+"("+v.bindc_type+"), intent(out) :: var(";
+    for (size_t i = 0; i < v.n_dims; i++){
+      f90_tmp += "d("+std::to_string(i+1)+")";
+      if (i < v.n_dims - 1){
+        f90_tmp += ", ";
+      }
+    }
+    f90_tmp += ")\n";
+    if (v.derived){
+      f90_tmp += "    type(dtype), pointer :: t\n";
+      f90_tmp += "    call c_f_pointer(ptr, t)\n";
+    }
+    f90_tmp += "    if (allocated("+a_name+")) then\n";
+    f90_tmp += "      var = "+a_name+"\n";
+    f90_tmp += "    endif\n";
+    f90_tmp += "  end subroutine\n\n"; 
+    
+    // f90 setter //
+    if (v.derived){
+      f90_tmp +=  "  subroutine "+setter_name+"(ptr, d, var) bind(c)\n";
+      f90_tmp += "    use "+v.module_name+", only: dtype => "+v.derived_name+"\n";
+      f90_tmp += "    type(c_ptr), intent(in) :: ptr\n";
+    }
+    else {
+      f90_tmp += "  subroutine "+setter_name+"(d, var) bind(c)\n";
+      f90_tmp += "    use "+v.module_name+", only: a => "+v.name+"\n";
+    }
+    f90_tmp += "    integer(c_int64_t), intent(in) :: d("+std::to_string(v.n_dims)+")\n";
+    f90_tmp += "    "+v.base_ftype+"("+v.bindc_type+"), intent(in) :: var(";
+    for (size_t i = 0; i < v.n_dims; i++){
+      f90_tmp += "d("+std::to_string(i+1)+")";
+      if (i < v.n_dims - 1){
+        f90_tmp += ", ";
+      }
+    }
+    f90_tmp += ")\n";
+    if (v.derived){
+      f90_tmp += "    type(dtype), pointer :: t\n";
+      f90_tmp += "    call c_f_pointer(ptr, t)\n";
+    }
+    f90_tmp += "    if (allocated("+a_name+")) deallocate("+a_name+")\n";
+    f90_tmp += "    allocate("+a_name+"(";
+    for (size_t i = 0; i < v.n_dims; i++){
+      f90_tmp += "d("+std::to_string(i+1)+")";
+      if (i < v.n_dims - 1){
+        f90_tmp += ", ";
+      }
+    }
+    f90_tmp += "))\n";
+    f90_tmp += "    "+a_name+" = var\n";
+    f90_tmp += "  end subroutine\n\n";
+    
+    //////////////
+    // C header //
+    //////////////
+    chdr_tmp = "void "+getter_name+"_size(";
+    if (v.derived){
+      chdr_tmp += "void *ptr, ";
+    }
+    chdr_tmp += "int64_t *d);\n";
+    chdr_tmp += "void "+getter_name+"(";
+    if (v.derived){
+      chdr_tmp += "void *ptr, ";
+    }
+    chdr_tmp += "int64_t *d, "+v.ctype+" *var);\n";
+
+    chdr_tmp += "void "+setter_name+"(";
+    if (v.derived){
+      chdr_tmp += "void *ptr, ";
+    }
+    chdr_tmp += "int64_t *d, "+v.ctype+" *var);\n";
+    
+    ///////////////////
+    // Cython header //
+    ///////////////////
+    pxd_tmp = "  cdef void "+getter_name+"_size(";
+    if (v.derived){
+      pxd_tmp += "void *ptr, ";
+    }
+    pxd_tmp += "int64_t *d);\n";
+    pxd_tmp += "  cdef void "+getter_name+"(";
+    if (v.derived){
+      pxd_tmp += "void *ptr, ";
+    }
+    pxd_tmp += "int64_t *d, "+v.ctype+" *var);\n";
+
+    pxd_tmp += "  cdef void "+setter_name+"(";
+    if (v.derived){
+      pxd_tmp += "void *ptr, ";
+    }
+    pxd_tmp += "int64_t *d, "+v.ctype+" *var);\n";
+    
+    
+    ////////////////
+    // Cython pyx //
+    ////////////////
+    pyx_tmp =  "  property "+v.name+":\n";
+    pyx_tmp += "    def __get__(self):\n";
+    pyx_tmp += "      cdef ndarray d = np.empty(("+std::to_string(v.n_dims)+",), np.int64)\n";
+    if (v.derived){
+      pyx_tmp += "      "+v.pxd_fname+"."+getter_name+"_size(&self._ptr, <int64_t *> d.data)\n";
+    }
+    else {
+      pyx_tmp += "      "+v.pxd_fname+"."+getter_name+"_size(<int64_t *> d.data)\n";
+    }
+    pyx_tmp += "      cdef ndarray var = np.empty(tuple(d), "+v.nptype+", order='F')\n";
+    pyx_tmp += "      "+v.pxd_fname+"."+getter_name+"(";
+    if (v.derived){
+      pyx_tmp += "&self._ptr, ";
+    }
+    pyx_tmp += "<int64_t *> d.data, <"+v.ctype+" *>var.data)\n";
+    pyx_tmp += "      return var\n";
+    pyx_tmp += "    def __set__(self, ndarray["+v.ctype+", ndim="+std::to_string(v.n_dims)+"] var_in):\n";
+    pyx_tmp += "      cdef ndarray var = np.asfortranarray(var_in)\n";
+    pyx_tmp += "      cdef ndarray d = np.empty((var.ndim,), np.int64)\n";
+    pyx_tmp += "      for i in range(var.ndim):\n";
+    pyx_tmp += "        d[i] = var.shape[i]\n";
+    if (v.derived){
+      pyx_tmp += "      "+v.pxd_fname+"."+setter_name+"(&self._ptr, <int64_t *> d.data, <"+v.ctype+" *>var.data)\n";
+    } 
+    else {
+      pyx_tmp += "      "+v.pxd_fname+"."+setter_name+"(<int64_t *> d.data, <"+v.ctype+" *>var.data)\n";
+    }
+    pyx_tmp += "\n";
+    
+}
+
+void dtype_init(std::string pxd_fname, std::string module_name, std::string type_name,
+  std::string &f90_tmp, std::string &chdr_tmp, std::string &pxd_tmp, std::string &pyx_tmp)
+{
+  
+  //////////////////
+  // _wrapper.f90 //
+  //////////////////
+  f90_tmp =  "  subroutine "+module_name+"_"+type_name+"_alloc(ptr) bind(c)\n";
+  f90_tmp += "    use "+module_name+", only: dtype => "+type_name+"\n";
+  f90_tmp += "    type(c_ptr), intent(out) :: ptr\n";
+  f90_tmp += "    type(dtype), pointer :: t\n";
+  f90_tmp += "    allocate(t)\n";
+  f90_tmp += "    ptr = c_loc(t)\n";
+  f90_tmp += "  end subroutine\n\n";
+  
+  f90_tmp += "  subroutine "+module_name+"_"+type_name+"_dealloc(ptr) bind(c)\n";
+  f90_tmp += "    use "+module_name+", only: dtype => "+type_name+"\n";
+  f90_tmp += "    type(c_ptr), intent(in) :: ptr\n";
+  f90_tmp += "    type(dtype), pointer :: t\n";
+  f90_tmp += "    call c_f_pointer(ptr, t)\n";
+  f90_tmp += "    deallocate(t)\n";
+  f90_tmp += "  end subroutine\n\n";
+  
+  //////////////
+  // C header //
+  //////////////
+  chdr_tmp =  "void "+module_name+"_"+type_name+"_alloc(void *ptr);\n";
+  chdr_tmp += "void "+module_name+"_"+type_name+"_dealloc(void *ptr);\n";
+  
+  ///////////////////
+  // Cython header //
+  ///////////////////
+  pxd_tmp =  "  cdef void "+module_name+"_"+type_name+"_alloc(void *ptr);\n";
+  pxd_tmp += "  cdef void "+module_name+"_"+type_name+"_dealloc(void *ptr);\n";
+  
+  ////////////////
+  // Cython pyx //
+  ////////////////
+  pyx_tmp =  "  def __cinit__(self, bint alloc = True):\n";
+  pyx_tmp += "    if alloc:\n";
+  pyx_tmp += "      self._destroy = True\n";
+  pyx_tmp += "      "+pxd_fname+"."+module_name+"_"+type_name+"_alloc(&self._ptr)\n";
+  pyx_tmp += "    else:\n";
+  pyx_tmp += "      self._destroy = False\n\n";
+  
+  pyx_tmp += "  def __dealloc__(self):\n";
+  pyx_tmp += "    if self._destroy:\n";
+  pyx_tmp += "      "+pxd_fname+"."+module_name+"_"+type_name+"_dealloc(&self._ptr)\n\n";
+  
+}
+
+void get_arg_dimension(const ASR::dimension_t &x, const ASR::Subroutine_t &s, std::string name)
+{
+  std::string err = "Problem getting dimensions for subroutine argument "+name+".";
+  long int dim_start;
+  
+  /*
+  WORK IN PROGRESS!!!
+   
+  Ultimately, we need to use recursion to get the dimension.
+  3 cases.
+  
+  (1) Constant dimension (In current module or external). (easy)
+  (2) Defined by subroutine variable argument.
+      - Could be a normal integer (easy)
+      - Could be an array reference (hard)
+      - Could be an derived type reference (hard)
+  (3) Defined in a module. (hard)
+      - Could be a normal integer (easy-ish)
+      - Could be an array reference
+      - Could be an derived type reference
+  
+  This can get really complicated when the dimension is a web.
+  I think (2) and (3) are actually tied together. Example:
+  
+  (my is derived type in a module somewhere)
+  integer, intent(in) :: n2
+  integer, intent(in) :: a(my%n1(n2))
+  
+   We will need to solve with recursion
+   
+   I think we will always need to make a call before calling the subroutine
+   call to get the dimensions for cases (2) and (3). This call will pass in all relevant dimension
+   arguments, bring into scope the relevant modules, and return the dimensions of a variable.
+   
+   subroutine get_dims_for_subroutine(var1, d) bind(c)
+     use mymod, only: my
+     integer(c_int32_t), intent(in) :: var1
+     integer(c_int64_t), intent(out) :: d(1)
+     d(1) = my%n1(var1)
+   end subroutine
+   
+   then 
+   
+   subroutine subroutine_wrapper(var1, d1, var2) bind(c)
+     use mymod, only: sub => the_subroutine
+     ...
+     ...
+     
+     call sub(var1, var2)
+   end subroutine
+
+   
+  */
+  
+  // if it is a constant number, then just collect that
+  if (x.m_end->type == ASR::ConstantInteger){
+    ASR::ConstantInteger_t *a = down_cast<ASR::ConstantInteger_t>(x.m_end);
+    dim_start = a->m_n;
+  }
+  // else it is a variable
+  else if (x.m_end->type == ASR::Var){
+    ASR::Var_t *a = down_cast<ASR::Var_t>(x.m_end);
+    if (a->m_v->type == ASR::Variable){
+      ASR::Variable_t *a1 = down_cast<ASR::Variable_t>(a->m_v);
+      // if it a constant variable
+      if (a1->m_value){
+        if (a1->m_value->type == ASR::ConstantInteger){
+          ASR::ConstantInteger_t *a2 = down_cast<ASR::ConstantInteger_t>(a1->m_value);
+          dim_start = a2->m_n;
+        }
+        else {
+          throw LFortranException(err);
+        }
+      }
+      // it is not a constant variable
+      else {
+        // Where does the variable come from?
+        if (a1->m_parent_symtab->asr_owner->type == ASR::symbol){
+          ASR::symbol_t *v = down_cast<ASR::symbol_t>(a1->m_parent_symtab->asr_owner);
+          if (v->type == ASR::Subroutine){
+            ASR::Subroutine_t *s1 = down_cast<ASR::Subroutine_t>(v);
+            if (s1 == &s){
+              std::cout << "dimension is defined by another variable" << std::endl;
+              // Yay! good thing.
+            }
+            else {
+              throw LFortranException(err);
+            }
+          }
+          else {
+            throw LFortranException(err+" The variable's dimension is not definied within "
+            +" a subroutine. It might be defined within a module. This is hard to wrap.");
+          }
+        }
+        else {
+          std::cout << "This should never print?" << std::endl;
+          throw LFortranException(err);
+        }
+        
+      }
+    }
+    else {
+      // can end up here if a dimension is an external symbol
+      throw LFortranException(err+" The variable's dimension is defined by"
+      +" an external variable in another module. This is hard to wrap.");
+    }
+  }
+  else {
+    // can end up here if dimension is member of derived type or an array reference
+    // OR a array reference in a derived type member. Or any complicated string of those things
+    // we need to use recursion to get the variable and its origin
+    throw LFortranException(err+" The variable's dimension is defined by"
+    +" a mysterious variable. This is hard to wrap.");
+  }
+  
+  
+  
+}
+
+size_t get_variable_dimension(const ASR::dimension_t &x, std::string name)
+{
+  std::string err = "Problem getting dimensions for variable "+name;
+  long int dim_start = 0;
+  long int dim_end = 0;
+  
+  if (x.m_start->type == ASR::ConstantInteger){
+    ASR::ConstantInteger_t *d_start = down_cast<ASR::ConstantInteger_t>(x.m_start);
+    dim_start = d_start->m_n;
+  }
+  // else it is a parameter
+  else if (x.m_start->type == ASR::Var){
+    ASR::Var_t *d_start = down_cast<ASR::Var_t>(x.m_start);
+    if (d_start->m_v->type == ASR::Variable){
+      ASR::Variable_t *d_start1 = down_cast<ASR::Variable_t>(d_start->m_v);
+      if (d_start1->m_value){
+        if (d_start1->m_value->type == ASR::ConstantInteger){
+          ASR::ConstantInteger_t *d_start2 = down_cast<ASR::ConstantInteger_t>(d_start1->m_value);
+          dim_start = d_start2->m_n;
+        }
+        else {
+          throw LFortranException(err);
+        }
+      }
+      else {
+        throw LFortranException(err);
+      }
+    }
+    else {
+      throw LFortranException(err);
+    }
+  }
+  else {
+    throw LFortranException(err);
+  }
+  
+  
+  if (x.m_end->type == ASR::ConstantInteger){
+    ASR::ConstantInteger_t *d_end = down_cast<ASR::ConstantInteger_t>(x.m_end);
+    dim_end = d_end->m_n;
+  }
+  // else it is a parameter
+  else if (x.m_end->type == ASR::Var){
+    ASR::Var_t *d_end = down_cast<ASR::Var_t>(x.m_end);
+    if (d_end->m_v->type == ASR::Variable){
+      ASR::Variable_t *d_end1 = down_cast<ASR::Variable_t>(d_end->m_v);
+      if (d_end1->m_value){
+        if (d_end1->m_value->type == ASR::ConstantInteger){
+          ASR::ConstantInteger_t *d_end2 = down_cast<ASR::ConstantInteger_t>(d_end1->m_value);
+          dim_end = d_end2->m_n;
+        }
+        else {
+          throw LFortranException(err);
+        }
+      }
+      else {
+        throw LFortranException(err);
+      }
+    }
+    else {
+      throw LFortranException(err);
+    }
+  }
+  else {
+    throw LFortranException(err);
+  }
+
+  size_t res = (dim_end - dim_start + 1);
+  return res;
+  
+}
+
 
 class ASRToPyVisitor : public ASR::BaseVisitor<ASRToPyVisitor>
 {
 public:
-    // These store the strings that will become the contents of the generated .h, .pxd, .pyx files
-    std::string chdr, pxd, pyx;
-
-    // Stores the name of the current module being visited.
-    // Value is meaningless after calling ASRToPyVisitor::visit_asr.
-    std::string cur_module;
-
-    // Are we assuming arrays to be in C order (row-major)? If not, assume Fortran order (column-major).
-    bool c_order;
-
-    // What's the file name of the C header file we're going to generate? (needed for the .pxd)
-    std::string chdr_filename;
-    // What's the name of the pxd file (minus the .pxd extension)
-    std::string pxdf;
-
-    ASRToPyVisitor(bool c_order_, std::string chdr_filename_) : 
-            c_order(c_order_), 
-            chdr_filename(chdr_filename_),
-            pxdf(chdr_filename_)
-    {
-        // we need to get get the pxd filename (minus extension), so we can import it in the pyx file
-        // knock off ".h" from the c header filename
-        pxdf.erase(--pxdf.end());
-        pxdf.erase(--pxdf.end());   
-        // this is an unfortuante hack, but we have to add something so that the pxd and pyx filenames
-        // are different (beyond just their extensions). If we don't, the cython emits a warning.
-        // TODO we definitely need to change this somehow because right now this "append _pxd" trick
-        // exists in two places (bin/lfortran.cpp, and here), which could easily cause breakage.
-        pxdf += "_pxd";
+  
+  std::string module_name; // module to be wrapped
+  
+  std::string pyx; // Cython implementation file (.pyx)
+  std::string pxd; // Cython header file (.pxd)
+  std::string f90; // Fortran wrapper file (.f90)
+  std::string chdr; // C header file for Fortran wrapper (.h)
+  
+  std::string pxd_fname = "pxd_fname";
+  std::string chdr_fname = "chdr_fname";
+  
+  void visit_TranslationUnit(const ASR::TranslationUnit_t &x){
+    
+    pxd_fname = module_name+"_pxd";
+    chdr_fname = module_name+"_wrapper";
+    
+    chdr =  "// This file was automatically generated by the LFortran compiler.\n\n";
+    chdr += "#include <stdint.h>\n";
+    chdr += "#include <complex.h>\n";
+    chdr += "#include <stdbool.h>\n\n";
+    
+    pxd =   "# This file was automatically generated by the LFortran compiler.\n\n";
+    pxd +=  "from libc.stdint cimport int8_t, int16_t, int32_t, int64_t\n";
+    pxd +=  "from libcpp cimport bool, complex\n\n";
+    pxd +=  "cdef extern from \""+chdr_fname+".h\":\n";
+    
+    pyx =  "# This file was automatically generated by the LFortran compiler.\n\n";
+    pyx += "from numpy cimport ndarray, int8_t, int16_t, int32_t, int64_t\n";
+    pyx += "from libcpp cimport bool, complex\n";
+    pyx += "import numpy as np\n";
+    pyx += "cimport "+pxd_fname+" \n\n";  
+    
+    f90 =  "! This file was automatically generated by the LFortran compiler.\n\n";
+    f90 += "module "+module_name+"_wrapper\n";
+    f90 += "  use iso_c_binding\n";
+    f90 += "  implicit none\n\n";
+    f90 += "contains\n\n";
+    
+    std::vector<std::string> build_order
+        = ASRUtils::determine_module_dependencies(x);
+    
+    // loop over modules in the translation unit
+    for(auto item : build_order){
+      ASR::symbol_t *s = x.m_global_scope->scope[item];
+      if (s->type == ASR::Module){
+        ASR::Module_t *mod = ASR::down_cast<ASR::Module_t>(s);
+        wrap_Module(*mod);
+      }    
     }
+    
+    f90 += "end module";
+    pyx += "\n"+module_name+" = __"+module_name+"()\n";
+  }
 
-    std::tuple<std::string, std::string, std::string, std::string, std::string>
-    helper_visit_arguments(size_t n_args, ASR::expr_t ** args)
-    {
+  void wrap_Module(const ASR::Module_t &x)
+  {
+    // check if module is the right one
+    if (x.m_name != module_name){
+      return;
+    }
+    
+    std::vector<std::string> dtype_names = {};
+    // first wrap any derived types
+    for (auto &item : x.m_symtab->scope) {
+      if (is_a<ASR::DerivedType_t>(*item.second)) {
+        ASR::DerivedType_t *s = ASR::down_cast<ASR::DerivedType_t>(item.second);
+        PyFiles f = wrap_DerivedType(*s);
+        f90 += f.f90;
+        chdr += f.chdr;
+        pxd += f.pxd;
+        pyx += f.pyx;
+        dtype_names.push_back(s->m_name);
+      }
+      else if (is_a<ASR::ExternalSymbol_t>(*item.second)) {
+        ASR::ExternalSymbol_t *e = ASR::down_cast<ASR::ExternalSymbol_t>(item.second);
+        if (e->m_external->type == ASR::DerivedType){
+          ASR::DerivedType_t *s = ASR::down_cast<ASR::DerivedType_t>(e->m_external);
+          PyFiles f = wrap_DerivedType(*s);
+          f90 += f.f90;
+          chdr += f.chdr;
+          pxd += f.pxd;
+          pyx += f.pyx;
+          dtype_names.push_back(s->m_name);
+        }
+      }
+    }
+    
+    pyx += "cdef class __"+module_name+":\n";
+    
+    // loop through symbols in module
+    for (auto &item : x.m_symtab->scope) {
+      
+      if (is_a<ASR::Variable_t>(*item.second)) {
+        // variables in module
+        ASR::Variable_t *s = ASR::down_cast<ASR::Variable_t>(item.second);
+        std::string empty_str = "";
+        PyFiles f = wrap_Variable(*s, false, empty_str);
+        f90 += f.f90;
+        chdr += f.chdr;
+        pxd += f.pxd;
+        pyx += f.pyx;
+      }
+      else if (is_a<ASR::ExternalSymbol_t>(*item.second)) {
+        ASR::ExternalSymbol_t *e = ASR::down_cast<ASR::ExternalSymbol_t>(item.second);
+        if (e->m_external->type == ASR::Variable){
+          ASR::Variable_t *s = ASR::down_cast<ASR::Variable_t>(e->m_external);
+          std::string empty_str = "";
+          PyFiles f = wrap_Variable(*s, false, empty_str);
+          f90 += f.f90;
+          chdr += f.chdr;
+          pxd += f.pxd;
+          pyx += f.pyx;
+        }
+      }
+      
+    }
+    
+    // Tack derived types onto the module
+    if (dtype_names.size() > 0){
+      for (size_t i = 0; i < dtype_names.size(); i++){
+        pyx += "  property "+dtype_names[i]+":\n";
+        pyx += "    def __get__(self):\n";
+        pyx += "      return __"+module_name+"_"+dtype_names[i]+"\n\n";
+        
+      }      
+    }
+    
+    // wrap functions and subroutines
+    for (auto &item : x.m_symtab->scope) {
+      if (is_a<ASR::Subroutine_t>(*item.second)){
+        ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
+        std::cout << "Skipping Subroutine: " << s->m_name << std::endl;
+        // PyFiles f = wrap_Subroutine(*s);
+        
+        
+      }
+      else if (is_a<ASR::Function_t>(*item.second)){
+        ASR::Function_t *s = ASR::down_cast<ASR::Function_t>(item.second);
+        std::cout << "Skipping Function: " << s->m_name << std::endl;
+        // wrap function
+      }
+      
+    }
+  
+  }
+  
+  PyFiles wrap_DerivedType(const ASR::DerivedType_t &x)
+  {
+    PyFiles f;
+    std::cout << "Wrapping derived type: " << x.m_name << std::endl;
+    if (x.m_access == ASR::Private){
+      std::cout << x.m_name << " is private so not wrapping" << std::endl;
+      return f;
+    }
+  
+    // Beginning of type
+    std::string tmp = x.m_name;
+    f.pyx = "cdef class __"+module_name+"_"+tmp+":\n";
+    f.pyx += "  cdef void *_ptr\n";
+    f.pyx += "  cdef bint _destroy\n\n";
+    
+    std::string f90_tmp = "";
+    std::string chdr_tmp = "";
+    std::string pxd_tmp = "";
+    std::string pyx_tmp = "";
+    
+    // we make allocator first
+    dtype_init(pxd_fname, module_name, tmp, 
+      f90_tmp, chdr_tmp, pxd_tmp, pyx_tmp);
+    
+    f.f90 += f90_tmp;
+    f.chdr += chdr_tmp;
+    f.pxd += pxd_tmp;
+    f.pyx += pyx_tmp;
+    
+    // loop through symbols in derived type
+    for (auto &item : x.m_symtab->scope) {
+      
+      if (is_a<ASR::Variable_t>(*item.second)) {
+        ASR::Variable_t *s = ASR::down_cast<ASR::Variable_t>(item.second);
+        PyFiles f1 = wrap_Variable(*s, true, tmp);
+        f.f90 += f1.f90;
+        f.chdr += f1.chdr;
+        f.pxd += f1.pxd;
+        f.pyx += f1.pyx;
+      }
+      else {
+        // There shouldn't be anything but variables?
+      }
+      
+    }
+    
+    return f;
+    
+  }
+  
+  PyFiles wrap_Variable(const ASR::Variable_t &x, bool derived, std::string &derived_name)
+  {
+    
+    PyFiles f;
+    std::string f90_tmp = "";
+    std::string chdr_tmp = "";
+    std::string pxd_tmp = "";
+    std::string pyx_tmp = "";
+    
+    if (x.m_access == ASR::Private){
+      return f;
+    }
+    
+    PyModVar v;
+    v.derived = derived; // if the varaible is CONTAINED within a derived type
+    if (v.derived){
+      v.derived_name = derived_name;
+    }
+    
+    v.name = x.m_name;
+    v.module_name = module_name;
+    v.pxd_fname = pxd_fname;
+    v.m_storage = x.m_storage; 
+    if (is_a<ASR::Integer_t>(*x.m_type)){
+      ASR::Integer_t *tmp = down_cast<ASR::Integer_t>(x.m_type);
+      map2c(ASR::Integer, tmp->m_kind, v.ctype, v.bindc_type, v.nptype);
+      v.base_ftype = "integer";
+      v.n_dims = tmp->n_dims;
+      
+      // get dimensions if not allocatable
+      if (v.n_dims > 0 && v.m_storage != ASR::Allocatable){
+        v.dims.resize(v.n_dims);
+        for (size_t i = 0; i < v.n_dims; i++){
+          v.dims[i] = get_variable_dimension(tmp->m_dims[i], v.name);
+        }
+      }
+        
+    } 
+    else if (is_a<ASR::Real_t>(*x.m_type)) {
+      ASR::Real_t *tmp = down_cast<ASR::Real_t>(x.m_type);
+      map2c(ASR::Real, tmp->m_kind, v.ctype, v.bindc_type, v.nptype);
+      v.base_ftype = "real";
+      v.n_dims = tmp->n_dims;
+      
+      // get dimensions if not allocatable
+      if (v.n_dims > 0 && v.m_storage != ASR::Allocatable){
+        v.dims.resize(v.n_dims);
+        for (size_t i = 0; i < v.n_dims; i++){
+          v.dims[i] = get_variable_dimension(tmp->m_dims[i], v.name);
+        }
+      }
+    }
+    else if (is_a<ASR::Logical_t>(*x.m_type)){
+      ASR::Logical_t *tmp = down_cast<ASR::Logical_t>(x.m_type);
+      map2c(ASR::Logical, tmp->m_kind, v.ctype, v.bindc_type, v.nptype);
+      v.base_ftype = "logical";
+      v.n_dims = tmp->n_dims;
+      
+      // get dimensions if not allocatable
+      if (v.n_dims > 0 && v.m_storage != ASR::Allocatable){
+        v.dims.resize(v.n_dims);
+        for (size_t i = 0; i < v.n_dims; i++){
+          v.dims[i] = get_variable_dimension(tmp->m_dims[i], v.name);
+        }
+      }
 
-        struct arg_info {
-            ASR::Variable_t*  asr_obj;
-            std::string       ctype;
-            int               ndims;
+    }
+    else if (is_a<ASR::Complex_t>(*x.m_type)){
+      ASR::Complex_t *tmp = down_cast<ASR::Complex_t>(x.m_type);
+      map2c(ASR::Complex, tmp->m_kind, v.ctype, v.bindc_type, v.nptype);
+      v.base_ftype = "complex";
+      v.n_dims = tmp->n_dims;
+      
+      // get dimensions if not allocatable
+      if (v.n_dims > 0 && v.m_storage != ASR::Allocatable){
+        v.dims.resize(v.n_dims);
+        for (size_t i = 0; i < v.n_dims; i++){
+          v.dims[i] = get_variable_dimension(tmp->m_dims[i], v.name);
+        }
+      }
+    }
+    else if (is_a<ASR::Derived_t>(*x.m_type)){
+      if (v.derived){
+        std::cout << "  ";
+      }
+      std::cout << "Skipping " << v.name << ". Can not wrap DerivedType variables" << std::endl;
+      return f;
+
+      ASR::Derived_t *tmp = down_cast<ASR::Derived_t>(x.m_type);
+      // ASR::DerivedType_t *tmp_d = down_cast<ASR::DerivedType_t>(tmp->m_derived_type);
+      v.ctype = "void *";
+      v.bindc_type = "c_ptr";
+      v.base_ftype = "type";
+      v.n_dims = tmp->n_dims;
+      if (v.n_dims > 0 && v.m_storage != ASR::Allocatable){
+        v.dims.resize(v.n_dims);
+        for (size_t i = 0; i < v.n_dims; i++){
+          v.dims[i] = get_variable_dimension(tmp->m_dims[i], v.name);
+        }
+      }
+    }
+    else if (is_a<ASR::Character_t>(*x.m_type)){
+      std::cout << "Skipping " << v.name << ". Can not wrap Characters." << std::endl;
+      return f;
+    }
+    else if (is_a<ASR::Pointer_t>(*x.m_type)){
+      std::cout << "Skipping " << v.name << ". Can not wrap Pointers." << std::endl;
+      return f;
+    }
+    else if (is_a<ASR::Class_t>(*x.m_type)){
+      std::cout << "Skipping " << v.name << ". Can not wrap Classes." << std::endl;
+      return f;
+    }
+    else {
+      throw LFortranException("pywrap encountered an unknown variable type.");
+    }
+    
+    if (x.m_type->type == ASR::Derived){
+      if (v.derived){
+        std::cout << "  ";
+      }
+      std::cout << "Wrapping: " << v.name << std::endl;
+      // dtype1(v, f90_tmp, chdr_tmp, pxd_tmp, pyx_tmp);
+    }
+    else {
+    
+    if (v.n_dims == 0){
+      if (v.derived){
+        std::cout << "  ";
+      }
+      std::cout << "Wrapping: " << v.name << std::endl;
+      intrinsic1(v, f90_tmp, chdr_tmp, pxd_tmp, pyx_tmp);
+    }
+    else if (v.n_dims != 0 && v.m_storage != ASR::Allocatable){
+      if (v.derived){
+        std::cout << "  ";
+      }
+      std::cout << "Wrapping: " << v.name << std::endl;
+      intrinsic2(v, f90_tmp, chdr_tmp, pxd_tmp, pyx_tmp);
+    }
+    else if (v.n_dims != 0 && v.m_storage == ASR::Allocatable){
+      if (v.derived){
+        std::cout << "  ";
+      }
+      std::cout << "Wrapping: " << v.name << std::endl;
+      intrinsic3(v, f90_tmp, chdr_tmp, pxd_tmp, pyx_tmp);
+    }
+    else {
+      throw LFortranException("Type not supported!");
+    }
+    
+    } // if derived
+    
+    f.f90 = f90_tmp;
+    f.chdr = chdr_tmp;
+    f.pxd = pxd_tmp;
+    f.pyx = pyx_tmp;
+    
+    return f;
+  }
+  
+  PyFiles wrap_Subroutine(const ASR::Subroutine_t &x)
+  {
+    PyFiles f;
+    
+    std::vector<PyArgVar> v;
+    v.resize(x.n_args);
+    
+    std::string err1 = x.m_name;
+    std::string err = "Subroutine "+err1+" has a argument"+
+    "which is not a Variable.";
+    
+    // loop through args and get all details
+    for (size_t i = 0; i < x.n_args; i++){
+      if (x.m_args[i]->type == ASR::Var){
+        ASR::Var_t *var1 = down_cast<ASR::Var_t>(x.m_args[i]);
+        if (var1->m_v->type == ASR::Variable){
+          ASR::Variable_t *var = down_cast<ASR::Variable_t>(var1->m_v);
+          
+          v[i].name = var->m_name;
+          v[i].m_intent = var->m_intent;
+          v[i].m_storage = var->m_storage;
+          v[i].m_presence = var->m_presence;
+          v[i].m_value_attr = var->m_value_attr;
+          
+          if (var->m_type->type == ASR::Integer){
+            ASR::Integer_t *tmp = down_cast<ASR::Integer_t>(var->m_type);
             
-            std::vector<std::string> ubound_varnames;
-            std::vector<std::pair<std::string,int> > i_am_ubound_of;
-        };
-
-        std::vector<arg_info> arg_infos;
-
-
-        /* get_arg_infos */ for (size_t i=0; i<n_args; i++) {
-
-            ASR::Variable_t *arg = ASRUtils::EXPR2VAR(args[i]);
-            LFORTRAN_ASSERT(ASRUtils::is_arg_dummy(arg->m_intent));
-
-            // TODO add support for (or emit error on) assumed-shape arrays
-            // TODO add support for interoperable derived types
-
-            arg_info this_arg_info;
-
-            const char * errmsg1 = "pywrap does not yet support array dummy arguments with lower bounds other than 1.";
-            const char * errmsg2 = "pywrap can only generate wrappers for array dummy arguments " 
-                                   "if the upper bound is a constant integer, or another (scalar) dummy argument.";
-
-            // Generate a sequence of if-blocks to determine the type, using the type list defined above
-            #define _X(ASR_TYPE, KIND, CTYPE_STR) \
-            if ( is_a<ASR_TYPE>(*arg->m_type) && (down_cast<ASR_TYPE>(arg->m_type)->m_kind == KIND) ) { \
-                this_arg_info.asr_obj = arg;                                                       \
-                this_arg_info.ctype   = CTYPE_STR;                                                 \
-                auto tmp_arg          = down_cast<ASR_TYPE>(arg->m_type);                          \
-                this_arg_info.ndims   = tmp_arg->n_dims;                                           \
-                for (int j = 0; j < this_arg_info.ndims; j++) {                                    \
-                    auto lbound_ptr = tmp_arg->m_dims[j].m_start;                                  \
-                    if (!is_a<ASR::ConstantInteger_t>(*lbound_ptr)) {                              \
-                        throw CodeGenError(errmsg1);                                               \
-                    }                                                                              \
-                    if (down_cast<ASR::ConstantInteger_t>(lbound_ptr)->m_n != 1) {                 \
-                        throw CodeGenError(errmsg1);                                               \
-                    }                                                                              \
-                    if (is_a<ASR::Var_t>(*tmp_arg->m_dims[j].m_end)) {                             \
-                        ASR::Variable_t *dimvar = ASRUtils::EXPR2VAR(tmp_arg->m_dims[j].m_end);    \
-                        this_arg_info.ubound_varnames.push_back(dimvar->m_name);                   \
-                    } else if (!is_a<ASR::ConstantInteger_t>(*lbound_ptr)) {                       \
-                        throw CodeGenError(errmsg2);                                               \
-                    }                                                                              \
-                }                                                                                  \
-            } else       
-
-            CTYPELIST {
-                // We end up in this block if none of the above if-blocks were triggered
-                throw CodeGenError("Type not supported");
-            };
-            #undef _X
-
-            arg_infos.push_back(this_arg_info);
-
-        } /* get_arg_infos */
-
-
-        /* mark_array_bound_vars */ for(auto arg_iter = arg_infos.begin(); arg_iter != arg_infos.end(); arg_iter++) {
-
-            /* some dummy args might just be the sizes of other dummy args, e.g.:
-
-            subroutine foo(n,x)
-                integer :: n, x(n)
-            end subroutine  
-
-            We don't actually want `n` in the python wrapper's arguments - the Python programmer
-            shouldn't need to explicitly pass sizes. From the get_arg_infos block, we already have
-            the mapping from `x` to `n`, but we also need the opposite - we need be able to look at 
-            `n` and know that it's related to `x`. So let's do a pass over the arg_infos list and 
-            assemble that information.
-
-            */
+            v[i].n_dims = tmp->n_dims;
             
-            for (auto bound_iter =  arg_iter->ubound_varnames.begin(); 
-                      bound_iter != arg_iter->ubound_varnames.end(); 
-                      bound_iter++ ) {
-                for (unsigned int j = 0; j < arg_infos.size(); j++) {
-                    if (0 == std::string(arg_infos[j].asr_obj->m_name).compare(*bound_iter)) {
-                        arg_infos[j].i_am_ubound_of.push_back(std::make_pair(arg_iter->asr_obj->m_name, j));
-                    }
+            if (tmp->n_dims > 0){
+              v[i].assumed_shape = false;
+              if (tmp->m_dims[0].m_start == NULL && var->m_storage == ASR::Default){
+                v[i].assumed_shape = true;
+              }
+              else if (tmp->m_dims[0].m_start != NULL && var->m_storage == ASR::Default){
+                // get dimensions
+                v[i].dims.resize(tmp->n_dims);
+                for (size_t j = 0; j < tmp->n_dims; j++){
+                  get_arg_dimension(tmp->m_dims[j], x, v[i].name);
                 }
+              }
             }
-
-        } /* mark_array_bound_vars */
-
-
-        /* apply_c_order */ if(c_order) {
-
-            for(auto arg_iter = arg_infos.begin(); arg_iter != arg_infos.end(); arg_iter++) {
             
-                for (auto bound =  arg_iter->i_am_ubound_of.begin();
-                          bound != arg_iter->i_am_ubound_of.end();
-                          bound++) {
-                    auto x = std::make_pair(bound->first, - bound->second -1);
-                    bound->swap(x);
-                }  
-            
-            }
-
-        } /* apply_c_order */
-
-        std::string c, cyargs, fargs, pyxbody, return_statement;
-
-        /* build_return_strings */ for(auto it = arg_infos.begin(); it != arg_infos.end(); it++) {
-           
-            std::string c_wip, cyargs_wip, fargs_wip, rtn_wip;          
-
-            c_wip = it->ctype;
-
-            // Get type for cython wrapper argument, from the C type name
-            if (it->ndims > 0) {
-                std::string mode     = c_order   ? ", mode=\"c\"" : ", mode=\"fortran\"";
-                std::string strndims = it->ndims > 1 ? ", ndim="+std::to_string(it->ndims) : "";
-                cyargs_wip += "ndarray[" + it->ctype + strndims + mode + "]";
-            } else {
-                cyargs_wip += it->ctype;
-            }
-
-            // Fortran defaults to pass-by-reference, so the C argument is a pointer, unless
-            // it is not an array AND it has the value type.
-            if (it->ndims > 0 || !it->asr_obj->m_value_attr) {
-                c_wip += " *";
-                fargs_wip = "&";
-                // If the argument is intent(in) and a pointer, it should be a ptr-to-const.
-                if (ASR::intentType::In == it->asr_obj->m_intent) c_wip = "const " + c_wip;
-            }
-
-            c_wip += " ";
-            c_wip += it->asr_obj->m_name;
-
-            cyargs_wip += " ";
-            cyargs_wip += it->asr_obj->m_name;
-
-            fargs_wip += it->asr_obj->m_name;
-            if(it->ndims > 0) {
-                fargs_wip += "[0";
-                for(int h = 1; h < it->ndims; h++) 
-                    fargs_wip += ",0";
-                fargs_wip += "]";
-            }
-
-            if (ASR::intentType::Out == it->asr_obj->m_intent ||
-                ASR::intentType::InOut == it->asr_obj->m_intent) {
-                rtn_wip = it->asr_obj->m_name;
-            }
-
-             
-            if(!it->i_am_ubound_of.empty()) {
-                cyargs_wip.clear();
-                auto& i_am_ubound_of = it->i_am_ubound_of[0];
-                pyxbody += "    cdef " + it->ctype + " "; 
-                pyxbody += it->asr_obj->m_name;
-                pyxbody += " = ";
-                pyxbody += i_am_ubound_of.first + ".shape[" + std::to_string(i_am_ubound_of.second) + "]\n";
-                for(unsigned int k = 1; k < it->i_am_ubound_of.size(); k++) {
-                    auto& i_am_ubound_of_k = it->i_am_ubound_of[k];
-                    pyxbody += "    assert(" + i_am_ubound_of_k.first + ".shape[" + std::to_string(i_am_ubound_of_k.second) + "] == "
-                                             + i_am_ubound_of.first   + ".shape[" + std::to_string(i_am_ubound_of.second)   + "])\n";
-                }
-            }
-
-            if(!c.empty()       && !c_wip.empty())      c += ", ";
-            if(!fargs.empty()   && !fargs_wip.empty())  fargs += ", ";
-            if(!cyargs.empty()  && !cyargs_wip.empty()) cyargs += ", ";
-            if(!return_statement.empty() && !rtn_wip.empty()) return_statement += ", ";
-
-            c      += c_wip;
-            fargs  += fargs_wip;
-            cyargs += cyargs_wip;
-            return_statement += rtn_wip;
-            
-
-        } /* build_return_strings */
-
-        return std::make_tuple(c, cyargs, fargs, pyxbody, return_statement);
-    }
-
-    void visit_TranslationUnit(const ASR::TranslationUnit_t &x) {
-        // All loose statements must be converted to a function, so the items
-        // must be empty:
-        LFORTRAN_ASSERT(x.n_items == 0);
-
-        std::string chdr_tmp ;
-        std::string pxd_tmp  ;
-        std::string pyx_tmp  ;
-
-        chdr_tmp =  "// This file was automatically generated by the LFortran compiler.\n";
-        chdr_tmp += "// Editing by hand is discouraged.\n\n";
-        chdr_tmp += "#include <stdint.h>\n\n";
-
-        pxd_tmp =   "# This file was automatically generated by the LFortran compiler.\n";
-        pxd_tmp +=  "# Editing by hand is discouraged.\n\n";
-        pxd_tmp +=  "from libc.stdint cimport int8_t, int16_t, int32_t, int64_t\n";
-        pxd_tmp +=  "cdef extern from \"" + chdr_filename + "\":\n";
-
-        
-        pyx_tmp =  "# This file was automatically generated by the LFortran compiler.\n";
-        pyx_tmp += "# Editing by hand is discouraged.\n\n";
-        pyx_tmp += "from numpy cimport import_array, ndarray, int8_t, int16_t, int32_t, int64_t\n";
-        pyx_tmp += "from numpy import empty, int8, int16, int32, int64\n";
-        pyx_tmp += "cimport " + pxdf + " \n\n";
-
-        // Process loose procedures first
-        for (auto &item : x.m_global_scope->scope) {
-            if (is_a<ASR::Function_t>(*item.second)
-                    || is_a<ASR::Subroutine_t>(*item.second)) {
-                visit_symbol(*item.second);
-
-                chdr_tmp += chdr;
-                pxd_tmp  += pxd;
-                pyx_tmp  += pyx;
-            }
+          }
+          else {
+            std::cout << "Skipping subroutine "+err1+
+            " because it has an unsuported argument type." << std::endl;
+            return f;
+          }
+          
+          std::cout<< var->m_name <<std::endl;
         }
-
-        // Then do all the modules in the right order
-        std::vector<std::string> build_order
-            = ASRUtils::determine_module_dependencies(x);
-        for (auto &item : build_order) {
-            LFORTRAN_ASSERT(x.m_global_scope->scope.find(item)
-                    != x.m_global_scope->scope.end());
-            if (!startswith(item, "lfortran_intrinsic")) {
-                ASR::symbol_t *mod = x.m_global_scope->scope[item];
-                visit_symbol(*mod);
-
-                chdr_tmp += chdr;
-                pxd_tmp  += pxd;
-                pyx_tmp  += pyx;
-            }
+        else {
+          throw LFortranException(err);
         }
-
-        // There's no need to process the `program` statement, which 
-        // is the only other thing that can appear at the top level.
-
-        chdr = chdr_tmp;
-        pyx  = pyx_tmp;
-        pxd  = pxd_tmp;
-    }
-
-    void visit_Module(const ASR::Module_t &x) {
-        cur_module = x.m_name;
-
-        // Generate code for nested subroutines and functions first:
-        std::string chdr_tmp ;
-        std::string pxd_tmp  ;
-        std::string pyx_tmp  ;
-
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Subroutine_t>(*item.second)) {
-                ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
-                visit_Subroutine(*s);
-
-                chdr_tmp += chdr;
-                pxd_tmp  += pxd;
-                pyx_tmp  += pyx;
-            }
-            if (is_a<ASR::Function_t>(*item.second)) {
-                ASR::Function_t *s = ASR::down_cast<ASR::Function_t>(item.second);
-                visit_Function(*s);
-
-                chdr_tmp += chdr;
-                pxd_tmp  += pxd;
-                pyx_tmp  += pyx;
-            }
-        }
-
-
-        chdr = chdr_tmp;
-        pyx  = pyx_tmp;
-        pxd  = pxd_tmp;
-
-        cur_module.clear();
-    }
-
-    void visit_Subroutine(const ASR::Subroutine_t &x) {
-
-        // Only process bind(c) subprograms for now
-        if (x.m_abi != ASR::abiType::BindC) return;
-
-        // Return type and function name
-        bool bindc_name_not_given = x.m_bindc_name == NULL || !strcmp("",x.m_bindc_name);
-        std::string effective_name = bindc_name_not_given ? x.m_name : x.m_bindc_name;
-
-        chdr = "void " + effective_name + " (";
-
-        std::string c_args, cy_args, call_args, pyx_body, rtn_statement;       
-        std::tie(c_args,cy_args,call_args,pyx_body,rtn_statement) = helper_visit_arguments(x.n_args, x.m_args);
-
-        if (!rtn_statement.empty()) rtn_statement = "    return " + rtn_statement;
         
-        chdr += c_args + ")";
-        pxd = "    " + chdr + "\n";
-        chdr += ";\n" ;
-
-        pyx = "def " + effective_name + " (" + cy_args + "):\n";
-        pyx += pyx_body;
-        pyx += "    " + pxdf +"."+ effective_name + " (" + call_args + ")\n";
-        pyx += rtn_statement + "\n\n";
+      }
+      else {
+        throw LFortranException(err);
+      }
     }
-
-
-    void visit_Function(const ASR::Function_t &x) {
-
-        // Only process bind(c) subprograms for now
-        if (x.m_abi != ASR::abiType::BindC) return;
-
-        // Return type and function name
-        bool bindc_name_not_given = x.m_bindc_name == NULL || !strcmp("",x.m_bindc_name);
-        std::string effective_name = bindc_name_not_given ? x.m_name : x.m_bindc_name;
-        
-        ASR::Variable_t *rtnvar = ASRUtils::EXPR2VAR(x.m_return_var);
-        std::string rtnvar_type;
-        #define _X(ASR_TYPE, KIND, CTYPE_STR) \
-        if ( is_a<ASR_TYPE>(*rtnvar->m_type) && (down_cast<ASR_TYPE>(rtnvar->m_type)->m_kind == KIND) ) { \
-            rtnvar_type = CTYPE_STR;                                                                     \
-        } else  
-
-        CTYPELIST { 
-            throw CodeGenError("Unrecognized or non-interoperable return type/kind"); 
-        }
-        #undef _X
-        std::string rtnvar_name = effective_name + "_rtnval__";
-
-        chdr = rtnvar_type + " " + effective_name + " (";
-
-        std::string c_args, cy_args, call_args, pyx_body, rtn_statement;       
-        std::tie(c_args,cy_args,call_args,pyx_body,rtn_statement) = helper_visit_arguments(x.n_args, x.m_args);
-
-        std::string rtnarg_str =  rtnvar_name;
-        if(!rtn_statement.empty()) rtnarg_str += ", ";
-        rtn_statement = "    return " + rtnarg_str  + rtn_statement;
-        
-        chdr += c_args + ")";
-        pxd = "    " + chdr + "\n";
-        chdr += ";\n" ;
-
-        pyx = "def " + effective_name + " (" + cy_args + "):\n";
-        pyx += pyx_body;
-        pyx += "    cdef " + rtnvar_type + " " + rtnvar_name  + " = " + pxdf +"."+ effective_name + " (" + call_args + ")\n";
-        pyx += rtn_statement + "\n\n";
-
-    }
-
+    
+    
+    return f;
+  }
+  
 };
 
-std::tuple<std::string, std::string, std::string> asr_to_py(ASR::TranslationUnit_t &asr, bool c_order, std::string chdr_filename)
-{
-    ASRToPyVisitor v (c_order, chdr_filename);
-    v.visit_asr((ASR::asr_t &)asr);
 
-    return std::make_tuple(v.chdr, v.pxd, v.pyx);
+std::tuple<std::string, std::string, std::string, std::string> asr_to_py(ASR::TranslationUnit_t &asr, std::string module)
+{
+    ASRToPyVisitor v;
+    v.module_name = module;
+    v.visit_asr((ASR::asr_t &)asr);
+    
+    return std::make_tuple(v.f90, v.chdr, v.pxd, v.pyx);
 }
 
 } // namespace LFortran

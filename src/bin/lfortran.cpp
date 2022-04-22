@@ -479,60 +479,47 @@ int format(const std::string &infile, bool inplace, bool color, int indent,
     return 0;
 }
 
-int python_wrapper(const std::string &infile, std::string array_order,
+int python_wrapper(const std::string &infile, const std::string &module,
     CompilerOptions &compiler_options)
 {
+  
+  std::string input = read_file(infile);
 
-    bool c_order = (0==array_order.compare("c"));
-
-    std::string input = read_file(infile);
-
-    LFortran::FortranEvaluator fe(compiler_options);
-    LFortran::ASR::TranslationUnit_t* asr;
-
-    // Src -> AST -> ASR
-    LFortran::LocationManager lm;
-    lm.in_filename = infile;
-    LFortran::diag::Diagnostics diagnostics;
-    LFortran::Result<LFortran::ASR::TranslationUnit_t*>
-        result = fe.get_asr2(input, lm, diagnostics);
-    std::cerr << diagnostics.render(input, lm, compiler_options);
-    if (result.ok) {
-        asr = result.result;
-    } else {
-        LFORTRAN_ASSERT(diagnostics.has_error())
-        return 1;
-    }
-
-    // figure out pyx and pxd filenames
-    auto prefix = infile.substr(0,infile.rfind('.'));
-    auto chdr_fname = prefix + ".h";
-    auto pxd_fname = prefix  + "_pxd.pxd"; // the "_pxd" is an ugly hack, see comment in asr_to_py.cpp
-    auto pyx_fname = prefix  + ".pyx";
-
-    // The ASR to Python converter needs to know the name of the .h file that will be written,
-    // but needs all path information stripped off - just the filename.
-    auto chdr_fname_forcodegen = chdr_fname;
-    {
-        // Find last ocurrence of \ or /, and delete everything up to that point.
-        auto pos_windows = chdr_fname_forcodegen.rfind('\\');
-        auto pos_other = chdr_fname_forcodegen.rfind('/');
-        auto lastpos = std::max( (pos_windows == std::string::npos ? 0 : pos_windows) ,
-                                 (pos_other   == std::string::npos ? 0 : pos_other) );
-        if (lastpos > 0UL) chdr_fname_forcodegen.erase(0,lastpos+1);
-    }
-
-    // ASR -> (C header file, Cython pxd file, Cython pyx file)
-    std::string c_h, pxd, pyx;
-    std::tie(c_h, pxd, pyx) = LFortran::asr_to_py(*asr, c_order, chdr_fname_forcodegen);
-
-
-    // save generated outputs to files.
-    std::ofstream(chdr_fname) << c_h;
+  // Src -> AST -> ASR
+  LFortran::FortranEvaluator fe(compiler_options);
+  LFortran::ASR::TranslationUnit_t* asr;
+  LFortran::LocationManager lm;
+  lm.in_filename = infile;
+  LFortran::diag::Diagnostics diagnostics;
+  LFortran::Result<LFortran::ASR::TranslationUnit_t*>
+      result = fe.get_asr2(input, lm, diagnostics);
+  std::cerr << diagnostics.render(input, lm, compiler_options);
+  if (result.ok) {
+      asr = result.result;
+  } else {
+      LFORTRAN_ASSERT(diagnostics.has_error())
+      return 1;
+  }
+  
+  auto prefix = module;
+  auto f90_fname  = prefix + "_wrapper.f90";
+  auto chdr_fname = prefix + "_wrapper.h";
+  auto pxd_fname  = prefix  + "_pxd.pxd"; 
+  auto pyx_fname  = prefix  + ".pyx";
+  
+  std::string f90, chdr, pxd, pyx;
+  try{
+    std::tie(f90, chdr, pxd, pyx) = LFortran::asr_to_py(*asr, module);
+    std::ofstream(f90_fname)  << f90;
+    std::ofstream(chdr_fname) << chdr;
     std::ofstream(pxd_fname)  << pxd;
     std::ofstream(pyx_fname)  << pyx;
-
-    return 0;
+  }
+  catch (const LFortran::LFortranException &e) {
+      std::cout << "LFortran pywrap error: " << e.msg() << std::endl;
+  }
+  
+  return 0;
 }
 
 int emit_asr(const std::string &infile,
@@ -1221,8 +1208,8 @@ int main(int argc, char *argv[])
         bool arg_mod_show_asr = false;
         bool arg_mod_no_color = false;
 
-        std::string arg_pywrap_file;
-        std::string arg_pywrap_array_order="f";
+        std::string arg_pywrap_files;
+        std::string arg_pywrap_module;
 
         CompilerOptions compiler_options;
 
@@ -1294,10 +1281,8 @@ int main(int argc, char *argv[])
 
         // pywrap
         CLI::App &pywrap = *app.add_subcommand("pywrap", "Python wrapper generator");
-        pywrap.add_option("file", arg_pywrap_file, "Fortran source file (*.f90)")->required();
-        pywrap.add_option("--array-order", arg_pywrap_array_order,
-                "Select array order (c, f)")->capture_default_str();
-
+        pywrap.add_option("file", arg_pywrap_files, "Fortran source files (*.f90)")->required();
+        pywrap.add_option("module", arg_pywrap_module, "Fortran module to be wrapped")->required();
 
         app.get_formatter()->column_width(25);
         app.require_subcommand(0, 1);
@@ -1359,8 +1344,7 @@ int main(int argc, char *argv[])
         }
 
         if (pywrap) {
-            return python_wrapper(arg_pywrap_file, arg_pywrap_array_order,
-                compiler_options);
+            return python_wrapper(arg_pywrap_files, arg_pywrap_module, compiler_options);
         }
 
         if (arg_backend == "llvm") {
