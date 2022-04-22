@@ -243,10 +243,11 @@ expr
     | StringConcat(expr left, expr right, ttype type, expr? value)
     | StringConstant(string s, ttype type)
     | StringLen(expr arg)
-    | StringIndex(expr arg, expr idx)
-    | StringSubstring(expr arg, expr start, expr stop)
+    | StringItem(expr arg, expr idx)
+    | StringSection(expr arg, expr start, expr stop)
 
-    | ArrayRef(symbol v, array_index* args, ttype type, expr? value)
+    | ArrayItem(symbol v, expr* args, ttype type, expr? value)
+    | ArraySection(symbol v, array_index* args, ttype type, expr? value)
     | ArraySize(symbol v, expr? dim)
     | ArrayConstant(expr* args, ttype type)
     | ArrayReshape(symbol v, expr* shape, expr* order)
@@ -262,16 +263,18 @@ expr
 
     | TupleConstant(expr* elements, ttype type)
     | TupleLen()
-    | TupleIndex()
+    | TupleItem()
+    | TupleSection()
 
     | ListConstant()
     | ListItem()
+    | ListSection()
     | ListLen()
     | ListPop()
     | ListConcat()
 
     | DictConstant(expr* keys, expr* values, ttype type)
-    | DictGet()
+    | DictItem()
     | DictLen()
 
     | DerivedTypeConstructor(symbol dt_sym, expr* args, ttype type)
