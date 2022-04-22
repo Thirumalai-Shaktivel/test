@@ -245,6 +245,7 @@ expr
     | StringLen(expr arg)
     | StringItem(expr arg, expr idx, ttype type, expr? value)
     | StringSection(expr arg, expr start, expr stop, ttype type, expr? value)
+    | StringFormat(expr fmt, expr* args, stringformat sf, ttype type, expr? value)
 
     | ArrayItem(symbol v, expr* args, ttype type, expr? value)
     | ArraySection(symbol v, array_index* args, ttype type, expr? value)
@@ -328,6 +329,8 @@ integerbinop = Add | Sub | Mul | Div | Pow | BitAnd | BitOr | BitXor | BitLShift
 realbinop = Add | Sub | Mul | Div | Pow
 
 complexbinop = Add | Sub | Mul | Div | Pow
+
+stringformat = StringFormatC | StringFormatFortran | StringFormatPython1 | StringFormatPython2
 
 cmpop = Eq | NotEq | Lt | LtE | Gt | GtE
 
