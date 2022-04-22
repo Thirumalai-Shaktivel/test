@@ -324,7 +324,7 @@ ttype
 
 logicalbinop = And | Or | Xor
 
-integerbinop = Add | Sub | Mul | Div | Pow | BitAnd | BitOr | BitXor | BitLShift | Bit RShift
+integerbinop = Add | Sub | Mul | Div | Pow | Mod | BitAnd | BitOr | BitXor | BitLShift | BitRShift
 
 realbinop = Add | Sub | Mul | Div | Pow
 
