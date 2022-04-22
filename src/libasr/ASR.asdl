@@ -243,8 +243,8 @@ expr
     | StringConcat(expr left, expr right, ttype type, expr? value)
     | StringConstant(string s, ttype type)
     | StringLen(expr arg)
-    | StringItem(expr arg, expr idx)
-    | StringSection(expr arg, expr start, expr stop)
+    | StringItem(expr arg, expr idx, ttype type, expr? value)
+    | StringSection(expr arg, expr start, expr stop, ttype type, expr? value)
 
     | ArrayItem(symbol v, expr* args, ttype type, expr? value)
     | ArraySection(symbol v, array_index* args, ttype type, expr? value)
