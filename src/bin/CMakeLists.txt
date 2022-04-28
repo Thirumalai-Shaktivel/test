@@ -1,6 +1,21 @@
 add_executable(lfortran lfortran.cpp)
 target_include_directories(lfortran PRIVATE "tpl")
+# add_library(binaryen STATIC IMPORTED GLOBAL)
+# # set_target_properties(binaryen PROPERTIES
+# #     IMPORTED_LOCATION "/home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr"
+# #     INTERFACE_INCLUDE_DIRECTORIES "/home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/codegen"
+# # )
+
+# add_library(binaryen SHARED IMPORTED GLOBAL)
+
+# SET_TARGET_PROPERTIES(binaryen PROPERTIES
+#     LABELS LIBRARY
+#     IMPORTED_LOCATION /home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/libbinaryen.so
+#     INTERFACE_INCLUDE_DIRECTORIES /home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/codegen
+# )
+
 target_link_libraries(lfortran lfortran_lib)
+
 if (LFORTRAN_STATIC_BIN)
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         # Link statically on Linux with gcc or clang
@@ -150,3 +165,15 @@ endif()
 
 add_executable(cpptranslate cpptranslate.cpp)
 target_link_libraries(cpptranslate lfortran_lib)
+
+
+add_library(binaryen SHARED IMPORTED GLOBAL)
+
+SET_TARGET_PROPERTIES(binaryen PROPERTIES
+    LABELS LIBRARY
+    IMPORTED_LOCATION /home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/libbinaryen.so
+    INTERFACE_INCLUDE_DIRECTORIES /home/ubaid/Desktop/My-Projects/GSoC/lfortran/src/libasr/codegen
+)
+
+add_executable(wasm_demo wasm_demo.cpp)
+target_link_libraries(wasm_demo lfortran_lib pthread binaryen)

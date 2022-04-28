@@ -5,7 +5,7 @@
 #include <map>
 #include <memory>
 
-#include <zlib.h>
+// #include <zlib.h>
 
 #include <libasr/asr.h>
 #include <libasr/asr_utils.h>
@@ -26,6 +26,7 @@ int uncompress_gzip(uint8_t *out, uint64_t *out_size, uint8_t *in,
     // The code below is roughly equivalent to:
     //     return uncompress(out, out_size, in, in_size);
     // except that it enables gzip support in inflateInit2().
+    /*
     int zlib_status;
     z_stream strm;
     strm.zalloc = Z_NULL;
@@ -41,10 +42,13 @@ int uncompress_gzip(uint8_t *out, uint64_t *out_size, uint8_t *in,
     inflateEnd(&strm);
     *out_size = *out_size - strm.avail_out;
     return zlib_status;
+    */
+   return 1;
 }
 
 std::string extract_gzip(std::vector<uint8_t> &buffer)
 {
+    /*
     std::vector<uint8_t> data(1024*1024);
     uint64_t data_size = data.size();
     int res = uncompress_gzip(&data[0], &data_size, &buffer[0], buffer.size());
@@ -62,6 +66,8 @@ std::string extract_gzip(std::vector<uint8_t> &buffer)
             throw LFortranException("ZLIB: unknown error (" + std::to_string(res) + ")");
     }
     return std::string((char*) &data[0], data_size);
+    */
+   return "";
 }
 
 // 'abc' -> abc
