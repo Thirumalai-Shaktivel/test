@@ -76,7 +76,7 @@ end do
 end function
 
 integer elemental function len_repeati64(n) result(r)
-integer, intent(in) :: n
+integer(i64), intent(in) :: n
 r = n
 end function
 

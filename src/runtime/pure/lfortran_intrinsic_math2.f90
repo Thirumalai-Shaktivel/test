@@ -443,7 +443,7 @@ function mergechar(tsource, fsource, mask) result(r)
     character(len=*), intent(in) :: tsource(:)
     character(len=*), intent(in) :: fsource(:)
     logical, intent(in) :: mask(:)
-    character(len=*) :: r
+    character(len=len(tsource)) :: r
 end function
 
 end module
