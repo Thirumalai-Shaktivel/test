@@ -719,7 +719,10 @@ public:
                     }
                     Vec<ASR::stmt_t*> case_body_vec;
                     case_body_vec.reserve(al, Case_Stmt->n_body);
+                    Vec<ASR::stmt_t*>* current_body_copy = current_body;
+                    current_body = &case_body_vec;
                     transform_stmts(case_body_vec, Case_Stmt->n_body, Case_Stmt->m_body);
+                    current_body = current_body_copy;
                     tmp = ASR::make_CaseStmt_t(al, x.base.loc, a_test_vec.p, a_test_vec.size(),
                                         case_body_vec.p, case_body_vec.size());
                     break;
@@ -750,7 +753,10 @@ public:
                     }
                     Vec<ASR::stmt_t*> case_body_vec;
                     case_body_vec.reserve(al, Case_Stmt->n_body);
+                    Vec<ASR::stmt_t*>* current_body_copy = current_body;
+                    current_body = &case_body_vec;
                     transform_stmts(case_body_vec, Case_Stmt->n_body, Case_Stmt->m_body);
+                    current_body = current_body_copy;
                     tmp = ASR::make_CaseStmt_Range_t(al, x.base.loc, m_start, m_end,
                                         case_body_vec.p, case_body_vec.size());
                     break;
@@ -780,7 +786,10 @@ public:
                 }
                 AST::CaseStmt_Default_t *d =
                         AST::down_cast<AST::CaseStmt_Default_t>(body);
+                Vec<ASR::stmt_t*>* current_body_copy = current_body;
+                current_body = &def_body;
                 transform_stmts(def_body, d->n_body, d->m_body);
+                current_body = current_body_copy;
             } else {
                 this->visit_case_stmt(*body);
                 a_body_vec.push_back(al, ASR::down_cast<ASR::case_stmt_t>(tmp));
@@ -895,7 +904,10 @@ public:
         current_scope = v->m_symtab;
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
+        Vec<ASR::stmt_t*>* current_body_copy = current_body;
+        current_body = &body;
         transform_stmts(body, x.n_body, x.m_body);
+        current_body = current_body_copy;
         ASR::stmt_t* impl_del = create_implicit_deallocate(x.base.base.loc);
         if( impl_del != nullptr ) {
             body.push_back(al, impl_del);
@@ -921,7 +933,10 @@ public:
         current_scope = v->m_symtab;
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
+        Vec<ASR::stmt_t*>* current_body_copy = current_body;
+        current_body = &body;
         transform_stmts(body, x.n_body, x.m_body);
+        current_body = current_body_copy;
         ASR::stmt_t* impl_del = create_implicit_deallocate(x.base.base.loc);
         if( impl_del != nullptr ) {
             body.push_back(al, impl_del);
@@ -1143,10 +1158,16 @@ public:
         ASR::expr_t *test = LFortran::ASRUtils::EXPR(tmp);
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
+        Vec<ASR::stmt_t*>* current_body_copy = current_body;
+        current_body = &body;
         transform_stmts(body, x.n_body, x.m_body);
+        current_body = current_body_copy;
         Vec<ASR::stmt_t*> orelse;
         orelse.reserve(al, x.n_orelse);
+        current_body_copy = current_body;
+        current_body = &orelse;
         transform_stmts(orelse, x.n_orelse, x.m_orelse);
+        current_body = current_body_copy;
         tmp = ASR::make_If_t(al, x.base.base.loc, test, body.p,
                 body.size(), orelse.p, orelse.size());
     }
@@ -1156,7 +1177,10 @@ public:
         ASR::expr_t *test = LFortran::ASRUtils::EXPR(tmp);
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
+        Vec<ASR::stmt_t*>* current_body_copy = current_body;
+        current_body = &body;
         transform_stmts(body, x.n_body, x.m_body);
+        current_body = current_body_copy;
         tmp = ASR::make_WhileLoop_t(al, x.base.base.loc, test, body.p,
                 body.size());
     }
@@ -1227,7 +1251,10 @@ public:
 
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
+        Vec<ASR::stmt_t*>* current_body_copy = current_body;
+        current_body = &body;
         transform_stmts(body, x.n_body, x.m_body);
+        current_body = current_body_copy;
         ASR::do_loop_head_t head;
         head.m_v = var;
         head.m_start = start;
@@ -1275,7 +1302,10 @@ public:
 
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
+        Vec<ASR::stmt_t*>* current_body_copy = current_body;
+        current_body = &body;
         transform_stmts(body, x.n_body, x.m_body);
+        current_body = current_body_copy;
         ASR::do_loop_head_t head;
         head.m_v = var;
         head.m_start = start;
