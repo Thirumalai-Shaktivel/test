@@ -1274,6 +1274,40 @@ public:
                     ASR::expr_t *new_call_expr = ASR::down_cast<ASR::expr_t>(ASR::make_FunctionCall_t(
                         al, fc->base.base.loc, new_es, nullptr, args.p, args.n, fc->m_type, fc->m_value, fc->m_dt));
                     func_calls[i] = new_call_expr;
+                } else if (ASR::is_a<ASR::ArraySize_t>(*potential_call)) {
+                    ASR::ArraySize_t* array_size = ASR::down_cast<ASR::ArraySize_t>(potential_call);
+                    ASR::expr_t *a_v, *a_dim;
+                    a_v = a_dim = nullptr;
+                    Vec<ASR::expr_t*> fc_args;
+                    fc_args.reserve(al, 2);
+                    fc_args.push_back(al, array_size->m_v);
+                    fc_args.push_back(al, array_size->m_dim);
+                    Vec<ASR::expr_t*> args;
+                    args.reserve(al, 2);
+                    // The following substitutes args from the current scope
+                    for (size_t i = 0; i < fc_args.size(); i++) {
+                        ASR::expr_t *arg = fc_args[i];
+                        size_t arg_idx = i;
+                        bool idx_found = false;
+                        if (arg && ASR::is_a<ASR::Var_t>(*arg)) {
+                            std::string arg_name = ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v);
+                            for( size_t j = 0; j < orig_func->n_args && !idx_found; j++ ) {
+                                if( ASR::is_a<ASR::Var_t>(*(orig_func->m_args[j])) ) {
+                                    std::string arg_name_2 = std::string(ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
+                                    arg_idx = j;
+                                    idx_found = arg_name_2 == arg_name;
+                                }
+                            }
+                        }
+                        if( idx_found ) {
+                            arg = orig_args[arg_idx].m_value;
+                        }
+                        args.push_back(al, arg);
+                    }
+                    a_v = args[0];
+                    a_dim = args[1];
+                    func_calls[i] = ASR::down_cast<ASR::expr_t>(ASR::make_ArraySize_t(al, potential_call->base.loc,
+                                        a_v, a_dim, array_size->m_type, nullptr));
                 } else {
                     // If the potential_call is not a call but any other expression
                     ASR::expr_t *arg = potential_call;
@@ -1493,6 +1527,8 @@ public:
 
             ASR::ttype_t *type;
             type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+            type = handle_return_type(type, loc, args, ASR::is_a<ASR::ExternalSymbol_t>(*v),
+                                                ASR::down_cast<ASR::Function_t>(final_sym));
             return ASR::make_FunctionCall_t(al, loc,
                 final_sym, v, args.p, args.size(), type,
                 nullptr, nullptr);
