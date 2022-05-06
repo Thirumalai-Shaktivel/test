@@ -466,4 +466,10 @@ end interface
 r = c_ibits64(i, pos, len)
 end function
 
+function count(mask, dim, kind) result(r)
+logical :: mask(:)
+integer :: dim, kind
+integer :: r(size(mask))
+end function
+
 end module

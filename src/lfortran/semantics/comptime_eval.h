@@ -117,6 +117,10 @@ struct IntrinsicProcedures {
             {"atan2", {m_math, &eval_atan2, true}},
             {"sign", {m_math, &not_implemented, false}},
 
+            {"matmul", {m_math, &not_implemented, false}},
+            {"transpose", {m_math, &not_implemented, false}},
+            {"conjg", {m_math, &not_implemented, false}},
+
             {"iand", {m_bit, &not_implemented, false}},
             {"ior", {m_bit, &not_implemented, false}},
             {"ieor", {m_bit, &eval_ieor, true}},
@@ -145,6 +149,7 @@ struct IntrinsicProcedures {
             {"ble", {m_bit, &not_implemented, true}},
             {"blt", {m_bit, &not_implemented, true}},
             {"ibits", {m_bit, &not_implemented, true}},
+            {"count", {m_bit, &not_implemented, true}},
             {"iachar",  {m_builtin, &eval_iachar, true}},
             {"achar", {m_builtin, &eval_achar, false}},
             {"len", {m_builtin, &eval_len, false}},
