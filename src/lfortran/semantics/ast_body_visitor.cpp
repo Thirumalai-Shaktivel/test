@@ -946,29 +946,30 @@ public:
                 x.base.base.loc
             );
         }
-
         ASR::ttype_t *value_type = ASRUtils::expr_type(value);
         if( target->type == ASR::exprType::Var && !ASRUtils::is_array(target_type) &&
             value->type == ASR::exprType::ArrayConstant ) {
             throw SemanticError("ArrayInitalizer expressions can only be assigned array references", x.base.base.loc);
         }
-        if (target->type == ASR::exprType::Var ||
-            target->type == ASR::exprType::ArrayRef) {
+        if( overloaded_stmt == nullptr ) {
+            if (target->type == ASR::exprType::Var ||
+                target->type == ASR::exprType::ArrayRef) {
 
-            ImplicitCastRules::set_converted_value(al, x.base.base.loc, &value,
-                                                    value_type, target_type);
+                ImplicitCastRules::set_converted_value(al, x.base.base.loc, &value,
+                                                        value_type, target_type);
 
-        }
-        if (!ASRUtils::check_equal_type(ASRUtils::expr_type(target),
-                                    ASRUtils::expr_type(value))) {
-            std::string ltype = ASRUtils::type_to_str(ASRUtils::expr_type(target));
-            std::string rtype = ASRUtils::type_to_str(ASRUtils::expr_type(value));
-            diag.semantic_error_label(
-                "Type mismatch in assignment, the types must be compatible",
-                {target->base.loc, value->base.loc},
-                "type mismatch (" + ltype + " and " + rtype + ")"
-            );
-            throw SemanticAbort();
+            }
+            if (!ASRUtils::check_equal_type(ASRUtils::expr_type(target),
+                                        ASRUtils::expr_type(value))) {
+                std::string ltype = ASRUtils::type_to_str(ASRUtils::expr_type(target));
+                std::string rtype = ASRUtils::type_to_str(ASRUtils::expr_type(value));
+                diag.semantic_error_label(
+                    "Type mismatch in assignment, the types must be compatible",
+                    {target->base.loc, value->base.loc},
+                    "type mismatch (" + ltype + " and " + rtype + ")"
+                );
+                throw SemanticAbort();
+            }
         }
         tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value,
                                      overloaded_stmt);
@@ -999,8 +1000,9 @@ public:
             ASR::symbol_t* f2 = LFortran::ASRUtils::symbol_get_past_external(original_sym);
             if (ASR::is_a<ASR::Subroutine_t>(*f2)) {
                 ASR::Subroutine_t *f = ASR::down_cast<ASR::Subroutine_t>(f2);
+                bool error_happened = false;
                 visit_kwargs(args, x.m_keywords, x.n_keywords,
-                    f->m_args, f->n_args, x.base.base.loc, f);
+                    f->m_args, f->n_args, x.base.base.loc, f, error_happened);
             } else if (ASR::is_a<ASR::ClassProcedure_t>(*f2)) {
                 ASR::ClassProcedure_t* f3 = ASR::down_cast<ASR::ClassProcedure_t>(f2);
                 ASR::symbol_t* f4 = f3->m_proc;
@@ -1008,8 +1010,10 @@ public:
                     throw SemanticError(std::string(f3->m_proc_name) + " is not a subroutine.", x.base.base.loc);
                 }
                 ASR::Subroutine_t *f = ASR::down_cast<ASR::Subroutine_t>(f4);
+                bool error_happened = false;
                 visit_kwargs(args, x.m_keywords, x.n_keywords,
-                    f->m_args, f->n_args, x.base.base.loc, f);
+                    f->m_args, f->n_args, x.base.base.loc, f,
+                    error_happened);
             } else {
                 throw SemanticError(
                     "Keyword arguments are not implemented for generic subroutines yet",

@@ -144,20 +144,24 @@ public:
           "If operator is .eq. or .neq. then Complex type is also acceptable",
           x.base.base.loc);
     } else {
-      ASR::expr_t **conversion_cand = &left;
-      dest_type = right_type;
-      source_type = left_type;
-      ImplicitCastRules::find_conversion_candidate(&left, &right, left_type,
-                                                   right_type, conversion_cand,
-                                                   &source_type, &dest_type);
+      if( overloaded == nullptr ) {
+        ASR::expr_t **conversion_cand = &left;
+        dest_type = right_type;
+        source_type = left_type;
+        ImplicitCastRules::find_conversion_candidate(&left, &right, left_type,
+                                                    right_type, conversion_cand,
+                                                    &source_type, &dest_type);
 
-      ImplicitCastRules::set_converted_value(
-          al, x.base.base.loc, conversion_cand, source_type, dest_type);
+        ImplicitCastRules::set_converted_value(
+            al, x.base.base.loc, conversion_cand, source_type, dest_type);
+      }
     }
 
-    LFORTRAN_ASSERT(
-        ASRUtils::check_equal_type(LFortran::ASRUtils::expr_type(left),
-                                   LFortran::ASRUtils::expr_type(right)));
+    if( overloaded == nullptr ) {
+        LFORTRAN_ASSERT(
+            ASRUtils::check_equal_type(LFortran::ASRUtils::expr_type(left),
+                                    LFortran::ASRUtils::expr_type(right)));
+    }
     ASR::ttype_t *type = LFortran::ASRUtils::TYPE(
         ASR::make_Logical_t(al, x.base.base.loc, 4, nullptr, 0));
 
@@ -1269,6 +1273,40 @@ public:
                     ASR::expr_t *new_call_expr = ASR::down_cast<ASR::expr_t>(ASR::make_FunctionCall_t(
                         al, fc->base.base.loc, new_es, nullptr, args.p, args.n, fc->m_type, fc->m_value, fc->m_dt));
                     func_calls[i] = new_call_expr;
+                } else if (ASR::is_a<ASR::ArraySize_t>(*potential_call)) {
+                    ASR::ArraySize_t* array_size = ASR::down_cast<ASR::ArraySize_t>(potential_call);
+                    ASR::expr_t *a_v, *a_dim;
+                    a_v = a_dim = nullptr;
+                    Vec<ASR::expr_t*> fc_args;
+                    fc_args.reserve(al, 2);
+                    fc_args.push_back(al, array_size->m_v);
+                    fc_args.push_back(al, array_size->m_dim);
+                    Vec<ASR::expr_t*> args;
+                    args.reserve(al, 2);
+                    // The following substitutes args from the current scope
+                    for (size_t i = 0; i < fc_args.size(); i++) {
+                        ASR::expr_t *arg = fc_args[i];
+                        size_t arg_idx = i;
+                        bool idx_found = false;
+                        if (arg && ASR::is_a<ASR::Var_t>(*arg)) {
+                            std::string arg_name = ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v);
+                            for( size_t j = 0; j < orig_func->n_args && !idx_found; j++ ) {
+                                if( ASR::is_a<ASR::Var_t>(*(orig_func->m_args[j])) ) {
+                                    std::string arg_name_2 = std::string(ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
+                                    arg_idx = j;
+                                    idx_found = arg_name_2 == arg_name;
+                                }
+                            }
+                        }
+                        if( idx_found ) {
+                            arg = orig_args[arg_idx].m_value;
+                        }
+                        args.push_back(al, arg);
+                    }
+                    a_v = args[0];
+                    a_dim = args[1];
+                    func_calls[i] = ASR::down_cast<ASR::expr_t>(ASR::make_ArraySize_t(al, potential_call->base.loc,
+                                        a_v, a_dim, array_size->m_type, nullptr));
                 } else {
                     // If the potential_call is not a call but any other expression
                     ASR::expr_t *arg = potential_call;
@@ -1488,6 +1526,8 @@ public:
 
             ASR::ttype_t *type;
             type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+            type = handle_return_type(type, loc, args, ASR::is_a<ASR::ExternalSymbol_t>(*v),
+                                                ASR::down_cast<ASR::Function_t>(final_sym));
             return ASR::make_FunctionCall_t(al, loc,
                 final_sym, v, args.p, args.size(), type,
                 nullptr, nullptr);
@@ -1726,9 +1766,10 @@ public:
         if( kind_expr ) {
             this->visit_expr(*kind_expr);
             kind = ASRUtils::EXPR(tmp);
-            if( ASRUtils::expr_value(kind) ) {
+            ASR::expr_t* kind_value = ASRUtils::expr_value(kind);
+            if( kind_value ) {
                 type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
-                                        ASR::down_cast<ASR::IntegerConstant_t>(kind)->m_n ,
+                                        ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n ,
                                         nullptr, 0));
             }
         }
@@ -1791,12 +1832,48 @@ public:
             if (x.n_keywords > 0) {
                 if (ASR::is_a<ASR::Function_t>(*f2)) {
                     ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(f2);
+                    bool error_happened = false;
                     visit_kwargs(args, x.m_keywords, x.n_keywords,
-                        f->m_args, f->n_args, x.base.base.loc, f);
+                        f->m_args, f->n_args, x.base.base.loc, f,
+                        error_happened);
                 } else {
                     LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
-                    throw SemanticError("Keyword arguments are not implemented for generic functions yet",
-                        x.base.base.loc);
+                    ASR::GenericProcedure_t* gp = ASR::down_cast<ASR::GenericProcedure_t>(f2);
+                    bool function_found = false;
+                    for( int i = 0; i < (int) gp->n_procs; i++ ) {
+                        Vec<ASR::call_arg_t> args_copy;
+                        args_copy.reserve(al, args.size() + x.n_keywords);
+                        for( size_t j = 0; j < args.size(); j++ ) {
+                            args_copy.push_back(al, args[j]);
+                        }
+                        ASR::symbol_t* f4 = gp->m_procs[i];
+                        if( !ASR::is_a<ASR::Function_t>(*f4) ) {
+                            throw SemanticError(std::string(ASRUtils::symbol_name(f4)) +
+                                                " is not a function.",
+                                                x.base.base.loc);
+                        }
+                        ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(f4);
+                        bool error_happened = false;
+                        visit_kwargs(args_copy, x.m_keywords, x.n_keywords,
+                            f->m_args, f->n_args, x.base.base.loc, f,
+                            error_happened, false);
+                        if( error_happened ) {
+                            continue ;
+                        }
+                        int idx = ASRUtils::select_generic_procedure(args_copy, *gp, x.base.base.loc,
+                                        [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
+                        if( idx == i ) {
+                            function_found = true;
+                            for( size_t j = args.size(); j < args_copy.size(); j++ ) {
+                                args.push_back(al, args_copy[j]);
+                            }
+                            break;
+                        }
+                    }
+                    if( !function_found ) {
+                        throw SemanticError("Unable to find a function to bind for generic procedure call, " + std::string(gp->m_name),
+                                            x.base.base.loc);
+                    }
                 }
             }
             tmp = create_FunctionCall(x.base.base.loc, v, args);
@@ -2314,7 +2391,8 @@ public:
 
     template <typename T>
     void visit_kwargs(Vec<ASR::call_arg_t>& args, AST::keyword_t *kwargs, size_t n,
-                ASR::expr_t **fn_args, size_t fn_n_args, const Location &loc, T* fn) {
+                ASR::expr_t **fn_args, size_t fn_n_args, const Location &loc, T* fn,
+                bool& error_happened, bool raise_error=true) {
         size_t n_args = args.size();
         std::vector<std::string> optional_args;
         for( auto itr = fn->m_symtab->get_scope().begin(); itr != fn->m_symtab->get_scope().end();
@@ -2329,12 +2407,15 @@ public:
         }
         size_t n_optional = optional_args.size();
         if (n_args + n > fn_n_args + n_optional) {
-            throw SemanticError(
-                "Procedure accepts " + std::to_string(fn_n_args + n_optional)
-                + " arguments, but " + std::to_string(n_args + n)
-                + " were provided",
-                loc
-            );
+            error_happened = true;
+            if( raise_error ) {
+                throw SemanticError(
+                    "Procedure accepts " + std::to_string(fn_n_args + n_optional)
+                    + " arguments, but " + std::to_string(n_args + n)
+                    + " were provided",
+                    loc
+                );
+            }
         }
 
         std::vector<std::string> fn_args2 = convert_fn_args_to_string(
@@ -2374,21 +2455,33 @@ public:
                 if (search != fn_args2.end()) {
                     size_t idx = std::distance(fn_args2.begin(), search);
                     if (idx < n_args) {
-                        throw SemanticError("Keyword argument is already specified as a non-keyword argument", loc);
+                        error_happened = true;
+                        if( raise_error ) {
+                            throw SemanticError("Keyword argument is already specified as a non-keyword argument", loc);
+                        }
                     }
                     if (args[idx].m_value != nullptr) {
-                        throw SemanticError("Keyword argument is already specified as another keyword argument ", loc);
+                        error_happened = true;
+                        if( raise_error ) {
+                            throw SemanticError("Keyword argument is already specified as another keyword argument ", loc);
+                        }
                     }
                     args.p[idx].loc = expr->base.loc;
                     args.p[idx].m_value = expr;
                 } else {
-                    throw SemanticError("Keyword argument not found " + name, loc);
+                    error_happened = true;
+                    if( raise_error ) {
+                        throw SemanticError("Keyword argument not found " + name, loc);
+                    }
                 }
             }
         }
         for (size_t i=0; i < offset; i++) {
             if (args[i].m_value == nullptr) {
-                throw SemanticError("Argument was not specified", loc);
+                error_happened = true;
+                if( raise_error ) {
+                    throw SemanticError("Argument was not specified", loc);
+                }
             }
         }
     }
