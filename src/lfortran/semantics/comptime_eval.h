@@ -165,6 +165,9 @@ struct IntrinsicProcedures {
 
             // Inquiry function
             {"huge", {m_math2, &eval_huge, false}},
+
+            // IEEE Arithmetic
+            {"ieee_value", {m_ieee_arithmetic, &not_implemented, false}},
         };
     }
 
