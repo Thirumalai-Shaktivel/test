@@ -118,6 +118,8 @@ struct IntrinsicProcedures {
             {"sign", {m_math, &not_implemented, false}},
 
             {"matmul", {m_math, &not_implemented, false}},
+            {"dot_product", {m_math, &not_implemented, false}},
+            {"cmplx", {m_math, &not_implemented, false}},
             {"transpose", {m_math, &not_implemented, false}},
             {"conjg", {m_math, &not_implemented, false}},
 

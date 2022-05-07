@@ -2411,7 +2411,7 @@ public:
             }
         }
         size_t n_optional = optional_args.size();
-        if (n_args + n > fn_n_args + n_optional) {
+        if (n_args + n > fn_n_args) {
             error_happened = true;
             if( raise_error ) {
                 throw SemanticError(
@@ -2440,13 +2440,13 @@ public:
 
 
         size_t offset = args.size();
-        for (size_t i = 0; i < n_optional; i++) {
+        for (size_t i = 0; i < fn_n_args - offset; i++) {
             ASR::call_arg_t call_arg;
             call_arg.loc = loc;
             call_arg.m_value = nullptr;
             args.push_back(al, call_arg);
         }
-        for (size_t i=0; i<n; i++) {
+        for (size_t i = 0; i < n; i++) {
             this->visit_expr(*kwargs[i].m_value);
             ASR::expr_t *expr = LFortran::ASRUtils::EXPR(tmp);
             std::string name = to_lower(kwargs[i].m_arg);

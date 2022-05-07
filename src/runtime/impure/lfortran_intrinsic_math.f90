@@ -129,6 +129,14 @@ interface conjg
     module procedure conjgz32, conjgz64
 end interface
 
+interface cmplx
+    module procedure cmplxi32i32, cmplxi64i64, cmplxr32r32, cmplxr64r64
+end interface
+
+interface dot_product
+    module procedure dotproductr32r32, dotproductr64r64
+end interface
+
 contains
 
 ! abs --------------------------------------------------------------------------
@@ -1216,6 +1224,16 @@ complex(dp) :: x(:), y(:)
 complex(dp) :: r(size(x))
 end function
 
+function dotproductr32r32(x, y) result(r)
+real(sp) :: x(:), y(:)
+real(sp) :: r
+end function
+
+function dotproductr64r64(x, y) result(r)
+real(dp) :: x(:), y(:)
+real(dp) :: r
+end function
+
 function transposer32(x) result(r)
 real(sp) :: x(:, :)
 real(sp) :: r(size(x) : size(x))
@@ -1243,6 +1261,34 @@ end function
 
 function conjgz64(x) result(r)
 complex(dp) :: x
+complex(dp) :: r
+end function
+
+function cmplxi32i32(x, y, kind) result(r)
+integer(i32) :: x
+integer(i32), optional :: y
+integer, optional :: kind
+complex(sp) :: r
+end function
+
+function cmplxi64i64(x, y, kind) result(r)
+integer(i64) :: x
+integer(i64), optional :: y
+integer, optional :: kind
+complex(dp) :: r
+end function
+
+function cmplxr32r32(x, y, kind) result(r)
+real(sp) :: x
+real(sp), optional :: y
+integer, optional :: kind
+complex(sp) :: r
+end function
+
+function cmplxr64r64(x, y, kind) result(r)
+real(dp) :: x
+real(dp), optional :: y
+integer, optional :: kind
 complex(dp) :: r
 end function
 
