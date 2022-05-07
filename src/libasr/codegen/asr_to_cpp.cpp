@@ -30,10 +30,6 @@ namespace {
 
 }
 
-using ASR::is_a;
-using ASR::down_cast;
-using ASR::down_cast2;
-
 // Platform dependent fast unique hash:
 uint64_t get_hash(ASR::asr_t *node)
 {
@@ -55,9 +51,9 @@ std::string convert_dims(size_t n_dims, ASR::dimension_t *m_dims)
         if (!start && !end) {
             dims += "*";
         } else if (start && end) {
-            if (is_a<ASR::ConstantInteger_t>(*start) && is_a<ASR::ConstantInteger_t>(*end)) {
-                ASR::ConstantInteger_t *s = down_cast<ASR::ConstantInteger_t>(start);
-                ASR::ConstantInteger_t *e = down_cast<ASR::ConstantInteger_t>(end);
+            if (ASR::is_a<ASR::IntegerConstant_t>(*start) && ASR::is_a<ASR::IntegerConstant_t>(*end)) {
+                ASR::IntegerConstant_t *s = ASR::down_cast<ASR::IntegerConstant_t>(start);
+                ASR::IntegerConstant_t *e = ASR::down_cast<ASR::IntegerConstant_t>(end);
                 if (s->m_n == 1) {
                     dims += "[" + std::to_string(e->m_n) + "]";
                 } else {
@@ -102,9 +98,11 @@ public:
     std::string src;
     int indentation_level;
     int indentation_spaces;
-    bool last_unary_plus;
-    bool last_binary_plus;
+    // The precedence of the last expression, using the table:
+    // https://en.cppreference.com/w/cpp/language/operator_precedence
+    int last_expr_precedence;
     bool intrinsic_module = false;
+    const ASR::Function_t *current_function = nullptr;
 
     ASRToCPPVisitor(diag::Diagnostics &diag) : diag{diag} {}
 
@@ -113,10 +111,10 @@ public:
         std::string sub;
         bool use_ref = (v.m_intent == LFortran::ASRUtils::intent_out || v.m_intent == LFortran::ASRUtils::intent_inout);
         bool dummy = LFortran::ASRUtils::is_arg_dummy(v.m_intent);
-        if (is_a<ASR::Pointer_t>(*v.m_type)) {
+        if (ASRUtils::is_pointer(v.m_type)) {
             ASR::ttype_t *t2 = ASR::down_cast<ASR::Pointer_t>(v.m_type)->m_type;
-            if (is_a<ASR::Integer_t>(*t2)) {
-                ASR::Integer_t *t = down_cast<ASR::Integer_t>(t2);
+            if (ASRUtils::is_integer(*t2)) {
+                ASR::Integer_t *t = ASR::down_cast<ASR::Integer_t>(t2);
                 std::string dims = convert_dims(t->n_dims, t->m_dims);
                 sub = format_type(dims, "int *", v.m_name, use_ref, dummy);
             } else {
@@ -126,24 +124,28 @@ public:
                 throw Abort();
             }
         } else {
-            if (is_a<ASR::Integer_t>(*v.m_type)) {
-                ASR::Integer_t *t = down_cast<ASR::Integer_t>(v.m_type);
+            if (ASRUtils::is_integer(*v.m_type)) {
+                ASR::Integer_t *t = ASR::down_cast<ASR::Integer_t>(v.m_type);
                 std::string dims = convert_dims(t->n_dims, t->m_dims);
-                sub = format_type(dims, "int", v.m_name, use_ref, dummy);
-            } else if (is_a<ASR::Real_t>(*v.m_type)) {
-                ASR::Real_t *t = down_cast<ASR::Real_t>(v.m_type);
+                std::string type_name = "int";
+                if (t->m_kind == 8) type_name = "long long";
+                sub = format_type(dims, type_name, v.m_name, use_ref, dummy);
+            } else if (ASRUtils::is_real(*v.m_type)) {
+                ASR::Real_t *t = ASR::down_cast<ASR::Real_t>(v.m_type);
                 std::string dims = convert_dims(t->n_dims, t->m_dims);
-                sub = format_type(dims, "float", v.m_name, use_ref, dummy);
-            } else if (is_a<ASR::Complex_t>(*v.m_type)) {
-                ASR::Complex_t *t = down_cast<ASR::Complex_t>(v.m_type);
+                std::string type_name = "float";
+                if (t->m_kind == 8) type_name = "double";
+                sub = format_type(dims, type_name, v.m_name, use_ref, dummy);
+            } else if (ASRUtils::is_complex(*v.m_type)) {
+                ASR::Complex_t *t = ASR::down_cast<ASR::Complex_t>(v.m_type);
                 std::string dims = convert_dims(t->n_dims, t->m_dims);
                 sub = format_type(dims, "std::complex<float>", v.m_name, use_ref, dummy);
-            } else if (is_a<ASR::Logical_t>(*v.m_type)) {
-                ASR::Logical_t *t = down_cast<ASR::Logical_t>(v.m_type);
+            } else if (ASRUtils::is_logical(*v.m_type)) {
+                ASR::Logical_t *t = ASR::down_cast<ASR::Logical_t>(v.m_type);
                 std::string dims = convert_dims(t->n_dims, t->m_dims);
                 sub = format_type(dims, "bool", v.m_name, use_ref, dummy);
-            } else if (is_a<ASR::Character_t>(*v.m_type)) {
-                ASR::Character_t *t = down_cast<ASR::Character_t>(v.m_type);
+            } else if (ASRUtils::is_character(*v.m_type)) {
+                ASR::Character_t *t = ASR::down_cast<ASR::Character_t>(v.m_type);
                 std::string dims = convert_dims(t->n_dims, t->m_dims);
                 sub = format_type(dims, "std::string", v.m_name, use_ref, dummy);
                 if (v.m_symbolic_value) {
@@ -151,8 +153,8 @@ public:
                     std::string init = src;
                     sub += "=" + init;
                 }
-            } else if (is_a<ASR::Derived_t>(*v.m_type)) {
-                ASR::Derived_t *t = down_cast<ASR::Derived_t>(v.m_type);
+            } else if (ASR::is_a<ASR::Derived_t>(*v.m_type)) {
+                ASR::Derived_t *t = ASR::down_cast<ASR::Derived_t>(v.m_type);
                 std::string dims = convert_dims(t->n_dims, t->m_dims);
                 sub = format_type(dims, "struct", v.m_name, use_ref, dummy);
                 if (v.m_symbolic_value) {
@@ -183,6 +185,9 @@ public:
 R"(#include <iostream>
 #include <string>
 #include <vector>
+#include <cassert>
+#include <cmath>
+#include <complex>
 #include <Kokkos_Core.hpp>
 #include <lfortran_intrinsics.h>
 
@@ -208,10 +213,10 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
             std::vector<std::string> build_order
                 = LFortran::ASRUtils::determine_module_dependencies(x);
             for (auto &item : build_order) {
-                LFORTRAN_ASSERT(x.m_global_scope->scope.find(item)
-                    != x.m_global_scope->scope.end());
+                LFORTRAN_ASSERT(x.m_global_scope->get_scope().find(item)
+                    != x.m_global_scope->get_scope().end());
                 if (startswith(item, "lfortran_intrinsic")) {
-                    ASR::symbol_t *mod = x.m_global_scope->scope[item];
+                    ASR::symbol_t *mod = x.m_global_scope->get_symbol(item);
                     visit_symbol(*mod);
                     unit_src += src;
                 }
@@ -219,9 +224,9 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         }
 
         // Process procedures first:
-        for (auto &item : x.m_global_scope->scope) {
-            if (is_a<ASR::Function_t>(*item.second)
-                || is_a<ASR::Subroutine_t>(*item.second)) {
+        for (auto &item : x.m_global_scope->get_scope()) {
+            if (ASR::is_a<ASR::Function_t>(*item.second)
+                || ASR::is_a<ASR::Subroutine_t>(*item.second)) {
                 visit_symbol(*item.second);
                 unit_src += src;
             }
@@ -231,18 +236,18 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         std::vector<std::string> build_order
             = LFortran::ASRUtils::determine_module_dependencies(x);
         for (auto &item : build_order) {
-            LFORTRAN_ASSERT(x.m_global_scope->scope.find(item)
-                != x.m_global_scope->scope.end());
+            LFORTRAN_ASSERT(x.m_global_scope->get_scope().find(item)
+                != x.m_global_scope->get_scope().end());
             if (!startswith(item, "lfortran_intrinsic")) {
-                ASR::symbol_t *mod = x.m_global_scope->scope[item];
+                ASR::symbol_t *mod = x.m_global_scope->get_symbol(item);
                 visit_symbol(*mod);
                 unit_src += src;
             }
         }
 
         // Then the main program:
-        for (auto &item : x.m_global_scope->scope) {
-            if (is_a<ASR::Program_t>(*item.second)) {
+        for (auto &item : x.m_global_scope->get_scope()) {
+            if (ASR::is_a<ASR::Program_t>(*item.second)) {
                 visit_symbol(*item.second);
                 unit_src += src;
             }
@@ -259,13 +264,13 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         }
         // Generate code for nested subroutines and functions first:
         std::string contains;
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Subroutine_t>(*item.second)) {
+        for (auto &item : x.m_symtab->get_scope()) {
+            if (ASR::is_a<ASR::Subroutine_t>(*item.second)) {
                 ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
                 visit_Subroutine(*s);
                 contains += src;
             }
-            if (is_a<ASR::Function_t>(*item.second)) {
+            if (ASR::is_a<ASR::Function_t>(*item.second)) {
                 ASR::Function_t *s = ASR::down_cast<ASR::Function_t>(item.second);
                 visit_Function(*s);
                 contains += src;
@@ -278,13 +283,13 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
     void visit_Program(const ASR::Program_t &x) {
         // Generate code for nested subroutines and functions first:
         std::string contains;
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Subroutine_t>(*item.second)) {
+        for (auto &item : x.m_symtab->get_scope()) {
+            if (ASR::is_a<ASR::Subroutine_t>(*item.second)) {
                 ASR::Subroutine_t *s = ASR::down_cast<ASR::Subroutine_t>(item.second);
                 visit_Subroutine(*s);
                 contains += src;
             }
-            if (is_a<ASR::Function_t>(*item.second)) {
+            if (ASR::is_a<ASR::Function_t>(*item.second)) {
                 ASR::Function_t *s = ASR::down_cast<ASR::Function_t>(item.second);
                 visit_Function(*s);
                 contains += src;
@@ -297,9 +302,9 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         indentation_level += 1;
         std::string indent(indentation_level*indentation_spaces, ' ');
         std::string decl;
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Variable_t>(*item.second)) {
-                ASR::Variable_t *v = down_cast<ASR::Variable_t>(item.second);
+        for (auto &item : x.m_symtab->get_scope()) {
+            if (ASR::is_a<ASR::Variable_t>(*item.second)) {
+                ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(item.second);
                 decl += indent;
                 decl += convert_variable_decl(*v) + ";\n";
             }
@@ -336,9 +341,9 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         }
         sub += ")\n";
 
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Variable_t>(*item.second)) {
-                ASR::Variable_t *v = down_cast<ASR::Variable_t>(item.second);
+        for (auto &item : x.m_symtab->get_scope()) {
+            if (ASR::is_a<ASR::Variable_t>(*item.second)) {
+                ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(item.second);
                 if (v->m_intent == LFortran::ASRUtils::intent_local) {
                     SymbolInfo s;
                     s.needs_declaration = true;
@@ -354,9 +359,9 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         }
 
         std::string decl;
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Variable_t>(*item.second)) {
-                ASR::Variable_t *v = down_cast<ASR::Variable_t>(item.second);
+        for (auto &item : x.m_symtab->get_scope()) {
+            if (ASR::is_a<ASR::Variable_t>(*item.second)) {
+                ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(item.second);
                 if (v->m_intent == LFortran::ASRUtils::intent_local) {
                     if (sym_info[get_hash((ASR::asr_t*) v)].needs_declaration) {
                         std::string indent(indentation_level*indentation_spaces, ' ');
@@ -400,15 +405,20 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         }
         std::string sub;
         ASR::Variable_t *return_var = LFortran::ASRUtils::EXPR2VAR(x.m_return_var);
-        if (is_a<ASR::Integer_t>(*return_var->m_type)) {
-            sub = "int ";
-        } else if (is_a<ASR::Real_t>(*return_var->m_type)) {
+        if (ASRUtils::is_integer(*return_var->m_type)) {
+            bool is_int = ASR::down_cast<ASR::Integer_t>(return_var->m_type)->m_kind == 4;
+            if (is_int) {
+                sub = "int ";
+            } else {
+                sub = "long long ";
+            }
+        } else if (ASRUtils::is_real(*return_var->m_type)) {
             sub = "float ";
-        } else if (is_a<ASR::Logical_t>(*return_var->m_type)) {
+        } else if (ASRUtils::is_logical(*return_var->m_type)) {
             sub = "bool ";
-        } else if (is_a<ASR::Character_t>(*return_var->m_type)) {
+        } else if (ASRUtils::is_character(*return_var->m_type)) {
             sub = "std::string ";
-        } else if (is_a<ASR::Complex_t>(*return_var->m_type)) {
+        } else if (ASRUtils::is_complex(*return_var->m_type)) {
             sub = "std::complex<float> ";
         } else {
             throw CodeGenError("Return type not supported");
@@ -425,24 +435,34 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         indentation_level += 1;
         std::string indent(indentation_level*indentation_spaces, ' ');
         std::string decl;
-        for (auto &item : x.m_symtab->scope) {
-            if (is_a<ASR::Variable_t>(*item.second)) {
-                ASR::Variable_t *v = down_cast<ASR::Variable_t>(item.second);
+        for (auto &item : x.m_symtab->get_scope()) {
+            if (ASR::is_a<ASR::Variable_t>(*item.second)) {
+                ASR::Variable_t *v = ASR::down_cast<ASR::Variable_t>(item.second);
                 if (v->m_intent == LFortran::ASRUtils::intent_local || v->m_intent == LFortran::ASRUtils::intent_return_var) {
                    decl += indent + convert_variable_decl(*v) + ";\n";
                 }
             }
         }
 
+        current_function = &x;
         std::string body;
+
         for (size_t i=0; i<x.n_body; i++) {
             this->visit_stmt(*x.m_body[i]);
             body += src;
         }
+        current_function = nullptr;
+        bool visited_return = false;
 
-        body += indent + "return "
-            + LFortran::ASRUtils::EXPR2VAR(x.m_return_var)->m_name
-            + ";\n";
+        if (x.n_body > 0 && ASR::is_a<ASR::Return_t>(*x.m_body[x.n_body-1])) {
+            visited_return = true;
+        }
+
+        if(!visited_return) {
+            body += indent + "return "
+                + LFortran::ASRUtils::EXPR2VAR(x.m_return_var)->m_name
+                + ";\n";
+        }
 
         if (decl.size() > 0 || body.size() > 0) {
             sub += "{\n" + decl + body + "}\n";
@@ -462,14 +482,14 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         if (sym_info[get_hash((ASR::asr_t*)fn)].intrinsic_function) {
             if (fn_name == "size") {
                 LFORTRAN_ASSERT(x.n_args > 0);
-                visit_expr(*x.m_args[0]);
+                visit_expr(*x.m_args[0].m_value);
                 std::string var_name = src;
                 std::string args;
                 if (x.n_args == 1) {
                     args = "0";
                 } else {
                     for (size_t i=1; i<x.n_args; i++) {
-                        visit_expr(*x.m_args[i]);
+                        visit_expr(*x.m_args[i].m_value);
                         args += src + "-1";
                         if (i < x.n_args-1) args += ", ";
                     }
@@ -477,15 +497,15 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
                 src = var_name + ".extent(" + args + ")";
             } else if (fn_name == "int") {
                 LFORTRAN_ASSERT(x.n_args > 0);
-                visit_expr(*x.m_args[0]);
+                visit_expr(*x.m_args[0].m_value);
                 src = "(int)" + src;
             } else if (fn_name == "not") {
                 LFORTRAN_ASSERT(x.n_args > 0);
-                visit_expr(*x.m_args[0]);
+                visit_expr(*x.m_args[0].m_value);
                 src = "!(" + src + ")";
             } else if (fn_name == "len") {
                 LFORTRAN_ASSERT(x.n_args > 0);
-                visit_expr(*x.m_args[0]);
+                visit_expr(*x.m_args[0].m_value);
                 src = "(" + src + ").size()";
             } else {
                 throw CodeGenError("Intrinsic function '" + fn_name
@@ -494,22 +514,39 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         } else {
             std::string args;
             for (size_t i=0; i<x.n_args; i++) {
-                visit_expr(*x.m_args[i]);
+                visit_expr(*x.m_args[i].m_value);
                 args += src;
                 if (i < x.n_args-1) args += ", ";
             }
             src = fn_name + "(" + args + ")";
         }
-        last_unary_plus = false;
-        last_binary_plus = false;
+        last_expr_precedence = 2;
+    }
+
+    void visit_ArraySize(const ASR::ArraySize_t& x) {
+        visit_expr(*x.m_v);
+        std::string var_name = src;
+        std::string args = "";
+        if (x.m_dim == nullptr) {
+            // TODO: return the product of all dimensions:
+            args = "0";
+        } else {
+            if( x.m_dim ) {
+                visit_expr(*x.m_dim);
+                args += src + "-1";
+                args += ", ";
+            }
+            args += std::to_string(ASRUtils::extract_kind_from_ttype_t(x.m_type)) + "-1";
+        }
+        src = var_name + ".extent(" + args + ")";
     }
 
     void visit_Assignment(const ASR::Assignment_t &x) {
         std::string target;
-        if (is_a<ASR::Var_t>(*x.m_target)) {
+        if (ASR::is_a<ASR::Var_t>(*x.m_target)) {
             target = LFortran::ASRUtils::EXPR2VAR(x.m_target)->m_name;
-        } else if (is_a<ASR::ArrayRef_t>(*x.m_target)) {
-            visit_ArrayRef(*down_cast<ASR::ArrayRef_t>(x.m_target));
+        } else if (ASR::is_a<ASR::ArrayRef_t>(*x.m_target)) {
+            visit_ArrayRef(*ASR::down_cast<ASR::ArrayRef_t>(x.m_target));
             target = src;
         } else {
             LFORTRAN_ASSERT(false)
@@ -520,39 +557,61 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         src = indent + target + " = " + value + ";\n";
     }
 
-    void visit_ConstantInteger(const ASR::ConstantInteger_t &x) {
+    void visit_IntegerConstant(const ASR::IntegerConstant_t &x) {
         src = std::to_string(x.m_n);
-        last_unary_plus = false;
-        last_binary_plus = false;
+        last_expr_precedence = 2;
     }
 
-    void visit_ConstantReal(const ASR::ConstantReal_t &x) {
+    void visit_RealConstant(const ASR::RealConstant_t &x) {
         src = std::to_string(x.m_r);
-        last_unary_plus = false;
-        last_binary_plus = false;
+        last_expr_precedence = 2;
     }
 
-    void visit_ConstantString(const ASR::ConstantString_t &x) {
+    void visit_ComplexConstructor(const ASR::ComplexConstructor_t &x) {
+        this->visit_expr(*x.m_re);
+        std::string re = src;
+        this->visit_expr(*x.m_im);
+        std::string im = src;
+        src = "std::complex<float>(" + re + ", " + im + ")";
+        last_expr_precedence = 2;
+    }
+
+    void visit_StringConstant(const ASR::StringConstant_t &x) {
         src = "\"" + std::string(x.m_s) + "\"";
-        last_unary_plus = false;
-        last_binary_plus = false;
+        last_expr_precedence = 2;
     }
 
-    void visit_ConstantLogical(const ASR::ConstantLogical_t &x) {
+    void visit_ComplexConstant(const ASR::ComplexConstant_t &x) {
+        src = "std::complex<double>(" + std::to_string(x.m_re) + ", " + std::to_string(x.m_im) + ")";
+        last_expr_precedence = 2;
+    }
+
+    void visit_LogicalConstant(const ASR::LogicalConstant_t &x) {
         if (x.m_value == true) {
             src = "true";
         } else {
             src = "false";
         }
-        last_unary_plus = false;
-        last_binary_plus = false;
+        last_expr_precedence = 2;
+    }
+
+    void visit_SetConstant(const ASR::SetConstant_t &x) {
+        std::string out = "{";
+        for (size_t i=0; i<x.n_elements; i++) {
+            visit_expr(*x.m_elements[i]);
+            out += src;
+            if (i != x.n_elements - 1)
+                out += ", ";
+        }
+        out += "}";
+        src = out;
+        last_expr_precedence = 2;
     }
 
     void visit_Var(const ASR::Var_t &x) {
         const ASR::symbol_t *s = ASRUtils::symbol_get_past_external(x.m_v);
         src = ASR::down_cast<ASR::Variable_t>(s)->m_name;
-        last_unary_plus = false;
-        last_binary_plus = false;
+        last_expr_precedence = 2;
     }
 
     void visit_ArrayRef(const ASR::ArrayRef_t &x) {
@@ -566,20 +625,34 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
                 src = "/* FIXME right index */";
             }
             out += src;
-            if (i < x.n_args-1) out += ",";
+            if (i < x.n_args-1) out += ", ";
         }
         out += "-1]";
+        last_expr_precedence = 2;
         src = out;
-        last_unary_plus = false;
-        last_binary_plus = false;
     }
 
-    void visit_ImplicitCast(const ASR::ImplicitCast_t &x) {
+    void visit_DictConstant(const ASR::DictConstant_t &x) {
+        LFORTRAN_ASSERT(x.n_keys == x.n_values);
+        std::string out = "{";
+        for(size_t i=0; i<x.n_keys; i++) {
+            out += "{";
+            visit_expr(*x.m_keys[i]);
+            out += src + ", ";
+            visit_expr(*x.m_values[i]);
+            out += src + "}";
+            if (i!=x.n_keys-1) out += ", ";
+        }
+        out += "}";
+        src = out;
+        last_expr_precedence = 2;
+    }
+
+    void visit_Cast(const ASR::Cast_t &x) {
         visit_expr(*x.m_arg);
         switch (x.m_kind) {
             case (ASR::cast_kindType::IntegerToReal) : {
-                // In C++, we do not need to cast int to float explicitly:
-                // src = src;
+                src = "(float)(" + src + ")";
                 break;
             }
             case (ASR::cast_kindType::RealToInteger) : {
@@ -591,86 +664,126 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
                 // src = src;
                 break;
             }
+            case (ASR::cast_kindType::IntegerToInteger) : {
+                // In C++, we do not need to cast int <-> long long explicitly:
+                // src = src;
+                break;
+            }
+            case (ASR::cast_kindType::ComplexToComplex) : {
+                break;
+            }
+            case (ASR::cast_kindType::IntegerToComplex) : {
+                src = "std::complex<double>(" + src + ")";
+                break;
+            }
             case (ASR::cast_kindType::ComplexToReal) : {
                 src = "std::real(" + src + ")";
                 break;
             }
+            case (ASR::cast_kindType::LogicalToInteger) : {
+                src = "(int)(" + src + ")";
+                break;
+            }
             default : throw CodeGenError("Cast kind " + std::to_string(x.m_kind) + " not implemented");
         }
+        last_expr_precedence = 2;
     }
 
     void visit_Compare(const ASR::Compare_t &x) {
         this->visit_expr(*x.m_left);
-        std::string left = src;
+        std::string left = std::move(src);
+        int left_precedence = last_expr_precedence;
         this->visit_expr(*x.m_right);
-        std::string right = src;
+        std::string right = std::move(src);
+        int right_precedence = last_expr_precedence;
         switch (x.m_op) {
-            case (ASR::cmpopType::Eq) : {
-                src = left + " == " + right;
-                break;
-            }
-            case (ASR::cmpopType::Gt) : {
-                src = left + " > " + right;
-                break;
-            }
-            case (ASR::cmpopType::GtE) : {
-                src = left + " >= " + right;
-                break;
-            }
-            case (ASR::cmpopType::Lt) : {
-                src = left + " < " + right;
-                break;
-            }
-            case (ASR::cmpopType::LtE) : {
-                src = left + " <= " + right;
-                break;
-            }
-            case (ASR::cmpopType::NotEq) : {
-                src = left + " != " + right;
-                break;
-            }
-            default : {
-                throw CodeGenError("Comparison operator not implemented");
-            }
+            case (ASR::cmpopType::Eq) : { last_expr_precedence = 10; break; }
+            case (ASR::cmpopType::Gt) : { last_expr_precedence = 9;  break; }
+            case (ASR::cmpopType::GtE) : { last_expr_precedence = 9; break; }
+            case (ASR::cmpopType::Lt) : { last_expr_precedence = 9;  break; }
+            case (ASR::cmpopType::LtE) : { last_expr_precedence = 9; break; }
+            case (ASR::cmpopType::NotEq): { last_expr_precedence = 10; break; }
+            default : LFORTRAN_ASSERT(false); // should never happen
+        }
+        if (left_precedence <= last_expr_precedence) {
+            src += left;
+        } else {
+            src += "(" + left + ")";
+        }
+        src += ASRUtils::cmpop_to_str(x.m_op);
+        if (right_precedence <= last_expr_precedence) {
+            src += right;
+        } else {
+            src += "(" + right + ")";
         }
     }
 
     void visit_UnaryOp(const ASR::UnaryOp_t &x) {
         this->visit_expr(*x.m_operand);
+        int expr_precedence = last_expr_precedence;
         if (x.m_type->type == ASR::ttypeType::Integer) {
             if (x.m_op == ASR::unaryopType::UAdd) {
                 // src = src;
-                last_unary_plus = false;
-                return;
+                // Skip unary plus, keep the previous precedence
             } else if (x.m_op == ASR::unaryopType::USub) {
-                src = "-" + src;
-                last_unary_plus = true;
-                last_binary_plus = false;
-                return;
+                last_expr_precedence = 3;
+                if (expr_precedence <= last_expr_precedence) {
+                    src = "-" + src;
+                } else {
+                    src = "-(" + src + ")";
+                }
+            } else if (x.m_op == ASR::unaryopType::Invert) {
+                last_expr_precedence = 3;
+                if (expr_precedence <= last_expr_precedence) {
+                    src = "~" + src;
+                } else {
+                    src = "~(" + src + ")";
+                }
+
+            } else if (x.m_op == ASR::unaryopType::Not) {
+                last_expr_precedence = 3;
+                if (expr_precedence <= last_expr_precedence) {
+                    src = "!" + src;
+                } else {
+                    src = "!(" + src + ")";
+                }
             } else {
-                throw CodeGenError("Unary type not implemented yet");
+                throw CodeGenError("Unary type not implemented yet for Integer");
             }
+            return;
         } else if (x.m_type->type == ASR::ttypeType::Real) {
             if (x.m_op == ASR::unaryopType::UAdd) {
                 // src = src;
-                last_unary_plus = false;
-                return;
+                // Skip unary plus, keep the previous precedence
             } else if (x.m_op == ASR::unaryopType::USub) {
-                src = "-" + src;
-                last_unary_plus = true;
-                last_binary_plus = false;
-                return;
+                last_expr_precedence = 3;
+                if (expr_precedence <= last_expr_precedence) {
+                    src = "-" + src;
+                } else {
+                    src = "-(" + src + ")";
+                }
+            } else if (x.m_op == ASR::unaryopType::Not) {
+                last_expr_precedence = 3;
+                if (expr_precedence <= last_expr_precedence) {
+                    src = "!" + src;
+                } else {
+                    src = "!(" + src + ")";
+                }
             } else {
-                throw CodeGenError("Unary type not implemented yet");
+                throw CodeGenError("Unary type not implemented yet for Real");
             }
+            return;
         } else if (x.m_type->type == ASR::ttypeType::Logical) {
             if (x.m_op == ASR::unaryopType::Not) {
-                src = "!" + src;
-                last_unary_plus = false;
-                last_binary_plus = false;
+                last_expr_precedence = 3;
+                if (expr_precedence <= last_expr_precedence) {
+                    src = "!" + src;
+                } else {
+                    src = "!(" + src + ")";
+                }
                 return;
             } else {
-                throw CodeGenError("Unary type not implemented yet in Logical");
+                throw CodeGenError("Unary type not implemented yet for Logical");
             }
         } else {
             throw CodeGenError("UnaryOp: type not supported yet");
@@ -679,98 +792,112 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
 
     void visit_BinOp(const ASR::BinOp_t &x) {
         this->visit_expr(*x.m_left);
-        std::string left_val = src;
-        if ((last_binary_plus || last_unary_plus)
-                    && (x.m_op == ASR::binopType::Mul
-                     || x.m_op == ASR::binopType::Div)) {
-            left_val = "(" + left_val + ")";
-        }
-        if (last_unary_plus
-                    && (x.m_op == ASR::binopType::Add
-                     || x.m_op == ASR::binopType::Sub)) {
-            left_val = "(" + left_val + ")";
-        }
+        std::string left = std::move(src);
+        int left_precedence = last_expr_precedence;
         this->visit_expr(*x.m_right);
-        std::string right_val = src;
-        if ((last_binary_plus || last_unary_plus)
-                    && (x.m_op == ASR::binopType::Mul
-                     || x.m_op == ASR::binopType::Div)) {
-            right_val = "(" + right_val + ")";
-        }
-        if (last_unary_plus
-                    && (x.m_op == ASR::binopType::Add
-                     || x.m_op == ASR::binopType::Sub)) {
-            right_val = "(" + right_val + ")";
-        }
+        std::string right = std::move(src);
+        int right_precedence = last_expr_precedence;
         switch (x.m_op) {
-            case ASR::binopType::Add: {
-                src = left_val + " + " + right_val;
-                last_binary_plus = true;
-                break;
+            case (ASR::binopType::Add) : { last_expr_precedence = 6; break; }
+            case (ASR::binopType::Sub) : { last_expr_precedence = 6; break; }
+            case (ASR::binopType::Mul) : { last_expr_precedence = 5; break; }
+            case (ASR::binopType::Div) : { last_expr_precedence = 5; break; }
+            case (ASR::binopType::Pow) : {
+                src = "std::pow(" + left + ", " + right + ")";
+                return;
             }
-            case ASR::binopType::Sub: {
-                src = left_val + " - " + right_val;
-                last_binary_plus = true;
-                break;
-            }
-            case ASR::binopType::Mul: {
-                src = left_val + "*" + right_val;
-                last_binary_plus = false;
-                break;
-            }
-            case ASR::binopType::Div: {
-                src = left_val + "/" + right_val;
-                last_binary_plus = false;
-                break;
-            }
-            case ASR::binopType::Pow: {
-                src = "std::pow(" + left_val + ", " + right_val + ")";
-                last_binary_plus = false;
-                break;
-            }
-            default : throw CodeGenError("Unhandled switch case");
+            default: throw CodeGenError("BinOp: operator not implemented yet");
         }
-        last_unary_plus = false;
+        src = "";
+        if (left_precedence == 3) {
+            src += "(" + left + ")";
+        } else {
+            if (left_precedence <= last_expr_precedence) {
+                src += left;
+            } else {
+                src += "(" + left + ")";
+            }
+        }
+        src += ASRUtils::binop_to_str(x.m_op);
+        if (right_precedence == 3) {
+            src += "(" + right + ")";
+        } else if (x.m_op == ASR::binopType::Sub) {
+            if (right_precedence < last_expr_precedence) {
+                src += right;
+            } else {
+                src += "(" + right + ")";
+            }
+        } else {
+            if (right_precedence <= last_expr_precedence) {
+                src += right;
+            } else {
+                src += "(" + right + ")";
+            }
+        }
     }
 
-    void visit_StrOp(const ASR::StrOp_t &x) {
+    void visit_StringConcat(const ASR::StringConcat_t &x) {
         this->visit_expr(*x.m_left);
-        std::string left_val = src;
+        std::string left = std::move(src);
+        int left_precedence = last_expr_precedence;
         this->visit_expr(*x.m_right);
-        std::string right_val = src;
-        src = "(" + left_val + ") + (" + right_val + ")";
-        last_unary_plus = false;
+        std::string right = std::move(src);
+        int right_precedence = last_expr_precedence;
+        last_expr_precedence = 6;
+        if (left_precedence <= last_expr_precedence) {
+            src += "std::string(" + left + ")";
+        } else {
+            src += left;
+        }
+        src += " + "; // handle only concatenation for now
+        if (right_precedence <= last_expr_precedence) {
+            src += "std::string(" + right + ")";
+        } else {
+            src += right;
+        }
     }
 
     void visit_BoolOp(const ASR::BoolOp_t &x) {
         this->visit_expr(*x.m_left);
-        std::string left_val = "(" + src + ")";
+        std::string left = std::move(src);
+        int left_precedence = last_expr_precedence;
         this->visit_expr(*x.m_right);
-        std::string right_val = "(" + src + ")";
+        std::string right = std::move(src);
+        int right_precedence = last_expr_precedence;
         switch (x.m_op) {
-            case ASR::boolopType::And: {
-                src = left_val + " && " + right_val;
+            case (ASR::boolopType::And): {
+                last_expr_precedence = 14;
                 break;
             }
-            case ASR::boolopType::Or: {
-                src = left_val + " || " + right_val;
+            case (ASR::boolopType::Or): {
+                last_expr_precedence = 15;
                 break;
             }
-            case ASR::boolopType::NEqv: {
-                src = left_val + " != " + right_val;
+            case (ASR::boolopType::NEqv): {
+                last_expr_precedence = 10;
                 break;
             }
-            case ASR::boolopType::Eqv: {
-                src = left_val + " == " + right_val;
+            case (ASR::boolopType::Eqv): {
+                last_expr_precedence = 10;
                 break;
             }
             default : throw CodeGenError("Unhandled switch case");
         }
-        last_binary_plus = false;
-        last_unary_plus = false;
+
+        if (left_precedence <= last_expr_precedence) {
+            src += left;
+        } else {
+            src += "(" + left + ")";
+        }
+        src += ASRUtils::boolop_to_str(x.m_op);
+        if (right_precedence <= last_expr_precedence) {
+            src += right;
+        } else {
+            src += "(" + right + ")";
+        }
     }
 
-    void visit_ConstantArray(const ASR::ConstantArray_t &x) {
+    void visit_ArrayConstant(const ASR::ArrayConstant_t &x) {
         std::string out = "from_std_vector<float>({";
         for (size_t i=0; i<x.n_args; i++) {
             this->visit_expr(*x.m_args[i]);
@@ -779,6 +906,7 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         }
         out += "})";
         src = out;
+        last_expr_precedence = 2;
     }
 
     void visit_Print(const ASR::Print_t &x) {
@@ -802,6 +930,23 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
             out += std::string(ASRUtils::symbol_name(a)) + ", ";
         }
         out += ");\n";
+        src = out;
+    }
+
+    void visit_Assert(const ASR::Assert_t &x) {
+        std::string indent(indentation_level*indentation_spaces, ' ');
+        std::string out = indent;
+        if (x.m_msg) {
+            out += "assert ((";
+            visit_expr(*x.m_msg);
+            out += src + ", ";
+            visit_expr(*x.m_test);
+            out += src + "));\n";
+        } else {
+            out += "assert (";
+            visit_expr(*x.m_test);
+            out += src + ");\n";
+        }
         src = out;
     }
 
@@ -831,7 +976,7 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         src = out;
     }
 
-    void visit_Write(const ASR::Write_t &x) {
+    void visit_FileWrite(const ASR::FileWrite_t &x) {
         std::string indent(indentation_level*indentation_spaces, ' ');
         std::string out = indent + "std::cout ";
         for (size_t i=0; i<x.n_values; i++) {
@@ -842,7 +987,7 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         src = out;
     }
 
-    void visit_Read(const ASR::Read_t &x) {
+    void visit_FileRead(const ASR::FileRead_t &x) {
         std::string indent(indentation_level*indentation_spaces, ' ');
         std::string out = indent + "// FIXME: READ: std::cout ";
         for (size_t i=0; i<x.n_values; i++) {
@@ -863,7 +1008,7 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
             this->visit_stmt(*x.m_body[i]);
             out += src;
         }
-        out += indent + "};\n";
+        out += indent + "}\n";
         indentation_level -= 1;
         src = out;
     }
@@ -880,7 +1025,13 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
 
     void visit_Return(const ASR::Return_t & /* x */) {
         std::string indent(indentation_level*indentation_spaces, ' ');
-        src = indent + "return;\n";
+        if (current_function) {
+            src = indent + "return "
+                + LFortran::ASRUtils::EXPR2VAR(current_function->m_return_var)->m_name
+                + ";\n";
+        } else {
+            src = indent + "return;\n";
+        }
     }
 
     void visit_GoToTarget(const ASR::GoToTarget_t & /* x */) {
@@ -897,6 +1048,7 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         std::string indent(indentation_level*indentation_spaces, ' ');
         std::string out = indent + " /* FIXME: implied do loop */ ";
         src = out;
+        last_expr_precedence = 2;
     }
 
     void visit_DoLoop(const ASR::DoLoop_t &x) {
@@ -913,13 +1065,13 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         if (!c) {
             increment = 1;
         } else {
-            if (c->type == ASR::exprType::ConstantInteger) {
-                increment = down_cast<ASR::ConstantInteger_t>(c)->m_n;
+            if (c->type == ASR::exprType::IntegerConstant) {
+                increment = ASR::down_cast<ASR::IntegerConstant_t>(c)->m_n;
             } else if (c->type == ASR::exprType::UnaryOp) {
-                ASR::UnaryOp_t *u = down_cast<ASR::UnaryOp_t>(c);
+                ASR::UnaryOp_t *u = ASR::down_cast<ASR::UnaryOp_t>(c);
                 LFORTRAN_ASSERT(u->m_op == ASR::unaryopType::USub);
-                LFORTRAN_ASSERT(u->m_operand->type == ASR::exprType::ConstantInteger);
-                increment = - down_cast<ASR::ConstantInteger_t>(u->m_operand)->m_n;
+                LFORTRAN_ASSERT(u->m_operand->type == ASR::exprType::IntegerConstant);
+                increment = - ASR::down_cast<ASR::IntegerConstant_t>(u->m_operand)->m_n;
             } else {
                 throw CodeGenError("Do loop increment type not supported");
             }
@@ -949,7 +1101,7 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
             this->visit_stmt(*x.m_body[i]);
             out += src;
         }
-        out += indent + "};\n";
+        out += indent + "}\n";
         indentation_level -= 1;
         src = out;
     }
@@ -957,7 +1109,9 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
     void visit_DoConcurrentLoop(const ASR::DoConcurrentLoop_t &x) {
         std::string indent(indentation_level*indentation_spaces, ' ');
         std::string out = indent + "Kokkos::parallel_for(";
-        out += "Kokkos::RangePolicy<Kokkos::DefaultExecutionSpace>(1, ";
+        out += "Kokkos::RangePolicy<Kokkos::DefaultExecutionSpace>(";
+        visit_expr(*x.m_head.m_start);
+        out += src + ", ";
         visit_expr(*x.m_head.m_end);
         out += src + "+1)";
         ASR::Variable_t *loop_var = LFortran::ASRUtils::EXPR2VAR(x.m_head.m_v);
@@ -992,17 +1146,31 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         }
         out += indent + "}";
         if (x.n_orelse == 0) {
-            out += ";\n";
+            out += "\n";
         } else {
             out += " else {\n";
             for (size_t i=0; i<x.n_orelse; i++) {
                 this->visit_stmt(*x.m_orelse[i]);
                 out += src;
             }
-            out += indent + "};\n";
+            out += indent + "}\n";
         }
         indentation_level -= 1;
         src = out;
+    }
+
+    void visit_IfExp(const ASR::IfExp_t &x) {
+        // IfExp is like a ternary operator in c++
+        // test ? body : orelse;
+        std::string out = "(";
+        visit_expr(*x.m_test);
+        out += src + ") ? (";
+        visit_expr(*x.m_body);
+        out += src + ") : (";
+        visit_expr(*x.m_orelse);
+        out += src + ")";
+        src = out;
+        last_expr_precedence = 16;
     }
 
     void visit_SubroutineCall(const ASR::SubroutineCall_t &x) {
@@ -1011,12 +1179,12 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
             LFortran::ASRUtils::symbol_get_past_external(x.m_name));
         std::string out = indent + s->m_name + "(";
         for (size_t i=0; i<x.n_args; i++) {
-            if (x.m_args[i]->type == ASR::exprType::Var) {
-                ASR::Variable_t *arg = LFortran::ASRUtils::EXPR2VAR(x.m_args[i]);
+            if (ASR::is_a<ASR::Var_t>(*x.m_args[i].m_value)) {
+                ASR::Variable_t *arg = LFortran::ASRUtils::EXPR2VAR(x.m_args[i].m_value);
                 std::string arg_name = arg->m_name;
                 out += arg_name;
             } else {
-                this->visit_expr(*x.m_args[i]);
+                this->visit_expr(*x.m_args[i].m_value);
                 out += src;
             }
             if (i < x.n_args-1) out += ", ";

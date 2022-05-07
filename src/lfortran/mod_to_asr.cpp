@@ -267,14 +267,14 @@ ASR::TranslationUnit_t* parse_gfortran_mod_file(Allocator &al, const std::string
                 char *name = a.c_str(al);
                 ASR::asr_t *asr = ASR::make_Subroutine_t(al, loc,
                     proc_symtab, name, nullptr, 0,
-                    nullptr, 0, ASR::abiType::GFortranModule, ASR::Public, 
+                    nullptr, 0, ASR::abiType::GFortranModule, ASR::Public,
                     ASR::Interface, nullptr, false, false);
                 s.p.proc = down_cast<ASR::symbol_t>(asr);
                 std::string sym_name = s.name;
-                if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
+                if (parent_scope->get_symbol(sym_name) != nullptr) {
                     throw LFortranException("Procedure already defined");
                 }
-                parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(asr);
+                parent_scope->add_symbol(sym_name, ASR::down_cast<ASR::symbol_t>(asr));
 
                 std::vector<Item> args = item_list(info[5]);
                 for (auto &arg : args) {

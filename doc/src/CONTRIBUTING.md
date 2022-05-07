@@ -135,7 +135,7 @@ The section is tested with `lfortran --show-ast examples/expr2.f90`
 
 We first extend the ASR in *ASR.asdl* and add ^ as a BinOp operator option. 
 
-:fontawesome-solid-code:*grammar/ASR.asdl*
+:fontawesome-solid-code:*src/libasr/ASR.asdl*
 ```
 binop = Add | Sub | Mul | Div | Pow | Caret
 ```
@@ -157,10 +157,10 @@ public:
     if (LFortran::ASRUtils::expr_value(left) != nullptr &&
         LFortran::ASRUtils::expr_value(right) != nullptr) {
       if (ASR::is_a<LFortran::ASR::Integer_t>(*dest_type)) {
-        int64_t left_value = ASR::down_cast<ASR::ConstantInteger_t>(
+        int64_t left_value = ASR::down_cast<ASR::IntegerConstant_t>(
                                  LFortran::ASRUtils::expr_value(left))
                                  ->m_n;
-        int64_t right_value = ASR::down_cast<ASR::ConstantInteger_t>(
+        int64_t right_value = ASR::down_cast<ASR::IntegerConstant_t>(
                                   LFortran::ASRUtils::expr_value(right))
                                   ->m_n;
         int64_t result;

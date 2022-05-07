@@ -1,5 +1,5 @@
 module lfortran_intrinsic_math
-use, intrinsic :: iso_fortran_env, only: i8 => int8, i16 => int16, sp => real32, dp => real64
+use, intrinsic :: iso_fortran_env, only: i8 => int8, i16 => int16, i32 => int32, i64 => int64, sp => real32, dp => real64
 use, intrinsic :: iso_c_binding, only: c_float, c_double
 implicit none
 
@@ -113,6 +113,10 @@ interface random_number
     module procedure sp_rand_num, dp_rand_num
 end interface
 
+interface sign
+    module procedure signi8, signi16, signi32, signi64, signr32, signr64
+end interface
+
 contains
 
 ! abs --------------------------------------------------------------------------
@@ -159,7 +163,7 @@ end function
 elemental real(sp) function caimag(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_caimag(x) bind(c, name="_lfortran_caimag")
+    pure real(c_float) function c_caimag(x) bind(c, name="_lfortran_caimag")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -170,7 +174,7 @@ end function
 elemental real(dp) function zaimag(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zaimag(x) bind(c, name="_lfortran_zaimag")
+    pure real(c_double) function c_zaimag(x) bind(c, name="_lfortran_zaimag")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -1123,5 +1127,61 @@ interface
 end interface
 call c_dp_rand_num(harvest)
 end subroutine
+
+! sign -------------------------------------------------------------------------
+
+elemental integer(i8) function signi8(x, y) result(r)
+integer(i8), intent(in) :: x, y
+if ((x >= 0 .and. y >= 0) .or. (x <= 0 .and. y <= 0)) then
+    r = x
+else
+    r = -x
+end if
+end function
+
+elemental integer(i16) function signi16(x, y) result(r)
+integer(i16), intent(in) :: x, y
+if ((x >= 0 .and. y >= 0) .or. (x <= 0 .and. y <= 0)) then
+    r = x
+else
+    r = -x
+end if
+end function
+
+elemental integer(i32) function signi32(x, y) result(r)
+integer(i32), intent(in) :: x, y
+if ((x >= 0 .and. y >= 0) .or. (x <= 0 .and. y <= 0)) then
+    r = x
+else
+    r = -x
+end if
+end function
+
+elemental integer(i64) function signi64(x, y) result(r)
+integer(i64), intent(in) :: x, y
+if ((x >= 0 .and. y >= 0) .or. (x <= 0 .and. y <= 0)) then
+    r = x
+else
+    r = -x
+end if
+end function
+
+elemental real(sp) function signr32(x, y) result(r)
+real(sp), intent(in) :: x, y
+if ((x >= 0 .and. y >= 0) .or. (x <= 0 .and. y <= 0)) then
+    r = x
+else
+    r = -x
+end if
+end function
+
+elemental real(dp) function signr64(x, y) result(r)
+real(dp), intent(in) :: x, y
+if ((x >= 0 .and. y >= 0) .or. (x <= 0 .and. y <= 0)) then
+    r = x
+else
+    r = -x
+end if
+end function
 
 end module

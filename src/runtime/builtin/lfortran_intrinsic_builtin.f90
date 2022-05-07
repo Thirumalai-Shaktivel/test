@@ -2,12 +2,18 @@ module lfortran_intrinsic_builtin
 implicit none
 
 interface
-    integer function size(x)
-    integer, intent(in) :: x(:)
-    end function
+    subroutine move_alloc(from, to)
+    integer, allocatable, intent(inout) :: from
+    integer, allocatable, intent(out) :: to
+    end subroutine
 
     integer function shape(x)
     integer, intent(in) :: x(:)
+    end function
+
+    integer function reshape(x, shape_vec) result(r)
+    integer, intent(in) :: x(:)
+    integer, intent(in) :: shape_vec(:)
     end function
 
     integer function lbound(x, dim)
@@ -18,12 +24,6 @@ interface
     integer function ubound(x, dim)
     integer, intent(in) :: x(:)
     integer, intent(in) :: dim
-    end function
-
-    integer function merge(tsource, fsource, mask)
-    integer, intent(in) :: tsource(:)
-    integer, intent(in) :: fsource(:)
-    logical, intent(in) :: mask
     end function
 
     integer function max(a, b)
@@ -91,6 +91,15 @@ interface
     integer, optional :: kind
     end function
 
+    logical function any(mask, dim) result(r)
+    logical, intent(in) :: mask(:)
+    integer(4), optional :: dim
+    end function
+
+    logical function is_iostat_eor(i) result(r)
+    integer, intent(in) :: i
+    end function
+    
     real function aint(i, kind)
     ! FIXME: return type kind is not fixed
     ! it depends on input arguments

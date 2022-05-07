@@ -231,8 +231,8 @@ Result<ASR::TranslationUnit_t*> FortranEvaluator::get_asr3(
     // AST -> ASR
     // Remove the old execution function if it exists
     if (symbol_table) {
-        if (symbol_table->scope.find(run_fn) != symbol_table->scope.end()) {
-            symbol_table->scope.erase(run_fn);
+        if (symbol_table->get_symbol(run_fn) != nullptr) {
+            symbol_table->erase_symbol(run_fn);
         }
         symbol_table->mark_all_variables_external(al);
     }
@@ -304,7 +304,7 @@ Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm3(
     Result<std::unique_ptr<LFortran::LLVMModule>> res
         = asr_to_llvm(asr, diagnostics,
             e->get_context(), al, compiler_options.platform,
-            get_runtime_library_dir(),
+            compiler_options.fast, get_runtime_library_dir(),
             run_fn);
     if (res.ok) {
         m = std::move(res.result);

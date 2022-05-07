@@ -19,11 +19,13 @@ set(SRC
     codegen/asr_to_py.cpp
     codegen/x86_assembler.cpp
     codegen/asr_to_x86.cpp
+    codegen/asr_to_wasm.cpp
 
     pass/param_to_const.cpp
     pass/do_loops.cpp
     pass/for_all.cpp
     pass/global_stmts.cpp
+    pass/global_stmts_program.cpp
     pass/select_case.cpp
     pass/implied_do_loops.cpp
     pass/array_op.cpp
@@ -32,6 +34,13 @@ set(SRC
     pass/print_arr.cpp
     pass/pass_utils.cpp
     pass/unused_functions.cpp
+    pass/flip_sign.cpp
+    pass/div_to_mul.cpp
+    pass/fma.cpp
+    pass/sign_from_value.cpp
+    pass/inline_function_calls.cpp
+    pass/loop_unroll.cpp
+    pass/dead_code_removal.cpp
 
     asr_verify.cpp
     asr_utils.cpp

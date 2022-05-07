@@ -55,7 +55,11 @@ def main():
         x86 = test.get("x86", False)
         bin_ = test.get("bin", False)
         pass_ = test.get("pass", None)
-        if pass_ and pass_ not in ["do_loops", "global_stmts"]:
+        optimization_passes = ["flip_sign", "div_to_mul", "fma", "sign_from_value",
+                               "inline_function_calls", "loop_unroll",
+                               "dead_code_removal"]
+        if pass_ and (pass_ not in ["do_loops", "global_stmts"] and
+                      pass_ not in optimization_passes):
             raise Exception("Unknown pass: %s" % pass_)
 
         print(color(style.bold)+"TEST:"+color(style.reset), filename)
@@ -109,13 +113,10 @@ def main():
             run_test("mod_to_asr", "lfortran mod --show-asr --no-color {infile}",
                     filename, update_reference)
 
-        if pass_ == "do_loops":
-            run_test("pass_do_loops", "lfortran --pass=do_loops --show-asr --no-color {infile} -o {outfile}",
-                    filename, update_reference, extra_args)
-
-        if pass_ == "global_stmts":
-            run_test("pass_global_stmts", "lfortran --pass=global_stmts --show-asr --no-color {infile} -o {outfile}",
-                    filename, update_reference, extra_args)
+        if pass_ is not None:
+            cmd = "lfortran --pass=" + pass_ + " --show-asr --no-color {infile} -o {outfile}"
+            run_test("pass_{}".format(pass_), cmd,
+                     filename, update_reference, extra_args)
 
         if llvm:
             if no_llvm:

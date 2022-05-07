@@ -1,7 +1,17 @@
-program intrinsics_35
-    real(4) :: x4 = aint(1.234_4, 4)
-    real(8) :: x8 = aint(4.321_8, 8)
-    print *, x4, x8
-    print *, aint(-1.234_4, 4), aint(-4.321_8, 8)
-    print *, aint(-1.234_4), aint(4.321_8)
-end program intrinsics_35
+program test_any
+logical l
+l = any((/.true., .true., .true./))
+print *, l
+call section()
+
+contains
+
+subroutine section()
+    integer :: a(2, 3), b(2, 3)
+    a = 1
+    b = 1
+    b(2, 2) = 2
+    print *, any(a == b, 1)
+    print *, any(a == b, 2)
+end subroutine section
+end program test_any

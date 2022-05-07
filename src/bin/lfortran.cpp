@@ -15,6 +15,7 @@
 #include <libasr/codegen/asr_to_cpp.h>
 #include <libasr/codegen/asr_to_py.h>
 #include <libasr/codegen/asr_to_x86.h>
+#include <libasr/codegen/asr_to_wasm.h>
 #include <lfortran/ast_to_src.h>
 #include <lfortran/fortran_evaluator.h>
 #include <libasr/codegen/evaluator.h>
@@ -27,6 +28,13 @@
 #include <libasr/pass/arr_slice.h>
 #include <libasr/pass/print_arr.h>
 #include <libasr/pass/unused_functions.h>
+#include <libasr/pass/flip_sign.h>
+#include <libasr/pass/div_to_mul.h>
+#include <libasr/pass/fma.h>
+#include <libasr/pass/loop_unroll.h>
+#include <libasr/pass/inline_function_calls.h>
+#include <libasr/pass/dead_code_removal.h>
+#include <libasr/pass/sign_from_value.h>
 #include <libasr/asr_utils.h>
 #include <libasr/asr_verify.h>
 #include <libasr/modfile.h>
@@ -45,12 +53,14 @@ using LFortran::endswith;
 using LFortran::CompilerOptions;
 
 enum Backend {
-    llvm, cpp, x86
+    llvm, cpp, x86, wasm
 };
 
 enum ASRPass {
     do_loops, global_stmts, implied_do_loops, array_op,
     arr_slice, print_arr, class_constructor, unused_functions,
+    flip_sign, div_to_mul, fma, sign_from_value,
+    inline_function_calls, loop_unroll, dead_code_removal
 };
 
 std::string remove_extension(const std::string& filename) {
@@ -564,6 +574,34 @@ int emit_asr(const std::string &infile,
                 LFortran::pass_replace_array_op(al, *asr, LFortran::get_runtime_library_dir());
                 break;
             }
+            case (ASRPass::flip_sign) : {
+                LFortran::pass_replace_flip_sign(al, *asr, LFortran::get_runtime_library_dir());
+                break;
+            }
+            case (ASRPass::fma) : {
+                LFortran::pass_replace_fma(al, *asr, LFortran::get_runtime_library_dir());
+                break;
+            }
+            case (ASRPass::loop_unroll) : {
+                LFortran::pass_loop_unroll(al, *asr, LFortran::get_runtime_library_dir());
+                break;
+            }
+            case (ASRPass::inline_function_calls) : {
+                LFortran::pass_inline_function_calls(al, *asr, LFortran::get_runtime_library_dir());
+                break;
+            }
+            case (ASRPass::dead_code_removal) : {
+                LFortran::pass_dead_code_removal(al, *asr, LFortran::get_runtime_library_dir());
+                break;
+            }
+            case (ASRPass::sign_from_value) : {
+                LFortran::pass_replace_sign_from_value(al, *asr, LFortran::get_runtime_library_dir());
+                break;
+            }
+            case (ASRPass::div_to_mul) : {
+                LFortran::pass_replace_div_to_mul(al, *asr, LFortran::get_runtime_library_dir());
+                break;
+            }
             case (ASRPass::class_constructor) : {
                 LFortran::pass_replace_class_constructor(al, *asr);
                 break;
@@ -610,7 +648,7 @@ int emit_cpp(const std::string &infile, CompilerOptions &compiler_options)
 
 int save_mod_files(const LFortran::ASR::TranslationUnit_t &u)
 {
-    for (auto &item : u.m_global_scope->scope) {
+    for (auto &item : u.m_global_scope->get_scope()) {
         if (LFortran::ASR::is_a<LFortran::ASR::Module_t>(*item.second)) {
             LFortran::ASR::Module_t *m = LFortran::ASR::down_cast<LFortran::ASR::Module_t>(item.second);
 
@@ -621,7 +659,7 @@ int save_mod_files(const LFortran::ASR::TranslationUnit_t &u)
             Allocator al(4*1024);
             LFortran::SymbolTable *symtab =
                 al.make_new<LFortran::SymbolTable>(nullptr);
-            symtab->scope[std::string(m->m_name)] = item.second;
+            symtab->add_symbol(std::string(m->m_name), item.second);
             LFortran::SymbolTable *orig_symtab = m->m_symtab->parent;
             m->m_symtab->parent = symtab;
 
@@ -858,6 +896,102 @@ int compile_to_binary_x86(const std::string &infile, const std::string &outfile,
         std::cout << "ASR -> x86:  " << std::setw(5) << time_asr_to_x86 << std::endl;
         int total = time_file_read + time_src_to_ast + time_ast_to_asr
                 + time_asr_to_x86;
+        std::cout << "Total:       " << std::setw(5) << total << std::endl;
+    }
+
+    return 0;
+}
+
+int compile_to_binary_wasm(const std::string &infile, const std::string &outfile,
+        bool time_report,
+        CompilerOptions &compiler_options)
+{
+    int time_file_read=0;
+    int time_src_to_ast=0;
+    int time_ast_to_asr=0;
+    int time_asr_to_wasm=0;
+
+    std::string input;
+    LFortran::diag::Diagnostics diagnostics;
+    LFortran::FortranEvaluator fe(compiler_options);
+    Allocator al(64*1024*1024); // Allocate 64 MB
+    LFortran::AST::TranslationUnit_t* ast;
+    LFortran::ASR::TranslationUnit_t* asr;
+
+    {
+        auto t1 = std::chrono::high_resolution_clock::now();
+        input = read_file(infile);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        time_file_read = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+    }
+
+    // Src -> AST
+    LFortran::LocationManager lm;
+    lm.in_filename = infile;
+    {
+        auto t1 = std::chrono::high_resolution_clock::now();
+        LFortran::Result<LFortran::AST::TranslationUnit_t*>
+            result = fe.get_ast2(input, lm, diagnostics);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        time_src_to_ast = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+        std::cerr << diagnostics.render(input, lm, compiler_options);
+        if (result.ok) {
+            ast = result.result;
+        } else {
+            LFORTRAN_ASSERT(diagnostics.has_error())
+            return 1;
+        }
+    }
+
+    // AST -> ASR
+    {
+        diagnostics.diagnostics.clear();
+        auto t1 = std::chrono::high_resolution_clock::now();
+        LFortran::Result<LFortran::ASR::TranslationUnit_t*>
+            result = fe.get_asr3(*ast, diagnostics);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        time_ast_to_asr = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+        std::cerr << diagnostics.render(input, lm, compiler_options);
+        if (result.ok) {
+            asr = result.result;
+        } else {
+            LFORTRAN_ASSERT(diagnostics.has_error())
+            return 2;
+        }
+    }
+
+    // ASR -> wasm machine code
+    {
+        diagnostics.diagnostics.clear();
+        auto t1 = std::chrono::high_resolution_clock::now();
+        LFortran::Result<int>
+            result = LFortran::asr_to_wasm(*asr, al, outfile, time_report);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        time_asr_to_wasm = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+        std::cerr << diagnostics.render(input, lm, compiler_options);
+        if (result.ok) {
+            // pass
+        } else {
+            LFORTRAN_ASSERT(diagnostics.has_error())
+            return 3;
+        }
+    }
+
+    if (time_report) {
+        std::cout << "Allocator usage of last chunk (MB): "
+            << al.size_current() / (1024. * 1024) << std::endl;
+        std::cout << "Allocator chunks: " << al.num_chunks() << std::endl;
+        std::cout << std::endl;
+        std::cout << "Time report:" << std::endl;
+        std::cout << "File reading:" << std::setw(5) << time_file_read << std::endl;
+        std::cout << "Src -> AST:  " << std::setw(5) << time_src_to_ast << std::endl;
+        std::cout << "AST -> ASR:  " << std::setw(5) << time_ast_to_asr << std::endl;
+        std::cout << "ASR -> wasm:  " << std::setw(5) << time_asr_to_wasm << std::endl;
+        int total = time_file_read + time_src_to_ast + time_ast_to_asr
+                + time_asr_to_wasm;
         std::cout << "Total:       " << std::setw(5) << total << std::endl;
     }
 
@@ -1227,7 +1361,7 @@ int main(int argc, char *argv[])
         app.add_flag("--static", static_link, "Create a static executable");
         app.add_flag("--no-warnings", compiler_options.no_warnings, "Turn off all warnings");
         app.add_flag("--no-error-banner", compiler_options.no_error_banner, "Turn off error banner");
-        app.add_option("--backend", arg_backend, "Select a backend (llvm, cpp, x86)")->capture_default_str();
+        app.add_option("--backend", arg_backend, "Select a backend (llvm, cpp, x86, wasm)")->capture_default_str();
         app.add_flag("--openmp", compiler_options.openmp, "Enable openmp");
         app.add_flag("--fast", compiler_options.fast, "Best performance (disable strict standard compliance)");
         app.add_option("--target", compiler_options.target, "Generate code for the given target")->capture_default_str();
@@ -1332,8 +1466,10 @@ int main(int argc, char *argv[])
             backend = Backend::cpp;
         } else if (arg_backend == "x86") {
             backend = Backend::x86;
+        } else if (arg_backend == "wasm") {
+            backend = Backend::wasm;
         } else {
-            std::cerr << "The backend must be one of: llvm, cpp, x86." << std::endl;
+            std::cerr << "The backend must be one of: llvm, cpp, x86, wasm." << std::endl;
             return 1;
         }
 
@@ -1400,6 +1536,20 @@ int main(int argc, char *argv[])
                 passes.push_back(ASRPass::implied_do_loops);
             } else if (arg_pass == "array_op") {
                 passes.push_back(ASRPass::array_op);
+            } else if (arg_pass == "flip_sign") {
+                passes.push_back(ASRPass::flip_sign);
+            } else if (arg_pass == "fma") {
+                passes.push_back(ASRPass::fma);
+            } else if (arg_pass == "loop_unroll") {
+                passes.push_back(ASRPass::loop_unroll);
+            } else if (arg_pass == "inline_function_calls") {
+                passes.push_back(ASRPass::inline_function_calls);
+            } else if (arg_pass == "dead_code_removal") {
+                passes.push_back(ASRPass::dead_code_removal);
+            } else if (arg_pass == "sign_from_value") {
+                passes.push_back(ASRPass::sign_from_value);
+            } else if (arg_pass == "div_to_mul") {
+                passes.push_back(ASRPass::div_to_mul);
             } else if (arg_pass == "class_constructor") {
                 passes.push_back(ASRPass::class_constructor);
             } else if (arg_pass == "print_arr") {
@@ -1409,7 +1559,7 @@ int main(int argc, char *argv[])
             } else if (arg_pass == "unused_functions") {
                 passes.push_back(ASRPass::unused_functions);
             } else {
-                std::cerr << "Pass must be one of: do_loops, global_stmts, implied_do_loops, array_op, class_constructor, print_arr, arr_slice, unused_functions" << std::endl;
+                std::cerr << "Pass must be one of: do_loops, global_stmts, implied_do_loops, array_op, flip_sign, fma, loop_unroll, inline_function_calls, dead_code_removal, sign_from_value, div_to_mul, class_constructor, print_arr, arr_slice, unused_functions" << std::endl;
                 return 1;
             }
             show_asr = true;
@@ -1466,6 +1616,8 @@ int main(int argc, char *argv[])
                         true, rtlib_header_dir, compiler_options);
             } else if (backend == Backend::x86) {
                 return compile_to_binary_x86(arg_file, outfile, time_report, compiler_options);
+            } else if (backend == Backend::wasm) {
+                return compile_to_binary_wasm(arg_file, outfile, time_report, compiler_options);
             } else {
                 throw LFortran::LFortranException("Unsupported backend.");
             }
@@ -1474,6 +1626,10 @@ int main(int argc, char *argv[])
         if (endswith(arg_file, ".f90")) {
             if (backend == Backend::x86) {
                 return compile_to_binary_x86(arg_file, outfile,
+                        time_report, compiler_options);
+            }
+            else if (backend == Backend::wasm) {
+                return compile_to_binary_wasm(arg_file, outfile,
                         time_report, compiler_options);
             }
             std::string tmp_o = outfile + ".tmp.o";

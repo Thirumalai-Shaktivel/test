@@ -61,7 +61,6 @@ void extract_bind(T &x, ASR::abiType &abi_type, char *&bindc_name) {
     }
 }
 
-
 class SymbolTableVisitor : public CommonVisitor<SymbolTableVisitor> {
 public:
     SymbolTable *global_scope;
@@ -72,22 +71,10 @@ public:
     std::map<std::string, std::map<std::string, std::string>> class_procedures;
     std::vector<std::string> assgn_proc_names;
     std::string dt_name;
-    ASR::accessType dflt_access = ASR::Public;
-    ASR::presenceType dflt_presence = ASR::presenceType::Required;
-    std::map<std::string, ASR::accessType> assgnd_access;
-    std::map<std::string, ASR::presenceType> assgnd_presence;
-    bool in_module = false;
     bool in_submodule = false;
     bool is_interface = false;
     std::string interface_name = "";
-    bool is_derived_type = false;
-    Vec<char*> data_member_names;
-    std::vector<std::string> current_procedure_args;
-    ASR::abiType current_procedure_abi_type = ASR::abiType::Source;
-    std::map<SymbolTable*, std::map<AST::decl_attribute_t*, AST::simple_attributeType>> overloaded_ops;
-    std::map<SymbolTable*, ASR::accessType> assgn;
     ASR::symbol_t *current_module_sym;
-    std::vector<std::string> excluded_from_symtab;
 
     std::map<AST::intrinsicopType, std::string> intrinsic2str = {
         {AST::intrinsicopType::STAR, "~mul"},
@@ -102,7 +89,7 @@ public:
 
     SymbolTableVisitor(Allocator &al, SymbolTable *symbol_table,
         diag::Diagnostics &diagnostics)
-      : CommonVisitor(al, symbol_table, diagnostics), is_derived_type{false} {}
+      : CommonVisitor(al, symbol_table, diagnostics) {}
 
 
     ASR::symbol_t* resolve_symbol(const Location &loc, const std::string &sub_name) {
@@ -137,16 +124,44 @@ public:
         tmp = tmp0;
     }
 
-    void visit_Procedure(const AST::Procedure_t&) {
-        // To Be Implemented
-    }
-
     void visit_Private(const AST::Private_t&) {
         // To Be Implemented
     }
 
     void visit_FinalName(const AST::FinalName_t&) {
         // To Be Implemented
+    }
+
+    void fix_type_info() {
+        for( TypeMissingData* data: type_info ) {
+            if( data->sym_type == -1 ) {
+                continue;
+            }
+            ASR::expr_t* expr = nullptr;
+            if( data->sym_type == (int64_t) ASR::symbolType::Function ) {
+                SymbolTable* current_scope_copy = current_scope;
+                current_scope = data->scope;
+                visit_expr(*data->expr);
+                expr = ASRUtils::EXPR(tmp);
+                current_scope = current_scope_copy;
+            }
+            if( expr ) {
+                switch( data->type->type ) {
+                    case ASR::ttypeType::Character: {
+                        ASR::Character_t* char_type = ASR::down_cast<ASR::Character_t>(data->type);
+                        if( expr->type == ASR::exprType::FunctionCall ) {
+                            char_type->m_len_expr = expr;
+                            char_type->m_len = -3;
+                        }
+                        break;
+                    }
+                    default: {
+                        throw SemanticError("Only Character type is supported as of now.", data->type->base.loc);
+                    }
+                }
+            }
+        }
+        type_info.clear();
     }
 
     template <typename T, typename R>
@@ -160,13 +175,13 @@ public:
                                             /* a_name */ s2c(al, to_lower(x.m_name)),
                                             nullptr,
                                             0,
-                                            false);
+                                            false, false);
         current_module_sym = ASR::down_cast<ASR::symbol_t>(tmp0);
         if( x.class_type == AST::modType::Submodule ) {
             std::string rl_path = get_runtime_library_dir();
             ASR::symbol_t* submod_parent = (ASR::symbol_t*)(ASRUtils::load_module(al, global_scope,
                                                 parent_name, x.base.base.loc, false,
-                                                rl_path,
+                                                rl_path, true,
                                                 [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }
                                                 ));
             ASR::Module_t *m = ASR::down_cast<ASR::Module_t>(submod_parent);
@@ -196,11 +211,12 @@ public:
         m->m_dependencies = current_module_dependencies.p;
         m->n_dependencies = current_module_dependencies.n;
         std::string sym_name = to_lower(x.m_name);
-        if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
+        if (parent_scope->get_symbol(sym_name) != nullptr) {
             throw SemanticError("Module already defined", tmp->loc);
         }
-        parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(tmp);
+        parent_scope->add_symbol(sym_name, ASR::down_cast<ASR::symbol_t>(tmp));
         current_scope = parent_scope;
+        fix_type_info();
     }
 
     void visit_Module(const AST::Module_t &x) {
@@ -237,11 +253,12 @@ public:
             /* a_body */ nullptr,
             /* n_body */ 0);
         std::string sym_name = to_lower(x.m_name);
-        if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
+        if (parent_scope->get_symbol(sym_name) != nullptr) {
             throw SemanticError("Program already defined", tmp->loc);
         }
-        parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(tmp);
+        parent_scope->add_symbol(sym_name, ASR::down_cast<ASR::symbol_t>(tmp));
         current_scope = parent_scope;
+        fix_type_info();
     }
 
     void visit_Subroutine(const AST::Subroutine_t &x) {
@@ -268,10 +285,10 @@ public:
         for (size_t i=0; i<x.n_args; i++) {
             char *arg=x.m_args[i].m_arg;
             std::string arg_s = to_lower(arg);
-            if (current_scope->scope.find(arg_s) == current_scope->scope.end()) {
+            if (current_scope->get_symbol(arg_s) == nullptr) {
                 throw SemanticError("Dummy argument '" + arg_s + "' not defined", x.base.base.loc);
             }
-            ASR::symbol_t *var = current_scope->scope[arg_s];
+            ASR::symbol_t *var = current_scope->get_symbol(arg_s);
             args.push_back(al, LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, x.base.base.loc,
                 var)));
         }
@@ -301,8 +318,8 @@ public:
                 }
             }
         }
-        if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
-            ASR::symbol_t *f1 = parent_scope->scope[sym_name];
+        if (parent_scope->get_symbol(sym_name) != nullptr) {
+            ASR::symbol_t *f1 = parent_scope->get_symbol(sym_name);
             ASR::Subroutine_t *f2 = nullptr;
             if( f1->type == ASR::symbolType::Subroutine ) {
                 f2 = ASR::down_cast<ASR::Subroutine_t>(f1);
@@ -310,15 +327,17 @@ public:
             if ((f1->type == ASR::symbolType::ExternalSymbol && in_submodule) ||
                 f2->m_abi == ASR::abiType::Interactive) {
                 // Previous declaration will be shadowed
-                parent_scope->scope.erase(sym_name);
+                parent_scope->erase_symbol(sym_name);
             } else {
                 throw SemanticError("Subroutine already defined", tmp->loc);
             }
         }
         if( sym_name == interface_name ) {
-            parent_scope->scope.erase(sym_name);
-            sym_name = "~" + sym_name;
+            parent_scope->erase_symbol(sym_name);
+            sym_name = sym_name + "~genericprocedure";
         }
+
+
         tmp = ASR::make_Subroutine_t(
             al, x.base.base.loc,
             /* a_symtab */ current_scope,
@@ -330,7 +349,7 @@ public:
             current_procedure_abi_type,
             s_access, deftype, bindc_name,
             is_pure, is_module);
-        parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(tmp);
+        parent_scope->add_symbol(sym_name, ASR::down_cast<ASR::symbol_t>(tmp));
         current_scope = parent_scope;
         /* FIXME: This can become incorrect/get cleared prematurely, perhaps
            in nested functions, and also in callback.f90 test, but it may not
@@ -358,6 +377,7 @@ public:
 
     void visit_Function(const AST::Function_t &x) {
         // Extract local (including dummy) variables first
+        current_symbol = (int64_t) ASR::symbolType::Function;
         ASR::accessType s_access = dflt_access;
         ASR::deftypeType deftype = ASR::deftypeType::Implementation;
         SymbolTable *parent_scope = current_scope;
@@ -384,10 +404,10 @@ public:
         for (size_t i=0; i<x.n_args; i++) {
             char *arg=x.m_args[i].m_arg;
             std::string arg_s = to_lower(arg);
-            if (current_scope->scope.find(arg_s) == current_scope->scope.end()) {
+            if (current_scope->get_symbol(arg_s) == nullptr) {
                 throw SemanticError("Dummy argument '" + arg_s + "' not defined", x.base.base.loc);
             }
-            ASR::symbol_t *var = current_scope->scope[arg_s];
+            ASR::symbol_t *var = current_scope->get_symbol(arg_s);
             args.push_back(al, LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, x.base.base.loc,
                 var)));
         }
@@ -414,7 +434,7 @@ public:
         ASR::asr_t *return_var;
         AST::AttrType_t *return_type = find_return_type(x.m_attributes,
             x.n_attributes, x.base.base.loc);
-        if (current_scope->scope.find(return_var_name) == current_scope->scope.end()) {
+        if (current_scope->get_symbol(return_var_name) == nullptr) {
             // The variable is not defined among local variables, extract the
             // type from "integer function f()" and add the variable.
             if (!return_type) {
@@ -468,15 +488,14 @@ public:
                 ASR::storage_typeType::Default, type,
                 current_procedure_abi_type, ASR::Public, ASR::presenceType::Required,
                 false);
-            current_scope->scope[return_var_name]
-                = ASR::down_cast<ASR::symbol_t>(return_var);
+            current_scope->add_symbol(return_var_name, ASR::down_cast<ASR::symbol_t>(return_var));
         } else {
             if (return_type) {
                 throw SemanticError("Cannot specify the return type twice",
                     x.base.base.loc);
             }
             // Extract the variable from the local scope
-            return_var = (ASR::asr_t*) current_scope->scope[return_var_name];
+            return_var = (ASR::asr_t*) current_scope->get_symbol(return_var_name);
             ASR::down_cast2<ASR::Variable_t>(return_var)->m_intent = LFortran::ASRUtils::intent_return_var;
         }
 
@@ -493,18 +512,13 @@ public:
             deftype = ASR::deftypeType::Interface;
         }
 
-        tmp = ASR::make_Function_t(
-            al, x.base.base.loc,
-            /* a_symtab */ current_scope,
-            /* a_name */ s2c(al, to_lower(x.m_name)),
-            /* a_args */ args.p,
-            /* n_args */ args.size(),
-            /* a_body */ nullptr,
-            /* n_body */ 0,
-            /* a_return_var */ LFortran::ASRUtils::EXPR(return_var_ref),
-            current_procedure_abi_type, s_access, deftype, bindc_name);
-        if (parent_scope->scope.find(sym_name) != parent_scope->scope.end()) {
-            ASR::symbol_t *f1 = parent_scope->scope[sym_name];
+        if( generic_procedures.find(sym_name) != generic_procedures.end() ) {
+            parent_scope->erase_symbol(sym_name);
+            sym_name = sym_name + "~genericprocedure";
+        }
+
+        if (parent_scope->get_symbol(sym_name) != nullptr) {
+            ASR::symbol_t *f1 = parent_scope->get_symbol(sym_name);
             ASR::Function_t *f2 = nullptr;
             if( f1->type == ASR::symbolType::Function ) {
                 f2 = ASR::down_cast<ASR::Function_t>(f1);
@@ -512,485 +526,32 @@ public:
             if ((f1->type == ASR::symbolType::ExternalSymbol && in_submodule) ||
                 f2->m_abi == ASR::abiType::Interactive) {
                 // Previous declaration will be shadowed
-                parent_scope->scope.erase(sym_name);
+                parent_scope->erase_symbol(sym_name);
             } else {
                 throw SemanticError("Function already defined", tmp->loc);
             }
         }
-        parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(tmp);
+
+
+        tmp = ASR::make_Function_t(
+            al, x.base.base.loc,
+            /* a_symtab */ current_scope,
+            /* a_name */ s2c(al, to_lower(sym_name)),
+            /* a_args */ args.p,
+            /* n_args */ args.size(),
+            /* a_body */ nullptr,
+            /* n_body */ 0,
+            /* a_return_var */ LFortran::ASRUtils::EXPR(return_var_ref),
+            current_procedure_abi_type, s_access, deftype, bindc_name);
+        parent_scope->add_symbol(sym_name, ASR::down_cast<ASR::symbol_t>(tmp));
         current_scope = parent_scope;
         current_procedure_args.clear();
         current_procedure_abi_type = ASR::abiType::Source;
+        current_symbol = -1;
     }
 
-    void process_dims(Allocator &al, Vec<ASR::dimension_t> &dims,
-        AST::dimension_t *m_dim, size_t n_dim) {
-        LFORTRAN_ASSERT(dims.size() == 0);
-        dims.reserve(al, n_dim);
-        for (size_t i=0; i<n_dim; i++) {
-            ASR::dimension_t dim;
-            dim.loc = m_dim[i].loc;
-            if (m_dim[i].m_start) {
-                this->visit_expr(*m_dim[i].m_start);
-                dim.m_start = LFortran::ASRUtils::EXPR(tmp);
-            } else {
-                dim.m_start = nullptr;
-            }
-            if (m_dim[i].m_end) {
-                this->visit_expr(*m_dim[i].m_end);
-                dim.m_end = LFortran::ASRUtils::EXPR(tmp);
-            } else {
-                dim.m_end = nullptr;
-            }
-            dims.push_back(al, dim);
-        }
-    }
-
-    ASR::accessType get_asr_simple_attr(AST::simple_attributeType simple_attr) {
-        ASR::accessType access_type = ASR::accessType::Public;
-        switch( simple_attr ) {
-            case AST::simple_attributeType::AttrPublic: {
-                access_type = ASR::accessType::Public;
-                break;
-            }
-            case AST::simple_attributeType::AttrPrivate: {
-                access_type = ASR::accessType::Private;
-                break;
-            }
-            default:
-                LFORTRAN_ASSERT(false);
-        }
-        return access_type;
-    }
-
-    void visit_Declaration(const AST::Declaration_t &x) {
-        if (x.m_vartype == nullptr &&
-                x.n_attributes == 1 &&
-                AST::is_a<AST::AttrNamelist_t>(*x.m_attributes[0])) {
-            //char *name = down_cast<AttrNamelist_t>(x.m_attributes[0])->m_name;
-            throw SemanticError("Namelists not implemented yet", x.base.base.loc);
-        }
-        for (size_t i=0; i<x.n_attributes; i++) {
-            if (AST::is_a<AST::AttrType_t>(*x.m_attributes[i])) {
-                throw SemanticError("Type must be declared first",
-                    x.base.base.loc);
-            };
-        }
-        if (x.m_vartype == nullptr) {
-            // Examples:
-            // private
-            // public
-            // private :: x, y, z
-            if (x.n_attributes == 0) {
-                throw SemanticError("No attribute specified",
-                    x.base.base.loc);
-            }
-            if (x.n_attributes > 1) {
-                throw SemanticError("Only one attribute can be specified if type is missing",
-                    x.base.base.loc);
-            }
-            LFORTRAN_ASSERT(x.n_attributes == 1);
-            if (AST::is_a<AST::SimpleAttribute_t>(*x.m_attributes[0])) {
-                AST::SimpleAttribute_t *sa =
-                    AST::down_cast<AST::SimpleAttribute_t>(x.m_attributes[0]);
-                if (x.n_syms == 0) {
-                    // Example:
-                    // private
-                    if (sa->m_attr == AST::simple_attributeType
-                            ::AttrPrivate) {
-                        dflt_access = ASR::accessType::Private;
-                    } else if (sa->m_attr == AST::simple_attributeType
-                            ::AttrPublic) {
-                        // Do nothing (public access is the default)
-                        LFORTRAN_ASSERT(dflt_access == ASR::accessType::Public);
-                    } else if (sa->m_attr == AST::simple_attributeType
-                            ::AttrSave) {
-                        if (in_module) {
-                            // Do nothing (all variables implicitly have the
-                            // save attribute in a module/main program)
-                        } else {
-                            throw SemanticError("Save Attribute not "
-                                    "supported yet", x.base.base.loc);
-                        }
-                    } else if (sa->m_attr == AST::simple_attributeType
-                            ::AttrSequence) {
-                        // TODO: Implement it for CPP backend
-                    } else {
-                        throw SemanticError("Attribute declaration not "
-                                "supported yet", x.base.base.loc);
-                    }
-                } else {
-                    // Example:
-                    // private :: x, y, z
-                    for (size_t i=0; i<x.n_syms; i++) {
-                        AST::var_sym_t &s = x.m_syms[i];
-                        if (s.m_name == nullptr) {
-                            if (s.m_spec->type == AST::decl_attributeType::AttrIntrinsicOperator) {
-                                // Operator Overloading Encountered
-                                if( sa->m_attr != AST::simple_attributeType::AttrPublic &&
-                                    sa->m_attr != AST::simple_attributeType::AttrPrivate ) {
-                                    overloaded_ops[current_scope][s.m_spec] = AST::simple_attributeType::AttrPublic;
-                                } else {
-                                    overloaded_ops[current_scope][s.m_spec] = sa->m_attr;
-                                }
-                            } else if( s.m_spec->type == AST::decl_attributeType::AttrAssignment ) {
-                                // Assignment Overloading Encountered
-                                if( sa->m_attr != AST::simple_attributeType::AttrPublic &&
-                                    sa->m_attr != AST::simple_attributeType::AttrPrivate ) {
-                                    assgn[current_scope] = ASR::Public;
-                                } else {
-                                    assgn[current_scope] = get_asr_simple_attr(sa->m_attr);
-                                }
-                             } else if (s.m_spec->type == AST::decl_attributeType::AttrDefinedOperator) {
-                                //std::string op_name = to_lower(AST::down_cast<AST::AttrDefinedOperator_t>(s.m_spec)->m_op_name);
-                                // Custom Operator Overloading Encountered
-                                if( sa->m_attr != AST::simple_attributeType::AttrPublic &&
-                                    sa->m_attr != AST::simple_attributeType::AttrPrivate ) {
-                                    overloaded_ops[current_scope][s.m_spec] = AST::simple_attributeType::AttrPublic;
-                                } else {
-                                    overloaded_ops[current_scope][s.m_spec] = sa->m_attr;
-                                }
-                            } else {
-                                throw SemanticError("Attribute type not implemented yet.", x.base.base.loc);
-                            }
-                        } else {
-                            std::string sym = to_lower(s.m_name);
-                            if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrPrivate) {
-                                assgnd_access[sym] = ASR::accessType::Private;
-                            } else if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrPublic) {
-                                assgnd_access[sym] = ASR::accessType::Public;
-                            } else if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrOptional) {
-                                assgnd_presence[sym] = ASR::presenceType::Optional;
-                            } else if(sa->m_attr == AST::simple_attributeType
-                                    ::AttrIntrinsic) {
-                                // Ignore Intrinsic attribute
-                            } else {
-                                throw SemanticError("Attribute declaration not "
-                                        "supported", x.base.base.loc);
-                            }
-                        }
-                    }
-                }
-            } else {
-                throw SemanticError("Attribute declaration not supported",
-                    x.base.base.loc);
-            }
-        } else {
-            // Example
-            // real(dp), private :: x, y(3), z
-            for (size_t i=0; i<x.n_syms; i++) {
-                AST::var_sym_t &s = x.m_syms[i];
-                std::string sym = to_lower(s.m_name);
-                ASR::accessType s_access = dflt_access;
-                ASR::presenceType s_presence = dflt_presence;
-                bool value_attr = false;
-                AST::AttrType_t *sym_type =
-                    AST::down_cast<AST::AttrType_t>(x.m_vartype);
-                if (assgnd_access.count(sym)) {
-                    s_access = assgnd_access[sym];
-                }
-                if (assgnd_presence.count(sym)) {
-                    s_presence = assgnd_presence[sym];
-                }
-                ASR::storage_typeType storage_type =
-                        ASR::storage_typeType::Default;
-                bool is_pointer = false;
-                if (current_scope->scope.find(sym) !=
-                        current_scope->scope.end()) {
-                    if (current_scope->parent != nullptr) {
-                        // re-declaring a global scope variable is allowed
-                        // Otherwise raise an error
-                        ASR::symbol_t *orig_decl = current_scope->scope[sym];
-                        throw SemanticError(diag::Diagnostic(
-                            "Symbol is already declared in the same scope",
-                            diag::Level::Error, diag::Stage::Semantic, {
-                                diag::Label("redeclaration", {s.loc}),
-                                diag::Label("original declaration", {orig_decl->base.loc}, false),
-                            }));
-                    }
-                }
-                ASR::intentType s_intent;
-                if (std::find(current_procedure_args.begin(),
-                        current_procedure_args.end(), to_lower(s.m_name)) !=
-                        current_procedure_args.end()) {
-                    s_intent = LFortran::ASRUtils::intent_unspecified;
-                } else {
-                    s_intent = LFortran::ASRUtils::intent_local;
-                }
-                Vec<ASR::dimension_t> dims;
-                dims.reserve(al, 0);
-                // location for dimension(...) if present
-                Location dims_attr_loc;
-                if (x.n_attributes > 0) {
-                    for (size_t i=0; i < x.n_attributes; i++) {
-                        AST::decl_attribute_t *a = x.m_attributes[i];
-                        if (AST::is_a<AST::SimpleAttribute_t>(*a)) {
-                            AST::SimpleAttribute_t *sa =
-                                AST::down_cast<AST::SimpleAttribute_t>(a);
-                            if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrPrivate) {
-                                s_access = ASR::accessType::Private;
-                            } else if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrPublic) {
-                                s_access = ASR::accessType::Public;
-                            } else if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrParameter) {
-                                storage_type = ASR::storage_typeType::Parameter;
-                            } else if( sa->m_attr == AST::simple_attributeType
-                                    ::AttrAllocatable ) {
-                                storage_type = ASR::storage_typeType::Allocatable;
-                            } else if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrPointer) {
-                                is_pointer = true;
-                            } else if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrOptional) {
-                                s_presence = ASR::presenceType::Optional;
-                            } else if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrTarget) {
-                                // Do nothing for now
-                            } else if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrAllocatable) {
-                                // TODO
-                            } else if (sa->m_attr == AST::simple_attributeType
-                                    ::AttrValue) {
-                                value_attr = true;
-                            } else if(sa->m_attr == AST::simple_attributeType
-                                    ::AttrIntrinsic) {
-                                excluded_from_symtab.push_back(sym);
-                            } else {
-                                throw SemanticError("Attribute type not implemented yet",
-                                        x.base.base.loc);
-                            }
-                        } else if (AST::is_a<AST::AttrIntent_t>(*a)) {
-                            AST::AttrIntent_t *ai =
-                                AST::down_cast<AST::AttrIntent_t>(a);
-                            switch (ai->m_intent) {
-                                case (AST::attr_intentType::In) : {
-                                    s_intent = LFortran::ASRUtils::intent_in;
-                                    break;
-                                }
-                                case (AST::attr_intentType::Out) : {
-                                    s_intent = LFortran::ASRUtils::intent_out;
-                                    break;
-                                }
-                                case (AST::attr_intentType::InOut) : {
-                                    s_intent = LFortran::ASRUtils::intent_inout;
-                                    break;
-                                }
-                                default : {
-                                    s_intent = LFortran::ASRUtils::intent_unspecified;
-                                    break;
-                                }
-                            }
-                        } else if (AST::is_a<AST::AttrDimension_t>(*a)) {
-                            AST::AttrDimension_t *ad =
-                                AST::down_cast<AST::AttrDimension_t>(a);
-                            if (dims.size() > 0) {
-                                throw SemanticError("Dimensions specified twice",
-                                        x.base.base.loc);
-                            }
-                            dims_attr_loc = ad->base.base.loc;
-                            process_dims(al, dims, ad->m_dim, ad->n_dim);
-                        } else {
-                            throw SemanticError("Attribute type not implemented yet",
-                                    x.base.base.loc);
-                        }
-                    }
-                }
-                if (s.n_dim > 0) {
-                    if (dims.size() > 0) {
-                        // This happens for:
-                        // integer, private, dimension(2,2) :: a(2,2)
-                        diag.semantic_warning_label(
-                            "Dimensions are specified twice",
-                            {dims_attr_loc, s.loc}, // dimension(2,2), a(2,2)
-                            "help: consider specifying it just one way or the other"
-                        );
-                        dims.n = 0;
-                    }
-                    process_dims(al, dims, s.m_dim, s.n_dim);
-                }
-                ASR::ttype_t *type;
-                int a_kind = 4;
-                if (sym_type->m_type != AST::decl_typeType::TypeCharacter &&
-                    sym_type->m_kind != nullptr &&
-                    sym_type->m_kind->m_value != nullptr) {
-                    visit_expr(*sym_type->m_kind->m_value);
-                    ASR::expr_t* kind_expr = LFortran::ASRUtils::EXPR(tmp);
-                    a_kind = ASRUtils::extract_kind<SemanticError>(kind_expr, x.base.base.loc);
-                }
-                if (sym_type->m_type == AST::decl_typeType::TypeReal) {
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc,
-                        a_kind, dims.p, dims.size()));
-                    if (is_pointer) {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_Pointer_t(al, x.base.base.loc,
-                            type));
-                    }
-                } else if (sym_type->m_type == AST::decl_typeType::TypeDoublePrecision) {
-                    a_kind = 8;
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc,
-                        a_kind, dims.p, dims.size()));
-                    if (is_pointer) {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_Pointer_t(al, x.base.base.loc,
-                            type));
-                    }
-                } else if (sym_type->m_type == AST::decl_typeType::TypeInteger) {
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
-                        a_kind, dims.p, dims.size()));
-                    if (is_pointer) {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_Pointer_t(al, x.base.base.loc,
-                            type));
-                    }
-                } else if (sym_type->m_type == AST::decl_typeType::TypeLogical) {
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Logical_t(al, x.base.base.loc, 4,
-                        dims.p, dims.size()));
-                    if (is_pointer) {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_Pointer_t(al, x.base.base.loc,
-                            type));
-                    }
-                } else if (sym_type->m_type == AST::decl_typeType::TypeComplex) {
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc,
-                        a_kind, dims.p, dims.size()));
-                    if (is_pointer) {
-                        type = LFortran::ASRUtils::TYPE(ASR::make_Pointer_t(al, x.base.base.loc,
-                            type));
-                    }
-                } else if (sym_type->m_type == AST::decl_typeType::TypeCharacter) {
-                    int a_len = -10;
-                    ASR::expr_t *len_expr = nullptr;
-                    // TODO: take into account m_kind->m_id and all kind items
-                    if (sym_type->m_kind != nullptr) {
-                        switch (sym_type->m_kind->m_type) {
-                            case (AST::kind_item_typeType::Value) : {
-                                LFORTRAN_ASSERT(sym_type->m_kind->m_value != nullptr);
-                                visit_expr(*sym_type->m_kind->m_value);
-                                ASR::expr_t* len_expr0 = LFortran::ASRUtils::EXPR(tmp);
-                                a_len = ASRUtils::extract_len<SemanticError>(len_expr0, x.base.base.loc);
-                                if (a_len == -3) {
-                                    len_expr = len_expr0;
-                                }
-                                break;
-                            }
-                            case (AST::kind_item_typeType::Star) : {
-                                LFORTRAN_ASSERT(sym_type->m_kind->m_value == nullptr);
-                                a_len = -1;
-                                break;
-                            }
-                            case (AST::kind_item_typeType::Colon) : {
-                                LFORTRAN_ASSERT(sym_type->m_kind->m_value == nullptr);
-                                a_len = -2;
-                                break;
-                            }
-                        }
-                    } else {
-                        a_len = 1; // The default len of "character :: x" is 1
-                    }
-                    LFORTRAN_ASSERT(a_len != -10)
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Character_t(al, x.base.base.loc, 1, a_len, len_expr,
-                        dims.p, dims.size()));
-                } else if (sym_type->m_type == AST::decl_typeType::TypeType) {
-                    LFORTRAN_ASSERT(sym_type->m_name);
-                    std::string derived_type_name = to_lower(sym_type->m_name);
-                    ASR::symbol_t *v = current_scope->resolve_symbol(derived_type_name);
-                    if (!v) {
-                        throw SemanticError("Derived type '"
-                            + derived_type_name + "' not declared", x.base.base.loc);
-
-                    }
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Derived_t(al, x.base.base.loc, v,
-                        dims.p, dims.size()));
-                } else if (sym_type->m_type == AST::decl_typeType::TypeClass) {
-                    std::string derived_type_name;
-                    if( !sym_type->m_name ) {
-                        derived_type_name = "~abstract_type";
-                    } else {
-                        derived_type_name = to_lower(sym_type->m_name);
-                    }
-                    ASR::symbol_t *v = current_scope->resolve_symbol(derived_type_name);
-                    if( !v ) {
-                        if( derived_type_name != "~abstract_type" ) {
-                            throw SemanticError("Derived type '" + derived_type_name
-                                                + "' not declared", x.base.base.loc);
-                        }
-                        SymbolTable *parent_scope = current_scope;
-                        current_scope = al.make_new<SymbolTable>(parent_scope);
-                        ASR::asr_t* dtype = ASR::make_DerivedType_t(al, x.base.base.loc, current_scope,
-                                                        s2c(al, to_lower(derived_type_name)), nullptr, 0,
-                                                        ASR::abiType::Source, dflt_access, nullptr);
-                        v = ASR::down_cast<ASR::symbol_t>(dtype);
-                        parent_scope->scope[derived_type_name] = v;
-                        current_scope = parent_scope;
-                    }
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Class_t(al,
-                        x.base.base.loc, v, dims.p, dims.size()));
-                } else {
-                    throw SemanticError("Type not implemented yet.",
-                         x.base.base.loc);
-                }
-                ASR::expr_t* init_expr = nullptr;
-                ASR::expr_t* value = nullptr;
-                if (s.m_initializer != nullptr) {
-                    this->visit_expr(*s.m_initializer);
-                    init_expr = LFortran::ASRUtils::EXPR(tmp);
-                    ASR::ttype_t *init_type = LFortran::ASRUtils::expr_type(init_expr);
-                    ImplicitCastRules::set_converted_value(al, x.base.base.loc, &init_expr, init_type, type);
-                    LFORTRAN_ASSERT(init_expr != nullptr);
-                    if (storage_type == ASR::storage_typeType::Parameter) {
-                        value = ASRUtils::expr_value(init_expr);
-                        if (value == nullptr) {
-                            throw SemanticError("Value of a parameter variable must evaluate to a compile time constant",
-                                x.base.base.loc);
-                        }
-                        if (sym_type->m_type == AST::decl_typeType::TypeCharacter) {
-                            ASR::Character_t *lhs_type = ASR::down_cast<ASR::Character_t>(type);
-                            ASR::Character_t *rhs_type = ASR::down_cast<ASR::Character_t>(ASRUtils::expr_type(value));
-                            int lhs_len = lhs_type->m_len;
-                            int rhs_len = rhs_type->m_len;
-                            if (rhs_len >= 0) {
-                                if (lhs_len == -1) {
-                                    // The RHS len is known at compile time
-                                    // and the LHS is inferred length
-                                    lhs_len = rhs_len;
-                                } else if (lhs_len >= 0) {
-                                    if (lhs_len != rhs_len) {
-                                        // Note: this might be valid, perhaps
-                                        // change this to a warning
-                                        throw SemanticError("The LHS character len="
-                                            + std::to_string(lhs_len)
-                                            + " and the RHS character len="
-                                            + std::to_string(rhs_len)
-                                            + " are not equal.", x.base.base.loc);
-                                    }
-                                } else {
-                                    LFORTRAN_ASSERT(lhs_len == -2)
-                                    throw SemanticError("The LHS character len must not be allocatable in a parameter declaration",
-                                        x.base.base.loc);
-                                }
-                            } else {
-                                throw SemanticError("The RHS character len must be known at compile time",
-                                    x.base.base.loc);
-                            }
-                            LFORTRAN_ASSERT(lhs_len == rhs_len)
-                            LFORTRAN_ASSERT(lhs_len >= 0)
-                            lhs_type->m_len = lhs_len;
-                        }
-                    }
-                }
-                if( std::find(excluded_from_symtab.begin(), excluded_from_symtab.end(), sym) == excluded_from_symtab.end() ) {
-                    ASR::asr_t *v = ASR::make_Variable_t(al, s.loc, current_scope,
-                            s2c(al, to_lower(s.m_name)), s_intent, init_expr, value, storage_type, type,
-                            current_procedure_abi_type, s_access, s_presence,
-                            value_attr);
-                    current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(v);
-                    if( is_derived_type ) {
-                        data_member_names.push_back(al, s2c(al, to_lower(s.m_name)));
-                    }
-                }
-            } // for m_syms
-        }
+    void visit_Declaration(const AST::Declaration_t& x) {
+        visit_DeclarationUtil(x);
     }
 
     void visit_DerivedType(const AST::DerivedType_t &x) {
@@ -1021,21 +582,21 @@ public:
             visit_procedure_decl(*x.m_contains[i]);
         }
         std::string sym_name = to_lower(x.m_name);
-        if (current_scope->scope.find(sym_name) != current_scope->scope.end()) {
+        if (current_scope->get_symbol(sym_name) != nullptr) {
             throw SemanticError("DerivedType already defined", x.base.base.loc);
         }
         ASR::symbol_t* parent_sym = nullptr;
         if( attr_extend != nullptr ) {
             std::string parent_sym_name = to_lower(attr_extend->m_name);
-            if( parent_scope->scope.find(parent_sym_name) == parent_scope->scope.end() ) {
+            if( parent_scope->get_symbol(parent_sym_name) == nullptr ) {
                 throw SemanticError(parent_sym_name + " is not defined.", x.base.base.loc);
             }
-            parent_sym = parent_scope->scope[parent_sym_name];
+            parent_sym = parent_scope->get_symbol(parent_sym_name);
         }
         tmp = ASR::make_DerivedType_t(al, x.base.base.loc, current_scope,
                 s2c(al, to_lower(x.m_name)), data_member_names.p, data_member_names.size(),
                 ASR::abiType::Source, dflt_access, parent_sym);
-        parent_scope->scope[sym_name] = ASR::down_cast<ASR::symbol_t>(tmp);
+        parent_scope->add_symbol(sym_name, ASR::down_cast<ASR::symbol_t>(tmp));
         current_scope = parent_scope;
         is_derived_type = false;
     }
@@ -1171,7 +732,7 @@ public:
             }
             ASR::asr_t *v = ASR::make_CustomOperator_t(al, loc, current_scope,
                                 generic_name, symbols.p, symbols.size(), ASR::Public);
-            current_scope->scope[intrinsic2str[proc.first]] = ASR::down_cast<ASR::symbol_t>(v);
+            current_scope->add_symbol(intrinsic2str[proc.first], ASR::down_cast<ASR::symbol_t>(v));
         }
         overloaded_op_procs.clear();
 
@@ -1195,7 +756,7 @@ public:
             }
             ASR::asr_t *v = ASR::make_CustomOperator_t(al, loc, current_scope,
                                 generic_name, symbols.p, symbols.size(), ASR::Public);
-            current_scope->scope[proc.first] = ASR::down_cast<ASR::symbol_t>(v);
+            current_scope->add_symbol(proc.first, ASR::down_cast<ASR::symbol_t>(v));
         }
         defined_op_procs.clear();
     }
@@ -1223,7 +784,7 @@ public:
         }
         ASR::asr_t *v = ASR::make_CustomOperator_t(al, loc, current_scope,
                             generic_name, symbols.p, symbols.size(), assgn[current_scope]);
-        current_scope->scope[str_name] = ASR::down_cast<ASR::symbol_t>(v);
+        current_scope->add_symbol(str_name, ASR::down_cast<ASR::symbol_t>(v));
     }
 
     void add_generic_procedures() {
@@ -1235,17 +796,22 @@ public:
             Vec<ASR::symbol_t*> symbols;
             symbols.reserve(al, proc.second.size());
             for (auto &pname : proc.second) {
+                std::string correct_pname = pname;
+                if( pname == proc.first ) {
+                    correct_pname = pname + "~genericprocedure";
+                }
                 ASR::symbol_t *x;
                 Str s;
-                s.from_str_view(pname);
+                s.from_str_view(correct_pname);
                 char *name = s.c_str(al);
                 x = resolve_symbol(loc, name);
                 symbols.push_back(al, x);
             }
             std::string sym_name_str = proc.first;
-            if( current_scope->scope.find(proc.first) != current_scope->scope.end() ) {
-                ASR::symbol_t* der_type_name = current_scope->scope[proc.first];
-                if( der_type_name->type == ASR::symbolType::DerivedType ) {
+            if( current_scope->get_symbol(proc.first) != nullptr ) {
+                ASR::symbol_t* der_type_name = current_scope->get_symbol(proc.first);
+                if( der_type_name->type == ASR::symbolType::DerivedType ||
+                    der_type_name->type == ASR::symbolType::Function ) {
                     sym_name_str = "~" + proc.first;
                 }
             }
@@ -1255,7 +821,7 @@ public:
             ASR::asr_t *v = ASR::make_GenericProcedure_t(al, loc,
                 current_scope,
                 generic_name, symbols.p, symbols.size(), ASR::Public);
-            current_scope->scope[sym_name_str] = ASR::down_cast<ASR::symbol_t>(v);
+            current_scope->add_symbol(sym_name_str, ASR::down_cast<ASR::symbol_t>(v));
         }
     }
 
@@ -1265,13 +831,13 @@ public:
             loc.first = 1;
             loc.last = 1;
             ASR::DerivedType_t *clss = ASR::down_cast<ASR::DerivedType_t>(
-                                            current_scope->scope[proc.first]);
+                                            current_scope->get_symbol(proc.first));
             for (auto &pname : proc.second) {
                 Vec<ASR::symbol_t*> cand_procs;
                 cand_procs.reserve(al, pname.second.size());
                 for( std::string &cand_proc: pname.second ) {
-                    if( clss->m_symtab->scope.find(cand_proc) != clss->m_symtab->scope.end() ) {
-                        cand_procs.push_back(al, clss->m_symtab->scope[cand_proc]);
+                    if( clss->m_symtab->get_symbol(cand_proc) != nullptr ) {
+                        cand_procs.push_back(al, clss->m_symtab->get_symbol(cand_proc));
                     } else {
                         throw SemanticError(cand_proc + " doesn't exist inside " + proc.first + " type", loc);
                     }
@@ -1283,7 +849,7 @@ public:
                     clss->m_symtab, generic_name, cand_procs.p, cand_procs.size(),
                     ASR::accessType::Public); // Update the access as per the input Fortran code
                 ASR::symbol_t *cls_proc_sym = ASR::down_cast<ASR::symbol_t>(v);
-                clss->m_symtab->scope[pname.first] = cls_proc_sym;
+                clss->m_symtab->add_symbol(pname.first, cls_proc_sym);
             }
         }
     }
@@ -1295,9 +861,9 @@ public:
             loc.first = 1;
             loc.last = 1;
             ASR::DerivedType_t *clss = ASR::down_cast<ASR::DerivedType_t>(
-                current_scope->scope[proc.first]);
+                current_scope->get_symbol(proc.first));
             for (auto &pname : proc.second) {
-                ASR::symbol_t *proc_sym = current_scope->scope[pname.second];
+                ASR::symbol_t *proc_sym = current_scope->get_symbol(pname.second);
                 Str s;
                 s.from_str_view(pname.first);
                 char *name = s.c_str(al);
@@ -1307,7 +873,7 @@ public:
                     clss->m_symtab, name, proc_name, proc_sym,
                     ASR::abiType::Source);
                 ASR::symbol_t *cls_proc_sym = ASR::down_cast<ASR::symbol_t>(v);
-                clss->m_symtab->scope[pname.first] = cls_proc_sym;
+                clss->m_symtab->add_symbol(pname.first, cls_proc_sym);
             }
         }
     }
@@ -1315,8 +881,8 @@ public:
     std::string import_all(const ASR::Module_t* m) {
         // Import all symbols from the module, e.g.:
         //     use a
-        for (auto &item : m->m_symtab->scope) {
-            if( current_scope->scope.find(item.first) != current_scope->scope.end() &&
+        for (auto &item : m->m_symtab->get_scope()) {
+            if( current_scope->get_symbol(item.first) != nullptr &&
                 !in_submodule ) {
                 continue;
             }
@@ -1332,7 +898,7 @@ public:
                     dflt_access
                     );
                 std::string sym = to_lower(msub->m_name);
-                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(sub);
+                current_scope->add_symbol(sym, ASR::down_cast<ASR::symbol_t>(sub));
             } else if (ASR::is_a<ASR::Function_t>(*item.second)) {
                 ASR::Function_t *mfn = ASR::down_cast<ASR::Function_t>(item.second);
                 ASR::asr_t *fn = ASR::make_ExternalSymbol_t(
@@ -1344,7 +910,7 @@ public:
                     dflt_access
                     );
                 std::string sym = to_lower(mfn->m_name);
-                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(fn);
+                current_scope->add_symbol(sym, ASR::down_cast<ASR::symbol_t>(fn));
             } else if (ASR::is_a<ASR::GenericProcedure_t>(*item.second)) {
                 ASR::GenericProcedure_t *gp = ASR::down_cast<
                     ASR::GenericProcedure_t>(item.second);
@@ -1357,7 +923,7 @@ public:
                     dflt_access
                     );
                 std::string sym = to_lower(gp->m_name);
-                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(ep);
+                current_scope->add_symbol(sym, ASR::down_cast<ASR::symbol_t>(ep));
             }  else if (ASR::is_a<ASR::CustomOperator_t>(*item.second)) {
                 ASR::CustomOperator_t *gp = ASR::down_cast<
                     ASR::CustomOperator_t>(item.second);
@@ -1370,7 +936,7 @@ public:
                     dflt_access
                     );
                 std::string sym = to_lower(gp->m_name);
-                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(ep);
+                current_scope->add_symbol(sym, ASR::down_cast<ASR::symbol_t>(ep));
             } else if (ASR::is_a<ASR::Variable_t>(*item.second)) {
                 ASR::Variable_t *mvar = ASR::down_cast<ASR::Variable_t>(item.second);
                 ASR::asr_t *var = ASR::make_ExternalSymbol_t(
@@ -1382,7 +948,7 @@ public:
                     dflt_access
                     );
                 std::string sym = to_lower(mvar->m_name);
-                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(var);
+                current_scope->add_symbol(sym, ASR::down_cast<ASR::symbol_t>(var));
             } else if (ASR::is_a<ASR::ExternalSymbol_t>(*item.second)) {
                 // We have to "repack" the ExternalSymbol so that it lives in the
                 // local symbol table
@@ -1402,7 +968,7 @@ public:
                     es0->m_original_name,
                     dflt_access
                     );
-                current_scope->scope[sym] = ASR::down_cast<ASR::symbol_t>(es);
+                current_scope->add_symbol(sym, ASR::down_cast<ASR::symbol_t>(es));
             } else if( ASR::is_a<ASR::DerivedType_t>(*item.second) ) {
                 ASR::DerivedType_t *mv = ASR::down_cast<ASR::DerivedType_t>(item.second);
                 // `mv` is the Variable in a module. Now we construct
@@ -1418,7 +984,7 @@ public:
                     m->m_name, nullptr, 0, mv->m_name,
                     dflt_access
                     );
-                current_scope->scope[item.first] = ASR::down_cast<ASR::symbol_t>(v);
+                current_scope->add_symbol(item.first, ASR::down_cast<ASR::symbol_t>(v));
             } else {
                 return item.first;
             }
@@ -1437,7 +1003,7 @@ public:
         if (!t) {
             std::string rl_path = get_runtime_library_dir();
             t = (ASR::symbol_t*)(ASRUtils::load_module(al, current_scope->parent,
-                msym, x.base.base.loc, false, rl_path,
+                msym, x.base.base.loc, false, rl_path, true,
                 [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }
                 ));
         }
@@ -1487,7 +1053,7 @@ public:
                         x.base.base.loc);
                 }
                 if (ASR::is_a<ASR::Subroutine_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->get_symbol(local_sym) != nullptr) {
                         throw SemanticError("Subroutine already defined",
                             x.base.base.loc);
                     }
@@ -1505,9 +1071,9 @@ public:
                         m->m_name, nullptr, 0, msub->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(sub);
+                    current_scope->add_symbol(local_sym, ASR::down_cast<ASR::symbol_t>(sub));
                 } else if (ASR::is_a<ASR::GenericProcedure_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->get_symbol(local_sym) != nullptr) {
                         throw SemanticError("Symbol already defined",
                             x.base.base.loc);
                     }
@@ -1523,9 +1089,9 @@ public:
                         m->m_name, nullptr, 0, gp->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(ep);
+                    current_scope->add_symbol(local_sym, ASR::down_cast<ASR::symbol_t>(ep));
                 } else if (ASR::is_a<ASR::CustomOperator_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->get_symbol(local_sym) != nullptr) {
                         throw SemanticError("Symbol already defined",
                             x.base.base.loc);
                     }
@@ -1541,9 +1107,9 @@ public:
                         m->m_name, nullptr, 0, gp->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(ep);
+                    current_scope->add_symbol(local_sym, ASR::down_cast<ASR::symbol_t>(ep));
                 } else if (ASR::is_a<ASR::ExternalSymbol_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->get_symbol(local_sym) != nullptr) {
                         throw SemanticError("Symbol already defined",
                             x.base.base.loc);
                     }
@@ -1557,9 +1123,9 @@ public:
                         es->m_module_name, es->m_scope_names, es->n_scope_names, es->m_original_name,
                         es->m_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(ep);
+                    current_scope->add_symbol(local_sym, ASR::down_cast<ASR::symbol_t>(ep));
                 } else if (ASR::is_a<ASR::Function_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->get_symbol(local_sym) != nullptr) {
                         throw SemanticError("Function already defined",
                             x.base.base.loc);
                     }
@@ -1577,9 +1143,9 @@ public:
                         m->m_name, nullptr, 0, mfn->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(fn);
+                    current_scope->add_symbol(local_sym, ASR::down_cast<ASR::symbol_t>(fn));
                 } else if (ASR::is_a<ASR::Variable_t>(*t)) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->get_symbol(local_sym) != nullptr) {
                         throw SemanticError("Variable already defined",
                             x.base.base.loc);
                     }
@@ -1597,9 +1163,9 @@ public:
                         m->m_name, nullptr, 0, mv->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(v);
+                    current_scope->add_symbol(local_sym, ASR::down_cast<ASR::symbol_t>(v));
                 } else if( ASR::is_a<ASR::DerivedType_t>(*t) ) {
-                    if (current_scope->scope.find(local_sym) != current_scope->scope.end()) {
+                    if (current_scope->get_symbol(local_sym) != nullptr) {
                         throw SemanticError("Derived type already defined",
                             x.base.base.loc);
                     }
@@ -1617,7 +1183,7 @@ public:
                         m->m_name, nullptr, 0, mv->m_name,
                         dflt_access
                         );
-                    current_scope->scope[local_sym] = ASR::down_cast<ASR::symbol_t>(v);
+                    current_scope->add_symbol(local_sym, ASR::down_cast<ASR::symbol_t>(v));
                 } else {
                     throw LFortranException("Only Subroutines, Functions, Variables and Derived supported in 'use'");
                 }

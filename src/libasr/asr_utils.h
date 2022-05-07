@@ -2,6 +2,8 @@
 #define LFORTRAN_ASR_UTILS_H
 
 #include <functional>
+#include <map>
+#include <limits>
 
 #include <libasr/assert.h>
 #include <libasr/asr.h>
@@ -93,25 +95,42 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
     switch (f->type) {
         case ASR::exprType::BoolOp: { return ((ASR::BoolOp_t*)f)->m_type; }
         case ASR::exprType::BinOp: { return ((ASR::BinOp_t*)f)->m_type; }
+        case ASR::exprType::StrOp: { return ((ASR::StrOp_t*)f)->m_type; }
         case ASR::exprType::UnaryOp: { return ((ASR::UnaryOp_t*)f)->m_type; }
         case ASR::exprType::ComplexConstructor: { return ((ASR::ComplexConstructor_t*)f)->m_type; }
+        case ASR::exprType::NamedExpr: { return ((ASR::NamedExpr_t*)f)->m_type; }
         case ASR::exprType::Compare: { return ((ASR::Compare_t*)f)->m_type; }
+        case ASR::exprType::IfExp: { return ((ASR::IfExp_t*)f)->m_type; }
         case ASR::exprType::FunctionCall: { return ((ASR::FunctionCall_t*)f)->m_type; }
-        case ASR::exprType::ArrayRef: { return ((ASR::ArrayRef_t*)f)->m_type; }
-        case ASR::exprType::DerivedRef: { return ((ASR::DerivedRef_t*)f)->m_type; }
-        case ASR::exprType::ConstantArray: { return ((ASR::ConstantArray_t*)f)->m_type; }
-        case ASR::exprType::ConstantInteger: { return ((ASR::ConstantInteger_t*)f)->m_type; }
-        case ASR::exprType::ConstantReal: { return ((ASR::ConstantReal_t*)f)->m_type; }
-        case ASR::exprType::ConstantComplex: { return ((ASR::ConstantComplex_t*)f)->m_type; }
-        case ASR::exprType::ConstantString: { return ((ASR::ConstantString_t*)f)->m_type; }
-        case ASR::exprType::ImplicitCast: { return ((ASR::ImplicitCast_t*)f)->m_type; }
-        case ASR::exprType::ExplicitCast: { return ((ASR::ExplicitCast_t*)f)->m_type; }
-        case ASR::exprType::Var: { return EXPR2VAR(f)->m_type; }
-        case ASR::exprType::ConstantLogical: { return ((ASR::ConstantLogical_t*)f)->m_type; }
-        case ASR::exprType::StrOp: { return ((ASR::StrOp_t*)f)->m_type; }
-        case ASR::exprType::ImpliedDoLoop: { return ((ASR::ImpliedDoLoop_t*)f)->m_type; }
         case ASR::exprType::DerivedTypeConstructor: { return ((ASR::DerivedTypeConstructor_t*)f)->m_type; }
-        case ASR::exprType::BOZ: { return ((ASR::BOZ_t*)f)->m_type; }
+        case ASR::exprType::ArrayConstant: { return ((ASR::ArrayConstant_t*)f)->m_type; }
+        case ASR::exprType::ImpliedDoLoop: { return ((ASR::ImpliedDoLoop_t*)f)->m_type; }
+        case ASR::exprType::IntegerConstant: { return ((ASR::IntegerConstant_t*)f)->m_type; }
+        case ASR::exprType::RealConstant: { return ((ASR::RealConstant_t*)f)->m_type; }
+        case ASR::exprType::ComplexConstant: { return ((ASR::ComplexConstant_t*)f)->m_type; }
+        case ASR::exprType::SetConstant: { return ((ASR::SetConstant_t*)f)->m_type; }
+        case ASR::exprType::SetLen: { return ((ASR::SetLen_t*)f)->m_type; }
+        case ASR::exprType::ListConstant: { return ((ASR::ListConstant_t*)f)->m_type; }
+        case ASR::exprType::ListConcat: { return ((ASR::ListConcat_t*)f)->m_type; }
+        case ASR::exprType::ListLen: { return ((ASR::ListLen_t*)f)->m_type; }
+        case ASR::exprType::TupleConstant: { return ((ASR::TupleConstant_t*)f)->m_type; }
+        case ASR::exprType::TupleLen: { return ((ASR::TupleLen_t*)f)->m_type; }
+        case ASR::exprType::LogicalConstant: { return ((ASR::LogicalConstant_t*)f)->m_type; }
+        case ASR::exprType::StringConstant: { return ((ASR::StringConstant_t*)f)->m_type; }
+        case ASR::exprType::StringConcat: { return ((ASR::StringConcat_t*)f)->m_type; }
+        case ASR::exprType::StringLen: { return ((ASR::StringLen_t*)f)->m_type; }
+        case ASR::exprType::DictConstant: { return ((ASR::DictConstant_t*)f)->m_type; }
+        case ASR::exprType::DictLen: { return ((ASR::DictLen_t*)f)->m_type; }
+        case ASR::exprType::IntegerBOZ: { return ((ASR::IntegerBOZ_t*)f)->m_type; }
+        case ASR::exprType::Var: { return EXPR2VAR(f)->m_type; }
+        case ASR::exprType::ArrayRef: { return ((ASR::ArrayRef_t*)f)->m_type; }
+        case ASR::exprType::ArraySize: { return ((ASR::ArraySize_t*)f)->m_type; }
+        case ASR::exprType::ArrayBound: { return ((ASR::ArrayBound_t*)f)->m_type; }
+        case ASR::exprType::DerivedRef: { return ((ASR::DerivedRef_t*)f)->m_type; }
+        case ASR::exprType::Cast: { return ((ASR::Cast_t*)f)->m_type; }
+        case ASR::exprType::ComplexRe: { return ((ASR::ComplexRe_t*)f)->m_type; }
+        case ASR::exprType::ComplexIm: { return ((ASR::ComplexIm_t*)f)->m_type; }
+        case ASR::exprType::DictItem: { return ((ASR::DictItem_t*)f)->m_type; }
         default : throw LFortranException("Not implemented");
     }
 }
@@ -134,7 +153,115 @@ static inline std::string type_to_str(const ASR::ttype_t *t)
         case ASR::ttypeType::Character: {
             return "character";
         }
+        case ASR::ttypeType::Tuple: {
+            return "tuple";
+        }
+        case ASR::ttypeType::Set: {
+            return "set";
+        }
+        case ASR::ttypeType::Dict: {
+            return "dict";
+        }
+        case ASR::ttypeType::List: {
+            return "list";
+        }
         default : throw LFortranException("Not implemented");
+    }
+}
+
+static inline std::string type_to_str_python(const ASR::ttype_t *t)
+{
+    switch (t->type) {
+        case ASR::ttypeType::Integer: {
+            ASR::Integer_t *i = (ASR::Integer_t*)t;
+            switch (i->m_kind) {
+                case 1: { return "i8"; }
+                case 2: { return "i16"; }
+                case 4: { return "i32"; }
+                case 8: { return "i64"; }
+                default: { throw LFortranException("Integer kind not supported"); }
+            }
+        }
+        case ASR::ttypeType::Real: {
+            ASR::Real_t *r = (ASR::Real_t*)t;
+            switch (r->m_kind) {
+                case 4: { return "f32"; }
+                case 8: { return "f64"; }
+                default: { throw LFortranException("Float kind not supported"); }
+            }
+        }
+        case ASR::ttypeType::Complex: {
+            ASR::Complex_t *c = (ASR::Complex_t*)t;
+            switch (c->m_kind) {
+                case 4: { return "c32"; }
+                case 8: { return "c64"; }
+                default: { throw LFortranException("Complex kind not supported"); }
+            }
+        }
+        case ASR::ttypeType::Logical: {
+            return "bool";
+        }
+        case ASR::ttypeType::Character: {
+            return "str";
+        }
+        case ASR::ttypeType::Tuple: {
+            return "tuple";
+        }
+        case ASR::ttypeType::Set: {
+            ASR::Set_t *s = (ASR::Set_t *)t;
+            return "set[" + type_to_str_python(s->m_type) + "]";
+        }
+        case ASR::ttypeType::Dict: {
+            ASR::Dict_t *d = (ASR::Dict_t *)t;
+            return "dict[" + type_to_str_python(d->m_key_type) + ", " + type_to_str_python(d->m_value_type) + "]";
+        }
+        case ASR::ttypeType::List: {
+            ASR::List_t *l = (ASR::List_t *)t;
+            return "list[" + type_to_str_python(l->m_type) + "]";
+        }
+        default : throw LFortranException("Not implemented");
+    }
+}
+
+static inline std::string unop_to_str(const ASR::unaryopType t) {
+    switch (t) {
+        case (ASR::unaryopType::Not): { return "!"; }
+        case (ASR::unaryopType::USub): { return "-"; }
+        case (ASR::unaryopType::UAdd): { return "+"; }
+        case (ASR::unaryopType::Invert): {return "~"; }
+        default : throw LFortranException("Not implemented");
+    }
+}
+
+static inline std::string binop_to_str(const ASR::binopType t) {
+    switch (t) {
+        case (ASR::binopType::Add): { return " + "; }
+        case (ASR::binopType::Sub): { return " - "; }
+        case (ASR::binopType::Mul): { return "*"; }
+        case (ASR::binopType::Div): { return "/"; }
+        default : throw LFortranException("Cannot represent the binary operator as a string");
+    }
+}
+
+static inline std::string cmpop_to_str(const ASR::cmpopType t) {
+    switch (t) {
+        case (ASR::cmpopType::Eq): { return " == "; }
+        case (ASR::cmpopType::NotEq): { return " != "; }
+        case (ASR::cmpopType::Lt): { return " < "; }
+        case (ASR::cmpopType::LtE): { return " <= "; }
+        case (ASR::cmpopType::Gt): { return " > "; }
+        case (ASR::cmpopType::GtE): { return " >= "; }
+        default : throw LFortranException("Cannot represent the comparison as a string");
+    }
+}
+
+static inline std::string boolop_to_str(const ASR::boolopType t) {
+    switch (t) {
+        case (ASR::boolopType::And): { return " && "; }
+        case (ASR::boolopType::Or): { return " || "; }
+        case (ASR::boolopType::Eqv): { return " == "; }
+        case (ASR::boolopType::NEqv): { return " != "; }
+        default : throw LFortranException("Cannot represent the boolean operator as a string");
     }
 }
 
@@ -148,18 +275,32 @@ static inline ASR::expr_t* expr_value(ASR::expr_t *f)
         case ASR::exprType::Compare: { return ASR::down_cast<ASR::Compare_t>(f)->m_value; }
         case ASR::exprType::FunctionCall: { return ASR::down_cast<ASR::FunctionCall_t>(f)->m_value; }
         case ASR::exprType::ArrayRef: { return ASR::down_cast<ASR::ArrayRef_t>(f)->m_value; }
+        case ASR::exprType::ArraySize: { return ASR::down_cast<ASR::ArraySize_t>(f)->m_value; }
+        case ASR::exprType::ArrayBound: { return ASR::down_cast<ASR::ArrayBound_t>(f)->m_value; }
         case ASR::exprType::DerivedRef: { return ASR::down_cast<ASR::DerivedRef_t>(f)->m_value; }
-        case ASR::exprType::ImplicitCast: { return ASR::down_cast<ASR::ImplicitCast_t>(f)->m_value; }
-        case ASR::exprType::ExplicitCast: { return ASR::down_cast<ASR::ExplicitCast_t>(f)->m_value; }
+        case ASR::exprType::Cast: { return ASR::down_cast<ASR::Cast_t>(f)->m_value; }
         case ASR::exprType::Var: { return EXPR2VAR(f)->m_value; }
         case ASR::exprType::StrOp: { return ASR::down_cast<ASR::StrOp_t>(f)->m_value; }
         case ASR::exprType::ImpliedDoLoop: { return ASR::down_cast<ASR::ImpliedDoLoop_t>(f)->m_value; }
-        case ASR::exprType::ConstantArray: // Drop through
-        case ASR::exprType::ConstantInteger: // Drop through
-        case ASR::exprType::ConstantReal: // Drop through
-        case ASR::exprType::ConstantComplex: // Drop through
-        case ASR::exprType::ConstantLogical: // Drop through
-        case ASR::exprType::ConstantString:{ // For all Constants
+        case ASR::exprType::StringLen: { return ASR::down_cast<ASR::StringLen_t>(f)->m_value; }
+        case ASR::exprType::DictLen: { return ASR::down_cast<ASR::DictLen_t>(f)->m_value; }
+        case ASR::exprType::ListLen: { return ASR::down_cast<ASR::ListLen_t>(f)->m_value; }
+        case ASR::exprType::TupleLen: { return ASR::down_cast<ASR::TupleLen_t>(f)->m_value; }
+        case ASR::exprType::SetLen: { return ASR::down_cast<ASR::SetLen_t>(f)->m_value; }
+        case ASR::exprType::StringConcat: { return ASR::down_cast<ASR::StringConcat_t>(f)->m_value; }
+        case ASR::exprType::ComplexRe: { return ASR::down_cast<ASR::ComplexRe_t>(f)->m_value; }
+        case ASR::exprType::ComplexIm: { return ASR::down_cast<ASR::ComplexIm_t>(f)->m_value; }
+        case ASR::exprType::DictItem: // Drop through
+        case ASR::exprType::ArrayConstant: // Drop through
+        case ASR::exprType::IntegerConstant: // Drop through
+        case ASR::exprType::RealConstant: // Drop through
+        case ASR::exprType::ComplexConstant: // Drop through
+        case ASR::exprType::LogicalConstant: // Drop through
+        case ASR::exprType::TupleConstant: // Drop through
+        case ASR::exprType::DictConstant: // Drop through
+        case ASR::exprType::SetConstant: // Drop through
+        case ASR::exprType::ListConstant: // Drop through
+        case ASR::exprType::StringConstant:{ // For all Constants
             return f;
         }
         default : throw LFortranException("Not implemented");
@@ -199,6 +340,12 @@ static inline char *symbol_name(const ASR::symbol_t *f)
         case ASR::symbolType::CustomOperator: {
             return ASR::down_cast<ASR::CustomOperator_t>(f)->m_name;
         }
+        case ASR::symbolType::AssociateBlock: {
+            return ASR::down_cast<ASR::AssociateBlock_t>(f)->m_name;
+        }
+        case ASR::symbolType::Block: {
+            return ASR::down_cast<ASR::Block_t>(f)->m_name;
+        }
         default : throw LFortranException("Not implemented");
     }
 }
@@ -235,6 +382,12 @@ static inline SymbolTable *symbol_parent_symtab(const ASR::symbol_t *f)
         }
         case ASR::symbolType::CustomOperator: {
             return ASR::down_cast<ASR::CustomOperator_t>(f)->m_parent_symtab;
+        }
+        case ASR::symbolType::AssociateBlock: {
+            return ASR::down_cast<ASR::AssociateBlock_t>(f)->m_symtab->parent;
+        }
+        case ASR::symbolType::Block: {
+            return ASR::down_cast<ASR::Block_t>(f)->m_symtab->parent;
         }
         default : throw LFortranException("Not implemented");
     }
@@ -274,6 +427,12 @@ static inline SymbolTable *symbol_symtab(const ASR::symbol_t *f)
         case ASR::symbolType::ClassProcedure: {
             return nullptr;
             //throw LFortranException("ClassProcedure does not have a symtab");
+        }
+        case ASR::symbolType::AssociateBlock: {
+            return ASR::down_cast<ASR::AssociateBlock_t>(f)->m_symtab;
+        }
+        case ASR::symbolType::Block: {
+            return ASR::down_cast<ASR::Block_t>(f)->m_symtab;
         }
         default : throw LFortranException("Not implemented");
     }
@@ -318,6 +477,36 @@ static inline bool is_intrinsic_function(const ASR::Function_t *fn) {
     return false;
 }
 
+// Returns true if the Function is intrinsic, otherwise false
+// This version uses the `intrinsic` member of `Module`, so it
+// should be used instead of is_intrinsic_function
+static inline bool is_intrinsic_function2(const ASR::Function_t *fn) {
+    ASR::symbol_t *sym = (ASR::symbol_t*)fn;
+    ASR::Module_t *m = get_sym_module0(sym);
+    if (m != nullptr) {
+        if (m->m_intrinsic ||
+            fn->m_abi == ASR::abiType::Intrinsic) {
+                return true;
+        }
+    }
+    return false;
+}
+
+// Returns true if the Function is intrinsic, otherwise false
+template <typename T>
+static inline bool is_intrinsic_optimization(const T *routine) {
+    ASR::symbol_t *sym = (ASR::symbol_t*)routine;
+    if( ASR::is_a<ASR::ExternalSymbol_t>(*sym) ) {
+        ASR::ExternalSymbol_t* ext_sym = ASR::down_cast<ASR::ExternalSymbol_t>(sym);
+        return (std::string(ext_sym->m_module_name).find("lfortran_intrinsic_optimization") != std::string::npos);
+    }
+    ASR::Module_t *m = get_sym_module0(sym);
+    if (m != nullptr) {
+        return (std::string(m->m_name).find("lfortran_intrinsic_optimization") != std::string::npos);
+    }
+    return false;
+}
+
 // Returns true if all arguments have a `value`
 static inline bool all_args_have_value(const Vec<ASR::expr_t*> &args) {
     for (auto &a : args) {
@@ -331,20 +520,124 @@ static inline bool is_value_constant(ASR::expr_t *a_value) {
     if( a_value == nullptr ) {
         return false;
     }
-    if (ASR::is_a<ASR::ConstantInteger_t>(*a_value)) {
+    if (ASR::is_a<ASR::IntegerConstant_t>(*a_value)) {
         // OK
-    } else if (ASR::is_a<ASR::ConstantReal_t>(*a_value)) {
+    } else if (ASR::is_a<ASR::RealConstant_t>(*a_value)) {
         // OK
-    } else if (ASR::is_a<ASR::ConstantComplex_t>(*a_value)) {
+    } else if (ASR::is_a<ASR::ComplexConstant_t>(*a_value)) {
         // OK
-    } else if (ASR::is_a<ASR::ConstantLogical_t>(*a_value)) {
+    } else if (ASR::is_a<ASR::LogicalConstant_t>(*a_value)) {
         // OK
-    } else if (ASR::is_a<ASR::ConstantString_t>(*a_value)) {
+    } else if (ASR::is_a<ASR::StringConstant_t>(*a_value)) {
         // OK
     } else {
         return false;
     }
     return true;
+}
+
+static inline bool is_value_constant(ASR::expr_t *a_value, int64_t& const_value) {
+    if( a_value == nullptr ) {
+        return false;
+    }
+    if (ASR::is_a<ASR::IntegerConstant_t>(*a_value)) {
+        ASR::IntegerConstant_t* const_int = ASR::down_cast<ASR::IntegerConstant_t>(a_value);
+        const_value = const_int->m_n;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+static inline bool is_value_constant(ASR::expr_t *a_value, bool& const_value) {
+    if( a_value == nullptr ) {
+        return false;
+    }
+    if (ASR::is_a<ASR::LogicalConstant_t>(*a_value)) {
+        ASR::LogicalConstant_t* const_logical = ASR::down_cast<ASR::LogicalConstant_t>(a_value);
+        const_value = const_logical->m_value;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+static inline bool is_value_constant(ASR::expr_t *a_value, double& const_value) {
+    if( a_value == nullptr ) {
+        return false;
+    }
+    if (ASR::is_a<ASR::IntegerConstant_t>(*a_value)) {
+        ASR::IntegerConstant_t* const_int = ASR::down_cast<ASR::IntegerConstant_t>(a_value);
+        const_value = const_int->m_n;
+    } else if (ASR::is_a<ASR::RealConstant_t>(*a_value)) {
+        ASR::RealConstant_t* const_real = ASR::down_cast<ASR::RealConstant_t>(a_value);
+        const_value = const_real->m_r;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+static inline bool is_value_constant(ASR::expr_t *a_value, std::string& const_value) {
+    if( a_value == nullptr ) {
+        return false;
+    }
+    if (ASR::is_a<ASR::StringConstant_t>(*a_value)) {
+        ASR::StringConstant_t* const_string = ASR::down_cast<ASR::StringConstant_t>(a_value);
+        const_value = std::string(const_string->m_s);
+    } else {
+        return false;
+    }
+    return true;
+}
+
+static inline bool is_value_equal(ASR::expr_t* test_expr, ASR::expr_t* desired_expr) {
+    ASR::expr_t* test_value = expr_value(test_expr);
+    ASR::expr_t* desired_value = expr_value(desired_expr);
+    if( !is_value_constant(test_value) ||
+        !is_value_constant(desired_value) ||
+        test_value->type != desired_value->type ) {
+        return false;
+    }
+
+    switch( desired_value->type ) {
+        case ASR::exprType::IntegerConstant: {
+            ASR::IntegerConstant_t* test_int = ASR::down_cast<ASR::IntegerConstant_t>(test_value);
+            ASR::IntegerConstant_t* desired_int = ASR::down_cast<ASR::IntegerConstant_t>(desired_value);
+            return test_int->m_n == desired_int->m_n;
+        }
+        case ASR::exprType::StringConstant: {
+            ASR::StringConstant_t* test_str = ASR::down_cast<ASR::StringConstant_t>(test_value);
+            ASR::StringConstant_t* desired_str = ASR::down_cast<ASR::StringConstant_t>(desired_value);
+            return std::string(test_str->m_s) == std::string(desired_str->m_s);
+        }
+        default: {
+            return false;
+        }
+    }
+}
+
+static inline bool is_value_in_range(ASR::expr_t* start, ASR::expr_t* end, ASR::expr_t* value) {
+    ASR::expr_t *start_value = nullptr, *end_value = nullptr;
+    if( start ) {
+        start_value = expr_value(start);
+    }
+    if( end ) {
+        end_value = expr_value(end);
+    }
+    ASR::expr_t* test_value = expr_value(value);
+
+
+    double start_double = std::numeric_limits<double>::min();
+    double end_double = std::numeric_limits<double>::max();
+    double value_double;
+    bool start_const = is_value_constant(start_value, start_double);
+    bool end_const = is_value_constant(end_value, end_double);
+    bool value_const = is_value_constant(test_value, value_double);
+    if( !value_const || (!start_const && !end_const) ) {
+        return false;
+    }
+    return value_double >= start_double && value_double <= end_double;
 }
 
 // Returns true if all arguments are evaluated
@@ -389,16 +682,49 @@ static inline bool all_args_evaluated(const Vec<ASR::array_index_t> &args) {
     return true;
 }
 
+template <typename T>
+static inline bool extract_value(ASR::expr_t* value_expr, T& value) {
+    if( !is_value_constant(value_expr) ) {
+        return false;
+    }
+
+    switch( value_expr->type ) {
+        case ASR::exprType::RealConstant: {
+            ASR::RealConstant_t* const_real = ASR::down_cast<ASR::RealConstant_t>(value_expr);
+            value = (T) const_real->m_r;
+            break;
+        }
+        default:
+            return false;
+    }
+    return true;
+}
+
 // Returns a list of values
-static inline Vec<ASR::expr_t*> get_arg_values(Allocator &al, const Vec<ASR::expr_t*> &args) {
-    Vec<ASR::expr_t*> values;
+static inline Vec<ASR::call_arg_t> get_arg_values(Allocator &al, const Vec<ASR::call_arg_t>& args) {
+    Vec<ASR::call_arg_t> values;
     values.reserve(al, args.size());
     for (auto &a : args) {
-        ASR::expr_t *v = expr_value(a);
+        ASR::expr_t *v = expr_value(a.m_value);
         if (v == nullptr) return values;
-        values.push_back(al, v);
+        ASR::call_arg_t v_arg;
+        v_arg.loc = v->base.loc, v_arg.m_value = v;
+        values.push_back(al, v_arg);
     }
     return values;
+}
+
+// Converts a vector of call_arg to a vector of expr
+// It skips missing call_args
+static inline Vec<ASR::expr_t*> call_arg2expr(Allocator &al, const Vec<ASR::call_arg_t>& call_args) {
+    Vec<ASR::expr_t*> args;
+    args.reserve(al, call_args.size());
+    for (auto &a : call_args) {
+        if (a.m_value != nullptr) {
+            args.push_back(al, a.m_value);
+        }
+    }
+    return args;
 }
 
 // Returns the TranslationUnit_t's symbol table by going via parents
@@ -438,7 +764,7 @@ static inline bool is_arg_dummy(int intent) {
 
 static inline bool main_program_present(const ASR::TranslationUnit_t &unit)
 {
-    for (auto &a : unit.m_global_scope->scope) {
+    for (auto &a : unit.m_global_scope->get_scope()) {
         if (ASR::is_a<ASR::Program_t>(*a.second)) return true;
     }
     return false;
@@ -447,9 +773,8 @@ static inline bool main_program_present(const ASR::TranslationUnit_t &unit)
 // Accepts dependencies in the form A -> [B, D, ...], B -> [C, D]
 // Returns a list of dependencies in the order that they should be built:
 // [D, C, B, A]
-std::vector<int> order_deps(std::map<int, std::vector<int>> &deps);
 std::vector<std::string> order_deps(std::map<std::string,
-        std::vector<std::string>> &deps);
+        std::vector<std::string>> const &deps);
 
 std::vector<std::string> determine_module_dependencies(
         const ASR::TranslationUnit_t &unit);
@@ -460,6 +785,7 @@ ASR::Module_t* load_module(Allocator &al, SymbolTable *symtab,
                             const std::string &module_name,
                             const Location &loc, bool intrinsic,
                             const std::string &rl_path,
+                            bool run_verify,
                             const std::function<void (const std::string &, const Location &)> err);
 
 ASR::TranslationUnit_t* find_and_load_module(Allocator &al, const std::string &msym,
@@ -492,7 +818,8 @@ bool is_op_overloaded(ASR::cmpopType op, std::string& intrinsic_op_name,
 
 bool use_overloaded_assignment(ASR::expr_t* target, ASR::expr_t* value,
                                SymbolTable* curr_scope, ASR::asr_t*& asr,
-                               Allocator &al, const Location& loc);
+                               Allocator &al, const Location& loc,
+                               const std::function<void (const std::string &, const Location &)> err);
 
 void set_intrinsic(ASR::symbol_t* sym);
 
@@ -527,6 +854,26 @@ static inline int extract_kind_from_ttype_t(const ASR::ttype_t* type) {
 
 static inline bool is_pointer(ASR::ttype_t *x) {
     return ASR::is_a<ASR::Pointer_t>(*x);
+}
+
+static inline bool is_integer(ASR::ttype_t &x) {
+    return ASR::is_a<ASR::Integer_t>(*type_get_past_pointer(&x));
+}
+
+static inline bool is_real(ASR::ttype_t &x) {
+    return ASR::is_a<ASR::Real_t>(*type_get_past_pointer(&x));
+}
+
+static inline bool is_character(ASR::ttype_t &x) {
+    return ASR::is_a<ASR::Character_t>(*type_get_past_pointer(&x));
+}
+
+static inline bool is_complex(ASR::ttype_t &x) {
+    return ASR::is_a<ASR::Complex_t>(*type_get_past_pointer(&x));
+}
+
+static inline bool is_logical(ASR::ttype_t &x) {
+    return ASR::is_a<ASR::Logical_t>(*type_get_past_pointer(&x));
 }
 
 inline bool is_array(ASR::ttype_t *x) {
@@ -613,8 +960,8 @@ inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
             inline int extract_kind(ASR::expr_t* kind_expr, const Location& loc) {
                 int a_kind = 4;
                 switch( kind_expr->type ) {
-                    case ASR::exprType::ConstantInteger: {
-                        a_kind = ASR::down_cast<ASR::ConstantInteger_t>
+                    case ASR::exprType::IntegerConstant: {
+                        a_kind = ASR::down_cast<ASR::IntegerConstant_t>
                                 (kind_expr)->m_n;
                         break;
                     }
@@ -627,7 +974,7 @@ inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
                         if( kind_variable->m_storage == ASR::storage_typeType::Parameter ) {
                             if( kind_variable->m_type->type == ASR::ttypeType::Integer ) {
                                 LFORTRAN_ASSERT( kind_variable->m_value != nullptr );
-                                a_kind = ASR::down_cast<ASR::ConstantInteger_t>(kind_variable->m_value)->m_n;
+                                a_kind = ASR::down_cast<ASR::IntegerConstant_t>(kind_variable->m_value)->m_n;
                             } else {
                                 std::string msg = "Integer variable required. " + std::string(kind_variable->m_name) +
                                                 " is not an Integer variable.";
@@ -652,8 +999,8 @@ inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
             inline int extract_len(ASR::expr_t* len_expr, const Location& loc) {
                 int a_len = -10;
                 switch( len_expr->type ) {
-                    case ASR::exprType::ConstantInteger: {
-                        a_len = ASR::down_cast<ASR::ConstantInteger_t>
+                    case ASR::exprType::IntegerConstant: {
+                        a_len = ASR::down_cast<ASR::IntegerConstant_t>
                                 (len_expr)->m_n;
                         break;
                     }
@@ -666,7 +1013,7 @@ inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
                         if( len_variable->m_storage == ASR::storage_typeType::Parameter ) {
                             if( len_variable->m_type->type == ASR::ttypeType::Integer ) {
                                 LFORTRAN_ASSERT( len_variable->m_value != nullptr );
-                                a_len = ASR::down_cast<ASR::ConstantInteger_t>(len_variable->m_value)->m_n;
+                                a_len = ASR::down_cast<ASR::IntegerConstant_t>(len_variable->m_value)->m_n;
                             } else {
                                 std::string msg = "Integer variable required. " + std::string(len_variable->m_name) +
                                                 " is not an Integer variable.";
@@ -696,12 +1043,39 @@ inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
             }
 
             inline bool check_equal_type(ASR::ttype_t* x, ASR::ttype_t* y) {
+                if (ASR::is_a<ASR::List_t>(*x) && ASR::is_a<ASR::List_t>(*y)) {
+                    x = ASR::down_cast<ASR::List_t>(x)->m_type;
+                    y = ASR::down_cast<ASR::List_t>(y)->m_type;
+                    return check_equal_type(x, y);
+                } else if (ASR::is_a<ASR::Set_t>(*x) && ASR::is_a<ASR::Set_t>(*y)) {
+                    x = ASR::down_cast<ASR::Set_t>(x)->m_type;
+                    y = ASR::down_cast<ASR::Set_t>(y)->m_type;
+                    return check_equal_type(x, y);
+                } else if (ASR::is_a<ASR::Dict_t>(*x) && ASR::is_a<ASR::Dict_t>(*y)) {
+                    ASR::ttype_t *x_key_type = ASR::down_cast<ASR::Dict_t>(x)->m_key_type;
+                    ASR::ttype_t *y_key_type = ASR::down_cast<ASR::Dict_t>(y)->m_key_type;
+                    ASR::ttype_t *x_value_type = ASR::down_cast<ASR::Dict_t>(x)->m_value_type;
+                    ASR::ttype_t *y_value_type = ASR::down_cast<ASR::Dict_t>(y)->m_value_type;
+                    return (check_equal_type(x_key_type, y_key_type) &&
+                            check_equal_type(x_value_type, y_value_type));
+                }
                 if( x->type == y->type ) {
                     return true;
                 }
 
                 return ASRUtils::is_same_type_pointer(x, y);
             }
+
+int select_generic_procedure(const Vec<ASR::call_arg_t> &args,
+        const ASR::GenericProcedure_t &p, Location loc,
+        const std::function<void (const std::string &, const Location &)> err);
+
+ASR::asr_t* symbol_resolve_external_generic_procedure_without_eval(
+            const Location &loc,
+            ASR::symbol_t *v, Vec<ASR::call_arg_t>& args,
+            SymbolTable* current_scope, Allocator& al,
+            const std::function<void (const std::string &, const Location &)> err);
+
 } // namespace ASRUtils
 
 } // namespace LFortran

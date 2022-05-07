@@ -98,6 +98,22 @@ ast = true
 asr = true
 
 [[test]]
+filename = "errors/array_size_01.f90"
+asr = true
+
+[[test]]
+filename = "errors/array_size_02.f90"
+asr = true
+
+[[test]]
+filename = "errors/array_size_03.f90"
+asr = true
+
+[[test]]
+filename = "errors/array_size_04.f90"
+asr = true
+
+[[test]]
 filename = "errors/esub1.f90"
 tokens = true
 ast = true
@@ -336,6 +352,11 @@ ast = true
 ast_f90 = true
 
 [[test]]
+filename = "../integration_tests/cond_02.f90"
+asr = true
+pass = "dead_code_removal"
+
+[[test]]
 filename = "../integration_tests/doloop_01.f90"
 asr = true
 llvm = true
@@ -355,6 +376,7 @@ llvm = true
 filename = "../integration_tests/doloop_04.f90"
 ast = true
 ast_f90 = true
+asr = true
 
 [[test]]
 filename = "../integration_tests/doloop_05.f90"
@@ -723,6 +745,10 @@ asr = true
 filename = "../integration_tests/derived_types_07.f90"
 asr = true
 
+[[test]]
+filename = "../integration_tests/derived_types_08.f90"
+asr = true
+
 
 [[test]]
 filename = "fn2.f90"
@@ -828,6 +854,10 @@ asr = true
 llvm = true
 
 [[test]]
+filename = "../integration_tests/allocate_04.f90"
+asr = true
+
+[[test]]
 filename = "allocate1.f90"
 ast = true
 ast_f90 = true
@@ -835,12 +865,16 @@ ast_f90 = true
 
 [[test]]
 filename = "../integration_tests/block_01.f90"
-ast = true
+asr = true
 
 [[test]]
 filename = "../integration_tests/block_02.f90"
 ast = true
 ast_f90 = true
+
+[[test]]
+filename = "../integration_tests/block_03.f90"
+asr = true
 
 [[test]]
 filename = "../integration_tests/associate_01.f90"
@@ -865,7 +899,6 @@ llvm = true
 [[test]]
 filename = "../integration_tests/associate_05.f90"
 asr = true
-llvm = true
 
 [[test]]
 filename = "write1.f90"
@@ -960,6 +993,17 @@ llvm = true
 filename = "../integration_tests/case_04.f90"
 ast = true
 ast_f90 = true
+
+[[test]]
+filename = "../integration_tests/case_05.f90"
+ast = true
+ast_f90 = true
+asr = true
+
+[[test]]
+filename = "../integration_tests/case_06.f90"
+asr = true
+pass = "dead_code_removal"
 
 [[test]]
 filename = "../integration_tests/program_02.f90"
@@ -1314,9 +1358,25 @@ asr = true
 filename = "../integration_tests/intrinsics_34.f90"
 asr = true
 
-# aint
 [[test]]
 filename = "../integration_tests/intrinsics_35.f90"
+asr = true
+
+[[test]]
+filename = "../integration_tests/intrinsics_36.f90"
+asr = true
+
+[[test]]
+filename = "../integration_tests/intrinsics_37.f90"
+asr = true
+
+[[test]]
+filename = "../integration_tests/intrinsics_39.f90"
+asr = true
+
+# aint
+[[test]]
+filename = "../integration_tests/intrinsics_45.f90"
 asr = true
 
 # floor (body)
@@ -1420,6 +1480,10 @@ filename = "../integration_tests/string_14.f90"
 asr = true
 
 [[test]]
+filename = "../integration_tests/string_17.f90"
+asr = true
+
+[[test]]
 filename = "../integration_tests/string_12.f90"
 asr = true
 
@@ -1499,6 +1563,11 @@ ast_f90 = true
 
 [[test]]
 filename = "if2.f90"
+ast = true
+ast_f90 = true
+
+[[test]]
+filename = "where1.f90"
 ast = true
 ast_f90 = true
 
@@ -1806,3 +1875,64 @@ filename = "../integration_tests/nullify_02.f90"
 ast = true
 asr = true
 llvm = true
+
+[[test]]
+filename = "../integration_tests/kwargs_02.f90"
+asr = true
+
+[[test]]
+filename = "../integration_tests/flip_sign.f90"
+asr = true
+pass = "flip_sign"
+
+[[test]]
+filename = "../integration_tests/fma.f90"
+asr = true
+pass = "fma"
+
+[[test]]
+filename = "../integration_tests/loop_unroll_small.f90"
+asr = true
+pass = "loop_unroll"
+
+[[test]]
+filename = "../integration_tests/loop_unroll_large.f90"
+asr = true
+pass = "loop_unroll"
+
+[[test]]
+filename = "../integration_tests/div_to_mul.f90"
+asr = true
+pass = "div_to_mul"
+
+[[test]]
+filename = "../integration_tests/sign_from_value.f90"
+asr = true
+pass = "sign_from_value"
+
+[[test]]
+filename = "../integration_tests/functions_04.f90"
+asr = true
+
+[[test]]
+filename = "../integration_tests/functions_05.f90"
+asr = true
+pass = "inline_function_calls"
+
+[[test]]
+filename = "../integration_tests/functions_06.f90"
+asr = true
+
+[[test]]
+filename = "../integration_tests/functions_07.f90"
+asr = true
+pass = "inline_function_calls"
+
+[[test]]
+filename = "../integration_tests/functions_08.f90"
+asr = true
+pass = "inline_function_calls"
+
+[[test]]
+filename = "../integration_tests/rewind_inquire_flush.f90"
+asr = true

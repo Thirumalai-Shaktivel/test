@@ -1,6 +1,7 @@
 #ifndef MODULES_15C
 #define MODULES_15C
 
+#include <stdint.h>
 #include <complex.h>
 
 #if _WIN32
@@ -27,6 +28,7 @@ float f_int_floatarray(int n, float *b);
 double f_int_doublearray(int n, double *b);
 
 
+
 void sub_int_float(int *a, float *b, int *r);
 void sub_int_double(int *a, double *b, int *r);
 void sub_int_float_complex(int *a, float_complex_t *b, int *r);
@@ -40,6 +42,24 @@ void sub_int_floatarray(int n, float *b, float *r);
 void sub_int_doublearray(int n, double *b, double *r);
 
 int f_string(char *s);
+
+int32_t call_fortran_i32(int32_t i);
+int32_t call_fortran_i32_value(int32_t i);
+int64_t call_fortran_i64(int64_t i);
+int64_t call_fortran_i64_value(int64_t i);
+float call_fortran_f32(float i);
+float call_fortran_f32_value(float i);
+double call_fortran_f64(double i);
+double call_fortran_f64_value(double i);
+
+int32_t fortran_i32(int32_t *i);
+int32_t fortran_i32_value(int32_t i);
+int64_t fortran_i64(int64_t *i);
+int64_t fortran_i64_value(int64_t i);
+float fortran_f32(float *i);
+float fortran_f32_value(float i);
+double fortran_f64(double *i);
+double fortran_f64_value(double i);
 
 
 #endif // MODULES_15C

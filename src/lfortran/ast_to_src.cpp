@@ -1,7 +1,7 @@
 #include <cctype>
 #include <lfortran/ast_to_src.h>
 #include <libasr/string_utils.h>
-#include <lfortran/bigint.h>
+#include <libasr/bigint.h>
 
 using LFortran::AST::expr_t;
 using LFortran::AST::Name_t;
@@ -2045,7 +2045,7 @@ public:
         if (x.n_orelse > 0) {
             r += indent;
             r += syn(gr::Conditional);
-            r += "else where";
+            r += "elsewhere";
             r += syn();
             if(x.m_t_inside){
                 r += print_trivia_after(*x.m_t_inside);
