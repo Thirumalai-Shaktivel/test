@@ -129,6 +129,7 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
         case ASR::exprType::Cast: { return ((ASR::Cast_t*)f)->m_type; }
         case ASR::exprType::ComplexRe: { return ((ASR::ComplexRe_t*)f)->m_type; }
         case ASR::exprType::ComplexIm: { return ((ASR::ComplexIm_t*)f)->m_type; }
+        case ASR::exprType::Cmplx: { return ((ASR::Cmplx_t*)f)->m_type; }
         default : throw LFortranException("Not implemented");
     }
 }

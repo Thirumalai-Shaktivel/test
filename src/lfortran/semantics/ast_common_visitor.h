@@ -1293,14 +1293,35 @@ public:
                         ASR::expr_t *arg = fc_args[i];
                         size_t arg_idx = i;
                         bool idx_found = false;
-                        if (arg && ASR::is_a<ASR::Var_t>(*arg)) {
-                            std::string arg_name = ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v);
-                            for( size_t j = 0; j < orig_func->n_args && !idx_found; j++ ) {
-                                if( ASR::is_a<ASR::Var_t>(*(orig_func->m_args[j])) ) {
-                                    std::string arg_name_2 = std::string(ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
-                                    arg_idx = j;
-                                    idx_found = arg_name_2 == arg_name;
+                        if( arg ) {
+                            if (ASR::is_a<ASR::Var_t>(*arg)) {
+                                std::string arg_name = ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v);
+                                for( size_t j = 0; j < orig_func->n_args && !idx_found; j++ ) {
+                                    if( ASR::is_a<ASR::Var_t>(*(orig_func->m_args[j])) ) {
+                                        std::string arg_name_2 = std::string(ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
+                                        arg_idx = j;
+                                        idx_found = arg_name_2 == arg_name;
+                                    }
                                 }
+                            } else if( ASR::is_a<ASR::FunctionCall_t>(*arg) ) {
+                                ASR::FunctionCall_t* arg_fc = ASR::down_cast<ASR::FunctionCall_t>(arg);
+                                std::vector<ASR::expr_t*> level2_args;
+                                for( size_t i2 = 0; i2 < arg_fc->n_args; i2++ ) {
+                                    level2_args.push_back(arg_fc->m_args[i2].m_value);
+                                }
+                                fix_function_calls_ttype_t(level2_args, orig_args, orig_func,
+                                                           is_external_func);
+                                Vec<ASR::call_arg_t> new_args;
+                                new_args.reserve(al, level2_args.size());
+                                for( size_t i2 = 0; i2 < level2_args.size(); i2++ ) {
+                                    ASR::call_arg_t new_arg;
+                                    new_arg.loc = level2_args[i2]->base.loc;
+                                    new_arg.m_value = level2_args[i2];
+                                    new_args.push_back(al, new_arg);
+                                }
+                                func_calls[i] = ASR::down_cast<ASR::expr_t>(ASR::make_FunctionCall_t(al, arg_fc->base.base.loc,
+                                                    arg_fc->m_name, arg_fc->m_original_name, new_args.p, new_args.size(),
+                                                    arg_fc->m_type, arg_fc->m_value, arg_fc->m_dt));
                             }
                         }
                         if( idx_found ) {
@@ -1397,6 +1418,22 @@ public:
                     new_dims.push_back(al, new_dim);
                 }
                 return ASRUtils::TYPE(ASR::make_Real_t(al, loc, t->m_kind, new_dims.p, new_dims.size()));
+                break;
+            }
+            case ASR::ttypeType::Complex: {
+                ASR::Complex_t *t = ASR::down_cast<ASR::Complex_t>(return_type);
+                fill_func_calls_ttype_t(func_calls, t->m_dims, t->n_dims);
+                fix_function_calls_ttype_t(func_calls, args, f, is_external_func_);
+                Vec<ASR::dimension_t> new_dims;
+                new_dims.reserve(al, t->n_dims);
+                for( size_t i = 0; i < func_calls.size(); i += 2 ) {
+                    ASR::dimension_t new_dim;
+                    new_dim.loc = func_calls[i]->base.loc;
+                    new_dim.m_start = func_calls[i];
+                    new_dim.m_end = func_calls[i + 1];
+                    new_dims.push_back(al, new_dim);
+                }
+                return ASRUtils::TYPE(ASR::make_Complex_t(al, loc, t->m_kind, new_dims.p, new_dims.size()));
                 break;
             }
             default: {
@@ -1803,6 +1840,86 @@ public:
         return ASR::make_ArraySize_t(al, x.base.base.loc, v_Var, dim, type, nullptr);
     }
 
+    ASR::asr_t* create_Cmplx(const AST::FuncCallOrArray_t& x) {
+        ASR::expr_t *argx, *argy, *kind;
+        ASR::ttype_t *type;
+        argx = nullptr, argy = nullptr, kind = nullptr;
+        type = ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc, 4, nullptr, 0));
+        if( x.n_keywords + x.n_args > 3 || x.n_args + x.n_keywords < 1 ) {
+            throw SemanticError("cmplx a maximum of 3 arguments and at least 1 argument",
+                                x.base.base.loc);
+        }
+
+        if( x.n_args == 0 ) {
+            throw SemanticError("cmplx always needs the real component",
+                                x.base.base.loc);
+        }
+        if( x.n_args >= 1 ) {
+            this->visit_expr(*x.m_args[0].m_end);
+            argx = ASRUtils::EXPR(tmp);
+        }
+        if( x.n_args >= 2 ) {
+            this->visit_expr(*x.m_args[1].m_end);
+            argy = ASRUtils::EXPR(tmp);
+        }
+        if( x.n_args >= 3 ) {
+            this->visit_expr(*x.m_args[2].m_end);
+            kind = ASRUtils::EXPR(tmp);
+            ASR::expr_t *kind_value = ASRUtils::expr_value(kind);
+            if( kind_value ) {
+                LFORTRAN_ASSERT(ASR::is_a<ASR::IntegerConstant_t>(*kind_value));
+                type = ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc,
+                                        ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n,
+                                        nullptr, 0));
+            }
+        }
+        if( x.n_keywords >= 1 ) {
+            std::string kwarg1 = x.m_keywords[0].m_arg;
+            if( kwarg1 != "y" && kwarg1 != "kind" ) {
+                throw SemanticError("Unrecognized keyword argument, " + kwarg1,
+                                    x.base.base.loc);
+            }
+            this->visit_expr(*x.m_keywords[0].m_value);
+            if( kwarg1 == "y" ) {
+                LFORTRAN_ASSERT(argy == nullptr);
+                argy = ASRUtils::EXPR(tmp);
+            } else if( kwarg1 == "kind" ) {
+                LFORTRAN_ASSERT(kind == nullptr);
+                kind = ASRUtils::EXPR(tmp);
+                ASR::expr_t *kind_value = ASRUtils::expr_value(kind);
+                if( kind_value ) {
+                    LFORTRAN_ASSERT(ASR::is_a<ASR::IntegerConstant_t>(*kind_value));
+                    type = ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc,
+                                            ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n,
+                                            nullptr, 0));
+                }
+            }
+        }
+        if( x.n_keywords >= 2 ) {
+            std::string kwarg1 = x.m_keywords[1].m_arg;
+            if( kwarg1 != "y" && kwarg1 != "kind" ) {
+                throw SemanticError("Unrecognized keyword argument, " + kwarg1,
+                                    x.base.base.loc);
+            }
+            this->visit_expr(*x.m_keywords[0].m_value);
+            if( kwarg1 == "y" ) {
+                LFORTRAN_ASSERT(argy == nullptr);
+                argy = ASRUtils::EXPR(tmp);
+            } else if( kwarg1 == "kind" ) {
+                LFORTRAN_ASSERT(kind == nullptr);
+                kind = ASRUtils::EXPR(tmp);
+                ASR::expr_t *kind_value = ASRUtils::expr_value(kind);
+                if( kind_value ) {
+                    LFORTRAN_ASSERT(!ASR::is_a<ASR::IntegerConstant_t>(*kind_value));
+                    type = ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc,
+                                            ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n,
+                                            nullptr, 0));
+                }
+            }
+        }
+        return ASR::make_Cmplx_t(al, x.base.base.loc, argx, argy, type, nullptr);
+    }
+
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
         SymbolTable *scope = current_scope;
         std::string var_name = to_lower(x.m_func);
@@ -1825,6 +1942,8 @@ public:
                     tmp = create_ArraySize(x);
                 } else if( var_name == "lbound" || var_name == "ubound" ) {
                     tmp = create_ArrayBound(x, var_name);
+                } else if( var_name == "cmplx" ) {
+                    tmp = create_Cmplx(x);
                 }
                 return ;
             }
