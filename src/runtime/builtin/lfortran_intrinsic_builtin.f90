@@ -99,6 +99,13 @@ interface
     logical function is_iostat_eor(i) result(r)
     integer, intent(in) :: i
     end function
+    
+    real function aint(i, kind)
+    ! FIXME: return type kind is not fixed
+    ! it depends on input arguments
+    real, intent(in) :: i
+    integer, optional :: kind
+    end function
 
 end interface
 
