@@ -1730,9 +1730,10 @@ public:
         if( kind_expr ) {
             this->visit_expr(*kind_expr);
             kind = ASRUtils::EXPR(tmp);
-            if( ASRUtils::expr_value(kind) ) {
+            ASR::expr_t* kind_value = ASRUtils::expr_value(kind);
+            if( kind_value ) {
                 type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
-                                        ASR::down_cast<ASR::IntegerConstant_t>(kind)->m_n ,
+                                        ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n ,
                                         nullptr, 0));
             }
         }
@@ -2148,8 +2149,8 @@ public:
                                 BOZ literal constants.)""",
                                 x.base.base.loc);
         }
-        std::string boz_str = s.substr(2, s.size() - 2);
-        int boz_int = std::stoi(boz_str, nullptr, base);
+        std::string boz_str = s.substr(2, s.size() - 3);
+        int64_t boz_int = std::stoll(boz_str, nullptr, base);
         tmp = ASR::make_IntegerBOZ_t(al, x.base.base.loc, boz_int,
                                 boz_type, nullptr);
     }
