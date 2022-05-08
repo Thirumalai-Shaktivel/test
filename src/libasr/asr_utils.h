@@ -117,6 +117,7 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
         case ASR::exprType::TupleLen: { return ((ASR::TupleLen_t*)f)->m_type; }
         case ASR::exprType::LogicalConstant: { return ((ASR::LogicalConstant_t*)f)->m_type; }
         case ASR::exprType::StringConstant: { return ((ASR::StringConstant_t*)f)->m_type; }
+        case ASR::exprType::StringConcat: { return ((ASR::StringConcat_t*)f)->m_type; }
         case ASR::exprType::StringLen: { return ((ASR::StringLen_t*)f)->m_type; }
         case ASR::exprType::DictConstant: { return ((ASR::DictConstant_t*)f)->m_type; }
         case ASR::exprType::DictLen: { return ((ASR::DictLen_t*)f)->m_type; }
@@ -129,6 +130,7 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
         case ASR::exprType::Cast: { return ((ASR::Cast_t*)f)->m_type; }
         case ASR::exprType::ComplexRe: { return ((ASR::ComplexRe_t*)f)->m_type; }
         case ASR::exprType::ComplexIm: { return ((ASR::ComplexIm_t*)f)->m_type; }
+        case ASR::exprType::DictItem: { return ((ASR::DictItem_t*)f)->m_type; }
         default : throw LFortranException("Not implemented");
     }
 }
@@ -210,7 +212,8 @@ static inline std::string type_to_str_python(const ASR::ttype_t *t)
             return "set[" + type_to_str_python(s->m_type) + "]";
         }
         case ASR::ttypeType::Dict: {
-            return "dict";
+            ASR::Dict_t *d = (ASR::Dict_t *)t;
+            return "dict[" + type_to_str_python(d->m_key_type) + ", " + type_to_str_python(d->m_value_type) + "]";
         }
         case ASR::ttypeType::List: {
             ASR::List_t *l = (ASR::List_t *)t;
@@ -284,8 +287,10 @@ static inline ASR::expr_t* expr_value(ASR::expr_t *f)
         case ASR::exprType::ListLen: { return ASR::down_cast<ASR::ListLen_t>(f)->m_value; }
         case ASR::exprType::TupleLen: { return ASR::down_cast<ASR::TupleLen_t>(f)->m_value; }
         case ASR::exprType::SetLen: { return ASR::down_cast<ASR::SetLen_t>(f)->m_value; }
+        case ASR::exprType::StringConcat: { return ASR::down_cast<ASR::StringConcat_t>(f)->m_value; }
         case ASR::exprType::ComplexRe: { return ASR::down_cast<ASR::ComplexRe_t>(f)->m_value; }
         case ASR::exprType::ComplexIm: { return ASR::down_cast<ASR::ComplexIm_t>(f)->m_value; }
+        case ASR::exprType::DictItem: // Drop through
         case ASR::exprType::ArrayConstant: // Drop through
         case ASR::exprType::IntegerConstant: // Drop through
         case ASR::exprType::RealConstant: // Drop through
@@ -1041,9 +1046,18 @@ inline bool is_same_type_pointer(ASR::ttype_t* source, ASR::ttype_t* dest) {
                 if (ASR::is_a<ASR::List_t>(*x) && ASR::is_a<ASR::List_t>(*y)) {
                     x = ASR::down_cast<ASR::List_t>(x)->m_type;
                     y = ASR::down_cast<ASR::List_t>(y)->m_type;
+                    return check_equal_type(x, y);
                 } else if (ASR::is_a<ASR::Set_t>(*x) && ASR::is_a<ASR::Set_t>(*y)) {
                     x = ASR::down_cast<ASR::Set_t>(x)->m_type;
                     y = ASR::down_cast<ASR::Set_t>(y)->m_type;
+                    return check_equal_type(x, y);
+                } else if (ASR::is_a<ASR::Dict_t>(*x) && ASR::is_a<ASR::Dict_t>(*y)) {
+                    ASR::ttype_t *x_key_type = ASR::down_cast<ASR::Dict_t>(x)->m_key_type;
+                    ASR::ttype_t *y_key_type = ASR::down_cast<ASR::Dict_t>(y)->m_key_type;
+                    ASR::ttype_t *x_value_type = ASR::down_cast<ASR::Dict_t>(x)->m_value_type;
+                    ASR::ttype_t *y_value_type = ASR::down_cast<ASR::Dict_t>(y)->m_value_type;
+                    return (check_equal_type(x_key_type, y_key_type) &&
+                            check_equal_type(x_value_type, y_value_type));
                 }
                 if( x->type == y->type ) {
                     return true;

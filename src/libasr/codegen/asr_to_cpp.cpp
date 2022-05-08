@@ -187,6 +187,7 @@ R"(#include <iostream>
 #include <vector>
 #include <cassert>
 #include <cmath>
+#include <complex>
 #include <Kokkos_Core.hpp>
 #include <lfortran_intrinsics.h>
 
@@ -566,6 +567,15 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         last_expr_precedence = 2;
     }
 
+    void visit_ComplexConstructor(const ASR::ComplexConstructor_t &x) {
+        this->visit_expr(*x.m_re);
+        std::string re = src;
+        this->visit_expr(*x.m_im);
+        std::string im = src;
+        src = "std::complex<float>(" + re + ", " + im + ")";
+        last_expr_precedence = 2;
+    }
+
     void visit_StringConstant(const ASR::StringConstant_t &x) {
         src = "\"" + std::string(x.m_s) + "\"";
         last_expr_precedence = 2;
@@ -826,7 +836,7 @@ Kokkos::View<T*> from_std_vector(const std::vector<T> &v)
         }
     }
 
-    void visit_StrOp(const ASR::StrOp_t &x) {
+    void visit_StringConcat(const ASR::StringConcat_t &x) {
         this->visit_expr(*x.m_left);
         std::string left = std::move(src);
         int left_precedence = last_expr_precedence;

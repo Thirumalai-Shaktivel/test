@@ -1075,7 +1075,9 @@ public:
                     //throw CodeGenError("Only string(a:b) for a,b variables for now.", x.base.base.loc);
                     // Use the "right" index for now
                     this->visit_expr_wrapper(x.m_args[0].m_right, true);
-                    llvm::Value *idx = tmp;
+                    llvm::Value *idx2 = tmp;
+                    this->visit_expr_wrapper(x.m_args[0].m_left, true);
+                    llvm::Value *idx1 = tmp;
                     // idx = builder->CreateSub(idx, llvm::ConstantInt::get(context, llvm::APInt(32, 1)));
                     //std::vector<llvm::Value*> idx_vec = {llvm::ConstantInt::get(context, llvm::APInt(32, 0)), idx};
                     // std::vector<llvm::Value*> idx_vec = {idx};
@@ -1083,7 +1085,7 @@ public:
                     // llvm::Value *p = CreateGEP(str, idx_vec);
                     // TODO: Currently the string starts at the right location, but goes to the end of the original string.
                     // We have to allocate a new string, copy it and add null termination.
-                    llvm::Value *p = lfortran_str_copy(str, idx, idx);
+                    llvm::Value *p = lfortran_str_copy(str, idx1, idx2);
 
                     tmp = builder->CreateAlloca(character_type, nullptr);
                     builder->CreateStore(p, tmp);
@@ -2819,16 +2821,19 @@ public:
         llvm::Value *left_val = tmp;
         this->visit_expr_wrapper(x.m_right, true);
         llvm::Value *right_val = tmp;
-        switch (x.m_op) {
-            case ASR::stropType::Concat: {
-                tmp = lfortran_strop(left_val, right_val, "_lfortran_strcat");
-                break;
-            };
-            case ASR::stropType::Repeat: {
-                tmp = lfortran_strop(left_val, right_val, "_lfortran_strrepeat");
-                break;
-            };
+        tmp = lfortran_strop(left_val, right_val, "_lfortran_strrepeat");
+    }
+
+    void visit_StringConcat(const ASR::StringConcat_t &x) {
+        if (x.m_value) {
+            this->visit_expr_wrapper(x.m_value, true);
+            return;
         }
+        this->visit_expr_wrapper(x.m_left, true);
+        llvm::Value *left_val = tmp;
+        this->visit_expr_wrapper(x.m_right, true);
+        llvm::Value *right_val = tmp;
+        tmp = lfortran_strop(left_val, right_val, "_lfortran_strcat");
     }
 
     void visit_StringLen(const ASR::StringLen_t &x) {
@@ -3261,6 +3266,11 @@ public:
             x_v = CreateLoad(CreateGEP(ptr, idx_vec));
         } else {
             x_v = llvm_symtab[x_h];
+            if (x->m_value_attr) {
+                // Already a value, such as value argument to bind(c)
+                tmp = x_v;
+                return;
+            }
         }
         tmp = CreateLoad(x_v);
 

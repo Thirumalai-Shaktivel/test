@@ -144,20 +144,24 @@ public:
           "If operator is .eq. or .neq. then Complex type is also acceptable",
           x.base.base.loc);
     } else {
-      ASR::expr_t **conversion_cand = &left;
       dest_type = right_type;
       source_type = left_type;
-      ImplicitCastRules::find_conversion_candidate(&left, &right, left_type,
-                                                   right_type, conversion_cand,
-                                                   &source_type, &dest_type);
+      if( overloaded == nullptr ) {
+        ASR::expr_t **conversion_cand = &left;
+        ImplicitCastRules::find_conversion_candidate(&left, &right, left_type,
+                                                    right_type, conversion_cand,
+                                                    &source_type, &dest_type);
 
-      ImplicitCastRules::set_converted_value(
-          al, x.base.base.loc, conversion_cand, source_type, dest_type);
+        ImplicitCastRules::set_converted_value(
+            al, x.base.base.loc, conversion_cand, source_type, dest_type);
+      }
     }
 
-    LFORTRAN_ASSERT(
-        ASRUtils::check_equal_type(LFortran::ASRUtils::expr_type(left),
-                                   LFortran::ASRUtils::expr_type(right)));
+    if( overloaded == nullptr ) {
+        LFORTRAN_ASSERT(
+            ASRUtils::check_equal_type(LFortran::ASRUtils::expr_type(left),
+                                    LFortran::ASRUtils::expr_type(right)));
+    }
     ASR::ttype_t *type = LFortran::ASRUtils::TYPE(
         ASR::make_Logical_t(al, x.base.base.loc, 4, nullptr, 0));
 
@@ -410,12 +414,7 @@ public:
   static inline void visit_StrOp(Allocator &al, const AST::StrOp_t &x,
                                  ASR::expr_t *&left, ASR::expr_t *&right,
                                  ASR::asr_t *&asr) {
-    ASR::stropType op;
     LFORTRAN_ASSERT(x.m_op == AST::Concat)
-    switch (x.m_op) {
-    case (AST::Concat):
-      op = ASR::Concat;
-    }
     ASR::ttype_t *left_type = LFortran::ASRUtils::expr_type(left);
     ASR::ttype_t *right_type = LFortran::ASRUtils::expr_type(right);
     LFORTRAN_ASSERT(ASR::is_a<ASR::Character_t>(*left_type))
@@ -445,7 +444,7 @@ public:
         value = ASR::down_cast<ASR::expr_t>(ASR::make_StringConstant_t(
             al, x.base.base.loc, result, dest_type));
       }
-    asr = ASR::make_StrOp_t(al, x.base.base.loc, left, op, right, dest_type,
+    asr = ASR::make_StringConcat_t(al, x.base.base.loc, left, right, dest_type,
                             value);
   }
 

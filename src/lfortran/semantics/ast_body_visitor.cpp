@@ -25,7 +25,6 @@ private:
 
 public:
     ASR::asr_t *asr;
-    Vec<ASR::stmt_t*> *current_body;
     bool from_block;
 
     BodyVisitor(Allocator &al, ASR::asr_t *unit, diag::Diagnostics &diagnostics)
@@ -51,10 +50,7 @@ public:
 
         Vec<ASR::stmt_t*> body;
         body.reserve(al, x.n_body);
-        Vec<ASR::stmt_t*>* current_body_copy = current_body;
-        current_body = &body;
         transform_stmts(body, x.n_body, x.m_body);
-        current_body = current_body_copy;
         std::string name = parent_scope->get_unique_name("block");
         ASR::asr_t* block = ASR::make_Block_t(al, x.base.base.loc,
                                               current_scope, s2c(al, name),
@@ -62,8 +58,6 @@ public:
         current_scope = parent_scope;
         current_scope->add_symbol(name, ASR::down_cast<ASR::symbol_t>(block));
         tmp = ASR::make_BlockCall_t(al, x.base.base.loc, ASR::down_cast<ASR::symbol_t>(block));
-        current_body->push_back(al, ASRUtils::STMT(tmp));
-        tmp = nullptr;
         from_block = false;
     }
 
@@ -528,10 +522,7 @@ public:
         }
         SymbolTable* current_scope_copy = current_scope;
         current_scope = new_scope;
-        Vec<ASR::stmt_t*>* current_body_copy = current_body;
-        current_body = &body;
         transform_stmts(body, x.n_body, x.m_body);
-        current_body = current_body_copy;
         current_scope = current_scope_copy;
         std::string name = current_scope->get_unique_name("associate_block");
         ASR::asr_t* associate_block = ASR::make_AssociateBlock_t(al, x.base.base.loc,
@@ -539,8 +530,6 @@ public:
                                                                  body.p, body.size());
         current_scope->add_symbol(name, ASR::down_cast<ASR::symbol_t>(associate_block));
         tmp = ASR::make_AssociateBlockCall_t(al, x.base.base.loc, ASR::down_cast<ASR::symbol_t>(associate_block));
-        current_body->push_back(al, ASRUtils::STMT(tmp));
-        tmp = nullptr;
     }
 
     void visit_Allocate(const AST::Allocate_t& x) {
@@ -829,7 +818,6 @@ public:
         current_scope = v->m_symtab;
 
         Vec<ASR::stmt_t*> body;
-        current_body = &body;
         body.reserve(al, x.n_body);
         transform_stmts(body, x.n_body, x.m_body);
         ASR::stmt_t* impl_del = create_implicit_deallocate(x.base.base.loc);
@@ -958,29 +946,30 @@ public:
                 x.base.base.loc
             );
         }
-
         ASR::ttype_t *value_type = ASRUtils::expr_type(value);
         if( target->type == ASR::exprType::Var && !ASRUtils::is_array(target_type) &&
             value->type == ASR::exprType::ArrayConstant ) {
             throw SemanticError("ArrayInitalizer expressions can only be assigned array references", x.base.base.loc);
         }
-        if (target->type == ASR::exprType::Var ||
-            target->type == ASR::exprType::ArrayRef) {
+        if( overloaded_stmt == nullptr ) {
+            if (target->type == ASR::exprType::Var ||
+                target->type == ASR::exprType::ArrayRef) {
 
-            ImplicitCastRules::set_converted_value(al, x.base.base.loc, &value,
-                                                    value_type, target_type);
+                ImplicitCastRules::set_converted_value(al, x.base.base.loc, &value,
+                                                        value_type, target_type);
 
-        }
-        if (!ASRUtils::check_equal_type(ASRUtils::expr_type(target),
-                                    ASRUtils::expr_type(value))) {
-            std::string ltype = ASRUtils::type_to_str(ASRUtils::expr_type(target));
-            std::string rtype = ASRUtils::type_to_str(ASRUtils::expr_type(value));
-            diag.semantic_error_label(
-                "Type mismatch in assignment, the types must be compatible",
-                {target->base.loc, value->base.loc},
-                "type mismatch (" + ltype + " and " + rtype + ")"
-            );
-            throw SemanticAbort();
+            }
+            if (!ASRUtils::check_equal_type(ASRUtils::expr_type(target),
+                                        ASRUtils::expr_type(value))) {
+                std::string ltype = ASRUtils::type_to_str(ASRUtils::expr_type(target));
+                std::string rtype = ASRUtils::type_to_str(ASRUtils::expr_type(value));
+                diag.semantic_error_label(
+                    "Type mismatch in assignment, the types must be compatible",
+                    {target->base.loc, value->base.loc},
+                    "type mismatch (" + ltype + " and " + rtype + ")"
+                );
+                throw SemanticAbort();
+            }
         }
         tmp = ASR::make_Assignment_t(al, x.base.base.loc, target, value,
                                      overloaded_stmt);

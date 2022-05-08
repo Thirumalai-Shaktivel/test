@@ -152,6 +152,34 @@ int f_string(char *s) {
     return strlen(s);
 }
 
-int call_fortran_i32(int i) {
+int32_t call_fortran_i32(int32_t i) {
     return fortran_i32(&i);
+}
+
+int32_t call_fortran_i32_value(int32_t i) {
+    return fortran_i32_value(i);
+}
+
+int64_t call_fortran_i64(int64_t i) {
+    return fortran_i64(&i);
+}
+
+int64_t call_fortran_i64_value(int64_t i) {
+    return fortran_i64_value(i);
+}
+
+float call_fortran_f32(float i) {
+    return fortran_f32(&i);
+}
+
+float call_fortran_f32_value(float i) {
+    return fortran_f32_value(i);
+}
+
+double call_fortran_f64(double i) {
+    return fortran_f64(&i);
+}
+
+double call_fortran_f64_value(double i) {
+    return fortran_f64_value(i);
 }
