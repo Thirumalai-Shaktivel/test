@@ -1988,8 +1988,8 @@ public:
                                         [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
                         if( idx == i ) {
                             function_found = true;
-                            for( size_t j = args.size(); j < args_copy.size(); j++ ) {
-                                args.push_back(al, args_copy[j]);
+                            for( size_t j2 = args.size(); j2 < args_copy.size(); j2++ ) {
+                                args.push_back(al, args_copy[j2]);
                             }
                             break;
                         }
@@ -2539,12 +2539,13 @@ public:
                     + " were provided",
                     loc
                 );
+            } else {
+                return ;
             }
         }
 
         std::vector<std::string> fn_args2 = convert_fn_args_to_string(
                 fn_args, fn_n_args, loc);
-
         for (size_t i=0; i < n; i++) {
             std::string str = std::string(kwargs[i].m_arg);
             if( std::find(optional_args.begin(), optional_args.end(), str) == optional_args.end() ) {
@@ -2582,12 +2583,16 @@ public:
                         error_happened = true;
                         if( raise_error ) {
                             throw SemanticError("Keyword argument is already specified as a non-keyword argument", loc);
+                        } else {
+                            return ;
                         }
                     }
                     if (args[idx].m_value != nullptr) {
                         error_happened = true;
                         if( raise_error ) {
                             throw SemanticError("Keyword argument is already specified as another keyword argument ", loc);
+                        } else {
+                            return ;
                         }
                     }
                     args.p[idx].loc = expr->base.loc;
@@ -2596,6 +2601,8 @@ public:
                     error_happened = true;
                     if( raise_error ) {
                         throw SemanticError("Keyword argument not found " + name, loc);
+                    } else {
+                        return ;
                     }
                 }
             }
@@ -2605,6 +2612,8 @@ public:
                 error_happened = true;
                 if( raise_error ) {
                     throw SemanticError("Argument was not specified", loc);
+                } else {
+                    return ;
                 }
             }
         }
