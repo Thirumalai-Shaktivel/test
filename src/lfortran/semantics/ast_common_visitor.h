@@ -1973,6 +1973,59 @@ public:
         return ASR::make_Floor_t(al, x.base.base.loc, arg, type, nullptr);
     }
 
+    ASR::asr_t* create_ArrayPack(const AST::FuncCallOrArray_t& x) {
+        ASR::expr_t *array, *mask, *vector;
+        ASR::ttype_t *type;
+        array = nullptr, mask = nullptr, vector = nullptr;
+        type = nullptr;
+        if( x.n_keywords + x.n_args > 3 || x.n_args + x.n_keywords < 1 ) {
+            throw SemanticError("pack accepts a maximum of 3 arguments and at least 2 argument",
+                                x.base.base.loc);
+        }
+
+        if( x.n_args < 2 ) {
+            throw SemanticError("pack always needs the array and mask arguments",
+                                x.base.base.loc);
+        }
+        if( x.n_args >= 2 ) {
+            this->visit_expr(*x.m_args[0].m_end);
+            array = ASRUtils::EXPR(tmp);
+            this->visit_expr(*x.m_args[1].m_end);
+            mask = ASRUtils::EXPR(tmp);
+            if( !ASR::is_a<ASR::Logical_t>(*ASRUtils::expr_type(mask)) ) {
+                throw SemanticError("mask argument must be of logical type",
+                                    mask->base.loc);
+            }
+        }
+        if( x.n_args >= 3 ) {
+            this->visit_expr(*x.m_args[2].m_end);
+            vector = ASRUtils::EXPR(tmp);
+        }
+        if( x.n_keywords >= 1 ) {
+            std::string kwarg1 = x.m_keywords[0].m_arg;
+            if( kwarg1 != "vector" ) {
+                throw SemanticError("Unrecognized keyword argument, " + kwarg1,
+                                    x.base.base.loc);
+            }
+            LFORTRAN_ASSERT(vector == nullptr);
+            this->visit_expr(*x.m_keywords[0].m_value);
+            vector = ASRUtils::EXPR(tmp);
+        }
+        Vec<ASR::dimension_t> new_dims;
+        new_dims.reserve(al, 1);
+        ASR::dimension_t new_dim;
+        ASR::ttype_t* int32_type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc, 4, nullptr, 0));
+        new_dim.loc = x.base.base.loc;
+        new_dim.m_start = ASRUtils::EXPR(ASR::make_IntegerConstant_t(al, x.base.base.loc, 1, int32_type));
+        new_dim.m_end = ASRUtils::EXPR(ASR::make_ArraySize_t(al, x.base.base.loc,
+                            vector ? vector : mask, nullptr,
+                            int32_type, nullptr));
+        new_dims.push_back(al, new_dim);
+        type = ASRUtils::duplicate_type(al, ASRUtils::expr_type(array), &new_dims);
+        return ASR::make_ArrayPack_t(al, x.base.base.loc, array, mask,
+                                     vector, type, nullptr);
+    }
+
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
         SymbolTable *scope = current_scope;
         std::string var_name = to_lower(x.m_func);
@@ -1999,6 +2052,8 @@ public:
                     tmp = create_Cmplx(x);
                 } else if( var_name == "floor" ) {
                     tmp = create_Floor(x);
+                } else if( var_name == "pack" ) {
+                    tmp = create_ArrayPack(x);
                 }
                 return ;
             }

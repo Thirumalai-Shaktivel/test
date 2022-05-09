@@ -23,7 +23,7 @@ struct IntrinsicProceduresAsASRNodes {
     public:
 
         IntrinsicProceduresAsASRNodes() {
-            intrinsics_present_in_ASR = {"size", "lbound", "ubound", "cmplx", "floor"};
+            intrinsics_present_in_ASR = {"size", "lbound", "ubound", "cmplx", "floor", "pack"};
         }
 
         bool is_intrinsic_present_in_ASR(std::string& name) {
@@ -177,6 +177,7 @@ struct IntrinsicProcedures {
 
             // IEEE Arithmetic
             {"ieee_value", {m_ieee_arithmetic, &not_implemented, false}},
+            {"ieee_is_nan", {m_ieee_arithmetic, &not_implemented, false}},
         };
     }
 

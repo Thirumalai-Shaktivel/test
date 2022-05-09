@@ -131,6 +131,50 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
         case ASR::exprType::ComplexIm: { return ((ASR::ComplexIm_t*)f)->m_type; }
         case ASR::exprType::Cmplx: { return ((ASR::Cmplx_t*)f)->m_type; }
         case ASR::exprType::Floor: { return ((ASR::Floor_t*)f)->m_type; }
+        case ASR::exprType::ArrayPack: { return ((ASR::ArrayPack_t*)f)->m_type; }
+        default : throw LFortranException("Not implemented");
+    }
+}
+
+static inline ASR::ttype_t* duplicate_type(Allocator& al, const ASR::ttype_t* t,
+                                           Vec<ASR::dimension_t>* dims = nullptr) {
+    switch (t->type) {
+        case ASR::ttypeType::Integer: {
+            ASR::Integer_t* tnew = ASR::down_cast<ASR::Integer_t>(t);
+            ASR::dimension_t* dimsp = dims ? dims->p : tnew->m_dims;
+            size_t dimsn = dims ? dims->n : tnew->n_dims;
+            return ASRUtils::TYPE(ASR::make_Integer_t(al, t->base.loc,
+                        tnew->m_kind, dimsp, dimsn));
+        }
+        case ASR::ttypeType::Real: {
+            ASR::Real_t* tnew = ASR::down_cast<ASR::Real_t>(t);
+            ASR::dimension_t* dimsp = dims ? dims->p : tnew->m_dims;
+            size_t dimsn = dims ? dims->n : tnew->n_dims;
+            return ASRUtils::TYPE(ASR::make_Real_t(al, t->base.loc,
+                        tnew->m_kind, dimsp, dimsn));
+        }
+        case ASR::ttypeType::Complex: {
+            ASR::Complex_t* tnew = ASR::down_cast<ASR::Complex_t>(t);
+            ASR::dimension_t* dimsp = dims ? dims->p : tnew->m_dims;
+            size_t dimsn = dims ? dims->n : tnew->n_dims;
+            return ASRUtils::TYPE(ASR::make_Integer_t(al, t->base.loc,
+                        tnew->m_kind, dimsp, dimsn));
+        }
+        case ASR::ttypeType::Logical: {
+            ASR::Logical_t* tnew = ASR::down_cast<ASR::Logical_t>(t);
+            ASR::dimension_t* dimsp = dims ? dims->p : tnew->m_dims;
+            size_t dimsn = dims ? dims->n : tnew->n_dims;
+            return ASRUtils::TYPE(ASR::make_Logical_t(al, t->base.loc,
+                        tnew->m_kind, dimsp, dimsn));
+        }
+        case ASR::ttypeType::Character: {
+            ASR::Character_t* tnew = ASR::down_cast<ASR::Character_t>(t);
+            ASR::dimension_t* dimsp = dims ? dims->p : tnew->m_dims;
+            size_t dimsn = dims ? dims->n : tnew->n_dims;
+            return ASRUtils::TYPE(ASR::make_Character_t(al, t->base.loc,
+                        tnew->m_kind, tnew->m_len, tnew->m_len_expr,
+                        dimsp, dimsn));
+        }
         default : throw LFortranException("Not implemented");
     }
 }
@@ -288,6 +332,9 @@ static inline ASR::expr_t* expr_value(ASR::expr_t *f)
         case ASR::exprType::SetLen: { return ASR::down_cast<ASR::SetLen_t>(f)->m_value; }
         case ASR::exprType::ComplexRe: { return ASR::down_cast<ASR::ComplexRe_t>(f)->m_value; }
         case ASR::exprType::ComplexIm: { return ASR::down_cast<ASR::ComplexIm_t>(f)->m_value; }
+        case ASR::exprType::Cmplx: { return ASR::down_cast<ASR::Cmplx_t>(f)->m_value; }
+        case ASR::exprType::Floor: { return ASR::down_cast<ASR::Floor_t>(f)->m_value; }
+        case ASR::exprType::ArrayPack: { return ASR::down_cast<ASR::ArrayPack_t>(f)->m_value; }
         case ASR::exprType::ArrayConstant: // Drop through
         case ASR::exprType::IntegerConstant: // Drop through
         case ASR::exprType::RealConstant: // Drop through
