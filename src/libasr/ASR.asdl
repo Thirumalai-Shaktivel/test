@@ -257,6 +257,7 @@ expr
     | ComplexRe(expr arg, ttype type, expr? value)
     | ComplexIm(expr arg, ttype type, expr? value)
     | Cmplx(expr argx, expr? argy, ttype type, expr? value)
+    | Floor(expr arg, ttype type, expr? value)
 
 
 -- `len` in Character:

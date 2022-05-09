@@ -1920,6 +1920,59 @@ public:
         return ASR::make_Cmplx_t(al, x.base.base.loc, argx, argy, type, nullptr);
     }
 
+    ASR::asr_t* create_Floor(const AST::FuncCallOrArray_t& x) {
+        ASR::expr_t *arg, *kind;
+        ASR::ttype_t *type;
+        arg = nullptr, kind = nullptr;
+        type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc, 4, nullptr, 0));
+        if( x.n_keywords + x.n_args > 2 || x.n_args + x.n_keywords < 1 ) {
+            throw SemanticError("floor accepts a maximum of 2 arguments and at least 1 argument",
+                                x.base.base.loc);
+        }
+
+        if( x.n_args == 0 ) {
+            throw SemanticError("floor always needs the real argument",
+                                x.base.base.loc);
+        }
+        if( x.n_args >= 1 ) {
+            this->visit_expr(*x.m_args[0].m_end);
+            arg = ASRUtils::EXPR(tmp);
+            if( !ASR::is_a<ASR::Real_t>(*ASRUtils::expr_type(arg)) ) {
+                throw SemanticError("The positional argument of floor must be of real type",
+                                    x.base.base.loc);
+            }
+        }
+        if( x.n_args >= 2 ) {
+            this->visit_expr(*x.m_args[1].m_end);
+            kind = ASRUtils::EXPR(tmp);
+            ASR::expr_t *kind_value = ASRUtils::expr_value(kind);
+            if( kind_value ) {
+                LFORTRAN_ASSERT(ASR::is_a<ASR::IntegerConstant_t>(*kind_value));
+                type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                        ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n,
+                                        nullptr, 0));
+            }
+        }
+        if( x.n_keywords >= 1 ) {
+            std::string kwarg1 = x.m_keywords[0].m_arg;
+            if( kwarg1 != "kind" ) {
+                throw SemanticError("Unrecognized keyword argument, " + kwarg1,
+                                    x.base.base.loc);
+            }
+            this->visit_expr(*x.m_keywords[0].m_value);
+            LFORTRAN_ASSERT(kind == nullptr);
+            kind = ASRUtils::EXPR(tmp);
+            ASR::expr_t *kind_value = ASRUtils::expr_value(kind);
+            if( kind_value ) {
+                LFORTRAN_ASSERT(ASR::is_a<ASR::IntegerConstant_t>(*kind_value));
+                type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                        ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n,
+                                        nullptr, 0));
+            }
+        }
+        return ASR::make_Floor_t(al, x.base.base.loc, arg, type, nullptr);
+    }
+
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
         SymbolTable *scope = current_scope;
         std::string var_name = to_lower(x.m_func);
@@ -1944,6 +1997,8 @@ public:
                     tmp = create_ArrayBound(x, var_name);
                 } else if( var_name == "cmplx" ) {
                     tmp = create_Cmplx(x);
+                } else if( var_name == "floor" ) {
+                    tmp = create_Floor(x);
                 }
                 return ;
             }
