@@ -32,7 +32,7 @@ interface modulo
 end interface
 
 interface mod
-    module procedure imod, smod, dmod
+    module procedure imod, i64mod, smod, dmod
 end interface
 
 interface merge
@@ -209,6 +209,14 @@ end function
 
 elemental integer function imod(x, y) result(r)
 integer, intent(in) :: x, y
+r = x-floor(real(x)/y)*y
+if (x < 0 .and. y < 0) return
+if (x < 0) r = r - y
+if (y < 0) r = r - y
+end function
+
+elemental integer function i64mod(x, y) result(r)
+integer(i64), intent(in) :: x, y
 r = x-floor(real(x)/y)*y
 if (x < 0 .and. y < 0) return
 if (x < 0) r = r - y
