@@ -1944,7 +1944,7 @@ public:
                 throw SemanticError("Unrecognized keyword argument, " + kwarg1,
                                     x.base.base.loc);
             }
-            this->visit_expr(*x.m_keywords[0].m_value);
+            this->visit_expr(*x.m_keywords[1].m_value);
             if( kwarg1 == "y" ) {
                 LFORTRAN_ASSERT(argy == nullptr);
                 argy = ASRUtils::EXPR(tmp);
@@ -2122,6 +2122,119 @@ public:
         return ASR::make_Ichar_t(al, x.base.base.loc, arg, type, nullptr);
     }
 
+    void create_ScanVerify_util(const AST::FuncCallOrArray_t& x,
+        ASR::expr_t*& string, ASR::expr_t*& set, ASR::expr_t*& back,
+        ASR::ttype_t*& type) {
+        ASR::expr_t* kind = nullptr;
+        type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc, 4, nullptr, 0));
+        if( x.n_keywords + x.n_args > 4 || x.n_args + x.n_keywords < 2 ) {
+            throw SemanticError("scan accepts a maximum of 4 arguments and at least 2 arguments",
+                                x.base.base.loc);
+        }
+
+        if( x.n_args < 2 ) {
+            throw SemanticError("ichar always needs the string and set arguments.",
+                                x.base.base.loc);
+        }
+        if( x.n_args >= 1 ) {
+            this->visit_expr(*x.m_args[0].m_end);
+            string = ASRUtils::EXPR(tmp);
+            if( !ASR::is_a<ASR::Character_t>(*ASRUtils::expr_type(string)) ) {
+                throw SemanticError("The positional argument string must be of character type.",
+                                    x.base.base.loc);
+            }
+        }
+        if( x.n_args >= 2 ) {
+            this->visit_expr(*x.m_args[1].m_end);
+            set = ASRUtils::EXPR(tmp);
+            if( !ASR::is_a<ASR::Character_t>(*ASRUtils::expr_type(set)) ) {
+                throw SemanticError("The positional argument set must be of character type.",
+                                    x.base.base.loc);
+            }
+        }
+        if( x.n_args >= 3 ) {
+            this->visit_expr(*x.m_args[2].m_end);
+            back = ASRUtils::EXPR(tmp);
+            if( !ASR::is_a<ASR::Logical_t>(*ASRUtils::expr_type(back)) ) {
+                throw SemanticError("The positional argument back must be of logical type.",
+                                    x.base.base.loc);
+            }
+        }
+        if( x.n_args >= 4 ) {
+            this->visit_expr(*x.m_args[3].m_end);
+            kind = ASRUtils::EXPR(tmp);
+            ASR::expr_t *kind_value = ASRUtils::expr_value(kind);
+            if( kind_value ) {
+                LFORTRAN_ASSERT(ASR::is_a<ASR::IntegerConstant_t>(*kind_value));
+                type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                        ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n,
+                                        nullptr, 0));
+            }
+        }
+        if( x.n_keywords >= 1 ) {
+            std::string kwarg1 = x.m_keywords[0].m_arg;
+            if( kwarg1 != "back" && kwarg1 != "kind" ) {
+                throw SemanticError("Unrecognized keyword argument, " + kwarg1,
+                                    x.base.base.loc);
+            }
+            this->visit_expr(*x.m_keywords[0].m_value);
+            if( kwarg1 == "back" ) {
+                LFORTRAN_ASSERT(back == nullptr);
+                back = ASRUtils::EXPR(tmp);
+            } else if( kwarg1 == "kind" ) {
+                LFORTRAN_ASSERT(kind == nullptr);
+                kind = ASRUtils::EXPR(tmp);
+                ASR::expr_t *kind_value = ASRUtils::expr_value(kind);
+                if( kind_value ) {
+                    LFORTRAN_ASSERT(ASR::is_a<ASR::IntegerConstant_t>(*kind_value));
+                    type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                            ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n,
+                                            nullptr, 0));
+                }
+            }
+        }
+        if( x.n_keywords >= 2 ) {
+            std::string kwarg1 = x.m_keywords[1].m_arg;
+            if( kwarg1 != "back" && kwarg1 != "kind" ) {
+                throw SemanticError("Unrecognized keyword argument, " + kwarg1,
+                                    x.base.base.loc);
+            }
+            this->visit_expr(*x.m_keywords[1].m_value);
+            if( kwarg1 == "back" ) {
+                LFORTRAN_ASSERT(back == nullptr);
+                back = ASRUtils::EXPR(tmp);
+            } else if( kwarg1 == "kind" ) {
+                LFORTRAN_ASSERT(kind == nullptr);
+                kind = ASRUtils::EXPR(tmp);
+                ASR::expr_t *kind_value = ASRUtils::expr_value(kind);
+                if( kind_value ) {
+                    LFORTRAN_ASSERT(!ASR::is_a<ASR::IntegerConstant_t>(*kind_value));
+                    type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                            ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n,
+                                            nullptr, 0));
+                }
+            }
+        }
+    }
+
+    ASR::asr_t* create_Scan(const AST::FuncCallOrArray_t& x) {
+        ASR::expr_t *string, *set, *back;
+        ASR::ttype_t *type;
+        string = nullptr, set = nullptr, back = nullptr;
+        type = nullptr;
+        create_ScanVerify_util(x, string, set, back, type);
+        return ASR::make_Scan_t(al, x.base.base.loc, string, set, back, type, nullptr);
+    }
+
+    ASR::asr_t* create_Verify(const AST::FuncCallOrArray_t& x) {
+        ASR::expr_t *string, *set, *back;
+        ASR::ttype_t *type;
+        string = nullptr, set = nullptr, back = nullptr;
+        type = nullptr;
+        create_ScanVerify_util(x, string, set, back, type);
+        return ASR::make_Verify_t(al, x.base.base.loc, string, set, back, type, nullptr);
+    }
+
     ASR::symbol_t* intrinsic_as_node(const AST::FuncCallOrArray_t &x,
                                      bool& is_function) {
         std::string var_name = to_lower(x.m_func);
@@ -2139,6 +2252,10 @@ public:
                 tmp = create_ArrayPack(x);
             } else if( var_name == "ichar" ) {
                 tmp = create_Ichar(x);
+            } else if( var_name == "scan" ) {
+                tmp = create_Scan(x);
+            } else if( var_name == "verify" ) {
+                tmp = create_Verify(x);
             } else {
                 LFortranException("create_" + var_name + " not implemented yet.");
             }
