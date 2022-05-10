@@ -1555,7 +1555,7 @@ public:
                 v_expr);
     }
 
-    ASR::asr_t* create_GenericProcedure(const Location &loc,
+    ASR::asr_t* create_GenericProcedure(const Location& loc,
                 Vec<ASR::call_arg_t>& args, ASR::symbol_t *v) {
         if (ASR::is_a<ASR::ExternalSymbol_t>(*v)) {
             return symbol_resolve_external_generic_procedure(loc, v,
@@ -1565,12 +1565,34 @@ public:
             int idx = ASRUtils::select_generic_procedure(args, *p, loc,
                     [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
                     false);
+            ASR::symbol_t *final_sym = p->m_procs[idx];
+
+            ASR::ttype_t *type;
+            type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+            type = handle_return_type(type, loc, args, ASR::is_a<ASR::ExternalSymbol_t>(*v),
+                                                ASR::down_cast<ASR::Function_t>(final_sym));
+            return ASR::make_FunctionCall_t(al, loc,
+                final_sym, v, args.p, args.size(), type,
+                nullptr, nullptr);
+        }
+    }
+
+    ASR::asr_t* create_GenericProcedureWithASTNode(const AST::FuncCallOrArray_t& x,
+                Vec<ASR::call_arg_t>& args, ASR::symbol_t *v) {
+        const Location& loc = x.base.base.loc;
+        if (ASR::is_a<ASR::ExternalSymbol_t>(*v)) {
+            return symbol_resolve_external_generic_procedure(loc, v,
+                    args);
+        } else {
+            ASR::GenericProcedure_t *p = ASR::down_cast<ASR::GenericProcedure_t>(v);
+            int idx = ASRUtils::select_generic_procedure(args, *p, loc,
+                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
+                    false);
             if( idx == -1 ) {
-                std::string v_name = ASRUtils::symbol_name(v);
-                v = resolve_intrinsic_function(loc, v_name);
-                if( !v ) {
-                    throw SemanticError("Couldn't find any function " + v_name + ".",
-                                        loc);
+                bool is_function = true;
+                v = intrinsic_as_node(x, is_function);
+                if( !is_function ) {
+                    return tmp;
                 }
                 return create_FunctionCall(loc, v, args);
             }
@@ -1627,6 +1649,17 @@ public:
         } else {
             LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
             return create_GenericProcedure(loc, args, v);
+        }
+    }
+
+    ASR::asr_t* create_FunctionCallWithASTNode(const AST::FuncCallOrArray_t& x,
+                ASR::symbol_t *v, Vec<ASR::call_arg_t>& args) {
+        ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
+        if (ASR::is_a<ASR::Function_t>(*f2)) {
+            return create_Function(x.base.base.loc, args, v);
+        } else {
+            LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
+            return create_GenericProcedureWithASTNode(x, args, v);
         }
     }
 
@@ -2036,6 +2069,84 @@ public:
                                      vector, type, nullptr);
     }
 
+    ASR::asr_t* create_Ichar(const AST::FuncCallOrArray_t& x) {
+        ASR::expr_t *arg, *kind;
+        ASR::ttype_t *type;
+        arg = nullptr, kind = nullptr;
+        type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc, 4, nullptr, 0));
+        if( x.n_keywords + x.n_args > 2 || x.n_args + x.n_keywords < 1 ) {
+            throw SemanticError("ichar accepts a maximum of 2 arguments and at least 1 argument",
+                                x.base.base.loc);
+        }
+
+        if( x.n_args == 0 ) {
+            throw SemanticError("ichar always needs the character scalar",
+                                x.base.base.loc);
+        }
+        if( x.n_args >= 1 ) {
+            this->visit_expr(*x.m_args[0].m_end);
+            arg = ASRUtils::EXPR(tmp);
+            if( !ASR::is_a<ASR::Character_t>(*ASRUtils::expr_type(arg)) ) {
+                throw SemanticError("The positional argument of arg must be a character scalar",
+                                    x.base.base.loc);
+            }
+        }
+        if( x.n_args >= 2 ) {
+            this->visit_expr(*x.m_args[1].m_end);
+            kind = ASRUtils::EXPR(tmp);
+            ASR::expr_t *kind_value = ASRUtils::expr_value(kind);
+            if( kind_value ) {
+                LFORTRAN_ASSERT(ASR::is_a<ASR::IntegerConstant_t>(*kind_value));
+                type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                        ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n,
+                                        nullptr, 0));
+            }
+        }
+        if( x.n_keywords >= 1 ) {
+            std::string kwarg1 = x.m_keywords[0].m_arg;
+            if( kwarg1 != "kind" ) {
+                throw SemanticError("Unrecognized keyword argument, " + kwarg1,
+                                    x.base.base.loc);
+            }
+            this->visit_expr(*x.m_keywords[0].m_value);
+            LFORTRAN_ASSERT(kind == nullptr);
+            kind = ASRUtils::EXPR(tmp);
+            ASR::expr_t *kind_value = ASRUtils::expr_value(kind);
+            if( kind_value ) {
+                LFORTRAN_ASSERT(ASR::is_a<ASR::IntegerConstant_t>(*kind_value));
+                type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                        ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n,
+                                        nullptr, 0));
+            }
+        }
+        return ASR::make_Ichar_t(al, x.base.base.loc, arg, type, nullptr);
+    }
+
+    ASR::symbol_t* intrinsic_as_node(const AST::FuncCallOrArray_t &x,
+                                     bool& is_function) {
+        std::string var_name = to_lower(x.m_func);
+        if( intrinsic_procedures_as_asr_nodes.is_intrinsic_present_in_ASR(var_name) ) {
+            is_function = false;
+            if( var_name == "size" ) {
+                tmp = create_ArraySize(x);
+            } else if( var_name == "lbound" || var_name == "ubound" ) {
+                tmp = create_ArrayBound(x, var_name);
+            } else if( var_name == "cmplx" ) {
+                tmp = create_Cmplx(x);
+            } else if( var_name == "floor" ) {
+                tmp = create_Floor(x);
+            } else if( var_name == "pack" ) {
+                tmp = create_ArrayPack(x);
+            } else if( var_name == "ichar" ) {
+                tmp = create_Ichar(x);
+            } else {
+                LFortranException("create_" + var_name + " not implemented yet.");
+            }
+            return nullptr;
+        }
+        return resolve_intrinsic_function(x.base.base.loc, var_name);
+    }
+
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
         SymbolTable *scope = current_scope;
         std::string var_name = to_lower(x.m_func);
@@ -2053,21 +2164,11 @@ public:
             v = current_scope->resolve_symbol(var_name);
         }
         if (!v) {
-            if( intrinsic_procedures_as_asr_nodes.is_intrinsic_present_in_ASR(var_name) ) {
-                if( var_name == "size" ) {
-                    tmp = create_ArraySize(x);
-                } else if( var_name == "lbound" || var_name == "ubound" ) {
-                    tmp = create_ArrayBound(x, var_name);
-                } else if( var_name == "cmplx" ) {
-                    tmp = create_Cmplx(x);
-                } else if( var_name == "floor" ) {
-                    tmp = create_Floor(x);
-                } else if( var_name == "pack" ) {
-                    tmp = create_ArrayPack(x);
-                }
+            bool is_function = true;
+            v = intrinsic_as_node(x, is_function);
+            if( !is_function ) {
                 return ;
             }
-            v = resolve_intrinsic_function(x.base.base.loc, var_name);
         }
         ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
         if (ASR::is_a<ASR::Function_t>(*f2) || ASR::is_a<ASR::GenericProcedure_t>(*f2)) {
@@ -2120,7 +2221,7 @@ public:
                     }
                 }
             }
-            tmp = create_FunctionCall(x.base.base.loc, v, args);
+            tmp = create_FunctionCallWithASTNode(x, v, args);
         } else {
             switch (f2->type) {
             case(ASR::symbolType::Variable):

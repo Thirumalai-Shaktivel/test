@@ -132,6 +132,7 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
         case ASR::exprType::Cmplx: { return ((ASR::Cmplx_t*)f)->m_type; }
         case ASR::exprType::Floor: { return ((ASR::Floor_t*)f)->m_type; }
         case ASR::exprType::ArrayPack: { return ((ASR::ArrayPack_t*)f)->m_type; }
+        case ASR::exprType::Ichar: { return ((ASR::Ichar_t*)f)->m_type; }
         default : throw LFortranException("Not implemented");
     }
 }

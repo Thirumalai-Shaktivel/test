@@ -259,6 +259,7 @@ expr
     | ComplexIm(expr arg, ttype type, expr? value)
     | Cmplx(expr argx, expr? argy, ttype type, expr? value)
     | Floor(expr arg, ttype type, expr? value)
+    | Ichar(expr arg, ttype type, expr? value)
 
 
 -- `len` in Character:

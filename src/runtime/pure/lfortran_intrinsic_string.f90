@@ -136,6 +136,11 @@ function adjustl(x) result(r)
     end do
 end function
 
+function adjustr(x) result(r)
+    character(len=*),intent(in) :: x
+    character(len=len(x)) :: r
+end function
+
 subroutine date_and_time(date, time, zone, values)
     character(len=*), intent(out), optional :: date, time, zone
     integer, intent(out), optional :: values(8)
