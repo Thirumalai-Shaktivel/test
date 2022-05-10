@@ -1563,7 +1563,17 @@ public:
         } else {
             ASR::GenericProcedure_t *p = ASR::down_cast<ASR::GenericProcedure_t>(v);
             int idx = ASRUtils::select_generic_procedure(args, *p, loc,
-                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
+                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
+                    false);
+            if( idx == -1 ) {
+                std::string v_name = ASRUtils::symbol_name(v);
+                v = resolve_intrinsic_function(loc, v_name);
+                if( !v ) {
+                    throw SemanticError("Couldn't find any function " + v_name + ".",
+                                        loc);
+                }
+                return create_FunctionCall(loc, v, args);
+            }
             ASR::symbol_t *final_sym = p->m_procs[idx];
 
             ASR::ttype_t *type;
