@@ -1203,12 +1203,14 @@ public:
                     ASR::FunctionCall_t *fc = ASR::down_cast<ASR::FunctionCall_t>(potential_call);
                     ASR::symbol_t *new_es = fc->m_name;
                     // Import a function as external only if necessary
-                    if( is_external_func ) {
+                    // std::cout<<"is_external_func: "<<ASR::is_a<ASR::ExternalSymbol_t>(*new_es)<<" "<<ASRUtils::symbol_name(new_es)<<std::endl;
+                    if( ASR::is_a<ASR::ExternalSymbol_t>(*new_es)  || is_external_func ) {
                         ASR::Function_t *f = nullptr;
+                        ASR::symbol_t* f_sym = nullptr;
                         if (ASR::is_a<ASR::Function_t>(*fc->m_name)) {
                             f = ASR::down_cast<ASR::Function_t>(fc->m_name);
                         } else if( ASR::is_a<ASR::ExternalSymbol_t>(*fc->m_name) ) {
-                            ASR::symbol_t* f_sym = ASRUtils::symbol_get_past_external(fc->m_name);
+                            f_sym = ASRUtils::symbol_get_past_external(fc->m_name);
                             if( ASR::is_a<ASR::Function_t>(*f_sym) ) {
                                 f = ASR::down_cast<ASR::Function_t>(f_sym);
                             }
@@ -1216,13 +1218,17 @@ public:
                         ASR::Module_t *m = ASR::down_cast2<ASR::Module_t>(f->m_symtab->parent->asr_owner);
                         char *modname = m->m_name;
                         ASR::symbol_t *maybe_f = current_scope->resolve_symbol(std::string(f->m_name));
+                        ASR::symbol_t* maybe_f_actual = nullptr;
                         std::string maybe_modname = "";
                         if( maybe_f && ASR::is_a<ASR::ExternalSymbol_t>(*maybe_f) ) {
                             maybe_modname = ASR::down_cast<ASR::ExternalSymbol_t>(maybe_f)->m_module_name;
+                            maybe_f_actual = ASRUtils::symbol_get_past_external(maybe_f);
                         }
                         // If the Function to be imported is already present
                         // then do not import.
-                        if( maybe_modname == std::string(modname) ) {
+                        // std::cout<<"f_sym, maybe_f: "<<f_sym<<" "<<maybe_f_actual<<std::endl;
+                        if( maybe_modname == std::string(modname) &&
+                            f_sym == maybe_f_actual ) {
                             new_es = maybe_f;
                         } else {
                             // Import while assigning a new name to avoid conflicts
@@ -1266,6 +1272,12 @@ public:
                                     idx_found = arg_name_2 == arg_name;
                                 }
                             }
+                        } else if( ASR::is_a<ASR::FunctionCall_t>(*arg) ) {
+                            std::vector<ASR::expr_t*> level2_args;
+                            level2_args.push_back(arg);
+                            fix_function_calls_ttype_t(level2_args, orig_args, orig_func,
+                                                        is_external_func);
+                            arg = level2_args[0];
                         }
                         ASR::call_arg_t call_arg;
                         call_arg.loc = arg->base.loc;
@@ -1304,24 +1316,11 @@ public:
                                     }
                                 }
                             } else if( ASR::is_a<ASR::FunctionCall_t>(*arg) ) {
-                                ASR::FunctionCall_t* arg_fc = ASR::down_cast<ASR::FunctionCall_t>(arg);
                                 std::vector<ASR::expr_t*> level2_args;
-                                for( size_t i2 = 0; i2 < arg_fc->n_args; i2++ ) {
-                                    level2_args.push_back(arg_fc->m_args[i2].m_value);
-                                }
+                                level2_args.push_back(arg);
                                 fix_function_calls_ttype_t(level2_args, orig_args, orig_func,
                                                            is_external_func);
-                                Vec<ASR::call_arg_t> new_args;
-                                new_args.reserve(al, level2_args.size());
-                                for( size_t i2 = 0; i2 < level2_args.size(); i2++ ) {
-                                    ASR::call_arg_t new_arg;
-                                    new_arg.loc = level2_args[i2]->base.loc;
-                                    new_arg.m_value = level2_args[i2];
-                                    new_args.push_back(al, new_arg);
-                                }
-                                func_calls[i] = ASR::down_cast<ASR::expr_t>(ASR::make_FunctionCall_t(al, arg_fc->base.base.loc,
-                                                    arg_fc->m_name, arg_fc->m_original_name, new_args.p, new_args.size(),
-                                                    arg_fc->m_type, arg_fc->m_value, arg_fc->m_dt));
+                                arg = level2_args[0];
                             }
                         }
                         if( idx_found ) {
@@ -1561,6 +1560,7 @@ public:
             throw SemanticError("ExternalSymbol must point to a Function", loc);
         }
         ASR::ttype_t *return_type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+        // std::cout<<"calling handle_return_type"<<std::endl;
         return_type = handle_return_type(return_type, loc, args, ASR::is_a<ASR::ExternalSymbol_t>(*v), ASR::down_cast<ASR::Function_t>(final_sym));
         // Create ExternalSymbol for the final subroutine:
         // We mangle the new ExternalSymbol's local name as:
@@ -1627,6 +1627,11 @@ public:
             if( !is_function ) {
                 return tmp;
             }
+            // std::cout<<"v: "<<v->type<<std::endl;
+            // if( ASR::is_a<ASR::ExternalSymbol_t>(*v) ) {
+            //     ASR::ExternalSymbol_t* v_ext = ASR::down_cast<ASR::ExternalSymbol_t>(v);
+                // std::cout<<v_ext->m_module_name<<std::endl;
+            // }
             return create_FunctionCall(loc, v, args);
         }
         ASR::symbol_t *final_sym;
@@ -1635,6 +1640,7 @@ public:
             throw SemanticError("ExternalSymbol must point to a Function", loc);
         }
         ASR::ttype_t *return_type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+        // std::cout<<"calling handle_return_type 1"<<std::endl;
         return_type = handle_return_type(return_type, loc, args, ASR::is_a<ASR::ExternalSymbol_t>(*v), ASR::down_cast<ASR::Function_t>(final_sym));
         // Create ExternalSymbol for the final subroutine:
         // We mangle the new ExternalSymbol's local name as:
@@ -1708,6 +1714,7 @@ public:
 
             ASR::ttype_t *type;
             type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+            // std::cout<<"calling handle_return_type 2"<<std::endl;
             type = handle_return_type(type, loc, args, ASR::is_a<ASR::ExternalSymbol_t>(*v),
                                                 ASR::down_cast<ASR::Function_t>(final_sym));
             return ASR::make_FunctionCall_t(al, loc,
@@ -1740,6 +1747,7 @@ public:
 
             ASR::ttype_t *type;
             type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+            // std::cout<<"calling handle_return_type 3"<<std::endl;
             type = handle_return_type(type, loc, args, ASR::is_a<ASR::ExternalSymbol_t>(*v),
                                                 ASR::down_cast<ASR::Function_t>(final_sym));
             return ASR::make_FunctionCall_t(al, loc,
@@ -1752,6 +1760,7 @@ public:
                 Vec<ASR::call_arg_t>& args, ASR::symbol_t *v) {
         ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
         ASR::ttype_t *return_type = ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(f2)->m_return_var)->m_type;
+        // std::cout<<"calling handle_return_type n "<<ASR::is_a<ASR::ExternalSymbol_t>(*v)<<" "<<ASRUtils::symbol_name(v)<<std::endl;
         return_type = handle_return_type(return_type, loc, args, ASR::is_a<ASR::ExternalSymbol_t>(*v),
                                          ASR::down_cast<ASR::Function_t>(f2));
         ASR::expr_t* value = nullptr;
@@ -2575,6 +2584,10 @@ public:
                 loc);
         }
         char *fn_name = ASRUtils::symbol_name(t);
+        std::string fn_name_str = std::string(fn_name);
+        if( current_scope->get_symbol(fn_name_str) != nullptr ) {
+            fn_name = s2c(al, current_scope->get_unique_name(fn_name_str));
+        }
         ASR::asr_t *fn = ASR::make_ExternalSymbol_t(
             al, t->base.loc,
             /* a_symtab */ current_scope,

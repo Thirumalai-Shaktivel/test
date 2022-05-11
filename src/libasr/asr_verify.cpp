@@ -506,6 +506,7 @@ public:
                 visit_expr(*(x.m_args[i].m_value));
             }
         }
+        // std::cout<<"function: "<<ASRUtils::symbol_name(x.m_name)<<std::endl;
         visit_ttype(*x.m_type);
     }
 
