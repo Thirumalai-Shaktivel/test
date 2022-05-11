@@ -1333,6 +1333,72 @@ public:
                     a_dim = args[1];
                     func_calls[i] = ASR::down_cast<ASR::expr_t>(ASR::make_ArraySize_t(al, potential_call->base.loc,
                                         a_v, a_dim, array_size->m_type, nullptr));
+                } else if (ASR::is_a<ASR::BinOp_t>(*potential_call)) {
+                    ASR::BinOp_t* binop = ASR::down_cast<ASR::BinOp_t>(potential_call);
+                    ASR::expr_t *arg1, *arg2;
+                    arg1 = arg2 = nullptr;
+                    Vec<ASR::expr_t*> fc_args;
+                    fc_args.reserve(al, 2);
+                    fc_args.push_back(al, binop->m_left);
+                    fc_args.push_back(al, binop->m_right);
+                    Vec<ASR::expr_t*> args;
+                    args.reserve(al, 2);
+                    // The following substitutes args from the current scope
+                    for (size_t i = 0; i < fc_args.size(); i++) {
+                        ASR::expr_t *arg = fc_args[i];
+                        size_t arg_idx = i;
+                        bool idx_found = false;
+                        if( arg ) {
+                            if (ASR::is_a<ASR::Var_t>(*arg)) {
+                                std::string arg_name = ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(arg)->m_v);
+                                for( size_t j = 0; j < orig_func->n_args && !idx_found; j++ ) {
+                                    if( ASR::is_a<ASR::Var_t>(*(orig_func->m_args[j])) ) {
+                                        std::string arg_name_2 = std::string(ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
+                                        arg_idx = j;
+                                        idx_found = arg_name_2 == arg_name;
+                                    }
+                                }
+                            } else if( ASR::is_a<ASR::FunctionCall_t>(*arg) ) {
+                                ASR::FunctionCall_t* arg_fc = ASR::down_cast<ASR::FunctionCall_t>(arg);
+                                std::vector<ASR::expr_t*> level2_args;
+                                for( size_t i2 = 0; i2 < arg_fc->n_args; i2++ ) {
+                                    level2_args.push_back(arg_fc->m_args[i2].m_value);
+                                }
+                                fix_function_calls_ttype_t(level2_args, orig_args, orig_func,
+                                                           is_external_func);
+                                Vec<ASR::call_arg_t> new_args;
+                                new_args.reserve(al, level2_args.size());
+                                for( size_t i2 = 0; i2 < level2_args.size(); i2++ ) {
+                                    ASR::call_arg_t new_arg;
+                                    new_arg.loc = level2_args[i2]->base.loc;
+                                    new_arg.m_value = level2_args[i2];
+                                    new_args.push_back(al, new_arg);
+                                }
+                                arg = ASR::down_cast<ASR::expr_t>(ASR::make_FunctionCall_t(al, arg_fc->base.base.loc,
+                                                    arg_fc->m_name, arg_fc->m_original_name, new_args.p, new_args.size(),
+                                                    arg_fc->m_type, arg_fc->m_value, arg_fc->m_dt));
+                            } else if( ASR::is_a<ASR::BinOp_t>(*arg) ) {
+                                ASR::BinOp_t* arg_binop = ASR::down_cast<ASR::BinOp_t>(arg);
+                                std::vector<ASR::expr_t*> level2_args;
+                                level2_args.push_back(arg_binop->m_left);
+                                level2_args.push_back(arg_binop->m_right);
+                                fix_function_calls_ttype_t(level2_args, orig_args, orig_func,
+                                                           is_external_func);
+                                arg = ASR::down_cast<ASR::expr_t>(ASR::make_BinOp_t(al, arg_binop->base.base.loc,
+                                                        level2_args[0], arg_binop->m_op, level2_args[1], arg_binop->m_type,
+                                                        arg_binop->m_value, arg_binop->m_overloaded));
+                            }
+                        }
+                        if( idx_found ) {
+                            arg = orig_args[arg_idx].m_value;
+                        }
+                        args.push_back(al, arg);
+                    }
+                    arg1 = args[0];
+                    arg2 = args[1];
+                    func_calls[i] = ASR::down_cast<ASR::expr_t>(ASR::make_BinOp_t(al, potential_call->base.loc,
+                                                arg1, binop->m_op, arg2, binop->m_type, binop->m_value,
+                                                binop->m_overloaded));
                 } else {
                     // If the potential_call is not a call but any other expression
                     ASR::expr_t *arg = potential_call;
@@ -2144,6 +2210,47 @@ public:
                                      vector, type, nullptr);
     }
 
+    ASR::asr_t* create_ArrayTransfer(const AST::FuncCallOrArray_t& x) {
+        ASR::expr_t *source, *mold, *size;
+        ASR::ttype_t *type;
+        source = nullptr, mold = nullptr, size = nullptr;
+        type = nullptr;
+        if( x.n_keywords + x.n_args > 3 || x.n_args + x.n_keywords < 1 ) {
+            throw SemanticError("transfer accepts a maximum of 3 arguments and at least 2 argument",
+                                x.base.base.loc);
+        }
+
+        if( x.n_args < 2 ) {
+            throw SemanticError("transfer always needs the source and mold arguments",
+                                x.base.base.loc);
+        }
+        if( x.n_args >= 2 ) {
+            this->visit_expr(*x.m_args[0].m_end);
+            source = ASRUtils::EXPR(tmp);
+            this->visit_expr(*x.m_args[1].m_end);
+            mold = ASRUtils::EXPR(tmp);
+        }
+        if( x.n_args >= 3 ) {
+            this->visit_expr(*x.m_args[2].m_end);
+            size = ASRUtils::EXPR(tmp);
+        }
+        if( x.n_keywords >= 1 ) {
+            std::string kwarg1 = x.m_keywords[0].m_arg;
+            if( kwarg1 != "size" ) {
+                throw SemanticError("Unrecognized keyword argument, " + kwarg1,
+                                    x.base.base.loc);
+            }
+            LFORTRAN_ASSERT(size == nullptr);
+            this->visit_expr(*x.m_keywords[0].m_value);
+            size = ASRUtils::EXPR(tmp);
+        }
+        Vec<ASR::dimension_t> new_dims;
+        new_dims.reserve(al, 1);
+        type = ASRUtils::duplicate_type(al, ASRUtils::expr_type(mold), &new_dims);
+        return ASR::make_ArrayTransfer_t(al, x.base.base.loc, source, mold,
+                                     size, type, nullptr);
+    }
+
     ASR::asr_t* create_Ichar(const AST::FuncCallOrArray_t& x) {
         ASR::expr_t *arg, *kind;
         ASR::ttype_t *type;
@@ -2325,6 +2432,8 @@ public:
                 tmp = create_Floor(x);
             } else if( var_name == "pack" ) {
                 tmp = create_ArrayPack(x);
+            } else if( var_name == "transfer" ) {
+                tmp = create_ArrayTransfer(x);
             } else if( var_name == "ichar" ) {
                 tmp = create_Ichar(x);
             } else if( var_name == "scan" ) {
