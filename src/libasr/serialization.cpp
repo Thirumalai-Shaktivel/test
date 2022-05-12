@@ -181,6 +181,7 @@ public:
     }
 
     void visit_Module(const Module_t &x) {
+        // std::cout<<"Module: "<<x.m_name<<std::endl;
         SymbolTable *parent_symtab = current_symtab;
         current_symtab = x.m_symtab;
         x.m_symtab->parent = parent_symtab;
@@ -189,6 +190,7 @@ public:
             this->visit_symbol(*a.second);
         }
         current_symtab = parent_symtab;
+        // std::cout<<"Module.done: "<<x.m_name<<std::endl;
     }
 
     void visit_Subroutine(const Subroutine_t &x) {

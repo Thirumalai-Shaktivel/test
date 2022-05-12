@@ -229,6 +229,7 @@ public:
 
     void visit_Submodule(const AST::Submodule_t &x) {
         in_submodule = true;
+        // std::cout<<"Module: "<<x.m_name<<std::endl;
         visit_ModuleSubmoduleCommon<AST::Submodule_t, ASR::Module_t>(x, std::string(x.m_id));
         in_submodule = false;
     }
@@ -1152,10 +1153,12 @@ public:
         ASR::symbol_t *t = current_scope->parent->resolve_symbol(msym);
         if (!t) {
             std::string rl_path = get_runtime_library_dir();
+            // std::cout<<"Module loaded: "<<msym<<std::endl;
             t = (ASR::symbol_t*)(ASRUtils::load_module(al, current_scope->parent,
                 msym, x.base.base.loc, false, rl_path, true,
                 [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); }
                 ));
+            // std::cout<<"Module finished loading: "<<msym<<std::endl;
         }
         if (!ASR::is_a<ASR::Module_t>(*t)) {
             throw SemanticError("The symbol '" + msym + "' must be a module",

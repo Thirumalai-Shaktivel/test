@@ -432,7 +432,7 @@ bool use_overloaded_assignment(ASR::expr_t* target, ASR::expr_t* value,
                     if( curr_scope->resolve_symbol(matched_subrout_name) == nullptr ) {
                         err("Unable to resolve matched subroutine for assignment overloading, " + std::string(matched_subrout_name), loc);
                     }
-                    asr = ASR::make_SubroutineCall_t(al, loc, curr_scope->resolve_symbol(matched_subrout_name), orig_sym,
+                    asr = ASR::make_SubroutineCall_t(al, loc, curr_scope->resolve_symbol(matched_subrout_name), sym,
                                                         a_args.p, 2, nullptr);
                 }
             }
