@@ -1658,6 +1658,54 @@ public:
         return member;
     }
 
+    void handle_intrinsic_node_args(const AST::FuncCallOrArray_t& x,
+        std::vector<ASR::expr_t*>& args, std::vector<std::string>& kwarg_names,
+        size_t min_args, size_t max_args, const std::string& intrinsic_name) {
+        size_t total_args = x.n_args + x.n_keywords;
+        if( !(total_args <= max_args && total_args >= min_args) ) {
+            throw SemanticError("Incorrect number of arguments "
+                                "passed to the " + intrinsic_name + " intrinsic."
+                                "It accepts at least " + std::to_string(min_args) +
+                                " and at most " + std::to_string(max_args) + " arguments.",
+                                x.base.base.loc);
+        }
+
+        for( size_t i = 0; i < max_args; i++ ) {
+            args.push_back(nullptr);
+        }
+
+        for( size_t i = 0; i < x.n_args; i++ ) {
+            this->visit_expr(*x.m_args[i].m_end);
+            args[i] = ASRUtils::EXPR(tmp);
+        }
+
+        for( size_t i = 0; i < x.n_keywords; i++ ) {
+            std::string curr_kwarg_name = std::string(x.m_keywords[i].m_arg);
+            if( std::find(kwarg_names.begin(), kwarg_names.end(),
+                          curr_kwarg_name) == kwarg_names.end() ) {
+                throw SemanticError("Unrecognized keyword argument " + curr_kwarg_name +
+                                    " passed to " + intrinsic_name + " intrinsic.",
+                                    x.base.base.loc);
+            }
+        }
+
+        size_t offset = min_args;
+        for( size_t i = 0; i < x.n_keywords; i++ ) {
+            std::string curr_kwarg_name = std::string(x.m_keywords[i].m_arg);
+            auto it = std::find(kwarg_names.begin(), kwarg_names.end(),
+                                curr_kwarg_name);
+            int64_t kwarg_idx = it - kwarg_names.begin();
+            if( args[kwarg_idx + offset] != nullptr ) {
+                throw SemanticError(curr_kwarg_name + " has already " +
+                                    "been specified as a positional/keyword " +
+                                    "argument to " + intrinsic_name + ".",
+                                    x.base.base.loc);
+            }
+            this->visit_expr(*x.m_keywords[i].m_value);
+            args[kwarg_idx + offset] = ASRUtils::EXPR(tmp);
+        }
+    }
+
     void handle_array_bound_size_args(const AST::FuncCallOrArray_t& x, ASR::expr_t*& v_Var,
                                       ASR::expr_t*& dim, ASR::ttype_t*& type) {
         if( !(x.n_args + x.n_keywords <= 3 && x.n_args >= 1)  ) {
@@ -1743,26 +1791,47 @@ public:
         }
     }
 
+    int64_t handle_kind(ASR::expr_t* kind) {
+        if( kind == nullptr ) {
+            return 4;
+        }
+
+        ASR::expr_t* kind_value = ASRUtils::expr_value(kind);
+        if( kind_value == nullptr ) {
+            throw SemanticError(("Only Integer literals or expressions "
+                                "which reduce to constant Integer are "
+                                "accepted as kind parameters."),
+                                kind->base.loc);
+        }
+        return ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n;
+    }
+
     ASR::asr_t* create_ArrayBound(const AST::FuncCallOrArray_t& x, std::string& bound_name) {
-         ASR::expr_t *v_Var, *dim;
-         ASR::ttype_t *type;
-        v_Var = nullptr, dim = nullptr, type = nullptr;
-        handle_array_bound_size_args(x, v_Var, dim, type);
+        std::vector<ASR::expr_t*> args;
+        std::vector<std::string> kwarg_names = {"dim", "kind"};
+        handle_intrinsic_node_args(x, args, kwarg_names, 1, 3, bound_name);
+        ASR::expr_t *v_Var = args[0], *dim = args[1], *kind = args[2];
         ASR::arrayboundType bound = ASR::arrayboundType::LBound;
         if( bound_name == "lbound" ) {
             bound = ASR::arrayboundType::LBound;
         } else if( bound_name == "ubound" ) {
             bound = ASR::arrayboundType::UBound;
         }
+        int64_t kind_const = handle_kind(kind);
+        ASR::ttype_t *type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                            kind_const, nullptr, 0));
         return ASR::make_ArrayBound_t(al, x.base.base.loc, v_Var, dim, type,
                                       bound, nullptr);
     }
 
     ASR::asr_t* create_ArraySize(const AST::FuncCallOrArray_t& x) {
-        ASR::expr_t *v_Var, *dim;
-        ASR::ttype_t *type;
-        v_Var = nullptr, dim = nullptr, type = nullptr;
-        handle_array_bound_size_args(x, v_Var, dim, type);
+        std::vector<ASR::expr_t*> args;
+        std::vector<std::string> kwarg_names = {"dim", "kind"};
+        handle_intrinsic_node_args(x, args, kwarg_names, 1, 3, std::string("size"));
+        ASR::expr_t *v_Var = args[0], *dim = args[1], *kind = args[2];
+        int64_t kind_const = handle_kind(kind);
+        ASR::ttype_t *type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                            kind_const, nullptr, 0));
         return ASR::make_ArraySize_t(al, x.base.base.loc, v_Var, dim, type, nullptr);
     }
 
