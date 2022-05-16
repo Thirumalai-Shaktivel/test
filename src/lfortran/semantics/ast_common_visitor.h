@@ -1750,6 +1750,17 @@ public:
         return ASR::make_ArraySize_t(al, x.base.base.loc, v_Var, dim, type, nullptr);
     }
 
+    ASR::asr_t* create_ArrayTranspose(const AST::FuncCallOrArray_t& x) {
+        std::vector<ASR::expr_t*> args;
+        std::vector<std::string> kwarg_names;
+        handle_intrinsic_node_args(x, args, kwarg_names, 1, 1, std::string("size"));
+        ASR::expr_t *matrix = args[0];
+        // TODO: check that rank of matrix is 2.
+        // TODO: invert dimensions of the matrix's type.
+        ASR::ttype_t *type = ASRUtils::expr_type(matrix);
+        return ASR::make_ArrayTranspose_t(al, x.base.base.loc, matrix, type, nullptr);
+    }
+
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
         SymbolTable *scope = current_scope;
         std::string var_name = to_lower(x.m_func);
@@ -1772,6 +1783,8 @@ public:
                     tmp = create_ArraySize(x);
                 } else if( var_name == "lbound" || var_name == "ubound" ) {
                     tmp = create_ArrayBound(x, var_name);
+                } else if( var_name == "transpose" ) {
+                    tmp = create_ArrayTranspose(x);
                 }
                 return ;
             }
