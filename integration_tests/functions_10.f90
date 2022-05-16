@@ -8,19 +8,19 @@ contains
     function mergei32(a, b, m) result(r)
         integer :: a(:), b(:)
         integer, optional :: m(:)
-        integer :: r(size(a))
+        integer :: r
     end function
 
     function merger32(a, b, m) result(r)
         real :: a(:), b(:)
         real, optional :: m(:)
-        real :: r(size(a))
+        real :: r
     end function
 
     function merger64(a, b, m) result(r)
         real(8) :: a(:), b(:)
         real(8), optional :: m(:)
-        real(8) :: r(size(a))
+        real(8) :: r
     end function
 
 end module

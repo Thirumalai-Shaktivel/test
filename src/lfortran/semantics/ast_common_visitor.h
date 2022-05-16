@@ -1800,10 +1800,13 @@ public:
             if (x.n_keywords > 0) {
                 if (ASR::is_a<ASR::Function_t>(*f2)) {
                     ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(f2);
-                    bool error_happened = false;
+                    diag::Diagnostics diags;
                     visit_kwargs(args, x.m_keywords, x.n_keywords,
                         f->m_args, f->n_args, x.base.base.loc, f,
-                        error_happened);
+                        diags);
+                    if( diags.has_error() ) {
+                        throw SemanticAbort();
+                    }
                 } else {
                     LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
                     ASR::GenericProcedure_t* gp = ASR::down_cast<ASR::GenericProcedure_t>(f2);
@@ -1821,11 +1824,11 @@ public:
                                                 x.base.base.loc);
                         }
                         ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(f4);
-                        bool error_happened = false;
+                        diag::Diagnostics diags;
                         visit_kwargs(args_copy, x.m_keywords, x.n_keywords,
                             f->m_args, f->n_args, x.base.base.loc, f,
-                            error_happened, false);
-                        if( error_happened ) {
+                            diags);
+                        if( diags.has_error() ) {
                             continue ;
                         }
                         int idx = ASRUtils::select_generic_procedure(args_copy, *gp, x.base.base.loc,
@@ -2360,8 +2363,9 @@ public:
     template <typename T>
     void visit_kwargs(Vec<ASR::call_arg_t>& args, AST::keyword_t *kwargs, size_t n,
                 ASR::expr_t **fn_args, size_t fn_n_args, const Location &loc, T* fn,
-                bool& error_happened, bool raise_error=true) {
+                diag::Diagnostics& diag) {
         size_t n_args = args.size();
+        std::string fn_name = fn->m_name;
         std::vector<std::string> optional_args;
         for( auto itr = fn->m_symtab->get_scope().begin(); itr != fn->m_symtab->get_scope().end();
              itr++ ) {
@@ -2373,17 +2377,16 @@ public:
                 }
             }
         }
-        size_t n_optional = optional_args.size();
-        if (n_args + n > fn_n_args + n_optional) {
-            error_happened = true;
-            if( raise_error ) {
-                throw SemanticError(
-                    "Procedure accepts " + std::to_string(fn_n_args + n_optional)
-                    + " arguments, but " + std::to_string(n_args + n)
-                    + " were provided",
-                    loc
-                );
-            }
+
+        if (n_args + n > fn_n_args) {
+            diag.semantic_error_label(
+                "Procedure accepts " + std::to_string(fn_n_args)
+                + " arguments, but " + std::to_string(n_args + n)
+                + " were provided",
+                {loc},
+                "incorrect number of arguments to " + std::string(fn_name)
+            );
+            return ;
         }
 
         std::vector<std::string> fn_args2 = convert_fn_args_to_string(
@@ -2403,13 +2406,13 @@ public:
 
 
         size_t offset = args.size();
-        for (size_t i = 0; i < n_optional; i++) {
+        for (size_t i = 0; i < fn_n_args - offset; i++) {
             ASR::call_arg_t call_arg;
             call_arg.loc = loc;
             call_arg.m_value = nullptr;
             args.push_back(al, call_arg);
         }
-        for (size_t i=0; i<n; i++) {
+        for (size_t i = 0; i < n; i++) {
             this->visit_expr(*kwargs[i].m_value);
             ASR::expr_t *expr = LFortran::ASRUtils::EXPR(tmp);
             std::string name = to_lower(kwargs[i].m_arg);
@@ -2423,33 +2426,38 @@ public:
                 if (search != fn_args2.end()) {
                     size_t idx = std::distance(fn_args2.begin(), search);
                     if (idx < n_args) {
-                        error_happened = true;
-                        if( raise_error ) {
-                            throw SemanticError("Keyword argument is already specified as a non-keyword argument", loc);
-                        }
+                        diag.semantic_error_label(
+                            "Keyword argument is already specified as a non-keyword argument",
+                            {loc},
+                            name + "keyword argument is already specified.");
+                        return ;
                     }
                     if (args[idx].m_value != nullptr) {
-                        error_happened = true;
-                        if( raise_error ) {
-                            throw SemanticError("Keyword argument is already specified as another keyword argument ", loc);
-                        }
+                        diag.semantic_error_label(
+                            "Keyword argument is already specified as another keyword argument",
+                            {loc},
+                            name + "keyword argument is already specified.");
+                        return ;
                     }
                     args.p[idx].loc = expr->base.loc;
                     args.p[idx].m_value = expr;
                 } else {
-                    error_happened = true;
-                    if( raise_error ) {
-                        throw SemanticError("Keyword argument not found " + name, loc);
-                    }
+                    diag.semantic_error_label(
+                        "Keyword argument not found " + name,
+                        {loc},
+                        name + " keyword argument not found.");
+                    return ;
                 }
             }
         }
         for (size_t i=0; i < offset; i++) {
             if (args[i].m_value == nullptr) {
-                error_happened = true;
-                if( raise_error ) {
-                    throw SemanticError("Argument was not specified", loc);
-                }
+                diag.semantic_error_label(
+                    "Argument was not specified",
+                    {loc},
+                    std::to_string(i) +
+                    "-th argument not specified for " + fn_name);
+                return ;
             }
         }
     }
