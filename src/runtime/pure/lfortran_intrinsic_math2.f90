@@ -51,22 +51,6 @@ interface huge
     module procedure i32huge, sphuge, dphuge
 end interface
 
-interface matmul
-    module procedure matmulr32r32, matmulr64r64, matmulz32z32, matmulz64z64
-end interface
-
-interface transpose
-    module procedure transposer32, transposer64, transposez32, transposez64
-end interface
-
-interface conjg
-    module procedure conjgz32, conjgz64
-end interface
-
-interface dot_product
-    module procedure dotproductr32r32, dotproductr64r64
-end interface
-
 contains
 
 ! abs --------------------------------------------------------------------------
@@ -467,66 +451,6 @@ function mergelogical(tsource, fsource, mask) result(r)
     logical, intent(in) :: fsource(:)
     logical, intent(in) :: mask(:)
     logical :: r
-end function
-
-function matmulr32r32(x, y) result(r)
-real(sp) :: x(:), y(:)
-real(sp) :: r(size(x))
-end function
-
-function matmulr64r64(x, y) result(r)
-real(dp) :: x(:), y(:)
-real(dp) :: r(size(x))
-end function
-
-function matmulz32z32(x, y) result(r)
-complex(sp) :: x(:), y(:)
-complex(sp) :: r(size(x))
-end function
-
-function matmulz64z64(x, y) result(r)
-complex(dp) :: x(:), y(:)
-complex(dp) :: r(size(x))
-end function
-
-function dotproductr32r32(x, y) result(r)
-real(sp) :: x(:), y(:)
-real(sp) :: r
-end function
-
-function dotproductr64r64(x, y) result(r)
-real(dp) :: x(:), y(:)
-real(dp) :: r
-end function
-
-function transposer32(x) result(r)
-real(sp) :: x(:, :)
-real(sp) :: r(size(x) : size(x))
-end function
-
-function transposer64(x) result(r)
-real(dp) :: x(:, :)
-real(dp) :: r(size(x) : size(x))
-end function
-
-function transposez32(x) result(r)
-complex(sp) :: x(:, :)
-complex(sp) :: r(size(x) : size(x))
-end function
-
-function transposez64(x) result(r)
-complex(dp) :: x(:, :)
-complex(dp) :: r(size(x) : size(x))
-end function
-
-function conjgz32(x) result(r)
-complex(sp) :: x
-complex(sp) :: r
-end function
-
-function conjgz64(x) result(r)
-complex(dp) :: x
-complex(dp) :: r
 end function
 
 end module

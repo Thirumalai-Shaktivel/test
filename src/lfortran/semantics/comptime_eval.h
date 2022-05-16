@@ -117,10 +117,8 @@ struct IntrinsicProcedures {
             {"atan2", {m_math, &eval_atan2, true}},
             {"sign", {m_math, &not_implemented, false}},
 
-            {"matmul", {m_math2, &not_implemented, false}},
-            {"dot_product", {m_math2, &not_implemented, false}},
-            {"transpose", {m_math2, &not_implemented, false}},
-            {"conjg", {m_math2, &not_implemented, false}},
+            {"dot_product", {m_math, &not_implemented, false}},
+            {"conjg", {m_math, &not_implemented, false}},
 
             {"iand", {m_bit, &not_implemented, false}},
             {"ior", {m_bit, &not_implemented, false}},
