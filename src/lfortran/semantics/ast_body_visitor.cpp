@@ -1003,7 +1003,7 @@ public:
                 diag::Diagnostics diags;
                 visit_kwargs(args, x.m_keywords, x.n_keywords,
                     f->m_args, f->n_args, x.base.base.loc, f,
-                    diags);
+                    diags, x.n_member);
                 if( diags.has_error() ) {
                     throw SemanticAbort();
                 }
@@ -1017,7 +1017,7 @@ public:
                 diag::Diagnostics diags;
                 visit_kwargs(args, x.m_keywords, x.n_keywords,
                     f->m_args, f->n_args, x.base.base.loc, f,
-                    diags);
+                    diags, x.n_member);
                 if( diags.has_error() ) {
                     throw SemanticAbort();
                 }

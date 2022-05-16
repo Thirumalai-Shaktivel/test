@@ -1803,7 +1803,7 @@ public:
                     diag::Diagnostics diags;
                     visit_kwargs(args, x.m_keywords, x.n_keywords,
                         f->m_args, f->n_args, x.base.base.loc, f,
-                        diags);
+                        diags, x.n_member);
                     if( diags.has_error() ) {
                         throw SemanticAbort();
                     }
@@ -1827,7 +1827,7 @@ public:
                         diag::Diagnostics diags;
                         visit_kwargs(args_copy, x.m_keywords, x.n_keywords,
                             f->m_args, f->n_args, x.base.base.loc, f,
-                            diags);
+                            diags, x.n_member);
                         if( diags.has_error() ) {
                             continue ;
                         }
@@ -2363,7 +2363,7 @@ public:
     template <typename T>
     void visit_kwargs(Vec<ASR::call_arg_t>& args, AST::keyword_t *kwargs, size_t n,
                 ASR::expr_t **fn_args, size_t fn_n_args, const Location &loc, T* fn,
-                diag::Diagnostics& diag) {
+                diag::Diagnostics& diag, size_t type_bound=0) {
         size_t n_args = args.size();
         std::string fn_name = fn->m_name;
         std::vector<std::string> optional_args;
@@ -2406,7 +2406,7 @@ public:
 
 
         size_t offset = args.size();
-        for (size_t i = 0; i < fn_n_args - offset; i++) {
+        for (size_t i = 0; i < fn_n_args - offset - type_bound; i++) {
             ASR::call_arg_t call_arg;
             call_arg.loc = loc;
             call_arg.m_value = nullptr;
