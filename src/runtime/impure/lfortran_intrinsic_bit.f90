@@ -504,13 +504,10 @@ end interface
 r = c_ibits64(i, pos, len)
 end function
 
-<<<<<<< HEAD
-=======
 function count(mask, dim, kind) result(r)
 logical :: mask(:)
 integer, optional :: dim, kind
 integer :: r(size(mask))
 end function
 
->>>>>>> ab22afd07 (Added shiftl, shiftr and return in case of error in visit_kwargs)
 end module

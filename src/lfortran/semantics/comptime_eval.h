@@ -156,6 +156,7 @@ struct IntrinsicProcedures {
             {"ble", {m_bit, &not_implemented, true}},
             {"blt", {m_bit, &not_implemented, true}},
             {"ibits", {m_bit, &not_implemented, true}},
+            {"count", {m_bit, &not_implemented, false}},
             {"iachar",  {m_builtin, &eval_iachar, true}},
             {"achar", {m_builtin, &eval_achar, false}},
             {"len", {m_builtin, &eval_len, false}},
