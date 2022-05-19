@@ -28,7 +28,8 @@ interface
     integer, pointer, intent(out) :: fptr
     end subroutine
 
-    type(c_ptr) function c_loc(x)
+    !type(c_ptr) function c_loc(x)
+    integer function c_loc(x)
     import c_ptr
     !type(*), intent(in) :: x
     integer, intent(in) :: x
