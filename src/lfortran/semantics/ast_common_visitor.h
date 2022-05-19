@@ -1196,6 +1196,7 @@ public:
         for( size_t i = 0; i < exprs.size(); i++ ) {
             ASR::expr_t* expri = exprs[i];
             if (expri) {
+                expr_duplicator.success = true;
                 ASR::expr_t* expri_copy = expr_duplicator.duplicate_expr(expri);
                 LFORTRAN_ASSERT(expr_duplicator.success);
                 arg_replacer.visit_expr(*expri_copy);

@@ -1213,6 +1213,8 @@ class ReplaceArgVisitor: public ASR::BaseWalkVisitor<ReplaceArgVisitor> {
             ASR::expr_t *arg = x.m_args[i].m_value;
             visit_expr(*arg);
         }
+        ASR::FunctionCall_t& xx = const_cast<ASR::FunctionCall_t&>(x);
+        xx.m_name = new_es;
     }
 
     void visit_Var(const ASR::Var_t& x) {
