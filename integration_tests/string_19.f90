@@ -3,7 +3,6 @@ implicit none
 
 type :: string_type
     sequence
-    private
     character(len=:), allocatable :: raw
 end type string_type
 
@@ -47,13 +46,13 @@ contains
         integer :: lps_array(len(string))
     end function compute_lps
 
-    pure function compute_lps_use(string) result(l)
+    function compute_lps_use(string) result(l)
         character(len=*), intent(in) :: string
         integer :: l
         print *, compute_lps(string)
     end function compute_lps_use
 
-    pure function compute_lps_use1(string) result(l)
+    function compute_lps_use1(string) result(l)
         type(string_type), intent(in) :: string
         integer :: l
         print *, char(string)

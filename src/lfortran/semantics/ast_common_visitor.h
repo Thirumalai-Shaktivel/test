@@ -1187,26 +1187,27 @@ public:
 
     void fix_exprs_ttype_t(std::vector<ASR::expr_t*>& exprs,
                            Vec<ASR::call_arg_t>& orig_args,
-                           ASR::Function_t* orig_func=nullptr,
-                           bool is_external_func=false) {
+                           ASR::Function_t* orig_func=nullptr) {
         ASR::ExprStmtDuplicator expr_duplicator(al);
         expr_duplicator.allow_procedure_calls = true;
         ASRUtils::ReplaceArgVisitor arg_replacer(al, current_scope, orig_func,
-                                                 orig_args, is_external_func);
+                                                 orig_args);
         for( size_t i = 0; i < exprs.size(); i++ ) {
             ASR::expr_t* expri = exprs[i];
             if (expri) {
                 expr_duplicator.success = true;
                 ASR::expr_t* expri_copy = expr_duplicator.duplicate_expr(expri);
                 LFORTRAN_ASSERT(expr_duplicator.success);
-                arg_replacer.visit_expr(*expri_copy);
+                // std::cout<<"Calling arg_replacer"<<std::endl;
+                arg_replacer.current_expr = &expri_copy;
+                arg_replacer.replace_expr(expri_copy);
                 exprs[i] = expri_copy;
             }
         }
     }
 
     ASR::ttype_t* handle_return_type(ASR::ttype_t *return_type, const Location &loc,
-                                     Vec<ASR::call_arg_t>& args, bool is_external_func_=true,
+                                     Vec<ASR::call_arg_t>& args,
                                      ASR::Function_t* f=nullptr) {
         // Rebuild the return type if needed and make FunctionCalls use ExternalSymbol
         std::vector<ASR::expr_t*> func_calls;
@@ -1215,7 +1216,7 @@ public:
                 ASR::Character_t *t = ASR::down_cast<ASR::Character_t>(return_type);
                 func_calls.push_back(t->m_len_expr);
                 fill_expr_in_ttype_t(func_calls, t->m_dims, t->n_dims);
-                fix_exprs_ttype_t(func_calls, args, f, is_external_func_);
+                fix_exprs_ttype_t(func_calls, args, f);
                 Vec<ASR::dimension_t> new_dims;
                 new_dims.reserve(al, t->n_dims);
                 for( size_t i = 1; i < func_calls.size(); i += 2 ) {
@@ -1234,7 +1235,7 @@ public:
             case ASR::ttypeType::Integer: {
                 ASR::Integer_t *t = ASR::down_cast<ASR::Integer_t>(return_type);
                 fill_expr_in_ttype_t(func_calls, t->m_dims, t->n_dims);
-                fix_exprs_ttype_t(func_calls, args, f, is_external_func_);
+                fix_exprs_ttype_t(func_calls, args, f);
                 Vec<ASR::dimension_t> new_dims;
                 new_dims.reserve(al, t->n_dims);
                 for( size_t i = 0; i < func_calls.size(); i += 2 ) {
@@ -1249,7 +1250,7 @@ public:
             case ASR::ttypeType::Real: {
                 ASR::Real_t *t = ASR::down_cast<ASR::Real_t>(return_type);
                 fill_expr_in_ttype_t(func_calls, t->m_dims, t->n_dims);
-                fix_exprs_ttype_t(func_calls, args, f, is_external_func_);
+                fix_exprs_ttype_t(func_calls, args, f);
                 Vec<ASR::dimension_t> new_dims;
                 new_dims.reserve(al, t->n_dims);
                 for( size_t i = 0; i < func_calls.size(); i += 2 ) {
@@ -1321,7 +1322,7 @@ public:
             throw SemanticError("ExternalSymbol must point to a Function", loc);
         }
         ASR::ttype_t *return_type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
-        return_type = handle_return_type(return_type, loc, args, ASR::is_a<ASR::ExternalSymbol_t>(*v), ASR::down_cast<ASR::Function_t>(final_sym));
+        return_type = handle_return_type(return_type, loc, args, ASR::down_cast<ASR::Function_t>(final_sym));
         // Create ExternalSymbol for the final subroutine:
         // We mangle the new ExternalSymbol's local name as:
         //   generic_procedure_local_name @
@@ -1394,6 +1395,7 @@ public:
 
             ASR::ttype_t *type;
             type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+            type = handle_return_type(type, loc, args, ASR::down_cast<ASR::Function_t>(final_sym));
             return ASR::make_FunctionCall_t(al, loc,
                 final_sym, v, args.p, args.size(), type,
                 nullptr, nullptr);
@@ -1404,8 +1406,7 @@ public:
                 Vec<ASR::call_arg_t>& args, ASR::symbol_t *v) {
         ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
         ASR::ttype_t *return_type = ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(f2)->m_return_var)->m_type;
-        return_type = handle_return_type(return_type, loc, args, ASR::is_a<ASR::ExternalSymbol_t>(*v),
-                                         ASR::down_cast<ASR::Function_t>(f2));
+        return_type = handle_return_type(return_type, loc, args, ASR::down_cast<ASR::Function_t>(f2));
         ASR::expr_t* value = nullptr;
         if (ASR::is_a<ASR::ExternalSymbol_t>(*v)) {
             // Populate value

@@ -1141,7 +1141,7 @@ ASR::asr_t* symbol_resolve_external_generic_procedure_without_eval(
             SymbolTable* current_scope, Allocator& al,
             const std::function<void (const std::string &, const Location &)> err);
 
-class ReplaceArgVisitor: public ASR::BaseWalkVisitor<ReplaceArgVisitor> {
+class ReplaceArgVisitor: public ASR::BaseExprReplacer<ReplaceArgVisitor> {
 
     private:
 
@@ -1153,74 +1153,77 @@ class ReplaceArgVisitor: public ASR::BaseWalkVisitor<ReplaceArgVisitor> {
 
     Vec<ASR::call_arg_t>& orig_args;
 
-    bool is_external_func;
-
     public:
 
     ReplaceArgVisitor(Allocator& al_, SymbolTable* current_scope_,
-                      ASR::Function_t* orig_func_, Vec<ASR::call_arg_t>& orig_args_,
-                      bool is_external_func_) :
+                      ASR::Function_t* orig_func_, Vec<ASR::call_arg_t>& orig_args_) :
         al(al_), current_scope(current_scope_), orig_func(orig_func_),
-        orig_args(orig_args_), is_external_func(is_external_func_)
+        orig_args(orig_args_)
     {}
 
-    void visit_FunctionCall(const ASR::FunctionCall_t& x) {
-        ASR::symbol_t *new_es = x.m_name;
+    void replace_FunctionCall(ASR::FunctionCall_t* x) {
+        // std::cout<<"FunctionCall.ReplaceArgVisitor"<<std::endl;
+        ASR::symbol_t *new_es = x->m_name;
         // Import a function as external only if necessary
-        if( is_external_func ) {
-            ASR::Function_t *f = nullptr;
-            if (ASR::is_a<ASR::Function_t>(*x.m_name)) {
-                f = ASR::down_cast<ASR::Function_t>(x.m_name);
-            } else if( ASR::is_a<ASR::ExternalSymbol_t>(*x.m_name) ) {
-                ASR::symbol_t* f_sym = ASRUtils::symbol_get_past_external(x.m_name);
-                if( ASR::is_a<ASR::Function_t>(*f_sym) ) {
-                    f = ASR::down_cast<ASR::Function_t>(f_sym);
-                }
+        ASR::Function_t *f = nullptr;
+        ASR::symbol_t* f_sym = nullptr;
+        if (ASR::is_a<ASR::Function_t>(*x->m_name)) {
+            f = ASR::down_cast<ASR::Function_t>(x->m_name);
+        } else if( ASR::is_a<ASR::ExternalSymbol_t>(*x->m_name) ) {
+            f_sym = ASRUtils::symbol_get_past_external(x->m_name);
+            if( ASR::is_a<ASR::Function_t>(*f_sym) ) {
+                f = ASR::down_cast<ASR::Function_t>(f_sym);
             }
-            ASR::Module_t *m = ASR::down_cast2<ASR::Module_t>(f->m_symtab->parent->asr_owner);
-            char *modname = m->m_name;
-            ASR::symbol_t *maybe_f = current_scope->resolve_symbol(std::string(f->m_name));
-            std::string maybe_modname = "";
-            if( maybe_f && ASR::is_a<ASR::ExternalSymbol_t>(*maybe_f) ) {
-                maybe_modname = ASR::down_cast<ASR::ExternalSymbol_t>(maybe_f)->m_module_name;
-            }
-            // If the Function to be imported is already present
-            // then do not import.
-            if( maybe_modname == std::string(modname) ) {
-                new_es = maybe_f;
-            } else {
-                // Import while assigning a new name to avoid conflicts
-                // For example, if someone is using `len` from a user
-                // define module then `get_unique_name` will avoid conflict
-                std::string unique_name = current_scope->get_unique_name(f->m_name);
-                Str s; s.from_str_view(unique_name);
-                char *unique_name_c = s.c_str(al);
-                LFORTRAN_ASSERT(current_scope->get_symbol(unique_name) == nullptr);
-                new_es = ASR::down_cast<ASR::symbol_t>(ASR::make_ExternalSymbol_t(
-                    al, f->base.base.loc,
-                    /* a_symtab */ current_scope,
-                    /* a_name */ unique_name_c,
-                    (ASR::symbol_t*)f,
-                    modname, nullptr, 0,
-                    f->m_name,
-                    ASR::accessType::Private
-                    ));
-                current_scope->add_symbol(unique_name, new_es);
-            }
+        }
+        ASR::Module_t *m = ASR::down_cast2<ASR::Module_t>(f->m_symtab->parent->asr_owner);
+        char *modname = m->m_name;
+        ASR::symbol_t *maybe_f = current_scope->resolve_symbol(std::string(f->m_name));
+        ASR::symbol_t* maybe_f_actual = nullptr;
+        std::string maybe_modname = "";
+        if( maybe_f && ASR::is_a<ASR::ExternalSymbol_t>(*maybe_f) ) {
+            maybe_modname = ASR::down_cast<ASR::ExternalSymbol_t>(maybe_f)->m_module_name;
+            maybe_f_actual = ASRUtils::symbol_get_past_external(maybe_f);
+        }
+        // If the Function to be imported is already present
+        // then do not import.
+        if( maybe_modname == std::string(modname) &&
+            f_sym == maybe_f_actual ) {
+            new_es = maybe_f;
+        } else {
+            // Import while assigning a new name to avoid conflicts
+            // For example, if someone is using `len` from a user
+            // define module then `get_unique_name` will avoid conflict
+            std::string unique_name = current_scope->get_unique_name(f->m_name);
+            Str s; s.from_str_view(unique_name);
+            char *unique_name_c = s.c_str(al);
+            LFORTRAN_ASSERT(current_scope->get_symbol(unique_name) == nullptr);
+            new_es = ASR::down_cast<ASR::symbol_t>(ASR::make_ExternalSymbol_t(
+                al, f->base.base.loc,
+                /* a_symtab */ current_scope,
+                /* a_name */ unique_name_c,
+                (ASR::symbol_t*)f,
+                modname, nullptr, 0,
+                f->m_name,
+                ASR::accessType::Private
+                ));
+            current_scope->add_symbol(unique_name, new_es);
         }
         // The following substitutes args from the current scope
-        for (size_t i = 0; i < x.n_args; i++) {
-            ASR::expr_t *arg = x.m_args[i].m_value;
-            visit_expr(*arg);
+        for (size_t i = 0; i < x->n_args; i++) {
+            // std::cout<<"candidate: "<<&(x->m_args[i].m_value)<<std::endl;
+            ASR::expr_t** current_expr_copy = current_expr;
+            current_expr = &(x->m_args[i].m_value);
+            replace_expr(x->m_args[i].m_value);
+            current_expr = current_expr_copy;
         }
-        ASR::FunctionCall_t& xx = const_cast<ASR::FunctionCall_t&>(x);
-        xx.m_name = new_es;
+        x->m_name = new_es;
     }
 
-    void visit_Var(const ASR::Var_t& x) {
+    void replace_Var(ASR::Var_t* x) {
+        // std::cout<<"ASR::Var_t.ReplaceArgVisitor"<<std::endl;
         size_t arg_idx = 0;
         bool idx_found = false;
-        std::string arg_name = ASRUtils::symbol_name(x.m_v);
+        std::string arg_name = ASRUtils::symbol_name(x->m_v);
         // Finds the index of the argument to be used for substitution
         // Basically if we are calling maybe(string, ret_type=character(len=len(s)))
         // where string is a variable in current scope and s is one of the arguments
@@ -1229,14 +1232,16 @@ class ReplaceArgVisitor: public ASR::BaseWalkVisitor<ReplaceArgVisitor> {
         // maybe(string, ret_type=character(len=len(string)))
         for( size_t j = 0; j < orig_func->n_args && !idx_found; j++ ) {
             if( ASR::is_a<ASR::Var_t>(*(orig_func->m_args[j])) ) {
-                std::string arg_name_2 = std::string(ASRUtils::symbol_name(ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
+                std::string arg_name_2 = std::string(ASRUtils::symbol_name(
+                    ASR::down_cast<ASR::Var_t>(orig_func->m_args[j])->m_v));
                 arg_idx = j;
                 idx_found = arg_name_2 == arg_name;
             }
         }
         if( idx_found ) {
-            ASR::Var_t& xx = const_cast<ASR::Var_t&>(x);
-            xx.m_v = ASR::down_cast<ASR::Var_t>(orig_args[arg_idx].m_value)->m_v;
+            // std::cout<<"replaced: "<<current_expr<<std::endl;
+            LFORTRAN_ASSERT(current_expr);
+            *current_expr = orig_args[arg_idx].m_value;
         }
     }
 

@@ -17,4 +17,8 @@ contains
 end module
 
 program stdlib_quadrature
+use stdlib_quadrature_simps, only: simps38_weights_dp
+implicit none
+real(8) :: x1(4)
+print *, simps38_weights_dp(x1)
 end program
