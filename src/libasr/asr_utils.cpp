@@ -569,7 +569,6 @@ bool types_equal(const ASR::ttype_t &a, const ASR::ttype_t &b) {
     // TODO: If anyone of the input or argument is derived type then
     // add support for checking member wise types and do not compare
     // directly. From stdlib_string len(pattern) error.
-    // std::cout<<a.type<<" "<<b.type<<std::endl;
     if (a.type == b.type) {
         // TODO: check dims
         // TODO: check all types
@@ -640,7 +639,6 @@ bool types_equal(const ASR::ttype_t &a, const ASR::ttype_t &b) {
                 ASR::Class_t *b2 = ASR::down_cast<ASR::Class_t>(&b);
                 ASR::symbol_t* a2_typesym = ASRUtils::symbol_get_past_external(a2->m_class_type);
                 ASR::symbol_t* b2_typesym = ASRUtils::symbol_get_past_external(b2->m_class_type);
-                // std::cout<<"class: "<<a2_typesym->type<<" "<<b2_typesym->type<<std::endl;
                 if( a2_typesym->type != b2_typesym->type ) {
                     return false;
                 }
@@ -663,7 +661,6 @@ bool types_equal(const ASR::ttype_t &a, const ASR::ttype_t &b) {
         ASR::Class_t *b2 = ASR::down_cast<ASR::Class_t>(&b);
         ASR::symbol_t* a2_typesym = ASRUtils::symbol_get_past_external(a2->m_derived_type);
         ASR::symbol_t* b2_typesym = ASRUtils::symbol_get_past_external(b2->m_class_type);
-        // std::cout<<"derived.class: "<<a2_typesym->type<<" "<<b2_typesym->type<<std::endl;
         if( a2_typesym->type != b2_typesym->type ) {
             return false;
         }
@@ -682,7 +679,6 @@ bool types_equal(const ASR::ttype_t &a, const ASR::ttype_t &b) {
         ASR::Derived_t *b2 = ASR::down_cast<ASR::Derived_t>(&b);
         ASR::symbol_t* a2_typesym = ASRUtils::symbol_get_past_external(a2->m_class_type);
         ASR::symbol_t* b2_typesym = ASRUtils::symbol_get_past_external(b2->m_derived_type);
-        // std::cout<<"class.derived: "<<a2_typesym->type<<" "<<b2_typesym->type<<std::endl;
         if( a2_typesym->type != b2_typesym->type ) {
             return false;
         }
