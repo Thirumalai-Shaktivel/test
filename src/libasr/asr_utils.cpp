@@ -760,7 +760,7 @@ int select_generic_procedure(const Vec<ASR::call_arg_t>& args,
         }
     }
     if( raise_error ) {
-        err("Arguments do not match for any generic procedure", loc);
+        err("Arguments do not match for any generic procedure, " + std::string(p.m_name), loc);
     }
     return -1;
 }
