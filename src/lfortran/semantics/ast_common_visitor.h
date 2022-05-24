@@ -538,6 +538,7 @@ public:
     Vec<char *> current_module_dependencies;
     IntrinsicProcedures intrinsic_procedures;
     IntrinsicProceduresAsASRNodes intrinsic_procedures_as_asr_nodes;
+    IntrinsicProceduresWithVariableResultKind intrinsics_with_variable_result_kind;
 
     ASR::accessType dflt_access = ASR::Public;
     bool in_module = false;
@@ -1307,14 +1308,9 @@ public:
         }
     }
 
-    ASR::asr_t* symbol_resolve_external_generic_procedure(
-                const Location &loc,
-                ASR::symbol_t *v, Vec<ASR::call_arg_t>& args) {
-        ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
-        ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
-        ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
-        int idx = ASRUtils::select_generic_procedure(args, *g, loc,
-                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
+    ASR::asr_t* symbol_resolve_external_generic_procedure_util(const Location &loc,
+        int idx, ASR::symbol_t *v, Vec<ASR::call_arg_t>& args,
+        ASR::GenericProcedure_t *g, ASR::ExternalSymbol_t *p) {
         ASR::symbol_t *final_sym;
         final_sym = g->m_procs[idx];
         if (!ASR::is_a<ASR::Function_t>(*final_sym)) {
@@ -1367,6 +1363,43 @@ public:
             value, nullptr);
     }
 
+    ASR::asr_t* symbol_resolve_external_generic_procedure(
+                const Location &loc,
+                ASR::symbol_t *v, Vec<ASR::call_arg_t>& args) {
+        ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
+        ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
+        ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
+        int idx = ASRUtils::select_generic_procedure(args, *g, loc,
+                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
+        return symbol_resolve_external_generic_procedure_util(loc, idx, v, args, g, p);
+    }
+
+    ASR::asr_t* symbol_resolve_external_generic_procedure_with_ast_node(
+                const AST::FuncCallOrArray_t &x,
+                ASR::symbol_t *v, Vec<ASR::call_arg_t>& args) {
+        const Location& loc = x.base.base.loc;
+        ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
+        ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
+        ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
+        int idx = ASRUtils::select_generic_procedure(args, *g, loc,
+                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
+                    false);
+        if( idx == -1 ) {
+            bool is_function = true;
+            v = intrinsic_as_node(x, is_function);
+            if( !is_function ) {
+                return tmp;
+            }
+            return create_FunctionCall(loc, v, args);
+        } else {
+            ASR::asr_t* cand_func_call = intrinsic_with_variable_result_kind(g, args, idx, v, p);
+            if( cand_func_call ) {
+                return cand_func_call;
+            }
+        }
+        return symbol_resolve_external_generic_procedure_util(loc, idx, v, args, g, p);
+    }
+
     ASR::asr_t* create_ClassProcedure(const Location &loc,
                 AST::fnarg_t* m_args, size_t n_args,
                     ASR::symbol_t *v,
@@ -1389,7 +1422,52 @@ public:
         } else {
             ASR::GenericProcedure_t *p = ASR::down_cast<ASR::GenericProcedure_t>(v);
             int idx = ASRUtils::select_generic_procedure(args, *p, loc,
-                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
+                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
+                    false);
+            if( idx == -1 ) {
+                std::string v_name = ASRUtils::symbol_name(v);
+                v = resolve_intrinsic_function(loc, v_name);
+                if( !v ) {
+                    throw SemanticError("Couldn't find any function " + v_name + ".",
+                                        loc);
+                }
+                return create_FunctionCall(loc, v, args);
+            }
+            ASR::symbol_t *final_sym = p->m_procs[idx];
+
+            ASR::ttype_t *type;
+            type = LFortran::ASRUtils::EXPR2VAR(ASR::down_cast<ASR::Function_t>(final_sym)->m_return_var)->m_type;
+            type = handle_return_type(type, loc, args, ASR::down_cast<ASR::Function_t>(final_sym));
+            return ASR::make_FunctionCall_t(al, loc,
+                final_sym, v, args.p, args.size(), type,
+                nullptr, nullptr);
+        }
+    }
+
+    ASR::asr_t* create_GenericProcedureWithASTNode(const AST::FuncCallOrArray_t& x,
+                Vec<ASR::call_arg_t>& args, ASR::symbol_t *v) {
+        const Location& loc = x.base.base.loc;
+        if (ASR::is_a<ASR::ExternalSymbol_t>(*v)) {
+            return symbol_resolve_external_generic_procedure_with_ast_node(x, v,
+                    args);
+        } else {
+            ASR::GenericProcedure_t *p = ASR::down_cast<ASR::GenericProcedure_t>(v);
+            int idx = ASRUtils::select_generic_procedure(args, *p, loc,
+                    [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
+                    false);
+            if( idx == -1 ) {
+                bool is_function = true;
+                v = intrinsic_as_node(x, is_function);
+                if( !is_function ) {
+                    return tmp;
+                }
+                return create_FunctionCall(loc, v, args);
+            } else {
+                ASR::asr_t* cand_func_call = intrinsic_with_variable_result_kind(p, args, idx, v);
+                if( cand_func_call ) {
+                    return cand_func_call;
+                }
+            }
             ASR::symbol_t *final_sym = p->m_procs[idx];
 
             ASR::ttype_t *type;
@@ -1441,6 +1519,17 @@ public:
         } else {
             LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
             return create_GenericProcedure(loc, args, v);
+        }
+    }
+
+    ASR::asr_t* create_FunctionCallWithASTNode(const AST::FuncCallOrArray_t& x,
+                ASR::symbol_t *v, Vec<ASR::call_arg_t>& args) {
+        ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
+        if (ASR::is_a<ASR::Function_t>(*f2)) {
+            return create_Function(x.base.base.loc, args, v);
+        } else {
+            LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
+            return create_GenericProcedureWithASTNode(x, args, v);
         }
     }
 
@@ -1834,6 +1923,80 @@ public:
                                      size, type, nullptr);
     }
 
+    ASR::symbol_t* intrinsic_as_node(const AST::FuncCallOrArray_t &x,
+                                     bool& is_function) {
+        std::string var_name = to_lower(x.m_func);
+        if( intrinsic_procedures_as_asr_nodes.is_intrinsic_present_in_ASR(var_name) ) {
+            is_function = false;
+            if( var_name == "size" ) {
+                tmp = create_ArraySize(x);
+            } else if( var_name == "lbound" || var_name == "ubound" ) {
+                tmp = create_ArrayBound(x, var_name);
+            } else if( var_name == "transpose" ) {
+                tmp = create_ArrayTranspose(x);
+            } else if( var_name == "matmul" ) {
+                tmp = create_ArrayMatMul(x);
+            } else if( var_name == "pack" ) {
+                tmp = create_ArrayPack(x);
+            } else if( var_name == "transfer" ) {
+                tmp = create_Transfer(x);
+            } else {
+                LFortranException("create_" + var_name + " not implemented yet.");
+            }
+            return nullptr;
+        }
+        return resolve_intrinsic_function(x.base.base.loc, var_name);
+    }
+
+    int select_procedure_by_kind(ASR::GenericProcedure_t* gp,
+        std::string& suffix, int selected_idx_without_kind) {
+        std::string func_name = ASRUtils::symbol_name(gp->m_procs[selected_idx_without_kind]);
+        std::string corrected_name = func_name.substr(0, func_name.find("_")) + suffix;
+        for(size_t i = 0; i < gp->n_procs; i++) {
+            std::string current_name = ASRUtils::symbol_name(gp->m_procs[i]);
+            if( current_name == corrected_name ) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    ASR::asr_t* create_Floor(ASR::GenericProcedure_t* gp,
+                             ASR::ExternalSymbol_t* gp_ext,
+                             ASR::symbol_t* v,
+                             Vec<ASR::call_arg_t>& args,
+                             int selected_idx_without_kind) {
+        ASR::expr_t* kind = nullptr;
+        if( args.size() == 2 ) {
+            kind = args[1].m_value;
+        }
+        int64_t kind_value = handle_kind(kind);
+        std::string suffix = "_i" + std::to_string(kind_value * 8);
+        int idx = select_procedure_by_kind(gp, suffix, selected_idx_without_kind);
+        if( gp_ext ) {
+            return symbol_resolve_external_generic_procedure_util(gp->base.base.loc, idx, v, args, gp, gp_ext);
+        }
+        return create_FunctionCall(gp->base.base.loc, gp->m_procs[idx], args);
+    }
+
+    ASR::asr_t* intrinsic_with_variable_result_kind(
+        ASR::GenericProcedure_t* gp,
+        Vec<ASR::call_arg_t>& args,
+        int selected_idx_without_kind,
+        ASR::symbol_t* v,
+        ASR::ExternalSymbol_t* gp_ext=nullptr) {
+        std::string var_name = to_lower(gp->m_name);
+        if( intrinsics_with_variable_result_kind.is_intrinsic_present_with_variable_result_kind(var_name) ) {
+            if( var_name == "floor" ) {
+                return create_Floor(gp, gp_ext, v, args, selected_idx_without_kind);
+            } else {
+                LFortranException("create_" + var_name + " not implemented yet.");
+            }
+            return nullptr;
+        }
+        LFortranException(var_name + " doesn't have support for variable result kinds.");
+        return nullptr;
+    }
 
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {
         SymbolTable *scope = current_scope;
@@ -1852,23 +2015,11 @@ public:
             v = current_scope->resolve_symbol(var_name);
         }
         if (!v) {
-            if( intrinsic_procedures_as_asr_nodes.is_intrinsic_present_in_ASR(var_name) ) {
-                if( var_name == "size" ) {
-                    tmp = create_ArraySize(x);
-                } else if( var_name == "lbound" || var_name == "ubound" ) {
-                    tmp = create_ArrayBound(x, var_name);
-                } else if( var_name == "transpose" ) {
-                    tmp = create_ArrayTranspose(x);
-                } else if( var_name == "matmul" ) {
-                    tmp = create_ArrayMatMul(x);
-                } else if( var_name == "pack" ) {
-                    tmp = create_ArrayPack(x);
-                } else if( var_name == "transfer" ) {
-                    tmp = create_Transfer(x);
-                }
+            bool is_function = true;
+            v = intrinsic_as_node(x, is_function);
+            if( !is_function ) {
                 return ;
             }
-            v = resolve_intrinsic_function(x.base.base.loc, var_name);
         }
         ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
         if (ASR::is_a<ASR::Function_t>(*f2) || ASR::is_a<ASR::GenericProcedure_t>(*f2)) {
@@ -1909,7 +2060,8 @@ public:
                             continue ;
                         }
                         int idx = ASRUtils::select_generic_procedure(args_copy, *gp, x.base.base.loc,
-                                        [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); });
+                                        [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
+                                        false);
                         if( idx == i ) {
                             function_found = true;
                             for( size_t j = args.size(); j < args_copy.size(); j++ ) {
@@ -1919,12 +2071,19 @@ public:
                         }
                     }
                     if( !function_found ) {
+                        bool is_function = true;
+                        v = intrinsic_as_node(x, is_function);
+                        if( !is_function ) {
+                            return ;
+                        }
+                    }
+                    if( v == nullptr ) {
                         throw SemanticError("Unable to find a function to bind for generic procedure call, " + std::string(gp->m_name),
                                             x.base.base.loc);
                     }
                 }
             }
-            tmp = create_FunctionCall(x.base.base.loc, v, args);
+            tmp = create_FunctionCallWithASTNode(x, v, args);
         } else {
             switch (f2->type) {
             case(ASR::symbolType::Variable):
