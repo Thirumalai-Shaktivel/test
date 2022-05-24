@@ -1,16 +1,29 @@
 import hashlib
 import json
+import logging
 import os
 import pathlib
 import shutil
 import subprocess
-from typing import Mapping, Any, List
+import sys
+from typing import Any, Mapping, List, Union
+
+level = logging.DEBUG
+log = logging.getLogger(__name__)
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(logging.Formatter('%(message)s'))
+handler.setLevel(level)
+log.addHandler(handler)
+log.setLevel(level)
+
 
 class RunException(Exception):
     pass
 
+
 class ExecuteException(Exception):
     pass
+
 
 class style:
     reset = 0
@@ -36,12 +49,14 @@ class fg:
     gray = 37
     reset = 39
 
-def color(value):
-    return "\033[" + str(int(value)) + "m";
 
-def print_check():
-    print("%s✓ %s" % (color(fg.green)+color(style.bold),
-        color(fg.reset)+color(style.reset)))
+def color(value):
+    return "\033[" + str(int(value)) + "m"
+
+
+def check():
+    return f"{(color(fg.green)+color(style.bold))}✓ {color(fg.reset)+color(style.reset)}"
+
 
 def bname(base, cmd, filename):
     hstring = cmd
@@ -51,9 +66,10 @@ def bname(base, cmd, filename):
     if filename:
         bname = os.path.basename(filename)
         bname, _ = os.path.splitext(bname)
-        return "%s-%s-%s" % (base, bname, h)
+        return f"{base}-{bname}-{h}"
     else:
-        return "%s-%s" % (base, h)
+        return f"{base}-{h}"
+
 
 def _compare_eq_dict(
     left: Mapping[Any, Any], right: Mapping[Any, Any], verbose: int = 0
@@ -95,11 +111,14 @@ def _compare_eq_dict(
         )
     return explanation
 
-def fixdir(s):
+
+def fixdir(s: str) -> str:
     local_dir = os.getcwd()
     return s.replace(local_dir.encode(), "$DIR".encode())
 
-def run(basename, cmd, out_dir, infile=None, extra_args=None):
+
+def run(basename: str, cmd: Union[pathlib.Path, str],
+        out_dir: Union[pathlib.Path, str], infile=None, extra_args=None):
     """
     Runs the `cmd` and collects stdout, stderr, exit code.
 
@@ -135,8 +154,8 @@ def run(basename, cmd, out_dir, infile=None, extra_args=None):
     if extra_args:
         cmd2 += " " + extra_args
     r = subprocess.run(cmd2, shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
     if not os.path.exists(outfile):
         outfile = None
     if len(r.stdout):
@@ -160,12 +179,14 @@ def run(basename, cmd, out_dir, infile=None, extra_args=None):
     else:
         outfile_hash = None
     if stdout_file:
-        stdout_hash = hashlib.sha224(open(stdout_file, "rb").read()).hexdigest()
+        stdout_hash = hashlib.sha224(
+            open(stdout_file, "rb").read()).hexdigest()
         stdout_file = os.path.basename(stdout_file)
     else:
         stdout_hash = None
     if stderr_file:
-        stderr_hash = hashlib.sha224(open(stderr_file, "rb").read()).hexdigest()
+        stderr_hash = hashlib.sha224(
+            open(stderr_file, "rb").read()).hexdigest()
         stderr_file = os.path.basename(stderr_file)
     else:
         stderr_hash = None
@@ -186,8 +207,9 @@ def run(basename, cmd, out_dir, infile=None, extra_args=None):
     json.dump(data, open(json_file, "w"), indent=4)
     return json_file
 
-def run_test(basename, cmd, infile=None, update_reference=False,
-        extra_args=None):
+
+def run_test(testname, basename, cmd, infile=None, update_reference=False,
+             extra_args=None):
     """
     Runs the test `cmd` and compare against reference results.
 
@@ -213,14 +235,18 @@ def run_test(basename, cmd, infile=None, update_reference=False,
     ...     update_reference=True)
     >>> run_test("cat12", "cat {infile} > {outfile}", "cat.txt")
     """
-    s = "    * %-6s " % basename
-    print(s, end="")
+    s = f"{testname} * {basename}"
     basename = bname(basename, cmd, infile)
     if infile:
         infile = os.path.join("tests", infile)
+
     jo = run(basename, cmd, os.path.join("tests", "output"), infile=infile,
-            extra_args=extra_args)
+             extra_args=extra_args)
+
     jr = os.path.join("tests", "reference", os.path.basename(jo))
+
+    if not os.path.exists(jo):
+        raise RunException(f"The reference json file '{jr}' does not exist")
     do = json.load(open(jo))
     if update_reference:
         shutil.copyfile(jo, jr)
@@ -231,44 +257,83 @@ def run_test(basename, cmd, infile=None, update_reference=False,
                 shutil.copyfile(f_o, f_r)
         return
     if not os.path.exists(jr):
-        raise RunException("The reference json file '%s' does not exist" % jr)
+        raise RunException(f"The reference json file '{jr}' does not exist")
+
     dr = json.load(open(jr))
     if do != dr:
+        full_err_str = f"\n{(color(fg.red)+color(style.bold))}{s}{color(fg.reset)+color(style.reset)}\n"
         e = _compare_eq_dict(do, dr)
-        print("The JSON metadata differs against reference results")
-        print("Reference JSON:", jr)
-        print("Output JSON:   ", jo)
-        print("\n".join(e))
+        full_err_str += "The JSON metadata differs against reference results\n"
+        full_err_str += "Reference JSON: " + jr + "\n"
+        full_err_str += "Output JSON:    " + jo + "\n"
+        full_err_str += "\n".join(e)
         if do["outfile_hash"] != dr["outfile_hash"]:
             if do["outfile_hash"] is not None and dr["outfile_hash"] is not None:
                 fo = os.path.join("tests", "output", do["outfile"])
                 fr = os.path.join("tests", "reference", dr["outfile"])
                 if os.path.exists(fr):
-                    print("Diff against: %s" % fr)
-                    os.system("diff %s %s" % (fr, fo))
+                    diff_list = subprocess.Popen(
+                        f"diff {fr} {fo}",
+                        stdout=subprocess.PIPE,
+                        shell=True,
+                        encoding='utf-8')
+                    diff_str = ""
+                    diffs = diff_list.stdout.readlines()
+                    for d in diffs:
+                        diff_str += d
+                    full_err_str += f"\nDiff against: {fr}\n"
+                    full_err_str += diff_str
                 else:
-                    print("Reference file '%s' does not exist" % fr)
+                    full_err_str += f"Reference file {fr} does not exist\n"
         if do["stdout_hash"] != dr["stdout_hash"]:
             if do["stdout_hash"] is not None and dr["stdout_hash"] is not None:
                 fo = os.path.join("tests", "output", do["stdout"])
                 fr = os.path.join("tests", "reference", dr["stdout"])
                 if os.path.exists(fr):
-                    print("Diff against: %s" % fr)
-                    os.system("diff %s %s" % (fr, fo))
+
+                    diff_list = subprocess.Popen(
+                        f"diff {fr} {fo}",
+                        stdout=subprocess.PIPE,
+                        shell=True,
+                        encoding='utf-8')
+                    diffs = diff_list.stdout.readlines()
+                    diff_str = ""
+                    for d in diffs:
+                        diff_str += d
+                    full_err_str += f"\nDiff against: {fr}\n"
+                    full_err_str += diff_str
                 else:
-                    print("Reference file '%s' does not exist" % fr)
+                    full_err_str += f"Reference file {fr} does not exist\n"
         if do["stderr_hash"] != dr["stderr_hash"]:
             if do["stderr_hash"] is not None and dr["stderr_hash"] is not None:
                 fo = os.path.join("tests", "output", do["stderr"])
                 fr = os.path.join("tests", "reference", dr["stderr"])
                 if os.path.exists(fr):
-                    print("Diff against: %s" % fr)
-                    os.system("diff %s %s" % (fr, fo))
+                    diff_list = subprocess.Popen(
+                        f"diff {fr} {fo}",
+                        stdout=subprocess.PIPE,
+                        shell=True,
+                        encoding='utf-8')
+                    diffs = diff_list.stdout.readlines()
+                    diff_str = ""
+                    for d in diffs:
+                        diff_str += d
+                    full_err_str += f"\nDiff against: {fr}\n"
+                    full_err_str += diff_str
                 else:
-                    print("Reference file '%s' does not exist" % fr)
+                    full_err_str += f"Reference file {fr} does not exist\n"
             elif do["stderr_hash"] is not None and dr["stderr_hash"] is None:
                 fo = os.path.join("tests", "output", do["stderr"])
-                print("No reference stderr output exists. Stderr:")
-                os.system("cat %s" % fo)
-        raise RunException("The reference result differs")
-    print_check()
+                diff_list = subprocess.Popen(
+                    f"cat {fo}",
+                    stdout=subprocess.PIPE,
+                    shell=True,
+                    encoding='utf-8')
+                diff_str = ""
+                diff_str = [
+                    diff_str +
+                    line for line in diff_list.stdout.readlines()][0]
+                full_err_str += f"No reference stderr output exists. Stderr:\n"
+                full_err_str += diff_str
+        raise RunException(f"The reference result differs\n {full_err_str}")
+    log.debug(s + " " + check())
