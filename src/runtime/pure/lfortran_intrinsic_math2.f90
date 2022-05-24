@@ -161,7 +161,7 @@ end function
 
 elemental integer(i32) function sfloor_i32(x, kind) result(r)
 real(sp), intent(in) :: x
-integer, intent(in), optional :: kind
+integer(i32), intent(in) :: kind
 if (x >= 0) then
     r = x
 else
@@ -171,7 +171,7 @@ end function
 
 elemental integer(i64) function sfloor_i64(x, kind) result(r)
 real(sp), intent(in) :: x
-integer, intent(in), optional :: kind
+integer(i64), intent(in) :: kind
 if (x >= 0) then
     r = x
 else
@@ -181,7 +181,7 @@ end function
 
 elemental integer(i32) function dfloor_i32(x, kind) result(r)
 real(dp), intent(in) :: x
-integer, intent(in), optional :: kind
+integer(i32), intent(in) :: kind
 if (x >= 0) then
     r = x
 else
@@ -191,7 +191,7 @@ end function
 
 elemental integer(i64) function dfloor_i64(x, kind) result(r)
 real(dp), intent(in) :: x
-integer, intent(in), optional :: kind
+integer(i64), intent(in) :: kind
 if (x >= 0) then
     r = x
 else
