@@ -1342,7 +1342,7 @@ public:
             final_sym = current_scope->get_symbol(local_sym);
         }
         ASR::expr_t *value = nullptr;
-        ASR::symbol_t* final_sym2 = LFortran::ASRUtils::symbol_get_past_external(final_sym);
+        ASR::symbol_t* final_sym2 = ASRUtils::symbol_get_past_external(final_sym);
         if (ASR::is_a<ASR::Function_t>(*final_sym2)) {
             ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(final_sym2);
             if (ASRUtils::is_intrinsic_function(f)) {
