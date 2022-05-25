@@ -158,7 +158,7 @@ end function
 
 elemental integer function sceiling(x) result(r)
 real(sp), intent(in) :: x
-r = sfloor_i32(x)
+r = floor(x)
 if (r - x /= 0.0) then
     r = r + 1
 end if
@@ -166,7 +166,7 @@ end function
 
 elemental integer function dceiling(x) result(r)
 real(dp), intent(in) :: x
-r = dfloor_i32(x)
+r = floor(x)
 if (r - x /= 0.0) then
     r = r + 1
 end if
