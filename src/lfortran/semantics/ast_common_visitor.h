@@ -538,7 +538,6 @@ public:
     Vec<char *> current_module_dependencies;
     IntrinsicProcedures intrinsic_procedures;
     IntrinsicProceduresAsASRNodes intrinsic_procedures_as_asr_nodes;
-    IntrinsicProceduresWithVariableResultKind intrinsics_with_variable_result_kind;
 
     ASR::accessType dflt_access = ASR::Public;
     bool in_module = false;
@@ -1384,19 +1383,13 @@ public:
         int idx = ASRUtils::select_generic_procedure(args, *g, loc,
                     [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
                     false);
-        // TODO: fix this "floor" hack:
-        if( idx == -1 && std::string(x.m_func) != "floor" ) {
+        if( idx == -1 ) {
             bool is_function = true;
             v = intrinsic_as_node(x, is_function);
             if( !is_function ) {
                 return tmp;
             }
             return create_FunctionCall(loc, v, args);
-        } else {
-            ASR::asr_t* cand_func_call = intrinsic_with_variable_result_kind(x, g, args, idx, v, p);
-            if( cand_func_call ) {
-                return cand_func_call;
-            }
         }
         return symbol_resolve_external_generic_procedure_util(loc, idx, v, args, g, p);
     }
@@ -1463,11 +1456,6 @@ public:
                     return tmp;
                 }
                 return create_FunctionCall(loc, v, args);
-            } else {
-                ASR::asr_t* cand_func_call = intrinsic_with_variable_result_kind(x, p, args, idx, v);
-                if( cand_func_call ) {
-                    return cand_func_call;
-                }
             }
             ASR::symbol_t *final_sym = p->m_procs[idx];
 
@@ -1976,71 +1964,6 @@ public:
             return nullptr;
         }
         return resolve_intrinsic_function(x.base.base.loc, var_name);
-    }
-
-    int select_procedure_by_kind(ASR::GenericProcedure_t* gp,
-        std::string& suffix, int selected_idx_without_kind) {
-        std::string func_name = ASRUtils::symbol_name(gp->m_procs[selected_idx_without_kind]);
-        std::string corrected_name = func_name.substr(0, func_name.find("_")) + suffix;
-        for(size_t i = 0; i < gp->n_procs; i++) {
-            std::string current_name = ASRUtils::symbol_name(gp->m_procs[i]);
-            if( current_name == corrected_name ) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    ASR::asr_t* create_Floor(
-                const AST::FuncCallOrArray_t &x,
-                ASR::GenericProcedure_t* gp,
-                ASR::ExternalSymbol_t* gp_ext,
-                ASR::symbol_t* v,
-                Vec<ASR::call_arg_t>& args,
-                int /*selected_idx_without_kind*/) {
-        ASR::expr_t* kind = nullptr;
-        if( args.size() == 2 ) {
-            kind = args[1].m_value;
-        }
-        int64_t kind_value = handle_kind(kind);
-        ASR::ttype_t *kind_type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al,
-                x.base.base.loc, kind_value, nullptr, 0));
-        ASR::expr_t* kind_arg = ASR::down_cast<ASR::expr_t>(ASR::make_IntegerConstant_t(
-                    al, x.base.base.loc, 0, kind_type));
-        Vec<ASR::call_arg_t> args2;
-        args2.reserve(al, 2);
-        args2.push_back(al, args[0]);
-        ASR::call_arg_t kind_arg2;
-        kind_arg2.loc = x.base.base.loc;
-        kind_arg2.m_value = kind_arg;
-        args2.push_back(al, kind_arg2);
-        int idx = ASRUtils::select_generic_procedure(args2, *gp, x.base.base.loc,
-                        [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
-                        true);
-        if( gp_ext ) {
-            return symbol_resolve_external_generic_procedure_util(gp->base.base.loc, idx, v, args2, gp, gp_ext);
-        }
-        return create_FunctionCall(gp->base.base.loc, gp->m_procs[idx], args2);
-    }
-
-    ASR::asr_t* intrinsic_with_variable_result_kind(
-        const AST::FuncCallOrArray_t &x,
-        ASR::GenericProcedure_t* gp,
-        Vec<ASR::call_arg_t>& args,
-        int selected_idx_without_kind,
-        ASR::symbol_t* v,
-        ASR::ExternalSymbol_t* gp_ext=nullptr) {
-        std::string var_name = to_lower(gp->m_name);
-        if( intrinsics_with_variable_result_kind.is_intrinsic_present_with_variable_result_kind(var_name) ) {
-            if( var_name == "floor" ) {
-                return create_Floor(x, gp, gp_ext, v, args, selected_idx_without_kind);
-            } else {
-                LFortranException("create_" + var_name + " not implemented yet.");
-            }
-            return nullptr;
-        }
-        LFortranException(var_name + " doesn't have support for variable result kinds.");
-        return nullptr;
     }
 
     void visit_FuncCallOrArray(const AST::FuncCallOrArray_t &x) {

@@ -33,25 +33,6 @@ struct IntrinsicProceduresAsASRNodes {
 
 };
 
-struct IntrinsicProceduresWithVariableResultKind {
-
-    private:
-
-        std::set<std::string> intrinsics_present_with_variable_result_kind;
-
-    public:
-
-        IntrinsicProceduresWithVariableResultKind() {
-            intrinsics_present_with_variable_result_kind = {"floor"};
-        }
-
-        bool is_intrinsic_present_with_variable_result_kind(std::string& name) {
-            return intrinsics_present_with_variable_result_kind.find(name) !=
-                   intrinsics_present_with_variable_result_kind.end();
-        }
-
-};
-
 struct IntrinsicProcedures {
 
     const std::string m_kind = "lfortran_intrinsic_kind";
@@ -59,7 +40,6 @@ struct IntrinsicProcedures {
     const std::string m_trig = "lfortran_intrinsic_trig";
     const std::string m_math = "lfortran_intrinsic_math";
     const std::string m_math2 = "lfortran_intrinsic_math2";
-    const std::string m_math3 = "lfortran_intrinsic_math3";
     const std::string m_string = "lfortran_intrinsic_string";
     const std::string m_bit = "lfortran_intrinsic_bit";
     const std::string m_ieee_arithmetic = "lfortran_intrinsic_ieee_arithmetic";
@@ -95,7 +75,7 @@ struct IntrinsicProcedures {
             // Require evaluated arguments
             {"aimag", {m_math, &eval_aimag, true}},
             {"char", {m_builtin, &eval_char, true}},
-            {"floor", {m_math3, &eval_floor, true}},
+            {"floor", {m_math2, &eval_floor, true}},
             {"ceiling", {m_math2, &eval_ceiling, true}},
             {"nint", {m_math2, &eval_nint, true}},
             {"mod", {m_math2, &eval_mod, true}},
