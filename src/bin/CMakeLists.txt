@@ -58,6 +58,11 @@ if (WITH_RUNTIME_LIBRARY)
     )
     LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_math2 pure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
+      ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_math3.mod
+      ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_builtin.mod
+    )
+    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_math3 pure
+      ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_builtin.mod
     )
     LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_ieee_arithmetic pure
