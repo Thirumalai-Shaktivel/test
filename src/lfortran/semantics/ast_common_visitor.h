@@ -1384,7 +1384,8 @@ public:
         int idx = ASRUtils::select_generic_procedure(args, *g, loc,
                     [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
                     false);
-        if( idx == -1 ) {
+        // TODO: fix this "floor" hack:
+        if( idx == -1 && std::string(x.m_func) != "floor" ) {
             bool is_function = true;
             v = intrinsic_as_node(x, is_function);
             if( !is_function ) {
@@ -1392,7 +1393,7 @@ public:
             }
             return create_FunctionCall(loc, v, args);
         } else {
-            ASR::asr_t* cand_func_call = intrinsic_with_variable_result_kind(g, args, idx, v, p);
+            ASR::asr_t* cand_func_call = intrinsic_with_variable_result_kind(x, g, args, idx, v, p);
             if( cand_func_call ) {
                 return cand_func_call;
             }
@@ -1463,7 +1464,7 @@ public:
                 }
                 return create_FunctionCall(loc, v, args);
             } else {
-                ASR::asr_t* cand_func_call = intrinsic_with_variable_result_kind(p, args, idx, v);
+                ASR::asr_t* cand_func_call = intrinsic_with_variable_result_kind(x, p, args, idx, v);
                 if( cand_func_call ) {
                     return cand_func_call;
                 }
@@ -1990,25 +1991,40 @@ public:
         return -1;
     }
 
-    ASR::asr_t* create_Floor(ASR::GenericProcedure_t* gp,
-                             ASR::ExternalSymbol_t* gp_ext,
-                             ASR::symbol_t* v,
-                             Vec<ASR::call_arg_t>& args,
-                             int selected_idx_without_kind) {
+    ASR::asr_t* create_Floor(
+                const AST::FuncCallOrArray_t &x,
+                ASR::GenericProcedure_t* gp,
+                ASR::ExternalSymbol_t* gp_ext,
+                ASR::symbol_t* v,
+                Vec<ASR::call_arg_t>& args,
+                int /*selected_idx_without_kind*/) {
         ASR::expr_t* kind = nullptr;
         if( args.size() == 2 ) {
             kind = args[1].m_value;
         }
         int64_t kind_value = handle_kind(kind);
-        std::string suffix = "_i" + std::to_string(kind_value * 8);
-        int idx = select_procedure_by_kind(gp, suffix, selected_idx_without_kind);
+        ASR::ttype_t *kind_type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al,
+                x.base.base.loc, kind_value, nullptr, 0));
+        ASR::expr_t* kind_arg = ASR::down_cast<ASR::expr_t>(ASR::make_IntegerConstant_t(
+                    al, x.base.base.loc, 0, kind_type));
+        Vec<ASR::call_arg_t> args2;
+        args2.reserve(al, 2);
+        args2.push_back(al, args[0]);
+        ASR::call_arg_t kind_arg2;
+        kind_arg2.loc = x.base.base.loc;
+        kind_arg2.m_value = kind_arg;
+        args2.push_back(al, kind_arg2);
+        int idx = ASRUtils::select_generic_procedure(args2, *gp, x.base.base.loc,
+                        [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
+                        true);
         if( gp_ext ) {
-            return symbol_resolve_external_generic_procedure_util(gp->base.base.loc, idx, v, args, gp, gp_ext);
+            return symbol_resolve_external_generic_procedure_util(gp->base.base.loc, idx, v, args2, gp, gp_ext);
         }
-        return create_FunctionCall(gp->base.base.loc, gp->m_procs[idx], args);
+        return create_FunctionCall(gp->base.base.loc, gp->m_procs[idx], args2);
     }
 
     ASR::asr_t* intrinsic_with_variable_result_kind(
+        const AST::FuncCallOrArray_t &x,
         ASR::GenericProcedure_t* gp,
         Vec<ASR::call_arg_t>& args,
         int selected_idx_without_kind,
@@ -2017,7 +2033,7 @@ public:
         std::string var_name = to_lower(gp->m_name);
         if( intrinsics_with_variable_result_kind.is_intrinsic_present_with_variable_result_kind(var_name) ) {
             if( var_name == "floor" ) {
-                return create_Floor(gp, gp_ext, v, args, selected_idx_without_kind);
+                return create_Floor(x, gp, gp_ext, v, args, selected_idx_without_kind);
             } else {
                 LFortranException("create_" + var_name + " not implemented yet.");
             }
