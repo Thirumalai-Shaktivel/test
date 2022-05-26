@@ -2023,14 +2023,6 @@ public:
             if( !is_function ) {
                 return;
             }
-            if (var_name == "floor") {
-                ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
-                ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
-                ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
-                LFORTRAN_ASSERT(std::string(g->m_name) == "floor")
-                tmp = create_Floor(x, p, v);
-                return;
-            }
         }
         ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
         if (ASR::is_a<ASR::Function_t>(*f2) || ASR::is_a<ASR::GenericProcedure_t>(*f2)) {
