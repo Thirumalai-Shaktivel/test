@@ -1643,6 +1643,7 @@ public:
         return member;
     }
 
+    // TODO: Use Vec<expr_t*> instead of std::vector<expr_t*> for performance
     void handle_intrinsic_node_args(const AST::FuncCallOrArray_t& x,
         std::vector<ASR::expr_t*>& args, std::vector<std::string>& kwarg_names,
         size_t min_args, size_t max_args, const std::string& intrinsic_name) {
