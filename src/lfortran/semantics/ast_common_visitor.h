@@ -1666,7 +1666,7 @@ public:
         }
 
         for( size_t i = 0; i < x.n_keywords; i++ ) {
-            std::string curr_kwarg_name = std::string(x.m_keywords[i].m_arg);
+            std::string curr_kwarg_name = to_lower(x.m_keywords[i].m_arg);
             if( std::find(kwarg_names.begin(), kwarg_names.end(),
                           curr_kwarg_name) == kwarg_names.end() ) {
                 throw SemanticError("Unrecognized keyword argument " + curr_kwarg_name +
@@ -1677,7 +1677,7 @@ public:
 
         size_t offset = min_args;
         for( size_t i = 0; i < x.n_keywords; i++ ) {
-            std::string curr_kwarg_name = std::string(x.m_keywords[i].m_arg);
+            std::string curr_kwarg_name = to_lower(x.m_keywords[i].m_arg);
             auto it = std::find(kwarg_names.begin(), kwarg_names.end(),
                                 curr_kwarg_name);
             int64_t kwarg_idx = it - kwarg_names.begin();
