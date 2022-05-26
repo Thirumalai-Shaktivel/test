@@ -208,6 +208,30 @@ def run(basename: str, cmd: Union[pathlib.Path, str],
     return json_file
 
 
+def get_error_diff(reference_file, output_file, full_err_str) -> str:
+    diff_list = subprocess.Popen(
+        f"diff {reference_file} {output_file}",
+        stdout=subprocess.PIPE,
+        shell=True,
+        encoding='utf-8')
+    diff_str = ""
+    diffs = diff_list.stdout.readlines()
+    for d in diffs:
+        diff_str += d
+    full_err_str += f"\nDiff against: {reference_file}\n"
+    full_err_str += diff_str
+    return full_err_str
+
+
+def do_update_reference(jo, jr, do):
+    shutil.copyfile(jo, jr)
+    for f in ["outfile", "stdout", "stderr"]:
+        if do[f]:
+            f_o = os.path.join(os.path.dirname(jo), do[f])
+            f_r = os.path.join(os.path.dirname(jr), do[f])
+            shutil.copyfile(f_o, f_r)
+
+
 def run_test(testname, basename, cmd, infile=None, update_reference=False,
              extra_args=None):
     """
@@ -239,101 +263,48 @@ def run_test(testname, basename, cmd, infile=None, update_reference=False,
     basename = bname(basename, cmd, infile)
     if infile:
         infile = os.path.join("tests", infile)
-
     jo = run(basename, cmd, os.path.join("tests", "output"), infile=infile,
              extra_args=extra_args)
-
     jr = os.path.join("tests", "reference", os.path.basename(jo))
-
     if not os.path.exists(jo):
-        raise RunException(f"The reference json file '{jr}' does not exist")
+        raise FileNotFoundError(
+            f"The output json file '{jo}' for {testname} does not exist")
+
     do = json.load(open(jo))
     if update_reference:
-        shutil.copyfile(jo, jr)
-        for f in ["outfile", "stdout", "stderr"]:
-            if do[f]:
-                f_o = os.path.join(os.path.dirname(jo), do[f])
-                f_r = os.path.join(os.path.dirname(jr), do[f])
-                shutil.copyfile(f_o, f_r)
+        do_update_reference(jo, jr, do)
         return
+
     if not os.path.exists(jr):
-        raise RunException(f"The reference json file '{jr}' does not exist")
+        raise FileNotFoundError(
+            f"The reference json file '{jr}' for {testname} does not exist")
 
     dr = json.load(open(jr))
     if do != dr:
+        # This string builds up the error message. Print test name in red in the beginning.
+        # More information is added afterwards.
         full_err_str = f"\n{(color(fg.red)+color(style.bold))}{s}{color(fg.reset)+color(style.reset)}\n"
         e = _compare_eq_dict(do, dr)
         full_err_str += "The JSON metadata differs against reference results\n"
         full_err_str += "Reference JSON: " + jr + "\n"
         full_err_str += "Output JSON:    " + jo + "\n"
         full_err_str += "\n".join(e)
-        if do["outfile_hash"] != dr["outfile_hash"]:
-            if do["outfile_hash"] is not None and dr["outfile_hash"] is not None:
-                fo = os.path.join("tests", "output", do["outfile"])
-                fr = os.path.join("tests", "reference", dr["outfile"])
-                if os.path.exists(fr):
-                    diff_list = subprocess.Popen(
-                        f"diff {fr} {fo}",
-                        stdout=subprocess.PIPE,
-                        shell=True,
-                        encoding='utf-8')
-                    diff_str = ""
-                    diffs = diff_list.stdout.readlines()
-                    for d in diffs:
-                        diff_str += d
-                    full_err_str += f"\nDiff against: {fr}\n"
-                    full_err_str += diff_str
-                else:
-                    full_err_str += f"Reference file {fr} does not exist\n"
-        if do["stdout_hash"] != dr["stdout_hash"]:
-            if do["stdout_hash"] is not None and dr["stdout_hash"] is not None:
-                fo = os.path.join("tests", "output", do["stdout"])
-                fr = os.path.join("tests", "reference", dr["stdout"])
-                if os.path.exists(fr):
 
-                    diff_list = subprocess.Popen(
-                        f"diff {fr} {fo}",
-                        stdout=subprocess.PIPE,
-                        shell=True,
-                        encoding='utf-8')
-                    diffs = diff_list.stdout.readlines()
-                    diff_str = ""
-                    for d in diffs:
-                        diff_str += d
-                    full_err_str += f"\nDiff against: {fr}\n"
-                    full_err_str += diff_str
-                else:
-                    full_err_str += f"Reference file {fr} does not exist\n"
-        if do["stderr_hash"] != dr["stderr_hash"]:
-            if do["stderr_hash"] is not None and dr["stderr_hash"] is not None:
-                fo = os.path.join("tests", "output", do["stderr"])
-                fr = os.path.join("tests", "reference", dr["stderr"])
-                if os.path.exists(fr):
-                    diff_list = subprocess.Popen(
-                        f"diff {fr} {fo}",
-                        stdout=subprocess.PIPE,
-                        shell=True,
-                        encoding='utf-8')
-                    diffs = diff_list.stdout.readlines()
-                    diff_str = ""
-                    for d in diffs:
-                        diff_str += d
-                    full_err_str += f"\nDiff against: {fr}\n"
-                    full_err_str += diff_str
-                else:
-                    full_err_str += f"Reference file {fr} does not exist\n"
-            elif do["stderr_hash"] is not None and dr["stderr_hash"] is None:
-                fo = os.path.join("tests", "output", do["stderr"])
-                diff_list = subprocess.Popen(
-                    f"cat {fo}",
-                    stdout=subprocess.PIPE,
-                    shell=True,
-                    encoding='utf-8')
-                diff_str = ""
-                diff_str = [
-                    diff_str +
-                    line for line in diff_list.stdout.readlines()][0]
-                full_err_str += f"No reference stderr output exists. Stderr:\n"
-                full_err_str += diff_str
-        raise RunException(f"The reference result differs\n {full_err_str}")
+        for field in ["outfile", "stdout", "stderr"]:
+            hash_field = field + "_hash"
+            if not do[hash_field] and dr[hash_field]:
+                full_err_str += f"No output {hash_field} available for {testname}\n"
+                break
+            if not dr[hash_field] and do[hash_field]:
+                full_err_str += f"No reference {hash_field} available for {testname}\n"
+                break
+            if do[hash_field] != dr[hash_field]:
+                output_file = os.path.join("tests", "output", do[field])
+                reference_file = os.path.join("tests", "reference", dr[field])
+                full_err_str = get_error_diff(
+                    reference_file, output_file, full_err_str)
+                break
+        raise RunException(
+            "Testing with reference output failed." +
+            full_err_str)
     log.debug(s + " " + check())

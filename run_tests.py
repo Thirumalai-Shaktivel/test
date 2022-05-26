@@ -161,10 +161,10 @@ def single_test(test, specific_test, verbose, no_llvm, update_reference):
         run_test(filename, "pass_{}".format(pass_), cmd,
                  filename, update_reference, extra_args)
     if llvm:
-
         if no_llvm:
-            log.info("    * llvm   SKIPPED as requested")
+            log.info(f"{filename} * llvm   SKIPPED as requested")
         else:
+            #log.info(f"{filename=} 'llvm' lfortran --no-color --show-llvm infile -o outfile {update_reference=} {extra_args=}")
             run_test(
                 filename,
                 "llvm",
@@ -183,7 +183,7 @@ def single_test(test, specific_test, verbose, no_llvm, update_reference):
 
     if obj:
         if no_llvm:
-            log.info("    * obj    SKIPPED as requested")
+            log.info(f"{filename} * obj    SKIPPED as requested")
         else:
             run_test(
                 filename,
@@ -219,6 +219,8 @@ def main():
                         help="increase test verbosity")
     parser.add_argument("--no-llvm", action="store_true",
                         help="Skip LLVM tests")
+    parser.add_argument("-s", "--sequential", action="store_true",
+                        help="Run all tests sequentially")
     args = parser.parse_args()
     update_reference = args.update
     list_tests = args.list
@@ -236,6 +238,13 @@ def main():
                     if specific_test in test["filename"]]
         # no concurrent execution
         for test in specific:
+            single_test(test,
+                        update_reference=update_reference,
+                        specific_test=specific_test,
+                        verbose=verbose,
+                        no_llvm=no_llvm)
+    elif args.sequential:
+        for test in test_data["test"]:
             single_test(test,
                         update_reference=update_reference,
                         specific_test=specific_test,
@@ -259,7 +268,7 @@ def main():
         return
 
     if update_reference:
-        log.info("Reference tests updated.")
+        log.info("Test references updated.")
     else:
         log.info(
             f"{(color(fg.green) + color(style.bold))}TESTS PASSED{color(fg.reset) + color(style.reset)}")
