@@ -2021,11 +2021,33 @@ public:
             bool is_function = true;
             v = intrinsic_as_node(x, is_function);
             if( !is_function ) {
-                return ;
+                return;
+            }
+            if (var_name == "floor") {
+                ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
+                ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
+                ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
+                LFORTRAN_ASSERT(std::string(g->m_name) == "floor")
+                tmp = create_Floor(x, p, v);
+                return;
             }
         }
         ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
         if (ASR::is_a<ASR::Function_t>(*f2) || ASR::is_a<ASR::GenericProcedure_t>(*f2)) {
+            if (ASRUtils::is_intrinsic_symbol(f2)) {
+                if (var_name == "floor") {
+                    if (ASR::is_a<ASR::ExternalSymbol_t>(*v)) {
+                        ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
+                        ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
+                        if (ASR::is_a<ASR::GenericProcedure_t>(*f2)) {
+                            ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
+                            LFORTRAN_ASSERT(std::string(g->m_name) == "floor")
+                            tmp = create_Floor(x, p, v);
+                            return;
+                        }
+                    }
+                }
+            }
             Vec<ASR::call_arg_t> args;
             visit_expr_list(x.m_args, x.n_args, args);
             if (x.n_keywords > 0) {
