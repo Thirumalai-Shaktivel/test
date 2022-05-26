@@ -1065,34 +1065,6 @@ public:
                 v, vals.p, vals.size(), der);
     }
 
-    ASR::asr_t* create_Floor(const AST::FuncCallOrArray_t &x,
-            ASR::ExternalSymbol_t* gp_ext, ASR::symbol_t* v,
-            Vec<ASR::call_arg_t>& args) {
-        ASR::expr_t* kind = nullptr;
-        if( args.size() == 2 ) {
-            kind = args[1].m_value;
-        }
-        int64_t kind_value = handle_kind(kind);
-        ASR::ttype_t *kind_type = ASRUtils::TYPE(ASR::make_Integer_t(al,
-                x.base.base.loc, kind_value, nullptr, 0));
-        ASR::expr_t* kind_arg = ASR::down_cast<ASR::expr_t>(
-                ASR::make_IntegerConstant_t(al, x.base.base.loc, 0, kind_type));
-        Vec<ASR::call_arg_t> args2;
-        args2.reserve(al, 2);
-        args2.push_back(al, args[0]);
-        ASR::call_arg_t kind_arg2;
-        kind_arg2.loc = x.base.base.loc;
-        kind_arg2.m_value = kind_arg;
-        args2.push_back(al, kind_arg2);
-        ASR::GenericProcedure_t* gp = ASR::down_cast<ASR::GenericProcedure_t>(
-                gp_ext->m_external);
-        int idx = ASRUtils::select_generic_procedure(args2, *gp, x.base.base.loc,
-                        [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
-                        true);
-        return symbol_resolve_external_generic_procedure_util(gp->base.base.loc, idx, v, args2, gp, gp_ext);
-    }
-
-
     ASR::asr_t* create_ArrayRef(const Location &loc,
                 AST::fnarg_t* m_args, size_t n_args,
                     ASR::symbol_t *v,
@@ -1418,7 +1390,7 @@ public:
                 return tmp;
             }
             if (std::string(g->m_name) == "floor") {
-                return create_Floor(x, p, v, args);
+                return create_Floor(x, p, v);
             } else {
                 return create_FunctionCall(loc, v, args);
             }
@@ -1732,6 +1704,35 @@ public:
                                 kind->base.loc);
         }
         return ASR::down_cast<ASR::IntegerConstant_t>(kind_value)->m_n;
+    }
+
+    ASR::asr_t* create_Floor(const AST::FuncCallOrArray_t &x,
+            ASR::ExternalSymbol_t* gp_ext, ASR::symbol_t* v) {
+        std::vector<ASR::expr_t*> args;
+        std::vector<std::string> kwarg_names = {"kind"};
+        handle_intrinsic_node_args(x, args, kwarg_names, 1, 2, "floor");
+        ASR::expr_t* kind = args[1];
+        int64_t kind_value = handle_kind(kind);
+        ASR::ttype_t *kind_type = ASRUtils::TYPE(ASR::make_Integer_t(al,
+                x.base.base.loc, kind_value, nullptr, 0));
+        ASR::expr_t* kind_arg = ASR::down_cast<ASR::expr_t>(
+                ASR::make_IntegerConstant_t(al, x.base.base.loc, 0, kind_type));
+        Vec<ASR::call_arg_t> args2;
+        args2.reserve(al, 2);
+        ASR::call_arg_t arg1;
+        arg1.loc = args[0]->base.loc;
+        arg1.m_value = args[0];
+        args2.push_back(al, arg1);
+        ASR::call_arg_t kind_arg2;
+        kind_arg2.loc = x.base.base.loc;
+        kind_arg2.m_value = kind_arg;
+        args2.push_back(al, kind_arg2);
+        ASR::GenericProcedure_t* gp = ASR::down_cast<ASR::GenericProcedure_t>(
+                gp_ext->m_external);
+        int idx = ASRUtils::select_generic_procedure(args2, *gp, x.base.base.loc,
+                        [&](const std::string &msg, const Location &loc) { throw SemanticError(msg, loc); },
+                        true);
+        return symbol_resolve_external_generic_procedure_util(gp->base.base.loc, idx, v, args2, gp, gp_ext);
     }
 
     ASR::asr_t* create_ArrayBound(const AST::FuncCallOrArray_t& x, std::string& bound_name) {
