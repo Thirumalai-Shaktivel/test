@@ -2023,8 +2023,18 @@ public:
         ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
         if (ASR::is_a<ASR::Function_t>(*f2) || ASR::is_a<ASR::GenericProcedure_t>(*f2)) {
             if (ASRUtils::is_intrinsic_symbol(f2)) {
+                // Here we handle all intrinsic functions that are implemented
+                // in Fortran, but have different interface (API), e.g.,
+                // the `kind` argument is handled differently, such as `floor`.
+                // In these cases we have to handle them here, since we need
+                // to process the arguments ourselves, not via comparison
+                // with the `floor` implementation.
                 if (var_name == "floor") {
                     if (ASR::is_a<ASR::ExternalSymbol_t>(*v)) {
+                        // The above check is needed to ensure we are in an
+                        // intrinsic module and calling an external, that is, we
+                        // skip a locally defined `floor` function in an
+                        // intrinsic module
                         ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
                         ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
                         if (ASR::is_a<ASR::GenericProcedure_t>(*f2)) {
