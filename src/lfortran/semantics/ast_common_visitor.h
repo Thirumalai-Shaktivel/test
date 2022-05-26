@@ -2038,8 +2038,7 @@ public:
                         ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
                         ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
                         if (ASR::is_a<ASR::GenericProcedure_t>(*f2)) {
-                            ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(f2);
-                            LFORTRAN_ASSERT(std::string(g->m_name) == "floor")
+                            LFORTRAN_ASSERT(std::string(ASR::down_cast<ASR::GenericProcedure_t>(f2)->m_name) == "floor")
                             tmp = create_Floor(x, p, v);
                             return;
                         }
