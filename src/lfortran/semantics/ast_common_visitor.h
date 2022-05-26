@@ -1389,11 +1389,7 @@ public:
             if( !is_function ) {
                 return tmp;
             }
-            if (std::string(g->m_name) == "floor") {
-                return create_Floor(x, p, v);
-            } else {
-                return create_FunctionCall(loc, v, args);
-            }
+            return create_FunctionCall(loc, v, args);
         } else {
             return symbol_resolve_external_generic_procedure_util(loc, idx, v, args, g, p);
         }
