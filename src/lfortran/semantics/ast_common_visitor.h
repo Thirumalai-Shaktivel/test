@@ -1529,13 +1529,13 @@ public:
     // If `fn` is intrinsic, it will also try to evaluate it into the `value`
     // member of the returned `FunctionCall`.
     ASR::asr_t* create_FunctionCall(const Location &loc,
-                ASR::symbol_t *v, Vec<ASR::call_arg_t>& args) {
-        ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(v);
+                ASR::symbol_t *fn, Vec<ASR::call_arg_t>& args) {
+        ASR::symbol_t *f2 = ASRUtils::symbol_get_past_external(fn);
         if (ASR::is_a<ASR::Function_t>(*f2)) {
-            return create_Function(loc, args, v);
+            return create_Function(loc, args, fn);
         } else {
             LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
-            return create_GenericProcedure(loc, args, v);
+            return create_GenericProcedure(loc, args, fn);
         }
     }
 
