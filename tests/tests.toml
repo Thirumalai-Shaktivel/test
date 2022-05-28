@@ -12,6 +12,10 @@ asr_indent = true
 ast = true
 
 [[test]]
+filename = "test_float_c.f90"
+pywrap = true
+
+[[test]]
 filename = "subroutine2.f90"
 ast = true
 
