@@ -135,6 +135,9 @@ static inline ASR::ttype_t* expr_type(const ASR::expr_t *f)
         case ASR::exprType::ArrayMatMul: { return ((ASR::ArrayMatMul_t*)f)->m_type; }
         case ASR::exprType::ArrayPack: { return ((ASR::ArrayPack_t*)f)->m_type; }
         case ASR::exprType::Transfer: { return ((ASR::Transfer_t*)f)->m_type; }
+        case ASR::exprType::Ichar: { return ((ASR::Ichar_t*)f)->m_type; }
+        case ASR::exprType::Scan: { return ((ASR::Scan_t*)f)->m_type; }
+        case ASR::exprType::Verify: { return ((ASR::Verify_t*)f)->m_type; }
         default : throw LFortranException("Not implemented");
     }
 }
@@ -974,7 +977,7 @@ static inline ASR::ttype_t* duplicate_type(Allocator& al, const ASR::ttype_t* t,
             ASR::Complex_t* tnew = ASR::down_cast<ASR::Complex_t>(t);
             ASR::dimension_t* dimsp = dims ? dims->p : tnew->m_dims;
             size_t dimsn = dims ? dims->n : tnew->n_dims;
-            return ASRUtils::TYPE(ASR::make_Integer_t(al, t->base.loc,
+            return ASRUtils::TYPE(ASR::make_Complex_t(al, t->base.loc,
                         tnew->m_kind, dimsp, dimsn));
         }
         case ASR::ttypeType::Logical: {
@@ -1230,6 +1233,7 @@ class ReplaceArgVisitor: public ASR::BaseExprReplacer<ReplaceArgVisitor> {
             current_expr = current_expr_copy;
         }
         x->m_name = new_es;
+        x->m_original_name = nullptr;
     }
 
     void replace_Var(ASR::Var_t* x) {

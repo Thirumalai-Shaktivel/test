@@ -1262,6 +1262,22 @@ public:
                 return ASRUtils::TYPE(ASR::make_Real_t(al, loc, t->m_kind, new_dims.p, new_dims.size()));
                 break;
             }
+            case ASR::ttypeType::Complex: {
+                ASR::Complex_t *t = ASR::down_cast<ASR::Complex_t>(return_type);
+                fill_expr_in_ttype_t(func_calls, t->m_dims, t->n_dims);
+                fix_exprs_ttype_t(func_calls, args, f);
+                Vec<ASR::dimension_t> new_dims;
+                new_dims.reserve(al, t->n_dims);
+                for( size_t i = 0; i < func_calls.size(); i += 2 ) {
+                    ASR::dimension_t new_dim;
+                    new_dim.loc = func_calls[i]->base.loc;
+                    new_dim.m_start = func_calls[i];
+                    new_dim.m_end = func_calls[i + 1];
+                    new_dims.push_back(al, new_dim);
+                }
+                return ASRUtils::TYPE(ASR::make_Complex_t(al, loc, t->m_kind, new_dims.p, new_dims.size()));
+                break;
+            }
             default: {
                 return return_type;
             }
@@ -1769,7 +1785,7 @@ public:
         ASR::ttype_t *type = ASRUtils::expr_type(matrix);
         ASR::dimension_t* matrix_dims = nullptr;
         int matrix_rank = ASRUtils::extract_dimensions_from_ttype(type, matrix_dims);
-        if( matrix_rank != 2 ) {
+        if( matrix_rank != 2 && matrix_rank != 0 ) {
             throw SemanticError("transpose accepts arrays "
                                 "of rank 2 only, provided an array "
                                 "with rank, " + std::to_string(matrix_rank),
@@ -1777,8 +1793,23 @@ public:
         }
         Vec<ASR::dimension_t> reversed_dims;
         reversed_dims.reserve(al, 2);
-        reversed_dims.push_back(al, matrix_dims[1]);
-        reversed_dims.push_back(al, matrix_dims[0]);
+        if( matrix_rank == 2 ) {
+            reversed_dims.push_back(al, matrix_dims[1]);
+            reversed_dims.push_back(al, matrix_dims[0]);
+        } else {
+            ASR::ttype_t *int32_type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                                                      4, nullptr, 0));
+            ASR::expr_t* one = ASRUtils::EXPR(ASR::make_IntegerConstant_t(al, x.base.base.loc, 1, int32_type));
+            ASR::expr_t* two = ASRUtils::EXPR(ASR::make_IntegerConstant_t(al, x.base.base.loc, 2, int32_type));
+            ASR::expr_t* dim0_expr = ASRUtils::EXPR(ASR::make_ArraySize_t(al, x.base.base.loc, matrix, one, int32_type, nullptr));
+            ASR::expr_t* dim1_expr = ASRUtils::EXPR(ASR::make_ArraySize_t(al, x.base.base.loc, matrix, two, int32_type, nullptr));
+            ASR::dimension_t dim0;
+            dim0.m_start = one, dim0.m_end = dim0_expr, dim0.loc = dim0_expr->base.loc;
+            ASR::dimension_t dim1;
+            dim1.m_start = one, dim1.m_end = dim1_expr, dim1.loc = dim1_expr->base.loc;
+            reversed_dims.push_back(al, dim1);
+            reversed_dims.push_back(al, dim0);
+        }
         ASR::ttype_t* ret_type = ASRUtils::duplicate_type(al, type, &reversed_dims);
         return ASR::make_ArrayTranspose_t(al, x.base.base.loc, matrix, ret_type, nullptr);
     }
@@ -1970,6 +2001,48 @@ public:
         return ASR::make_ComplexConstructor_t(al, x.base.base.loc, x_, y_, type, nullptr);
     }
 
+    ASR::asr_t* create_Ichar(const AST::FuncCallOrArray_t& x) {
+        std::vector<ASR::expr_t*> args;
+        std::vector<std::string> kwarg_names = {"kind"};
+        handle_intrinsic_node_args(x, args, kwarg_names, 1, 2, "ichar");
+        ASR::expr_t *arg = args[0], *kind = args[1];
+        int64_t kind_value = handle_kind(kind);
+        ASR::ttype_t *type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc,
+                                kind_value, nullptr, 0));
+        return ASR::make_Ichar_t(al, x.base.base.loc, arg, type, nullptr);
+    }
+
+    void create_ScanVerify_util(const AST::FuncCallOrArray_t& x,
+        ASR::expr_t*& string, ASR::expr_t*& set, ASR::expr_t*& back,
+        ASR::ttype_t*& type, std::string func_name) {
+        ASR::expr_t* kind = nullptr;
+        std::vector<ASR::expr_t*> args;
+        std::vector<std::string> kwarg_names = {"back", "kind"};
+        handle_intrinsic_node_args(x, args, kwarg_names, 2, 4, func_name);
+        string = args[0], set = args[1], back = args[2], kind = args[3];
+        int64_t kind_value = handle_kind(kind);
+        type = ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc, kind_value, nullptr, 0));
+    }
+
+    ASR::asr_t* create_Scan(const AST::FuncCallOrArray_t& x) {
+        ASR::expr_t *string, *set, *back;
+        ASR::ttype_t *type;
+        string = nullptr, set = nullptr, back = nullptr;
+        type = nullptr;
+        create_ScanVerify_util(x, string, set, back, type, "scan");
+        return ASR::make_Scan_t(al, x.base.base.loc, string, set, back, type, nullptr);
+    }
+
+    ASR::asr_t* create_Verify(const AST::FuncCallOrArray_t& x) {
+        ASR::expr_t *string, *set, *back;
+        ASR::ttype_t *type;
+        string = nullptr, set = nullptr, back = nullptr;
+        type = nullptr;
+        create_ScanVerify_util(x, string, set, back, type, "verify");
+        return ASR::make_Verify_t(al, x.base.base.loc, string, set, back, type, nullptr);
+    }
+
+
     ASR::symbol_t* intrinsic_as_node(const AST::FuncCallOrArray_t &x,
                                      bool& is_function) {
         std::string var_name = to_lower(x.m_func);
@@ -1989,6 +2062,12 @@ public:
                 tmp = create_Transfer(x);
             } else if( var_name == "cmplx" ) {
                 tmp = create_Cmplx(x);
+            } else if( var_name == "ichar" ) {
+                tmp = create_Ichar(x);
+            } else if( var_name == "scan" ) {
+                tmp = create_Scan(x);
+            } else if( var_name == "verify" ) {
+                tmp = create_Verify(x);
             } else {
                 LFortranException("create_" + var_name + " not implemented yet.");
             }
@@ -2149,6 +2228,10 @@ public:
                 loc);
         }
         char *fn_name = ASRUtils::symbol_name(t);
+        std::string fn_name_str = std::string(fn_name);
+        if( current_scope->get_symbol(fn_name_str) != nullptr ) {
+            fn_name = s2c(al, current_scope->get_unique_name(fn_name_str));
+        }
         ASR::asr_t *fn = ASR::make_ExternalSymbol_t(
             al, t->base.loc,
             /* a_symtab */ current_scope,
