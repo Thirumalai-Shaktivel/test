@@ -124,6 +124,12 @@ static inline std::string type_to_str(const ASR::ttype_t *t)
         case ASR::ttypeType::List: {
             return "list";
         }
+        case ASR::ttypeType::Derived: {
+            return "derived type";
+        }
+        case ASR::ttypeType::CPtr: {
+            return "type(c_ptr)";
+        }
         default : throw LFortranException("Not implemented");
     }
 }
@@ -858,6 +864,11 @@ inline int extract_dimensions_from_ttype(ASR::ttype_t *x,
         }
         case ASR::ttypeType::Pointer: {
             n_dims = extract_dimensions_from_ttype(ASR::down_cast<ASR::Pointer_t>(x)->m_type, m_dims);
+            break;
+        }
+        case ASR::ttypeType::CPtr: {
+            n_dims = 0;
+            m_dims = nullptr;
             break;
         }
         default:
