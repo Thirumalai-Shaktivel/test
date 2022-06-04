@@ -2533,13 +2533,14 @@ public:
         uint32_t h;
         bool lhs_is_string_arrayref = false;
         if( x.m_target->type == ASR::exprType::ArrayRef ||
-            x.m_target->type == ASR::exprType::DerivedRef ) {
+            x.m_target->type == ASR::exprType::DerivedRef ||
+            x.m_target->type == ASR::exprType::StringItem ) {
             this->visit_expr(*x.m_target);
             target = tmp;
-            if (is_a<ASR::ArrayRef_t>(*x.m_target)) {
-                ASR::ArrayRef_t *asr_target0 = ASR::down_cast<ASR::ArrayRef_t>(x.m_target);
-                if (is_a<ASR::Variable_t>(*asr_target0->m_v)) {
-                    ASR::Variable_t *asr_target = ASR::down_cast<ASR::Variable_t>(asr_target0->m_v);
+            if (is_a<ASR::StringItem_t>(*x.m_target)) {
+                ASR::StringItem_t *asr_target0 = ASR::down_cast<ASR::StringItem_t>(x.m_target);
+                if (is_a<ASR::Var_t>(*asr_target0->m_arg)) {
+                    ASR::Variable_t *asr_target = EXPR2VAR(asr_target0->m_arg);
                     if ( is_a<ASR::Character_t>(*asr_target->m_type) ) {
                         ASR::Character_t *t = ASR::down_cast<ASR::Character_t>(asr_target->m_type);
                         if (t->n_dims == 0) {
@@ -2621,7 +2622,9 @@ public:
     inline void visit_expr_wrapper(const ASR::expr_t* x, bool load_ref=false) {
         this->visit_expr(*x);
         if( x->type == ASR::exprType::ArrayRef ||
-            x->type == ASR::exprType::DerivedRef ) {
+            x->type == ASR::exprType::DerivedRef ||
+            x->type == ASR::exprType::StringItem
+            ) {
             if( load_ref ) {
                 tmp = CreateLoad(tmp);
             }
