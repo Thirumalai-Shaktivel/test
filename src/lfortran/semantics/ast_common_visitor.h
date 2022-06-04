@@ -1278,6 +1278,12 @@ public:
                 }
             }
         }
+        ASR::Variable_t *var = ASR::down_cast<ASR::Variable_t>(v);
+        if (ASR::is_a<ASR::Character_t>(*var->m_type)) {
+            ASR::asr_t *obj_var = ASR::make_Var_t(al, loc, v);
+            ASR::expr_t *v_expr = LFortran::ASRUtils::EXPR(obj_var);
+            return ASR::make_StringItem_t(al, loc, v_expr, args[0].m_right, type, nullptr);
+        }
         return ASR::make_ArrayRef_t(al, loc,
             v, args.p, args.size(), type, arr_ref_val);
     }
