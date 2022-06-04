@@ -3,10 +3,10 @@
 
 #include <libasr/asr.h>
 
-namespace LFortran {
+namespace LCompilers {
 
     void pass_replace_select_case(Allocator &al, ASR::TranslationUnit_t &unit);
 
-} // namespace LFortran
+} // namespace LCompilers
 
 #endif // LFORTRAN_PASS_SELECT_CASE_H

@@ -5,8 +5,7 @@
 #include <lfortran/parser/parser.tab.hh>
 #include <libasr/bigint.h>
 
-namespace LFortran
-{
+namespace LCompilers {
 
 void lex_format(unsigned char *&cur, Location &loc,
         unsigned char *&start);
@@ -609,7 +608,7 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc, diag::Diagnost
                     } else {
                         token_loc(loc);
                         std::string t = token();
-                        throw LFortran::parser_local::TokenizerError("Integer '" + t + "' too large",
+                        throw LCompilers::parser_local::TokenizerError("Integer '" + t + "' too large",
                             loc);
                     }
                 } else {
@@ -724,7 +723,7 @@ void lex_format(unsigned char *&cur, Location &loc,
             * {
                 token_loc(loc);
                 std::string t = token(tok, cur);
-                throw LFortran::parser_local::TokenizerError("Token '" + t
+                throw LCompilers::parser_local::TokenizerError("Token '" + t
                     + "' is not recognized in `format` statement", loc);
             }
             '(' {
@@ -758,7 +757,7 @@ void lex_format(unsigned char *&cur, Location &loc,
             end {
                 token_loc(loc);
                 std::string t = token(tok, cur);
-                throw LFortran::parser_local::TokenizerError(
+                throw LCompilers::parser_local::TokenizerError(
                     "End of file not expected in `format` statement '" + t + "'", loc);
             }
             whitespace { continue; }
@@ -772,4 +771,4 @@ void lex_format(unsigned char *&cur, Location &loc,
     }
 }
 
-} // namespace LFortran
+} // namespace LCompilers

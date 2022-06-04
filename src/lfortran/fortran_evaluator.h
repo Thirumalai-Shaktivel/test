@@ -13,7 +13,7 @@
 #include <libasr/config.h>
 #include <libasr/diagnostics.h>
 
-namespace LFortran {
+namespace LCompilers {
 
 class LLVMModule;
 class LLVMEvaluator;
@@ -98,6 +98,6 @@ private:
     std::string run_fn;
 };
 
-} // namespace LFortran
+} // namespace LCompilers
 
 #endif // LFORTRAN_FORTRAN_EVALUATOR_H

@@ -11,7 +11,7 @@
 #define DEBUG(s)
 #endif
 
-namespace LFortran {
+namespace LCompilers {
 
 namespace wasm {
 
@@ -33,7 +33,7 @@ void WASMDecoder::decode_type_section(uint32_t offset) {
 
     for (uint32_t i = 0; i < no_of_func_types; i++) {
         if (wasm_bytes[offset] != 0x60) {
-            throw LFortran::LFortranException("Invalid type section");
+            throw LCompilers::LFortranException("Invalid type section");
         }
         offset++;
 
@@ -192,4 +192,4 @@ std::string WASMDecoder::get_wat() {
 
 }  // namespace wasm
 
-}  // namespace LFortran
+}  // namespace LCompilers

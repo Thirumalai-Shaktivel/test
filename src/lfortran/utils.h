@@ -4,12 +4,12 @@
 #include <string>
 #include <libasr/utils.h>
 
-namespace LFortran {
+namespace LCompilers {
 
 void get_executable_path(std::string &executable_path, int &dirname_length);
 std::string get_runtime_library_dir();
 std::string get_runtime_library_header_dir();
 
-} // LFortran
+} // namespace LCompilers
 
 #endif // LFORTRAN_UTILS_H

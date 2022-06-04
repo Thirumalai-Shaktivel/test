@@ -72,7 +72,7 @@
 #endif
 
 
-namespace LFortran {
+namespace LCompilers {
 
 namespace {
 
@@ -114,15 +114,15 @@ using ASR::is_a;
 using ASR::down_cast;
 using ASR::down_cast2;
 
-using LFortran::ASRUtils::expr_type;
-using LFortran::ASRUtils::symbol_get_past_external;
-using LFortran::ASRUtils::EXPR2VAR;
-using LFortran::ASRUtils::EXPR2FUN;
-using LFortran::ASRUtils::EXPR2SUB;
-using LFortran::ASRUtils::intent_local;
-using LFortran::ASRUtils::intent_return_var;
-using LFortran::ASRUtils::determine_module_dependencies;
-using LFortran::ASRUtils::is_arg_dummy;
+using LCompilers::ASRUtils::expr_type;
+using LCompilers::ASRUtils::symbol_get_past_external;
+using LCompilers::ASRUtils::EXPR2VAR;
+using LCompilers::ASRUtils::EXPR2FUN;
+using LCompilers::ASRUtils::EXPR2SUB;
+using LCompilers::ASRUtils::intent_local;
+using LCompilers::ASRUtils::intent_return_var;
+using LCompilers::ASRUtils::determine_module_dependencies;
+using LCompilers::ASRUtils::is_arg_dummy;
 
 // Platform dependent fast unique hash:
 uint64_t static get_hash(ASR::asr_t *node)
@@ -289,12 +289,12 @@ public:
     }
 
     llvm::Value* CreateLoad(llvm::Value *x) {
-        return LFortran::LLVM::CreateLoad(*builder, x);
+        return LCompilers::LLVM::CreateLoad(*builder, x);
     }
 
 
     llvm::Value* CreateGEP(llvm::Value *x, std::vector<llvm::Value *> &idx) {
-        return LFortran::LLVM::CreateGEP(*builder, x, idx);
+        return LCompilers::LLVM::CreateGEP(*builder, x, idx);
     }
 
     // Inserts a new block `bb` using the current builder
@@ -4791,4 +4791,4 @@ Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
     return std::make_unique<LLVMModule>(std::move(v.module));
 }
 
-} // namespace LFortran
+} // namespace LCompilers

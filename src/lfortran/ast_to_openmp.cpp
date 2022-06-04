@@ -2,15 +2,15 @@
 
 #include <lfortran/ast_to_openmp.h>
 
-using LFortran::AST::expr_t;
-using LFortran::AST::Name_t;
-using LFortran::AST::Num_t;
-using LFortran::AST::BinOp_t;
-using LFortran::AST::operatorType;
-using LFortran::AST::BaseVisitor;
+using LCompilers::AST::expr_t;
+using LCompilers::AST::Name_t;
+using LCompilers::AST::Num_t;
+using LCompilers::AST::BinOp_t;
+using LCompilers::AST::operatorType;
+using LCompilers::AST::BaseVisitor;
 
 
-namespace LFortran {
+namespace LCompilers {
 
 namespace {
 
@@ -955,7 +955,7 @@ public:
 
 }
 
-std::string ast_to_openmp(LFortran::AST::ast_t &ast) {
+std::string ast_to_openmp(LCompilers::AST::ast_t &ast) {
     AST::ASTToOPENMPVisitor v;
     v.visit_ast(ast);
     return v.s;

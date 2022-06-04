@@ -3,7 +3,7 @@
 
 #include <lfortran/ast.h>
 
-namespace LFortran {
+namespace LCompilers {
 
     // Converts AST to Fortran source code
     std::string ast_to_src(AST::TranslationUnit_t &ast, bool color=false,

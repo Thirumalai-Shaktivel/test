@@ -9,7 +9,7 @@
 #include <libasr/asr.h>
 #include <libasr/string_utils.h>
 
-namespace LFortran  {
+namespace LCompilers {
 
     namespace ASRUtils  {
 
@@ -1226,6 +1226,6 @@ ASR::asr_t* make_Cast_t_value(Allocator &al, const Location &a_loc,
 
 } // namespace ASRUtils
 
-} // namespace LFortran
+} // namespace LCompilers
 
 #endif // LFORTRAN_ASR_UTILS_H

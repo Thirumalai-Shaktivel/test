@@ -17,7 +17,7 @@
 #include <lfortran/utils.h>
 
 
-namespace LFortran {
+namespace LCompilers {
 
 Result<ASR::asr_t*> symbol_table_visitor(Allocator &al, AST::TranslationUnit_t &ast,
         diag::Diagnostics &diagnostics,
@@ -54,4 +54,4 @@ Result<ASR::TranslationUnit_t*> ast_to_asr(Allocator &al,
     return tu;
 }
 
-} // namespace LFortran
+} // namespace LCompilers

@@ -9,8 +9,7 @@
 #include <libasr/diagnostics.h>
 #include <lfortran/parser/tokenizer.h>
 
-namespace LFortran
-{
+namespace LCompilers {
 
 class Parser
 {
@@ -50,6 +49,6 @@ std::string token2text(const int token);
 std::string fix_continuation(const std::string &s, LocationManager &lm,
         bool fixed_form);
 
-} // namespace LFortran
+} // namespace LCompilers
 
 #endif

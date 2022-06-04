@@ -3,16 +3,16 @@
 #include <libasr/string_utils.h>
 #include <libasr/bigint.h>
 
-using LFortran::AST::expr_t;
-using LFortran::AST::Name_t;
-using LFortran::AST::Num_t;
-using LFortran::AST::BinOp_t;
-using LFortran::AST::operatorType;
-using LFortran::AST::BaseVisitor;
-using LFortran::AST::StrOp_t;
+using LCompilers::AST::expr_t;
+using LCompilers::AST::Name_t;
+using LCompilers::AST::Num_t;
+using LCompilers::AST::BinOp_t;
+using LCompilers::AST::operatorType;
+using LCompilers::AST::BaseVisitor;
+using LCompilers::AST::StrOp_t;
 
 
-namespace LFortran {
+namespace LCompilers {
 
 namespace {
 

@@ -4,7 +4,7 @@
 #include <libasr/location.h>
 #include <libasr/stacktrace.h>
 
-namespace LFortran {
+namespace LCompilers {
 
 struct LocationManager;
 struct CompilerOptions;
@@ -187,9 +187,9 @@ std::string render_diagnostic(const Diagnostic &d, bool use_colors);
 
 // Fills Diagnostic with span details and renders it
 std::string render_diagnostic(Diagnostic &d, const std::string &input,
-        const LocationManager &lm, bool use_colors, bool show_stacktrace); 
+        const LocationManager &lm, bool use_colors, bool show_stacktrace);
 
 } // namespace diag
-} // namespace LFortran
+} // namespace LCompilers
 
 #endif // LFORTRAN_DIAGNOSTICS_H

@@ -15,7 +15,7 @@
 #include <libasr/containers.h>
 
 
-namespace LFortran {
+namespace LCompilers {
 
 using ASR::down_cast;
 using ASR::down_cast2;
@@ -364,4 +364,4 @@ ASR::TranslationUnit_t *mod_to_asr(Allocator &al, std::string filename)
     }
 }
 
-} // namespace LFortran
+} // namespace LCompilers

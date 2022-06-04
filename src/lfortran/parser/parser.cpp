@@ -7,8 +7,7 @@
 #include <libasr/diagnostics.h>
 #include <lfortran/parser/parser_exception.h>
 
-namespace LFortran
-{
+namespace LCompilers {
 
 Result<AST::TranslationUnit_t*> parse(Allocator &al, const std::string &s,
         diag::Diagnostics &diagnostics)
@@ -608,7 +607,7 @@ void Parser::handle_yyerror(const Location &loc, const std::string &msg)
     if (msg == "syntax is ambiguous") {
         message = "Internal Compiler Error: syntax is ambiguous in the parser";
     } else if (msg == "syntax error") {
-        LFortran::YYSTYPE yylval_;
+        LCompilers::YYSTYPE yylval_;
         YYLTYPE yyloc_;
         this->m_tokenizer.cur = this->m_tokenizer.tok;
         int token = this->m_tokenizer.lex(this->m_a, yylval_, yyloc_, diag);

@@ -4,8 +4,7 @@
 #include <cstring>
 #include <libasr/alloc.h>
 
-namespace LFortran
-{
+namespace LCompilers {
 
 // Vector implementation
 
@@ -180,7 +179,7 @@ struct Str {
 static_assert(std::is_standard_layout<Str>::value);
 static_assert(std::is_trivial<Str>::value);
 
-} // namespace LFortran
+} // namespace LCompilers
 
 
 

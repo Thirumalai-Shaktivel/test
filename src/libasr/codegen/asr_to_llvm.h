@@ -4,13 +4,13 @@
 #include <libasr/asr.h>
 #include <libasr/codegen/evaluator.h>
 
-namespace LFortran {
+namespace LCompilers {
 
     Result<std::unique_ptr<LLVMModule>> asr_to_llvm(ASR::TranslationUnit_t &asr,
             diag::Diagnostics &diagnostics,
             llvm::LLVMContext &context, Allocator &al, Platform platform,
             bool fast, const std::string &rl_path, const std::string &run_fn);
 
-} // namespace LFortran
+} // namespace LCompilers
 
 #endif // LFORTRAN_ASR_TO_LLVM_H

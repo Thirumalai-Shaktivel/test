@@ -8,7 +8,7 @@
 #include <libasr/bwriter.h>
 
 
-namespace LFortran {
+namespace LCompilers {
 
 const std::string lfortran_modfile_type_string = "LFortran Modfile";
 
@@ -79,4 +79,4 @@ ASR::TranslationUnit_t* load_modfile(Allocator &al, const std::string &s,
     return tu;
 }
 
-} // namespace LFortran
+} // namespace LCompilers

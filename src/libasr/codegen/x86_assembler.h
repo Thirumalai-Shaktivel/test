@@ -45,7 +45,7 @@ https://www.systutorials.com/go/intel-x86-64-reference-manual/
 #    define EMIT_VAR(a, b)
 #endif
 
-namespace LFortran {
+namespace LCompilers {
 
 enum X86Reg : uint8_t {
     eax = 0,
@@ -821,6 +821,6 @@ void emit_print(X86Assembler &a, const std::string &msg_label,
     uint32_t size);
 void emit_print_int(X86Assembler &a, const std::string &name);
 
-} // namespace LFortran
+} // namespace LCompilers
 
 #endif // LFORTRAN_CODEGEN_X86_ASSEMBER_H

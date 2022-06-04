@@ -3,7 +3,7 @@
 
 #include <libasr/asr.h>
 
-namespace LFortran {
+namespace LCompilers {
 
     // Save a module to a modfile
     std::string save_modfile(const ASR::TranslationUnit_t &m);
