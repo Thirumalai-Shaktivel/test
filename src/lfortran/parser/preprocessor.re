@@ -80,7 +80,7 @@ std::string parse_argument(unsigned char *&cur) {
 }
 
 std::string match_parentheses(unsigned char *&cur) {
-    LFORTRAN_ASSERT(*cur == '(')
+    LCOMPILERS_ASSERT(*cur == '(')
     std::string arg;
     arg += *cur;
     cur++;
@@ -90,7 +90,7 @@ std::string match_parentheses(unsigned char *&cur) {
         }
         if (*cur == '(') {
             arg += match_parentheses(cur);
-            LFORTRAN_ASSERT(*cur == ')')
+            LCOMPILERS_ASSERT(*cur == ')')
         } else {
             arg += *cur;
         }
@@ -110,7 +110,7 @@ std::string parse_argument2(unsigned char *&cur) {
         }
         if (*cur == '(') {
             arg += match_parentheses(cur);
-            LFORTRAN_ASSERT(*cur == ')')
+            LCOMPILERS_ASSERT(*cur == ')')
         } else {
             arg += *cur;
         }
@@ -121,7 +121,7 @@ std::string parse_argument2(unsigned char *&cur) {
 
 std::vector<std::string> parse_arguments(unsigned char *&cur, bool skip_spaces) {
     std::vector<std::string> args;
-    LFORTRAN_ASSERT(*cur == '(');
+    LCOMPILERS_ASSERT(*cur == '(');
     cur++;
     while (*cur != ')') {
         if (skip_spaces) {
@@ -168,7 +168,7 @@ int parse_bexpr(unsigned char *&cur, const cpp_symtab &macro_definitions);
 
 std::string CPreprocessor::run(const std::string &input, LocationManager &lm,
         cpp_symtab &macro_definitions) const {
-    LFORTRAN_ASSERT(input[input.size()] == '\0');
+    LCOMPILERS_ASSERT(input[input.size()] == '\0');
     unsigned char *string_start=(unsigned char*)(&input[0]);
     unsigned char *cur = string_start;
     std::string output;
@@ -217,7 +217,7 @@ std::string CPreprocessor::run(const std::string &input, LocationManager &lm,
                 if (!branch_enabled) continue;
                 std::string macro_name = token(t1, t2), macro_subs;
                 if (t3 != nullptr) {
-                    LFORTRAN_ASSERT(t4 != nullptr);
+                    LCOMPILERS_ASSERT(t4 != nullptr);
                     macro_subs = token(t3, t4);
                     handle_continuation_lines(macro_subs, cur);
                 }
@@ -486,7 +486,7 @@ std::string CPreprocessor::function_like_macro_expansion(
             std::vector<std::string> &def_args,
             std::string &expansion,
             std::vector<std::string> &call_args) const {
-    LFORTRAN_ASSERT(expansion[expansion.size()] == '\0');
+    LCOMPILERS_ASSERT(expansion[expansion.size()] == '\0');
     unsigned char *string_start=(unsigned char*)(&expansion[0]);
     unsigned char *cur = string_start;
     std::string output;

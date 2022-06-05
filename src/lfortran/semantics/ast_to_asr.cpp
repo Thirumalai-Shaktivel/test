@@ -40,7 +40,7 @@ Result<ASR::TranslationUnit_t*> ast_to_asr(Allocator &al,
         return res.error;
     }
     ASR::TranslationUnit_t *tu = ASR::down_cast2<ASR::TranslationUnit_t>(unit);
-    LFORTRAN_ASSERT(asr_verify(*tu));
+    LCOMPILERS_ASSERT(asr_verify(*tu));
 
     if (!symtab_only) {
         auto res = body_visitor(al, ast, diagnostics, unit);
@@ -49,7 +49,7 @@ Result<ASR::TranslationUnit_t*> ast_to_asr(Allocator &al,
         } else {
             return res.error;
         }
-        LFORTRAN_ASSERT(asr_verify(*tu));
+        LCOMPILERS_ASSERT(asr_verify(*tu));
     }
     return tu;
 }

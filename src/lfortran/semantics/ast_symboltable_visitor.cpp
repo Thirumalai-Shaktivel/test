@@ -106,7 +106,7 @@ public:
         if (!current_scope) {
             current_scope = al.make_new<SymbolTable>(nullptr);
         }
-        LFORTRAN_ASSERT(current_scope != nullptr);
+        LCOMPILERS_ASSERT(current_scope != nullptr);
         global_scope = current_scope;
 
         // Create the TU early, so that asr_owner is set, so that
@@ -484,7 +484,7 @@ public:
                     break;
                 }
                 case (AST::decl_typeType::TypeType) : {
-                    LFORTRAN_ASSERT(return_type->m_name);
+                    LCOMPILERS_ASSERT(return_type->m_name);
                     std::string derived_type_name = to_lower(return_type->m_name);
                     ASR::symbol_t *v = current_scope->resolve_symbol(derived_type_name);
                     if (!v) {
@@ -677,7 +677,7 @@ public:
                         break;
                     }
                     default: {
-                        LFORTRAN_ASSERT(false);
+                        LCOMPILERS_ASSERT(false);
                         break;
                     }
                 }
@@ -1114,7 +1114,7 @@ public:
                         // doesn't import a procedure for a custom operator
                         // the lfortran is supposed to do that with help
                         // of to_be_imported_later queue.
-                        LFORTRAN_ASSERT(false);
+                        LCOMPILERS_ASSERT(false);
                     }
                     to_be_imported_later.push(std::make_pair(proc_remote_sym, mangled_name));
                 }

@@ -158,7 +158,7 @@ public:
     }
 
     if( overloaded == nullptr ) {
-        LFORTRAN_ASSERT(
+        LCOMPILERS_ASSERT(
             ASRUtils::check_equal_type(LCompilers::ASRUtils::expr_type(left),
                                     LCompilers::ASRUtils::expr_type(right)));
     }
@@ -299,7 +299,7 @@ public:
     ImplicitCastRules::set_converted_value(al, x.base.base.loc, conversion_cand,
                                            source_type, dest_type);
 
-    LFORTRAN_ASSERT(
+    LCOMPILERS_ASSERT(
         ASRUtils::check_equal_type(LCompilers::ASRUtils::expr_type(left),
                                    LCompilers::ASRUtils::expr_type(right)));
 
@@ -307,7 +307,7 @@ public:
     // Assign evaluation to `value` if possible, otherwise leave nullptr
     if (LCompilers::ASRUtils::expr_value(left) != nullptr &&
         LCompilers::ASRUtils::expr_value(right) != nullptr) {
-        LFORTRAN_ASSERT(ASR::is_a<LCompilers::ASR::Logical_t>(*dest_type))
+        LCOMPILERS_ASSERT(ASR::is_a<LCompilers::ASR::Logical_t>(*dest_type))
 
         bool left_value = ASR::down_cast<ASR::LogicalConstant_t>(
                                  LCompilers::ASRUtils::expr_value(left))
@@ -359,7 +359,7 @@ public:
       break;
     // Fix compiler warning:
     default: {
-      LFORTRAN_ASSERT(false);
+      LCOMPILERS_ASSERT(false);
       op = ASR::unaryopType::Invert;
     }
     }
@@ -414,15 +414,15 @@ public:
   static inline void visit_StrOp(Allocator &al, const AST::StrOp_t &x,
                                  ASR::expr_t *&left, ASR::expr_t *&right,
                                  ASR::asr_t *&asr) {
-    LFORTRAN_ASSERT(x.m_op == AST::Concat)
+    LCOMPILERS_ASSERT(x.m_op == AST::Concat)
     ASR::ttype_t *left_type = LCompilers::ASRUtils::expr_type(left);
     ASR::ttype_t *right_type = LCompilers::ASRUtils::expr_type(right);
-    LFORTRAN_ASSERT(ASR::is_a<ASR::Character_t>(*left_type))
-    LFORTRAN_ASSERT(ASR::is_a<ASR::Character_t>(*right_type))
+    LCOMPILERS_ASSERT(ASR::is_a<ASR::Character_t>(*left_type))
+    LCOMPILERS_ASSERT(ASR::is_a<ASR::Character_t>(*right_type))
     ASR::Character_t *left_type2 = ASR::down_cast<ASR::Character_t>(left_type);
     ASR::Character_t *right_type2 = ASR::down_cast<ASR::Character_t>(right_type);
-    LFORTRAN_ASSERT(left_type2->n_dims == 0);
-    LFORTRAN_ASSERT(right_type2->n_dims == 0);
+    LCOMPILERS_ASSERT(left_type2->n_dims == 0);
+    LCOMPILERS_ASSERT(right_type2->n_dims == 0);
     ASR::ttype_t *dest_type = ASR::down_cast<ASR::ttype_t>(ASR::make_Character_t(al, x.base.base.loc, left_type2->m_kind,
         left_type2->m_len + right_type2->m_len, nullptr, nullptr, 0));
 
@@ -440,7 +440,7 @@ public:
         std::string result_s = std::string(left_value)+std::string(right_value);
         Str s; s.from_str_view(result_s);
         result = s.c_str(al);
-        LFORTRAN_ASSERT((int64_t)strlen(result) == ASR::down_cast<ASR::Character_t>(dest_type)->m_len)
+        LCOMPILERS_ASSERT((int64_t)strlen(result) == ASR::down_cast<ASR::Character_t>(dest_type)->m_len)
         value = ASR::down_cast<ASR::expr_t>(ASR::make_StringConstant_t(
             al, x.base.base.loc, result, dest_type));
       }
@@ -577,7 +577,7 @@ public:
 
     void process_dims(Allocator &al, Vec<ASR::dimension_t> &dims,
         AST::dimension_t *m_dim, size_t n_dim) {
-        LFORTRAN_ASSERT(dims.size() == 0);
+        LCOMPILERS_ASSERT(dims.size() == 0);
         dims.reserve(al, n_dim);
         for (size_t i=0; i<n_dim; i++) {
             ASR::dimension_t dim;
@@ -610,7 +610,7 @@ public:
                 break;
             }
             default:
-                LFORTRAN_ASSERT(false);
+                LCOMPILERS_ASSERT(false);
         }
         return access_type;
     }
@@ -656,7 +656,7 @@ public:
                 throw SemanticError("Only one attribute can be specified if type is missing",
                     x.base.base.loc);
             }
-            LFORTRAN_ASSERT(x.n_attributes == 1);
+            LCOMPILERS_ASSERT(x.n_attributes == 1);
             if (AST::is_a<AST::SimpleAttribute_t>(*x.m_attributes[0])) {
                 AST::SimpleAttribute_t *sa =
                     AST::down_cast<AST::SimpleAttribute_t>(x.m_attributes[0]);
@@ -669,7 +669,7 @@ public:
                     } else if (sa->m_attr == AST::simple_attributeType
                             ::AttrPublic) {
                         // Do nothing (public access is the default)
-                        LFORTRAN_ASSERT(dflt_access == ASR::accessType::Public);
+                        LCOMPILERS_ASSERT(dflt_access == ASR::accessType::Public);
                     } else if (sa->m_attr == AST::simple_attributeType
                             ::AttrSave) {
                         if (in_module) {
@@ -933,7 +933,7 @@ public:
                     if (sym_type->m_kind != nullptr) {
                         switch (sym_type->m_kind->m_type) {
                             case (AST::kind_item_typeType::Value) : {
-                                LFORTRAN_ASSERT(sym_type->m_kind->m_value != nullptr);
+                                LCOMPILERS_ASSERT(sym_type->m_kind->m_value != nullptr);
                                 if( sym_type->m_kind->m_value->type == AST::exprType::FuncCallOrArray ) {
                                     char_data->expr = sym_type->m_kind->m_value;
                                     char_data->scope = current_scope;
@@ -950,12 +950,12 @@ public:
                                 break;
                             }
                             case (AST::kind_item_typeType::Star) : {
-                                LFORTRAN_ASSERT(sym_type->m_kind->m_value == nullptr);
+                                LCOMPILERS_ASSERT(sym_type->m_kind->m_value == nullptr);
                                 a_len = -1;
                                 break;
                             }
                             case (AST::kind_item_typeType::Colon) : {
-                                LFORTRAN_ASSERT(sym_type->m_kind->m_value == nullptr);
+                                LCOMPILERS_ASSERT(sym_type->m_kind->m_value == nullptr);
                                 a_len = -2;
                                 break;
                             }
@@ -963,7 +963,7 @@ public:
                     } else {
                         a_len = 1; // The default len of "character :: x" is 1
                     }
-                    LFORTRAN_ASSERT(a_len != -10)
+                    LCOMPILERS_ASSERT(a_len != -10)
                     type = LCompilers::ASRUtils::TYPE(ASR::make_Character_t(al, x.base.base.loc, 1, a_len, len_expr,
                         dims.p, dims.size()));
                     if( char_data->scope != nullptr ) {
@@ -971,7 +971,7 @@ public:
                         type_info.push_back(char_data);
                     }
                 } else if (sym_type->m_type == AST::decl_typeType::TypeType) {
-                    LFORTRAN_ASSERT(sym_type->m_name);
+                    LCOMPILERS_ASSERT(sym_type->m_name);
                     std::string derived_type_name = to_lower(sym_type->m_name);
                     ASR::symbol_t *v = current_scope->resolve_symbol(derived_type_name);
                     if( is_c_ptr(v, derived_type_name) ) {
@@ -1020,7 +1020,7 @@ public:
                     init_expr = LCompilers::ASRUtils::EXPR(tmp);
                     ASR::ttype_t *init_type = LCompilers::ASRUtils::expr_type(init_expr);
                     ImplicitCastRules::set_converted_value(al, x.base.base.loc, &init_expr, init_type, type);
-                    LFORTRAN_ASSERT(init_expr != nullptr);
+                    LCOMPILERS_ASSERT(init_expr != nullptr);
                     if (storage_type == ASR::storage_typeType::Parameter) {
                         value = ASRUtils::expr_value(init_expr);
                         if (value == nullptr) {
@@ -1048,7 +1048,7 @@ public:
                                             + " are not equal.", x.base.base.loc);
                                     }
                                 } else {
-                                    LFORTRAN_ASSERT(lhs_len == -2)
+                                    LCOMPILERS_ASSERT(lhs_len == -2)
                                     throw SemanticError("The LHS character len must not be allocatable in a parameter declaration",
                                         x.base.base.loc);
                                 }
@@ -1056,8 +1056,8 @@ public:
                                 throw SemanticError("The RHS character len must be known at compile time",
                                     x.base.base.loc);
                             }
-                            LFORTRAN_ASSERT(lhs_len == rhs_len)
-                            LFORTRAN_ASSERT(lhs_len >= 0)
+                            LCOMPILERS_ASSERT(lhs_len == rhs_len)
+                            LCOMPILERS_ASSERT(lhs_len >= 0)
                             lhs_type->m_len = lhs_len;
                         }
                     }
@@ -1231,7 +1231,7 @@ public:
             if (expri) {
                 expr_duplicator.success = true;
                 ASR::expr_t* expri_copy = expr_duplicator.duplicate_expr(expri);
-                LFORTRAN_ASSERT(expr_duplicator.success);
+                LCOMPILERS_ASSERT(expr_duplicator.success);
                 arg_replacer.current_expr = &expri_copy;
                 arg_replacer.replace_expr(expri_copy);
                 exprs[i] = expri_copy;
@@ -1541,7 +1541,7 @@ public:
         if (ASR::is_a<ASR::Function_t>(*f2)) {
             return create_Function(loc, args, fn);
         } else {
-            LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
+            LCOMPILERS_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
             return create_GenericProcedure(loc, args, fn);
         }
     }
@@ -1552,7 +1552,7 @@ public:
         if (ASR::is_a<ASR::Function_t>(*f2)) {
             return create_Function(x.base.base.loc, args, v);
         } else {
-            LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
+            LCOMPILERS_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
             return create_GenericProcedureWithASTNode(x, args, v);
         }
     }
@@ -2072,7 +2072,7 @@ public:
                     if (var_name == "c_loc") {
                         tmp = create_CLoc(x);
                     } else {
-                        LFORTRAN_ASSERT(false)
+                        LCOMPILERS_ASSERT(false)
                     }
                     return;
                 }
@@ -2095,7 +2095,7 @@ public:
                         ASR::ExternalSymbol_t *p = ASR::down_cast<ASR::ExternalSymbol_t>(v);
                         ASR::symbol_t *f2 = ASR::down_cast<ASR::ExternalSymbol_t>(v)->m_external;
                         if (ASR::is_a<ASR::GenericProcedure_t>(*f2)) {
-                            LFORTRAN_ASSERT(std::string(ASR::down_cast<ASR::GenericProcedure_t>(f2)->m_name) == "floor")
+                            LCOMPILERS_ASSERT(std::string(ASR::down_cast<ASR::GenericProcedure_t>(f2)->m_name) == "floor")
                             tmp = create_Floor(x, p, v);
                             return;
                         }
@@ -2115,7 +2115,7 @@ public:
                         throw SemanticAbort();
                     }
                 } else {
-                    LFORTRAN_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
+                    LCOMPILERS_ASSERT(ASR::is_a<ASR::GenericProcedure_t>(*f2))
                     ASR::GenericProcedure_t* gp = ASR::down_cast<ASR::GenericProcedure_t>(f2);
                     bool function_found = false;
                     for( int i = 0; i < (int) gp->n_procs; i++ ) {
@@ -2284,7 +2284,7 @@ public:
                 break;
             // Fix compiler warning:
             default: {
-                LFORTRAN_ASSERT(false);
+                LCOMPILERS_ASSERT(false);
                 op = ASR::binopType::Pow;
             }
         }
@@ -2352,7 +2352,7 @@ public:
                         break;
                     // Reconsider
                     default: {
-                        LFORTRAN_ASSERT(false);
+                        LCOMPILERS_ASSERT(false);
                         op = ASR::binopType::Pow;
                     }
                 }
@@ -2384,7 +2384,7 @@ public:
                         break;
                     // Reconsider
                     default: {
-                        LFORTRAN_ASSERT(false);
+                        LCOMPILERS_ASSERT(false);
                         op = ASR::binopType::Pow;
                     }
                 }
@@ -2418,7 +2418,7 @@ public:
                         break;
                     // Reconsider
                     default: {
-                        LFORTRAN_ASSERT(false);
+                        LCOMPILERS_ASSERT(false);
                         op = ASR::binopType::Pow;
                     }
                 }
@@ -2641,7 +2641,7 @@ public:
         Vec<ASR::expr_t*> asr_list;
         asr_list.reserve(al, n);
         for (size_t i=0; i<n; i++) {
-            LFORTRAN_ASSERT(ast_list[i].m_end != nullptr);
+            LCOMPILERS_ASSERT(ast_list[i].m_end != nullptr);
             this->visit_expr(*ast_list[i].m_end);
             ASR::expr_t *expr = LCompilers::ASRUtils::EXPR(tmp);
             asr_list.push_back(al, expr);
@@ -2652,7 +2652,7 @@ public:
     void visit_expr_list(AST::fnarg_t *ast_list, size_t n, Vec<ASR::call_arg_t>& call_args) {
         call_args.reserve(al, n);
         for (size_t i = 0; i < n; i++) {
-            LFORTRAN_ASSERT(ast_list[i].m_end != nullptr);
+            LCOMPILERS_ASSERT(ast_list[i].m_end != nullptr);
             this->visit_expr(*ast_list[i].m_end);
             ASR::expr_t *expr = LCompilers::ASRUtils::EXPR(tmp);
             ASR::call_arg_t call_arg;

@@ -119,7 +119,7 @@ Item read_from_tokens(const std::vector<std::string> &tokens, size_t &pos)
         throw LFortranException("Unexpected EOF while reading");
     }
     std::string token = tokens[pos];
-    LFORTRAN_ASSERT(token.size() > 0);
+    LCOMPILERS_ASSERT(token.size() > 0);
     pos++;
     if (token == "(") {
         Item r;
@@ -164,7 +164,7 @@ std::string format_item(const Item &i)
     } else if (i.kind == Item::token) {
         return i.s;
     } else {
-        LFORTRAN_ASSERT(i.kind == Item::list);
+        LCOMPILERS_ASSERT(i.kind == Item::list);
         std::string s;
         s += "(";
         for (size_t j=0; j<i.l.size(); j++) {
@@ -202,7 +202,7 @@ struct GSymbol {
 
 ASR::ttype_t* parse_type(Allocator &al, const std::vector<Item> &l)
 {
-    LFORTRAN_ASSERT(l.size() == 7);
+    LCOMPILERS_ASSERT(l.size() == 7);
     std::string name = item_token(l[0]);
     if (name == "INTEGER") {
         Location loc;
@@ -241,7 +241,7 @@ ASR::TranslationUnit_t* parse_gfortran_mod_file(Allocator &al, const std::string
             s.info = symtab[i+5];
             s.is_public = false;
             std::vector<Item> info = item_list(symtab[i+5]);
-            LFORTRAN_ASSERT(info.size() == 12);
+            LCOMPILERS_ASSERT(info.size() == 12);
             std::vector<Item> info_sym_info = item_list(info[0]);
             std::string kind = item_token(info_sym_info[0]);
             if (kind == "VARIABLE") {
@@ -336,7 +336,7 @@ ASR::TranslationUnit_t* parse_gfortran_mod_file(Allocator &al, const std::string
     asr = ASR::make_TranslationUnit_t(al, loc,
         parent_scope, nullptr, 0);
     ASR::TranslationUnit_t *tu = down_cast2<ASR::TranslationUnit_t>(asr);
-    LFORTRAN_ASSERT(asr_verify(*tu));
+    LCOMPILERS_ASSERT(asr_verify(*tu));
     return tu;
 
     //std::cout << format_item(mod);

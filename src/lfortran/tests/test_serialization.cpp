@@ -89,7 +89,7 @@ void asr_ser(const std::string &src) {
     LCompilers::ASR::TranslationUnit_t *tu
         = LCompilers::ASR::down_cast2<LCompilers::ASR::TranslationUnit_t>(asr_new0);
     fix_external_symbols(*tu, symtab);
-    LFORTRAN_ASSERT(LCompilers::asr_verify(*tu));
+    LCOMPILERS_ASSERT(LCompilers::asr_verify(*tu));
 
     std::string asr_new = LCompilers::pickle(*asr_new0);
 
@@ -110,7 +110,7 @@ void asr_mod(const std::string &src) {
     LCompilers::ASR::TranslationUnit_t *asr2 = LCompilers::load_modfile(al,
             modfile, true, symtab);
     fix_external_symbols(*asr2, symtab);
-    LFORTRAN_ASSERT(LCompilers::asr_verify(*asr2));
+    LCOMPILERS_ASSERT(LCompilers::asr_verify(*asr2));
 
     CHECK(LCompilers::pickle(*asr) == LCompilers::pickle(*asr2));
 }

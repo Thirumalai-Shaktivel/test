@@ -493,7 +493,7 @@ public:
             bool create_associate_stmt = false;
             if( ASR::is_a<ASR::Var_t>(*tmp_expr) ) {
                 ASR::Var_t* tmp_var = ASR::down_cast<ASR::Var_t>(tmp_expr);
-                LFORTRAN_ASSERT(ASR::is_a<ASR::Variable_t>(*(tmp_var->m_v)));
+                LCOMPILERS_ASSERT(ASR::is_a<ASR::Variable_t>(*(tmp_var->m_v)));
                 ASR::Variable_t* variable = ASR::down_cast<ASR::Variable_t>(tmp_var->m_v);
                 tmp_storage = variable->m_storage;
                 tmp_type = ASRUtils::TYPE(ASR::make_Pointer_t(al, tmp_type->base.loc, variable->m_type));
@@ -1055,7 +1055,7 @@ public:
                     if (sub_name == "c_f_pointer") {
                         tmp = create_CFPointer(x);
                     } else {
-                        LFORTRAN_ASSERT(false)
+                        LCOMPILERS_ASSERT(false)
                     }
                     return;
                 }
@@ -1135,7 +1135,7 @@ public:
                 final_sym = p->m_external;
                 // Enforced by verify(), but we ensure anyway that
                 // ExternalSymbols are not chained:
-                LFORTRAN_ASSERT(!ASR::is_a<ASR::ExternalSymbol_t>(*final_sym))
+                LCOMPILERS_ASSERT(!ASR::is_a<ASR::ExternalSymbol_t>(*final_sym))
                 if (ASR::is_a<ASR::GenericProcedure_t>(*final_sym)) {
                     ASR::GenericProcedure_t *g = ASR::down_cast<ASR::GenericProcedure_t>(final_sym);
                     int idx = ASRUtils::select_generic_procedure(args, *g, x.base.base.loc,
@@ -1258,7 +1258,7 @@ public:
             throw SemanticError("The implied do loop variable '" + var_name + "' is not declared", x.base.base.loc);
         };
 
-        LFORTRAN_ASSERT(current_scope->get_symbol(var_name) != nullptr);
+        LCOMPILERS_ASSERT(current_scope->get_symbol(var_name) != nullptr);
         ASR::symbol_t* a_sym = current_scope->get_symbol(var_name);
         // current_scope->scope[a_var_name] = a_sym;
         ASR::expr_t* a_var = LCompilers::ASRUtils::EXPR(ASR::make_Var_t(al, x.base.base.loc, a_sym));

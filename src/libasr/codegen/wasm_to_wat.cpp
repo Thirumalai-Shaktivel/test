@@ -146,8 +146,8 @@ void WASMDecoder::decode_wasm() {
         index += section_size;
     }
 
-    LFORTRAN_ASSERT(index == wasm_bytes.size());
-    LFORTRAN_ASSERT(type_indices.size() == codes.size());
+    LCOMPILERS_ASSERT(index == wasm_bytes.size());
+    LCOMPILERS_ASSERT(type_indices.size() == codes.size());
 }
 
 std::string WASMDecoder::get_wat() {
