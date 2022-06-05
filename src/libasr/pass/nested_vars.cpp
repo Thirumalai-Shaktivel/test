@@ -315,7 +315,8 @@ public:
                             break;
                         }
                         default: {
-                            throw LCompilersException("Variable type not supported in nested functions");
+                            throw LCompilersException("Variable type not \
+                                        supported in nested functions");
                             break;
                         }
                     }

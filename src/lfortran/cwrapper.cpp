@@ -46,7 +46,7 @@ void lfortran_parser_free(LFortranCParser *self)
     delete self;
 }
 
-lfortran_exceptions_t lfortran_parser_parse(LFortranCParser *self,
+lcompilers_exceptions_t lfortran_parser_parse(LFortranCParser *self,
         const char *input, lfortran_ast_t **ast)
 {
     CWRAPPER_BEGIN
@@ -66,7 +66,7 @@ lfortran_exceptions_t lfortran_parser_parse(LFortranCParser *self,
     CWRAPPER_END
 }
 
-lfortran_exceptions_t lfortran_parser_pickle(lfortran_ast_t* ast,
+lcompilers_exceptions_t lfortran_parser_pickle(lfortran_ast_t* ast,
         char **str)
 {
     CWRAPPER_BEGIN
@@ -78,7 +78,7 @@ lfortran_exceptions_t lfortran_parser_pickle(lfortran_ast_t* ast,
     CWRAPPER_END
 }
 
-lfortran_exceptions_t lfortran_str_free(char *str)
+lcompilers_exceptions_t lfortran_str_free(char *str)
 {
     CWRAPPER_BEGIN
 

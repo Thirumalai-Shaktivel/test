@@ -7,7 +7,7 @@ void test_parse()
     const char *s="4+5";
     LFortranCParser *l;
     l = lfortran_parser_new();
-    lfortran_exceptions_t r;
+    lcompilers_exceptions_t r;
     lfortran_ast_t *ast;
     r = lfortran_parser_parse(l, s, &ast);
     LCOMPILERS_C_ASSERT(r == LCOMPILERS_NO_EXCEPTION);

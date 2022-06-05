@@ -299,7 +299,7 @@ Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm3(
 {
 #ifdef HAVE_LCOMPILERS_LLVM
     eval_count++;
-    run_fn = "__lfortran_evaluate_" + std::to_string(eval_count);
+    run_fn = "__lcompilers_evaluate_" + std::to_string(eval_count);
 
     // ASR -> LLVM
     std::unique_ptr<LCompilers::LLVMModule> m;

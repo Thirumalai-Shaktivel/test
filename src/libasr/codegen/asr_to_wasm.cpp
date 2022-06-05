@@ -64,7 +64,7 @@ class ASRToWASMVisitor : public ASR::BaseVisitor<ASRToWASMVisitor> {
     }
 
     void visit_Program(const ASR::Program_t &x) {
-        wasm::emit_header(m_preamble, m_al);  // emit header and version
+        wasm::emit_header(m_preamble, m_al); // emit header and version
 
         uint32_t len_idx_type_section = wasm::emit_len_placeholder(m_type_section, m_al);
         uint32_t len_idx_func_section = wasm::emit_len_placeholder(m_func_section, m_al);
@@ -268,7 +268,8 @@ class ASRToWASMVisitor : public ASR::BaseVisitor<ASRToWASMVisitor> {
     }
 
     void visit_FunctionCall(const ASR::FunctionCall_t &x) {
-        ASR::Function_t *fn = ASR::down_cast<ASR::Function_t>(LCompilers::ASRUtils::symbol_get_past_external(x.m_name));
+        ASR::Function_t *fn = ASR::down_cast<ASR::Function_t>(
+            LCompilers::ASRUtils::symbol_get_past_external(x.m_name));
 
         for (size_t i = 0; i < x.n_args; i++) {
             visit_expr(*x.m_args[i].m_value);
