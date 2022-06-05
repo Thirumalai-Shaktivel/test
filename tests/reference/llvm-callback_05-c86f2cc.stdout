@@ -15,7 +15,7 @@ return:                                           ; preds = %.entry
 define void @__module_callback_05_printx(i32* %x) {
 .entry:
   %0 = load i32, i32* %x, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 %0)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 %0)
   br label %return
 
 return:                                           ; preds = %.entry
@@ -42,7 +42,7 @@ return:                                           ; preds = %.entry
   ret void
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
 
 define i32 @main() {
 .entry:

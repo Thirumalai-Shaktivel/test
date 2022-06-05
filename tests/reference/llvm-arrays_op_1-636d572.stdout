@@ -819,7 +819,7 @@ loop.end:                                         ; preds = %loop.head
   %610 = load i32*, i32** %609, align 8
   %611 = getelementptr inbounds i32, i32* %610, i32 %605
   %612 = load i32, i32* %611, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @0, i32 0, i32 0), i32 %567, i32 %582, i32 %597, i32 %612)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @0, i32 0, i32 0), i32 %567, i32 %582, i32 %597, i32 %612)
   %613 = getelementptr %array, %array* %b, i32 0, i32 2
   %614 = load %dimension_descriptor*, %dimension_descriptor** %613, align 8
   %615 = getelementptr inbounds %dimension_descriptor, %dimension_descriptor* %614, i32 0
@@ -880,7 +880,7 @@ loop.end:                                         ; preds = %loop.head
   %670 = load i32*, i32** %669, align 8
   %671 = getelementptr inbounds i32, i32* %670, i32 %665
   %672 = load i32, i32* %671, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @1, i32 0, i32 0), i32 %627, i32 %642, i32 %657, i32 %672)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @1, i32 0, i32 0), i32 %627, i32 %642, i32 %657, i32 %672)
   %673 = getelementptr %array.0, %array.0* %c, i32 0, i32 2
   %674 = load %dimension_descriptor*, %dimension_descriptor** %673, align 8
   %675 = getelementptr inbounds %dimension_descriptor, %dimension_descriptor* %674, i32 0
@@ -945,7 +945,7 @@ loop.end:                                         ; preds = %loop.head
   %734 = getelementptr inbounds float, float* %733, i32 %728
   %735 = load float, float* %734, align 4
   %736 = fpext float %735 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @2, i32 0, i32 0), double %688, double %704, double %720, double %736)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @2, i32 0, i32 0), double %688, double %704, double %720, double %736)
   store i32 1, i32* %"1_v", align 4
   %737 = load %array, %array* %"~0_bin_op_res", align 8
   %738 = getelementptr %array, %array* %"~0_bin_op_res", i32 0, i32 2
@@ -1236,7 +1236,7 @@ loop.end9:                                        ; preds = %loop.head7
   %984 = getelementptr inbounds float, float* %983, i32 %978
   %985 = load float, float* %984, align 4
   %986 = fpext float %985 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @3, i32 0, i32 0), double %938, double %954, double %970, double %986)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @3, i32 0, i32 0), double %938, double %954, double %970, double %986)
   %987 = load %array.0, %array.0* %"~2_implicit_cast_res", align 8
   %988 = getelementptr %array.0, %array.0* %"~2_implicit_cast_res", i32 0, i32 2
   %989 = load %dimension_descriptor*, %dimension_descriptor** %988, align 8
@@ -1589,7 +1589,7 @@ loop.end21:                                       ; preds = %loop.head19
   %1284 = getelementptr inbounds float, float* %1283, i32 %1278
   %1285 = load float, float* %1284, align 4
   %1286 = fpext float %1285 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @4, i32 0, i32 0), double %1238, double %1254, double %1270, double %1286)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @4, i32 0, i32 0), double %1238, double %1254, double %1270, double %1286)
   store i32 1, i32* %"1_v", align 4
   %1287 = load %array, %array* %"~5_bin_op_res", align 8
   %1288 = getelementptr %array, %array* %"~5_bin_op_res", i32 0, i32 2
@@ -1880,7 +1880,7 @@ loop.end30:                                       ; preds = %loop.head28
   %1534 = getelementptr inbounds float, float* %1533, i32 %1528
   %1535 = load float, float* %1534, align 4
   %1536 = fpext float %1535 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @5, i32 0, i32 0), double %1488, double %1504, double %1520, double %1536)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @5, i32 0, i32 0), double %1488, double %1504, double %1520, double %1536)
   store i32 1, i32* %"1_v", align 4
   %1537 = load %array, %array* %"~7_bin_op_res", align 8
   %1538 = getelementptr %array, %array* %"~7_bin_op_res", i32 0, i32 2
@@ -2237,8 +2237,8 @@ loop.end42:                                       ; preds = %loop.head40
   %1836 = getelementptr inbounds float, float* %1835, i32 %1830
   %1837 = load float, float* %1836, align 4
   %1838 = fpext float %1837 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @6, i32 0, i32 0), double %1790, double %1806, double %1822, double %1838)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @6, i32 0, i32 0), double %1790, double %1806, double %1822, double %1838)
   ret i32 0
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)

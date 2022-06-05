@@ -37,7 +37,7 @@ define i32 @main() {
   %2 = alloca i8*, align 8
   store i8* %0, i8** %2, align 8
   %3 = alloca i8*, align 8
-  call void @_lfortran_strcat(i8** %1, i8** %2, i8** %3)
+  call void @_lcompilers_strcat(i8** %1, i8** %2, i8** %3)
   %4 = load i8*, i8** %3, align 8
   %5 = load i8*, i8** %posit, align 8
   %6 = alloca i8*, align 8
@@ -45,7 +45,7 @@ define i32 @main() {
   %7 = alloca i8*, align 8
   store i8* %5, i8** %7, align 8
   %8 = alloca i8*, align 8
-  call void @_lfortran_strcat(i8** %6, i8** %7, i8** %8)
+  call void @_lcompilers_strcat(i8** %6, i8** %7, i8** %8)
   %9 = load i8*, i8** %8, align 8
   %10 = load i8*, i8** %title, align 8
   %11 = alloca i8*, align 8
@@ -53,7 +53,7 @@ define i32 @main() {
   %12 = alloca i8*, align 8
   store i8* %10, i8** %12, align 8
   %13 = alloca i8*, align 8
-  call void @_lfortran_strcat(i8** %11, i8** %12, i8** %13)
+  call void @_lcompilers_strcat(i8** %11, i8** %12, i8** %13)
   %14 = load i8*, i8** %13, align 8
   %15 = load i8*, i8** %last_name, align 8
   %16 = alloca i8*, align 8
@@ -61,21 +61,21 @@ define i32 @main() {
   %17 = alloca i8*, align 8
   store i8* %15, i8** %17, align 8
   %18 = alloca i8*, align 8
-  call void @_lfortran_strcat(i8** %16, i8** %17, i8** %18)
+  call void @_lcompilers_strcat(i8** %16, i8** %17, i8** %18)
   %19 = load i8*, i8** %18, align 8
   %20 = alloca i8*, align 8
   store i8* %19, i8** %20, align 8
   %21 = alloca i8*, align 8
   store i8* getelementptr inbounds ([2 x i8], [2 x i8]* @11, i32 0, i32 0), i8** %21, align 8
   %22 = alloca i8*, align 8
-  call void @_lfortran_strcat(i8** %20, i8** %21, i8** %22)
+  call void @_lcompilers_strcat(i8** %20, i8** %21, i8** %22)
   %23 = load i8*, i8** %22, align 8
   store i8* %23, i8** %combined, align 8
   %24 = load i8*, i8** %combined, align 8
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @12, i32 0, i32 0), i8* %24)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @12, i32 0, i32 0), i8* %24)
   ret i32 0
 }
 
-declare void @_lfortran_strcat(i8**, i8**, i8**)
+declare void @_lcompilers_strcat(i8**, i8**, i8**)
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)

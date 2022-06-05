@@ -19,7 +19,7 @@
 #include <libasr/string_utils.h>
 #include <lfortran/utils.h>
 
-namespace LFortran {
+namespace LCompilers {
 
 template <typename T>
 void extract_bind(T &x, ASR::abiType &abi_type, char *&bindc_name) {
@@ -106,7 +106,7 @@ public:
         if (!current_scope) {
             current_scope = al.make_new<SymbolTable>(nullptr);
         }
-        LFORTRAN_ASSERT(current_scope != nullptr);
+        LCOMPILERS_ASSERT(current_scope != nullptr);
         global_scope = current_scope;
 
         // Create the TU early, so that asr_owner is set, so that
@@ -189,7 +189,7 @@ public:
             ASR::Module_t *m = ASR::down_cast<ASR::Module_t>(submod_parent);
             std::string unsupported_sym_name = import_all(m);
             if( !unsupported_sym_name.empty() ) {
-                throw LFortranException("'" + unsupported_sym_name + "' is not supported yet for declaring with use.");
+                throw LCompilersException("'" + unsupported_sym_name + "' is not supported yet for declaring with use.");
             }
         }
         for (size_t i=0; i<x.n_use; i++) {
@@ -291,7 +291,7 @@ public:
                 throw SemanticError("Dummy argument '" + arg_s + "' not defined", x.base.base.loc);
             }
             ASR::symbol_t *var = current_scope->get_symbol(arg_s);
-            args.push_back(al, LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, x.base.base.loc,
+            args.push_back(al, LCompilers::ASRUtils::EXPR(ASR::make_Var_t(al, x.base.base.loc,
                 var)));
         }
         std::string sym_name = to_lower(x.m_name);
@@ -413,7 +413,7 @@ public:
                 throw SemanticError("Dummy argument '" + arg_s + "' not defined", x.base.base.loc);
             }
             ASR::symbol_t *var = current_scope->get_symbol(arg_s);
-            args.push_back(al, LFortran::ASRUtils::EXPR(ASR::make_Var_t(al, x.base.base.loc,
+            args.push_back(al, LCompilers::ASRUtils::EXPR(ASR::make_Var_t(al, x.base.base.loc,
                 var)));
         }
 
@@ -452,7 +452,7 @@ public:
             if (return_type->m_kind != nullptr) {
                 if (return_type->n_kind == 1) {
                     visit_expr(*return_type->m_kind->m_value);
-                    ASR::expr_t* kind_expr = LFortran::ASRUtils::EXPR(tmp);
+                    ASR::expr_t* kind_expr = LCompilers::ASRUtils::EXPR(tmp);
                     if (return_type->m_type == AST::decl_typeType::TypeCharacter) {
                         a_len = ASRUtils::extract_len<SemanticError>(kind_expr, x.base.base.loc);
                     } else {
@@ -464,27 +464,27 @@ public:
             }
             switch (return_type->m_type) {
                 case (AST::decl_typeType::TypeInteger) : {
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc, a_kind, nullptr, 0));
+                    type = LCompilers::ASRUtils::TYPE(ASR::make_Integer_t(al, x.base.base.loc, a_kind, nullptr, 0));
                     break;
                 }
                 case (AST::decl_typeType::TypeReal) : {
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc, a_kind, nullptr, 0));
+                    type = LCompilers::ASRUtils::TYPE(ASR::make_Real_t(al, x.base.base.loc, a_kind, nullptr, 0));
                     break;
                 }
                 case (AST::decl_typeType::TypeComplex) : {
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc, a_kind, nullptr, 0));
+                    type = LCompilers::ASRUtils::TYPE(ASR::make_Complex_t(al, x.base.base.loc, a_kind, nullptr, 0));
                     break;
                 }
                 case (AST::decl_typeType::TypeLogical) : {
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Logical_t(al, x.base.base.loc, 4, nullptr, 0));
+                    type = LCompilers::ASRUtils::TYPE(ASR::make_Logical_t(al, x.base.base.loc, 4, nullptr, 0));
                     break;
                 }
                 case (AST::decl_typeType::TypeCharacter) : {
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Character_t(al, x.base.base.loc, 1, a_len, nullptr, nullptr, 0));
+                    type = LCompilers::ASRUtils::TYPE(ASR::make_Character_t(al, x.base.base.loc, 1, a_len, nullptr, nullptr, 0));
                     break;
                 }
                 case (AST::decl_typeType::TypeType) : {
-                    LFORTRAN_ASSERT(return_type->m_name);
+                    LCOMPILERS_ASSERT(return_type->m_name);
                     std::string derived_type_name = to_lower(return_type->m_name);
                     ASR::symbol_t *v = current_scope->resolve_symbol(derived_type_name);
                     if (!v) {
@@ -492,7 +492,7 @@ public:
                             + derived_type_name + "' not declared", x.base.base.loc);
 
                     }
-                    type = LFortran::ASRUtils::TYPE(ASR::make_Derived_t(al, x.base.base.loc, v,
+                    type = LCompilers::ASRUtils::TYPE(ASR::make_Derived_t(al, x.base.base.loc, v,
                         nullptr, 0));
                     break;
                 }
@@ -502,7 +502,7 @@ public:
             }
             // Add it as a local variable:
             return_var = ASR::make_Variable_t(al, x.base.base.loc,
-                current_scope, s2c(al, return_var_name), LFortran::ASRUtils::intent_return_var, nullptr, nullptr,
+                current_scope, s2c(al, return_var_name), LCompilers::ASRUtils::intent_return_var, nullptr, nullptr,
                 ASR::storage_typeType::Default, type,
                 current_procedure_abi_type, ASR::Public, ASR::presenceType::Required,
                 false);
@@ -514,7 +514,7 @@ public:
             }
             // Extract the variable from the local scope
             return_var = (ASR::asr_t*) current_scope->get_symbol(return_var_name);
-            ASR::down_cast2<ASR::Variable_t>(return_var)->m_intent = LFortran::ASRUtils::intent_return_var;
+            ASR::down_cast2<ASR::Variable_t>(return_var)->m_intent = LCompilers::ASRUtils::intent_return_var;
         }
 
         ASR::asr_t *return_var_ref = ASR::make_Var_t(al, x.base.base.loc,
@@ -559,7 +559,7 @@ public:
             /* n_args */ args.size(),
             /* a_body */ nullptr,
             /* n_body */ 0,
-            /* a_return_var */ LFortran::ASRUtils::EXPR(return_var_ref),
+            /* a_return_var */ LCompilers::ASRUtils::EXPR(return_var_ref),
             current_procedure_abi_type, s_access, deftype, bindc_name);
         parent_scope->add_symbol(sym_name, ASR::down_cast<ASR::symbol_t>(tmp));
         current_scope = parent_scope;
@@ -677,7 +677,7 @@ public:
                         break;
                     }
                     default: {
-                        LFORTRAN_ASSERT(false);
+                        LCOMPILERS_ASSERT(false);
                         break;
                     }
                 }
@@ -1114,7 +1114,7 @@ public:
                         // doesn't import a procedure for a custom operator
                         // the lfortran is supposed to do that with help
                         // of to_be_imported_later queue.
-                        LFORTRAN_ASSERT(false);
+                        LCOMPILERS_ASSERT(false);
                     }
                     to_be_imported_later.push(std::make_pair(proc_remote_sym, mangled_name));
                 }
@@ -1178,7 +1178,7 @@ public:
                 );
             current_scope->add_symbol(local_sym, ASR::down_cast<ASR::symbol_t>(v));
         } else {
-            throw LFortranException("Only Subroutines, Functions, Variables and Derived supported in 'use'");
+            throw LCompilersException("Only Subroutines, Functions, Variables and Derived supported in 'use'");
         }
     }
 
@@ -1205,7 +1205,7 @@ public:
         if (x.n_symbols == 0) {
             std::string unsupported_sym_name = import_all(m);
             if( !unsupported_sym_name.empty() ) {
-                throw LFortranException("'" + unsupported_sym_name + "' is not supported yet for declaring with use.");
+                throw LCompilersException("'" + unsupported_sym_name + "' is not supported yet for declaring with use.");
             }
         } else {
             // Only import individual symbols from the module, e.g.:
@@ -1288,4 +1288,4 @@ Result<ASR::asr_t*> symbol_table_visitor(Allocator &al, AST::TranslationUnit_t &
     return unit;
 }
 
-} // namespace LFortran
+} // namespace LCompilers

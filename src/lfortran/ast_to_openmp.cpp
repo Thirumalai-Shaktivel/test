@@ -2,15 +2,15 @@
 
 #include <lfortran/ast_to_openmp.h>
 
-using LFortran::AST::expr_t;
-using LFortran::AST::Name_t;
-using LFortran::AST::Num_t;
-using LFortran::AST::BinOp_t;
-using LFortran::AST::operatorType;
-using LFortran::AST::BaseVisitor;
+using LCompilers::AST::expr_t;
+using LCompilers::AST::Name_t;
+using LCompilers::AST::Num_t;
+using LCompilers::AST::BinOp_t;
+using LCompilers::AST::operatorType;
+using LCompilers::AST::BaseVisitor;
 
 
-namespace LFortran {
+namespace LCompilers {
 
 namespace {
 
@@ -275,7 +275,7 @@ public:
             ATTRTYPE(Target)
             ATTRTYPE(Value)
             default :
-                throw LFortranException("Attribute type not implemented");
+                throw LCompilersException("Attribute type not implemented");
         }
         s = r;
     }
@@ -298,7 +298,7 @@ public:
             ATTRTYPE2(Real, "real")
             ATTRTYPE2(Type, "type")
             default :
-                throw LFortranException("Attribute type not implemented");
+                throw LCompilersException("Attribute type not implemented");
         }
         if (x.n_kind > 0) {
             r.append("(");
@@ -306,7 +306,7 @@ public:
             // Determine proper canonical printing of kinds
             // TODO: Move this part into a separate AST pass
             kind_item_t k[2];
-            LFORTRAN_ASSERT(x.n_kind <= 2);
+            LCOMPILERS_ASSERT(x.n_kind <= 2);
             for (size_t i=0; i<x.n_kind; i++) {
                 k[i] = x.m_kind[i];
             }
@@ -402,7 +402,7 @@ public:
     {
         switch (type) {
             case (AST::kind_item_typeType::Value) :
-                LFORTRAN_ASSERT(value != nullptr);
+                LCOMPILERS_ASSERT(value != nullptr);
                 this->visit_expr(*value);
                 return s;
             case (AST::kind_item_typeType::Colon) :
@@ -410,7 +410,7 @@ public:
             case (AST::kind_item_typeType::Star) :
                 return "*";
             default :
-                throw LFortranException("Unknown type");
+                throw LCompilersException("Unknown type");
         }
     }
 
@@ -588,7 +588,7 @@ public:
     //Converts do concurrent to a regular do loop. Adds OpenMP pragmas.
     void visit_DoConcurrentLoop(const DoConcurrentLoop_t &x) {
         if (x.n_control != 1) {
-            throw LFortranException("Do concurrent: exactly one control statement is implemented for now");
+            throw LCompilersException("Do concurrent: exactly one control statement is implemented for now");
         }
         AST::ConcurrentControl_t &h = *(AST::ConcurrentControl_t*) x.m_control[0];
         AST::ConcurrentReduce_t *red=nullptr;
@@ -602,7 +602,7 @@ public:
         std::string r = "";
         if (red)
         {
-            LFORTRAN_ASSERT(red->n_vars == 1)
+            LCOMPILERS_ASSERT(red->n_vars == 1)
             r.append("!$OMP DO REDUCTION(");
             //This will need expanded
             if (red->m_op == AST::reduce_opType::ReduceAdd) {
@@ -955,7 +955,7 @@ public:
 
 }
 
-std::string ast_to_openmp(LFortran::AST::ast_t &ast) {
+std::string ast_to_openmp(LCompilers::AST::ast_t &ast) {
     AST::ASTToOPENMPVisitor v;
     v.visit_ast(ast);
     return v.s;

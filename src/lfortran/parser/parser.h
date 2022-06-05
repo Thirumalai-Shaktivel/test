@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PARSER_PARSER_H
-#define LFORTRAN_PARSER_PARSER_H
+#ifndef LCOMPILERS_PARSER_PARSER_H
+#define LCOMPILERS_PARSER_PARSER_H
 
 #include <fstream>
 #include <algorithm>
@@ -9,8 +9,7 @@
 #include <libasr/diagnostics.h>
 #include <lfortran/parser/tokenizer.h>
 
-namespace LFortran
-{
+namespace LCompilers {
 
 class Parser
 {
@@ -50,6 +49,6 @@ std::string token2text(const int token);
 std::string fix_continuation(const std::string &s, LocationManager &lm,
         bool fixed_form);
 
-} // namespace LFortran
+} // namespace LCompilers
 
 #endif

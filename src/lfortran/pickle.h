@@ -1,11 +1,11 @@
-#ifndef LFORTRAN_PICKLE_H
-#define LFORTRAN_PICKLE_H
+#ifndef LCOMPILERS_PICKLE_H
+#define LCOMPILERS_PICKLE_H
 
 #include <lfortran/parser/parser_stype.h>
 #include <lfortran/ast.h>
 #include <libasr/asr.h>
 
-namespace LFortran {
+namespace LCompilers {
 
     // Pickle a token
     std::string pickle(int token, const YYSTYPE &yystype, bool colors=false);
@@ -22,4 +22,4 @@ namespace LFortran {
 
 }
 
-#endif // LFORTRAN_PICKLE_H
+#endif // LCOMPILERS_PICKLE_H

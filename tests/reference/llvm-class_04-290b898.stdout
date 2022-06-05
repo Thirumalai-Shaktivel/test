@@ -33,16 +33,16 @@ define i32 @main() {
   %11 = getelementptr %foo_a, %foo_a* %10, i32 0, i32 0
   %12 = getelementptr %bar_a, %bar_a* %11, i32 0, i32 0
   %13 = load i32, i32* %12, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 %13)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 %13)
   %14 = getelementptr %foo_c, %foo_c* %foo, i32 0, i32 0
   %15 = getelementptr %foo_b, %foo_b* %14, i32 0, i32 1
   %16 = getelementptr %bar_b, %bar_b* %15, i32 0, i32 1
   %17 = load i32, i32* %16, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), i32 %17)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), i32 %17)
   %18 = getelementptr %foo_c, %foo_c* %foo, i32 0, i32 1
   %19 = getelementptr %bar_c, %bar_c* %18, i32 0, i32 1
   %20 = load i32, i32* %19, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0), i32 %20)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0), i32 %20)
   %21 = getelementptr %foo_c, %foo_c* %foo, i32 0, i32 0
   %22 = getelementptr %foo_b, %foo_b* %21, i32 0, i32 0
   %23 = getelementptr %foo_a, %foo_a* %22, i32 0, i32 0
@@ -61,7 +61,7 @@ define i32 @main() {
   br i1 %35, label %then, label %else
 
 then:                                             ; preds = %.entry
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @3, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @3, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont
 
@@ -72,6 +72,6 @@ ifcont:                                           ; preds = %else, %then
   ret i32 0
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
 
 declare void @exit(i32)

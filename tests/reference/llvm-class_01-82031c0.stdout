@@ -34,7 +34,7 @@ define void @__module_class_circle1_circle_print(%circle* %this) {
   %3 = fpext float %2 to double
   %4 = load float, float* %area, align 4
   %5 = fpext float %4 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @2, i32 0, i32 0), i8* getelementptr inbounds ([13 x i8], [13 x i8]* @0, i32 0, i32 0), double %3, i8* getelementptr inbounds ([9 x i8], [9 x i8]* @1, i32 0, i32 0), double %5)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @2, i32 0, i32 0), i8* getelementptr inbounds ([13 x i8], [13 x i8]* @0, i32 0, i32 0), double %3, i8* getelementptr inbounds ([9 x i8], [9 x i8]* @1, i32 0, i32 0), double %5)
   br label %return
 
 return:                                           ; preds = %.entry
@@ -44,7 +44,7 @@ return:                                           ; preds = %.entry
 ; Function Attrs: nounwind readnone speculatable willreturn
 declare float @llvm.pow.f32(float, float) #0
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
 
 define i32 @main() {
 .entry:

@@ -452,7 +452,7 @@ loop.end6:                                        ; preds = %loop.head
   %334 = load i32*, i32** %333, align 8
   %335 = getelementptr inbounds i32, i32* %334, i32 %329
   %336 = load i32, i32* %335, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @0, i32 0, i32 0), i32 %237, i32 %270, i32 %303, i32 %336)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @0, i32 0, i32 0), i32 %237, i32 %270, i32 %303, i32 %336)
   %337 = getelementptr %array, %array* %b, i32 0, i32 2
   %338 = load %dimension_descriptor*, %dimension_descriptor** %337, align 8
   %339 = getelementptr inbounds %dimension_descriptor, %dimension_descriptor* %338, i32 0
@@ -585,7 +585,7 @@ loop.end6:                                        ; preds = %loop.head
   %466 = load i32*, i32** %465, align 8
   %467 = getelementptr inbounds i32, i32* %466, i32 %461
   %468 = load i32, i32* %467, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @1, i32 0, i32 0), i32 %369, i32 %402, i32 %435, i32 %468)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @1, i32 0, i32 0), i32 %369, i32 %402, i32 %435, i32 %468)
   store i32 1, i32* %"1_v", align 4
   %469 = load %array, %array* %c, align 8
   %470 = getelementptr %array, %array* %c, i32 0, i32 2
@@ -926,7 +926,7 @@ loop.end15:                                       ; preds = %loop.head7
   %766 = load i32*, i32** %765, align 8
   %767 = getelementptr inbounds i32, i32* %766, i32 %761
   %768 = load i32, i32* %767, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @2, i32 0, i32 0), i32 %669, i32 %702, i32 %735, i32 %768)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @2, i32 0, i32 0), i32 %669, i32 %702, i32 %735, i32 %768)
   store i32 1, i32* %"1_v", align 4
   %769 = load %array, %array* %c, align 8
   %770 = getelementptr %array, %array* %c, i32 0, i32 2
@@ -1267,7 +1267,7 @@ loop.end24:                                       ; preds = %loop.head16
   %1066 = load i32*, i32** %1065, align 8
   %1067 = getelementptr inbounds i32, i32* %1066, i32 %1061
   %1068 = load i32, i32* %1067, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @3, i32 0, i32 0), i32 %969, i32 %1002, i32 %1035, i32 %1068)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @3, i32 0, i32 0), i32 %969, i32 %1002, i32 %1035, i32 %1068)
   store i32 1, i32* %"1_v", align 4
   %1069 = load %array, %array* %c, align 8
   %1070 = getelementptr %array, %array* %c, i32 0, i32 2
@@ -1608,7 +1608,7 @@ loop.end33:                                       ; preds = %loop.head25
   %1366 = load i32*, i32** %1365, align 8
   %1367 = getelementptr inbounds i32, i32* %1366, i32 %1361
   %1368 = load i32, i32* %1367, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @4, i32 0, i32 0), i32 %1269, i32 %1302, i32 %1335, i32 %1368)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @4, i32 0, i32 0), i32 %1269, i32 %1302, i32 %1335, i32 %1368)
   store i32 1, i32* %"1_v", align 4
   %1369 = load %array, %array* %c, align 8
   %1370 = getelementptr %array, %array* %c, i32 0, i32 2
@@ -1949,8 +1949,8 @@ loop.end42:                                       ; preds = %loop.head34
   %1666 = load i32*, i32** %1665, align 8
   %1667 = getelementptr inbounds i32, i32* %1666, i32 %1661
   %1668 = load i32, i32* %1667, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @5, i32 0, i32 0), i32 %1569, i32 %1602, i32 %1635, i32 %1668)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @5, i32 0, i32 0), i32 %1569, i32 %1602, i32 %1635, i32 %1668)
   ret i32 0
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
