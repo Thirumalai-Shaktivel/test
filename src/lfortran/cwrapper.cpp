@@ -15,7 +15,7 @@ extern "C" {
 #define CWRAPPER_END                                                           \
     return LFORTRAN_NO_EXCEPTION;                                              \
     }                                                                          \
-    catch (LCompilers::LFortranException & e)                                    \
+    catch (LCompilers::LCompilersException & e)                                    \
     {                                                                          \
         return e.error_code();                                                 \
     }                                                                          \

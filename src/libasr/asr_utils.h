@@ -134,7 +134,7 @@ static inline std::string type_to_str(const ASR::ttype_t *t)
             return type_to_str(ASRUtils::type_get_past_pointer(
                         const_cast<ASR::ttype_t*>(t))) + " pointer";
         }
-        default : throw LFortranException("Not implemented " + std::to_string(t->type) + ".");
+        default : throw LCompilersException("Not implemented " + std::to_string(t->type) + ".");
     }
 }
 
@@ -148,7 +148,7 @@ static inline std::string type_to_str_python(const ASR::ttype_t *t)
                 case 2: { return "i16"; }
                 case 4: { return "i32"; }
                 case 8: { return "i64"; }
-                default: { throw LFortranException("Integer kind not supported"); }
+                default: { throw LCompilersException("Integer kind not supported"); }
             }
         }
         case ASR::ttypeType::Real: {
@@ -156,7 +156,7 @@ static inline std::string type_to_str_python(const ASR::ttype_t *t)
             switch (r->m_kind) {
                 case 4: { return "f32"; }
                 case 8: { return "f64"; }
-                default: { throw LFortranException("Float kind not supported"); }
+                default: { throw LCompilersException("Float kind not supported"); }
             }
         }
         case ASR::ttypeType::Complex: {
@@ -164,7 +164,7 @@ static inline std::string type_to_str_python(const ASR::ttype_t *t)
             switch (c->m_kind) {
                 case 4: { return "c32"; }
                 case 8: { return "c64"; }
-                default: { throw LFortranException("Complex kind not supported"); }
+                default: { throw LCompilersException("Complex kind not supported"); }
             }
         }
         case ASR::ttypeType::Logical: {
@@ -197,7 +197,7 @@ static inline std::string type_to_str_python(const ASR::ttype_t *t)
             ASR::List_t *l = (ASR::List_t *)t;
             return "list[" + type_to_str_python(l->m_type) + "]";
         }
-        default : throw LFortranException("Not implemented");
+        default : throw LCompilersException("Not implemented");
     }
 }
 
@@ -207,7 +207,7 @@ static inline std::string unop_to_str(const ASR::unaryopType t) {
         case (ASR::unaryopType::USub): { return "-"; }
         case (ASR::unaryopType::UAdd): { return "+"; }
         case (ASR::unaryopType::Invert): {return "~"; }
-        default : throw LFortranException("Not implemented");
+        default : throw LCompilersException("Not implemented");
     }
 }
 
@@ -217,7 +217,7 @@ static inline std::string binop_to_str(const ASR::binopType t) {
         case (ASR::binopType::Sub): { return " - "; }
         case (ASR::binopType::Mul): { return "*"; }
         case (ASR::binopType::Div): { return "/"; }
-        default : throw LFortranException("Cannot represent the binary operator as a string");
+        default : throw LCompilersException("Cannot represent the binary operator as a string");
     }
 }
 
@@ -229,7 +229,7 @@ static inline std::string cmpop_to_str(const ASR::cmpopType t) {
         case (ASR::cmpopType::LtE): { return " <= "; }
         case (ASR::cmpopType::Gt): { return " > "; }
         case (ASR::cmpopType::GtE): { return " >= "; }
-        default : throw LFortranException("Cannot represent the comparison as a string");
+        default : throw LCompilersException("Cannot represent the comparison as a string");
     }
 }
 
@@ -239,7 +239,7 @@ static inline std::string boolop_to_str(const ASR::boolopType t) {
         case (ASR::boolopType::Or): { return " || "; }
         case (ASR::boolopType::Eqv): { return " == "; }
         case (ASR::boolopType::NEqv): { return " != "; }
-        default : throw LFortranException("Cannot represent the boolean operator as a string");
+        default : throw LCompilersException("Cannot represent the boolean operator as a string");
     }
 }
 
@@ -287,7 +287,7 @@ static inline char *symbol_name(const ASR::symbol_t *f)
         case ASR::symbolType::Block: {
             return ASR::down_cast<ASR::Block_t>(f)->m_name;
         }
-        default : throw LFortranException("Not implemented");
+        default : throw LCompilersException("Not implemented");
     }
 }
 
@@ -330,7 +330,7 @@ static inline SymbolTable *symbol_parent_symtab(const ASR::symbol_t *f)
         case ASR::symbolType::Block: {
             return ASR::down_cast<ASR::Block_t>(f)->m_symtab->parent;
         }
-        default : throw LFortranException("Not implemented");
+        default : throw LCompilersException("Not implemented");
     }
 }
 
@@ -352,22 +352,22 @@ static inline SymbolTable *symbol_symtab(const ASR::symbol_t *f)
         }
         case ASR::symbolType::GenericProcedure: {
             return nullptr;
-            //throw LFortranException("GenericProcedure does not have a symtab");
+            //throw LCompilersException("GenericProcedure does not have a symtab");
         }
         case ASR::symbolType::DerivedType: {
             return ASR::down_cast<ASR::DerivedType_t>(f)->m_symtab;
         }
         case ASR::symbolType::Variable: {
             return nullptr;
-            //throw LFortranException("Variable does not have a symtab");
+            //throw LCompilersException("Variable does not have a symtab");
         }
         case ASR::symbolType::ExternalSymbol: {
             return nullptr;
-            //throw LFortranException("ExternalSymbol does not have a symtab");
+            //throw LCompilersException("ExternalSymbol does not have a symtab");
         }
         case ASR::symbolType::ClassProcedure: {
             return nullptr;
-            //throw LFortranException("ClassProcedure does not have a symtab");
+            //throw LCompilersException("ClassProcedure does not have a symtab");
         }
         case ASR::symbolType::AssociateBlock: {
             return ASR::down_cast<ASR::AssociateBlock_t>(f)->m_symtab;
@@ -375,7 +375,7 @@ static inline SymbolTable *symbol_symtab(const ASR::symbol_t *f)
         case ASR::symbolType::Block: {
             return ASR::down_cast<ASR::Block_t>(f)->m_symtab;
         }
-        default : throw LFortranException("Not implemented");
+        default : throw LCompilersException("Not implemented");
     }
 }
 
@@ -891,7 +891,7 @@ inline int extract_dimensions_from_ttype(ASR::ttype_t *x,
             break;
         }
         default:
-            throw LFortranException("Not implemented.");
+            throw LCompilersException("Not implemented.");
     }
     return n_dims;
 }
@@ -940,7 +940,7 @@ static inline ASR::ttype_t* duplicate_type(Allocator& al, const ASR::ttype_t* t,
                         tnew->m_kind, tnew->m_len, tnew->m_len_expr,
                         dimsp, dimsn));
         }
-        default : throw LFortranException("Not implemented");
+        default : throw LCompilersException("Not implemented");
     }
 }
 

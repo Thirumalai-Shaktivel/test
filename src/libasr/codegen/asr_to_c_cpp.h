@@ -776,7 +776,7 @@ R"(#include <stdio.h>
                     case 2: { return "%d"; }
                     case 4: { return "%d"; }
                     case 8: { return "%lli"; }
-                    default: { throw LFortranException("Integer kind not supported"); }
+                    default: { throw LCompilersException("Integer kind not supported"); }
                 }
             }
             case ASR::ttypeType::Real: {
@@ -784,7 +784,7 @@ R"(#include <stdio.h>
                 switch (r->m_kind) {
                     case 4: { return "%f"; }
                     case 8: { return "%lf"; }
-                    default: { throw LFortranException("Float kind not supported"); }
+                    default: { throw LCompilersException("Float kind not supported"); }
                 }
             }
             case ASR::ttypeType::Logical: {
@@ -793,7 +793,7 @@ R"(#include <stdio.h>
             case ASR::ttypeType::Character: {
                 return "%s";
             }
-            default : throw LFortranException("Not implemented");
+            default : throw LCompilersException("Not implemented");
         }
     }
 

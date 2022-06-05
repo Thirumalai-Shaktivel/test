@@ -33,7 +33,7 @@ void WASMDecoder::decode_type_section(uint32_t offset) {
 
     for (uint32_t i = 0; i < no_of_func_types; i++) {
         if (wasm_bytes[offset] != 0x60) {
-            throw LCompilers::LFortranException("Invalid type section");
+            throw LCompilers::LCompilersException("Invalid type section");
         }
         offset++;
 

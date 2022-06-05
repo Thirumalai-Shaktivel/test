@@ -51,7 +51,7 @@ define i64 @f1()
     ; FAIL: "=x" is incorrect syntax
     %1 =x alloca i64
 }
-        )"""), LCompilers::LFortranException);
+        )"""), LCompilers::LCompilersException);
     CHECK_THROWS_WITH(e.add_module(R"""(
 define i64 @f1()
 {
@@ -94,7 +94,7 @@ define i64 @f3()
     %1 = load i64, i64* @count
     ret i64 %1
 }
-        )"""), LCompilers::LFortranException);
+        )"""), LCompilers::LCompilersException);
 }
 
 TEST_CASE("llvm 3") {
@@ -233,7 +233,7 @@ define void @inc2()
     call void @inc()
     ret void
 }
-        )"""), LCompilers::LFortranException);
+        )"""), LCompilers::LCompilersException);
 }
 
 TEST_CASE("llvm array 1") {
