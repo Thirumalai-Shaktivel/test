@@ -25,7 +25,7 @@ define float @__module_dflt_intent_f(float* %x) {
   store float %1, float* %f, align 4
   %2 = load float, float* %f, align 4
   %3 = fpext float %2 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), double %3)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), double %3)
   br label %return
 
 return:                                           ; preds = %.entry
@@ -33,7 +33,7 @@ return:                                           ; preds = %.entry
   ret float %4
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
 
 define i32 @main() {
 .entry:

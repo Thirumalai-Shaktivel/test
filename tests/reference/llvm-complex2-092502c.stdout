@@ -29,7 +29,7 @@ define i32 @main() {
   %10 = alloca %complex_4, align 8
   store %complex_4 %8, %complex_4* %10, align 4
   %11 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_add_32(%complex_4* %9, %complex_4* %10, %complex_4* %11)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_add_32(%complex_4* %9, %complex_4* %10, %complex_4* %11)
   %12 = load %complex_4, %complex_4* %11, align 4
   store %complex_4 %12, %complex_4* %x, align 4
   %13 = load %complex_4, %complex_4* %x, align 4
@@ -43,7 +43,7 @@ define i32 @main() {
   %19 = getelementptr %complex_4, %complex_4* %18, i32 0, i32 1
   %20 = load float, float* %19, align 4
   %21 = fpext float %20 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([9 x i8], [9 x i8]* @0, i32 0, i32 0), double %17, double %21)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([9 x i8], [9 x i8]* @0, i32 0, i32 0), double %17, double %21)
   %22 = alloca %complex_4, align 8
   %23 = getelementptr %complex_4, %complex_4* %22, i32 0, i32 0
   %24 = getelementptr %complex_4, %complex_4* %22, i32 0, i32 1
@@ -56,7 +56,7 @@ define i32 @main() {
   %28 = alloca %complex_4, align 8
   store %complex_4 %26, %complex_4* %28, align 4
   %29 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_add_32(%complex_4* %27, %complex_4* %28, %complex_4* %29)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_add_32(%complex_4* %27, %complex_4* %28, %complex_4* %29)
   %30 = load %complex_4, %complex_4* %29, align 4
   store %complex_4 %30, %complex_4* %x, align 4
   %31 = load %complex_4, %complex_4* %x, align 4
@@ -70,7 +70,7 @@ define i32 @main() {
   %37 = getelementptr %complex_4, %complex_4* %36, i32 0, i32 1
   %38 = load float, float* %37, align 4
   %39 = fpext float %38 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([9 x i8], [9 x i8]* @1, i32 0, i32 0), double %35, double %39)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([9 x i8], [9 x i8]* @1, i32 0, i32 0), double %35, double %39)
   %40 = alloca %complex_4, align 8
   %41 = getelementptr %complex_4, %complex_4* %40, i32 0, i32 0
   %42 = getelementptr %complex_4, %complex_4* %40, i32 0, i32 1
@@ -83,7 +83,7 @@ define i32 @main() {
   %46 = alloca %complex_4, align 8
   store %complex_4 %44, %complex_4* %46, align 4
   %47 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_add_32(%complex_4* %45, %complex_4* %46, %complex_4* %47)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_add_32(%complex_4* %45, %complex_4* %46, %complex_4* %47)
   %48 = load %complex_4, %complex_4* %47, align 4
   %49 = alloca %complex_4, align 8
   %50 = getelementptr %complex_4, %complex_4* %49, i32 0, i32 0
@@ -96,7 +96,7 @@ define i32 @main() {
   %54 = alloca %complex_4, align 8
   store %complex_4 %52, %complex_4* %54, align 4
   %55 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_add_32(%complex_4* %53, %complex_4* %54, %complex_4* %55)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_add_32(%complex_4* %53, %complex_4* %54, %complex_4* %55)
   %56 = load %complex_4, %complex_4* %55, align 4
   store %complex_4 %56, %complex_4* %x, align 4
   %57 = load %complex_4, %complex_4* %x, align 4
@@ -110,10 +110,10 @@ define i32 @main() {
   %63 = getelementptr %complex_4, %complex_4* %62, i32 0, i32 1
   %64 = load float, float* %63, align 4
   %65 = fpext float %64 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([9 x i8], [9 x i8]* @2, i32 0, i32 0), double %61, double %65)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([9 x i8], [9 x i8]* @2, i32 0, i32 0), double %61, double %65)
   ret i32 0
 }
 
-declare void @_lfortran_complex_add_32(%complex_4*, %complex_4*, %complex_4*, ...)
+declare void @_lcompilers_complex_add_32(%complex_4*, %complex_4*, %complex_4*, ...)
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)

@@ -59,11 +59,11 @@ loop.body:                                        ; preds = %loop.head
   store i32* %z, i32** getelementptr inbounds (%closuretest_nstd_types, %closuretest_nstd_types* @closuretest_nstd_strct, i32 0, i32 0), align 8
   store i32 1, i32* %call_arg_value, align 4
   %5 = call i32 @apply(i32 (i32*)* @add_z, i32* %call_arg_value)
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 %5)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 %5)
   br label %loop.head
 
 loop.end:                                         ; preds = %loop.head
   ret i32 0
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)

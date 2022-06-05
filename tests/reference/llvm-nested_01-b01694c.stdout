@@ -10,7 +10,7 @@ define i32 @__module_a_b() {
 .entry:
   %b = alloca i32, align 4
   %e = alloca i32, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @3, i32 0, i32 0), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @3, i32 0, i32 0), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0))
   %0 = call i32 @__module_a_d()
   store i32 %0, i32* %e, align 4
   store i32 0, i32* %b, align 4
@@ -24,7 +24,7 @@ return:                                           ; preds = %.entry
 define i32 @__module_a_d() {
 .entry:
   %d = alloca i32, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0))
   store i32 1, i32* %d, align 4
   br label %return
 
@@ -33,7 +33,7 @@ return:                                           ; preds = %.entry
   ret i32 %0
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
 
 define i32 @main() {
 .entry:
