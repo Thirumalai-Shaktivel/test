@@ -3,9 +3,9 @@
 
 #include <lfortran/ast.h>
 
-namespace LFortran {
+namespace LCompilers {
 
-    std::string ast_to_json(LFortran::AST::ast_t &ast);
+    std::string ast_to_json(LCompilers::AST::ast_t &ast);
 
 }
 

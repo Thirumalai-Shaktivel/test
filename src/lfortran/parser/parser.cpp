@@ -7,8 +7,7 @@
 #include <libasr/diagnostics.h>
 #include <lfortran/parser/parser_exception.h>
 
-namespace LFortran
-{
+namespace LCompilers {
 
 Result<AST::TranslationUnit_t*> parse(Allocator &al, const std::string &s,
         diag::Diagnostics &diagnostics)
@@ -146,7 +145,7 @@ void skip_rest_of_line(const std::string &s, size_t &pos)
 void parse_string(std::string &out, const std::string &s, size_t &pos)
 {
     char quote = s[pos];
-    LFORTRAN_ASSERT(quote == '"' || quote == '\'');
+    LCOMPILERS_ASSERT(quote == '"' || quote == '\'');
     out += s[pos];
     pos++;
     while (pos < s.size() && ! (s[pos] == quote && s[pos+1] != quote)) {
@@ -330,7 +329,7 @@ std::string fix_continuation(const std::string &s, LocationManager &lm,
         // set the size of the last interval
     //    lm.in_size.push_back(pos-lm.in_start[lm.in_start.size()-1]);
 
-        LFORTRAN_ASSERT(check_newlines(s, lm.in_newlines))
+        LCOMPILERS_ASSERT(check_newlines(s, lm.in_newlines))
 
         // Add the position of EOF as the last \n, whether or not the original
         // file has it
@@ -597,7 +596,7 @@ std::string token2text(const int token)
         T(KW_WRITE, "write")
         default : {
             std::cout << "TOKEN: " << token << std::endl;
-            throw LFortranException("Token conversion not implemented yet.");
+            throw LCompilersException("Token conversion not implemented yet.");
         }
     }
 }
@@ -608,7 +607,7 @@ void Parser::handle_yyerror(const Location &loc, const std::string &msg)
     if (msg == "syntax is ambiguous") {
         message = "Internal Compiler Error: syntax is ambiguous in the parser";
     } else if (msg == "syntax error") {
-        LFortran::YYSTYPE yylval_;
+        LCompilers::YYSTYPE yylval_;
         YYLTYPE yyloc_;
         this->m_tokenizer.cur = this->m_tokenizer.tok;
         int token = this->m_tokenizer.lex(this->m_a, yylval_, yyloc_, diag);

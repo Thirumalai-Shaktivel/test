@@ -13,7 +13,7 @@
 #include <lfortran/utils.h>
 #include <libasr/string_utils.h>
 
-namespace LFortran {
+namespace LCompilers {
 
 void get_executable_path(std::string &executable_path, int &dirname_length)
 {
@@ -28,7 +28,7 @@ void get_executable_path(std::string &executable_path, int &dirname_length)
             executable_path = executable_path.substr(0,executable_path.size()-1);
         }
     } else {
-        throw LFortranException("Cannot determine executable path.");
+        throw LCompilersException("Cannot determine executable path.");
     }
 }
 

@@ -1,7 +1,7 @@
 #include <libasr/codegen/llvm_array_utils.h>
 #include <libasr/codegen/llvm_utils.h>
 
-namespace LFortran {
+namespace LCompilers {
 
     namespace LLVMArrUtils {
 
@@ -78,7 +78,7 @@ namespace LFortran {
                     break;
                 }
                 default: {
-                    throw LFortranException("Explicit shape checking supported only for integer, real, complex, logical and derived types.");
+                    throw LCompilersException("Explicit shape checking supported only for integer, real, complex, logical and derived types.");
                 }
             }
             return compile_time_dimensions_t(m_dims, n_dims);
@@ -459,4 +459,4 @@ namespace LFortran {
 
     } // LLVMArrUtils
 
-} // LFortran
+} // namespace LCompilers

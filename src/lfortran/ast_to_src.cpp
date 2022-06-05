@@ -3,16 +3,16 @@
 #include <libasr/string_utils.h>
 #include <libasr/bigint.h>
 
-using LFortran::AST::expr_t;
-using LFortran::AST::Name_t;
-using LFortran::AST::Num_t;
-using LFortran::AST::BinOp_t;
-using LFortran::AST::operatorType;
-using LFortran::AST::BaseVisitor;
-using LFortran::AST::StrOp_t;
+using LCompilers::AST::expr_t;
+using LCompilers::AST::Name_t;
+using LCompilers::AST::Num_t;
+using LCompilers::AST::BinOp_t;
+using LCompilers::AST::operatorType;
+using LCompilers::AST::BaseVisitor;
+using LCompilers::AST::StrOp_t;
 
 
-namespace LFortran {
+namespace LCompilers {
 
 namespace {
 
@@ -25,7 +25,7 @@ namespace {
             case (operatorType::Div) : return "/";
             case (operatorType::Pow) : return "**";
         }
-        throw LFortranException("Unknown type");
+        throw LCompilersException("Unknown type");
     }
 
     std::string boolop2str(const AST::boolopType type)
@@ -37,7 +37,7 @@ namespace {
             case (AST::boolopType::Eqv) : return " .eqv. ";
             case (AST::boolopType::NEqv) : return " .neqv. ";
         }
-        throw LFortranException("Unknown type");
+        throw LCompilersException("Unknown type");
     }
 
     std::string cmpop2str(const AST::cmpopType type)
@@ -50,7 +50,7 @@ namespace {
             case (AST::cmpopType::LtE) : return " <= ";
             case (AST::cmpopType::NotEq) : return " /= ";
         }
-        throw LFortranException("Unknown type");
+        throw LCompilersException("Unknown type");
     }
 
     std::string strop2str(const AST::stroperatorType type)
@@ -58,7 +58,7 @@ namespace {
         switch (type) {
             case (AST::stroperatorType::Concat) : return " // ";
         }
-        throw LFortranException("Unknown type");
+        throw LCompilersException("Unknown type");
     }
 
     std::string intrinsicop2str(const AST::intrinsicopType type)
@@ -83,7 +83,7 @@ namespace {
             case (AST::intrinsicopType::NOTEQ) : return "/=";
             case (AST::intrinsicopType::CONCAT) : return "//";
         }
-        throw LFortranException("Unknown type");
+        throw LCompilersException("Unknown type");
     }
 
     std::string symbol2str(const AST::symbolType type)
@@ -96,7 +96,7 @@ namespace {
             case (AST::symbolType::DoubleAsterisk) : return "*(*)";
             case (AST::symbolType::Slash) : return "/";
         }
-        throw LFortranException("Unknown type");
+        throw LCompilersException("Unknown type");
     }
 }
 
@@ -205,7 +205,7 @@ public:
                 } ;
 
                 default : {
-                    throw LFortranException("Syntax Group not implemented");
+                    throw LCompilersException("Syntax Group not implemented");
                 }
             }
         }
@@ -1488,7 +1488,7 @@ public:
             ATTRTYPE(Value)
             ATTRTYPE(Volatile)
             default :
-                throw LFortranException("Attribute type not implemented");
+                throw LCompilersException("Attribute type not implemented");
         }
         r += syn();
         s = r;
@@ -1513,7 +1513,7 @@ public:
             ATTRTYPE2(Real, "real")
             ATTRTYPE2(Type, "type")
             default :
-                throw LFortranException("Attribute type not implemented");
+                throw LCompilersException("Attribute type not implemented");
         }
         r += syn();
         if (x.n_kind > 0) {
@@ -1522,7 +1522,7 @@ public:
             // Determine proper canonical printing of kinds
             // TODO: Move this part into a separate AST pass
             kind_item_t k[2];
-            LFORTRAN_ASSERT(x.n_kind <= 2);
+            LCOMPILERS_ASSERT(x.n_kind <= 2);
             for (size_t i=0; i<x.n_kind; i++) {
                 k[i] = x.m_kind[i];
             }
@@ -1832,7 +1832,7 @@ public:
                     this->visit_expr(*end);
                     r.append(s);
                 } else {
-                    throw LFortranException("Incorrect array elements");
+                    throw LCompilersException("Incorrect array elements");
                 }
                 r += ")";
             }
@@ -2581,7 +2581,7 @@ public:
 
     void visit_DoConcurrentLoop(const DoConcurrentLoop_t &x) {
         if (x.n_control != 1) {
-            throw LFortranException("Do concurrent: exactly one control statement is implemented for now");
+            throw LCompilersException("Do concurrent: exactly one control statement is implemented for now");
         }
         std::string r = indent;
         r += print_label(x);
@@ -3517,7 +3517,7 @@ public:
                 s = ".not.(" + s + ")";
             }
         } else {
-            throw LFortranException("Unary op type not implemented");
+            throw LCompilersException("Unary op type not implemented");
         }
     }
 
@@ -3554,9 +3554,9 @@ public:
                         expr_t *end = x.m_member[i].m_args[j].m_end;
                         expr_t *step = x.m_member[i].m_args[j].m_step;
                         // TODO: Also show start, and step correctly
-                        LFORTRAN_ASSERT(start == nullptr);
-                        LFORTRAN_ASSERT(end != nullptr);
-                        LFORTRAN_ASSERT(step == nullptr);
+                        LCOMPILERS_ASSERT(start == nullptr);
+                        LCOMPILERS_ASSERT(end != nullptr);
+                        LCOMPILERS_ASSERT(step == nullptr);
                         if (end) {
                             this->visit_expr(*end);
                             r.append(s);
@@ -3626,7 +3626,7 @@ public:
                             this->visit_expr(*end);
                             r.append(s);
                         } else {
-                            throw LFortranException("Incorrect coarray elements");
+                            throw LCompilersException("Incorrect coarray elements");
                         }
                         if (i < x.m_member[i].n_args-1) r.append(",");
                     }
@@ -3808,7 +3808,7 @@ public:
                             this->visit_expr(*end);
                             r.append(s);
                         } else {
-                            throw LFortranException("Incorrect array elements");
+                            throw LCompilersException("Incorrect array elements");
                         }
                         if (i < x.m_member[i].n_args-1) r.append(",");
                     }
@@ -3838,7 +3838,7 @@ public:
     {
         switch (type) {
             case (AST::kind_item_typeType::Value) :
-                LFORTRAN_ASSERT(value != nullptr);
+                LCOMPILERS_ASSERT(value != nullptr);
                 this->visit_expr(*value);
                 return s;
             case (AST::kind_item_typeType::Colon) :
@@ -3846,7 +3846,7 @@ public:
             case (AST::kind_item_typeType::Star) :
                 return "*";
             default :
-                throw LFortranException("Unknown type");
+                throw LCompilersException("Unknown type");
         }
     }
 
@@ -3879,7 +3879,7 @@ public:
                 s = "*";
             }
         } else {
-            LFORTRAN_ASSERT(x.m_end_star == dimension_typeType::AssumedRank);
+            LCOMPILERS_ASSERT(x.m_end_star == dimension_typeType::AssumedRank);
             s = "..";
         }
     }
@@ -3906,7 +3906,7 @@ public:
                 s = left + ":" + right;
             }
         } else {
-            LFORTRAN_ASSERT(x.m_end_star == codimension_typeType::CodimensionStar);
+            LCOMPILERS_ASSERT(x.m_end_star == codimension_typeType::CodimensionStar);
             if (x.m_start) {
                 this->visit_expr(*x.m_start);
                 s += ":*";
@@ -3951,8 +3951,8 @@ public:
             }
         } else {
             // Array element
-            LFORTRAN_ASSERT(x.m_end);
-            LFORTRAN_ASSERT(!x.m_start);
+            LCOMPILERS_ASSERT(x.m_end);
+            LCOMPILERS_ASSERT(!x.m_start);
             this->visit_expr(*x.m_end);
             r = s;
         }
@@ -3985,8 +3985,8 @@ public:
             }
         } else {
             // Array element
-            LFORTRAN_ASSERT(x.m_end);
-            LFORTRAN_ASSERT(!x.m_start);
+            LCOMPILERS_ASSERT(x.m_end);
+            LCOMPILERS_ASSERT(!x.m_start);
             this->visit_expr(*x.m_end);
             r = s;
         }

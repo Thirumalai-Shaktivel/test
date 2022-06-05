@@ -29,8 +29,7 @@
 
 namespace nl = nlohmann;
 
-namespace LFortran
-{
+namespace LCompilers {
 
 
     class RedirectStdout
@@ -46,7 +45,7 @@ namespace LFortran
 #else
             if (pipe(out_pipe) != 0) {
 #endif
-                throw LFortranException("pipe() failed");
+                throw LCompilersException("pipe() failed");
             }
             dup2(out_pipe[1], stdout_fileno);
             close(out_pipe[1]);
@@ -266,11 +265,11 @@ namespace LFortran
                 result["traceback"] = nl::json::array();
                 return result;
             }
-        } catch (const LFortranException &e) {
+        } catch (const LCompilersException &e) {
             publish_stream("stderr", "LFortran Exception: " + e.msg());
             nl::json result;
             result["status"] = "error";
-            result["ename"] = "LFortranException";
+            result["ename"] = "LCompilersException";
             result["evalue"] = e.msg();
             result["traceback"] = nl::json::array();
             return result;
@@ -281,49 +280,49 @@ namespace LFortran
         }
 
         switch (r.type) {
-            case (LFortran::FortranEvaluator::EvalResult::integer4) : {
+            case (LCompilers::FortranEvaluator::EvalResult::integer4) : {
                 nl::json pub_data;
                 pub_data["text/plain"] = std::to_string(r.i32);
                 publish_execution_result(execution_counter, std::move(pub_data), nl::json::object());
                 break;
             }
-            case (LFortran::FortranEvaluator::EvalResult::integer8) : {
+            case (LCompilers::FortranEvaluator::EvalResult::integer8) : {
                 nl::json pub_data;
                 pub_data["text/plain"] = std::to_string(r.i64);
                 publish_execution_result(execution_counter, std::move(pub_data), nl::json::object());
                 break;
             }
-            case (LFortran::FortranEvaluator::EvalResult::real4) : {
+            case (LCompilers::FortranEvaluator::EvalResult::real4) : {
                 nl::json pub_data;
                 pub_data["text/plain"] = std::to_string(r.f32);
                 publish_execution_result(execution_counter, std::move(pub_data), nl::json::object());
                 break;
             }
-            case (LFortran::FortranEvaluator::EvalResult::real8) : {
+            case (LCompilers::FortranEvaluator::EvalResult::real8) : {
                 nl::json pub_data;
                 pub_data["text/plain"] = std::to_string(r.f64);
                 publish_execution_result(execution_counter, std::move(pub_data), nl::json::object());
                 break;
             }
-            case (LFortran::FortranEvaluator::EvalResult::complex4) : {
+            case (LCompilers::FortranEvaluator::EvalResult::complex4) : {
                 nl::json pub_data;
                 pub_data["text/plain"] = "(" + std::to_string(r.c32.re) + ", " + std::to_string(r.c32.im) + ")";
                 publish_execution_result(execution_counter, std::move(pub_data), nl::json::object());
                 break;
             }
-            case (LFortran::FortranEvaluator::EvalResult::complex8) : {
+            case (LCompilers::FortranEvaluator::EvalResult::complex8) : {
                 nl::json pub_data;
                 pub_data["text/plain"] = "(" + std::to_string(r.c64.re) + ", " + std::to_string(r.c64.im) + ")";
                 publish_execution_result(execution_counter, std::move(pub_data), nl::json::object());
                 break;
             }
-            case (LFortran::FortranEvaluator::EvalResult::statement) : {
+            case (LCompilers::FortranEvaluator::EvalResult::statement) : {
                 break;
             }
-            case (LFortran::FortranEvaluator::EvalResult::none) : {
+            case (LCompilers::FortranEvaluator::EvalResult::none) : {
                 break;
             }
-            default : throw LFortranException("Return type not supported");
+            default : throw LCompilersException("Return type not supported");
         }
 
         nl::json result;

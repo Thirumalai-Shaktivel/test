@@ -3,10 +3,10 @@
 
 #include <lfortran/ast.h>
 
-namespace LFortran {
+namespace LCompilers {
 
     // Converts AST to Fortran source code with OpenMP parallel pragmas
-    std::string ast_to_openmp(LFortran::AST::ast_t &ast);
+    std::string ast_to_openmp(LCompilers::AST::ast_t &ast);
 
 }
 
