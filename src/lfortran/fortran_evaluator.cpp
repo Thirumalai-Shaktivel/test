@@ -14,7 +14,7 @@
 #include <lfortran/parser/preprocessor.h>
 #include <lfortran/pickle.h>
 
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
 #include <libasr/codegen/evaluator.h>
 #include <libasr/codegen/asr_to_llvm.h>
 #else
@@ -32,7 +32,7 @@ namespace LCompilers {
 FortranEvaluator::FortranEvaluator(CompilerOptions compiler_options)
     :
     al{1024*1024},
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
     e{std::make_unique<LLVMEvaluator>()},
     eval_count{0},
 #endif
@@ -51,7 +51,7 @@ Result<FortranEvaluator::EvalResult> FortranEvaluator::evaluate2(const std::stri
 }
 
 Result<FortranEvaluator::EvalResult> FortranEvaluator::evaluate(
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
             const std::string &code_orig, bool verbose, LocationManager &lm,
             diag::Diagnostics &diagnostics
 #else
@@ -60,7 +60,7 @@ Result<FortranEvaluator::EvalResult> FortranEvaluator::evaluate(
 #endif
             )
 {
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
     EvalResult result;
 
     // Src -> AST
@@ -257,7 +257,7 @@ Result<std::string> FortranEvaluator::get_llvm(
 {
     Result<std::unique_ptr<LLVMModule>> res = get_llvm2(code, lm, diagnostics);
     if (res.ok) {
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
         return res.result->str();
 #else
         throw LCompilersException("LLVM is not enabled");
@@ -277,7 +277,7 @@ Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm2(
     }
     Result<std::unique_ptr<LLVMModule>> res = get_llvm3(*asr.result, diagnostics);
     if (res.ok) {
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
         std::unique_ptr<LLVMModule> m = std::move(res.result);
         return m;
 #else
@@ -290,14 +290,14 @@ Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm2(
 }
 
 Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm3(
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
     ASR::TranslationUnit_t &asr, diag::Diagnostics &diagnostics
 #else
     ASR::TranslationUnit_t &/*asr*/, diag::Diagnostics &/*diagnostics*/
 #endif
     )
 {
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
     eval_count++;
     run_fn = "__lfortran_evaluate_" + std::to_string(eval_count);
 
@@ -326,7 +326,7 @@ Result<std::unique_ptr<LLVMModule>> FortranEvaluator::get_llvm3(
 }
 
 Result<std::string> FortranEvaluator::get_asm(
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
     const std::string &code, LocationManager &lm,
     diag::Diagnostics &diagnostics
 #else
@@ -335,7 +335,7 @@ Result<std::string> FortranEvaluator::get_asm(
 #endif
     )
 {
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
     Result<std::unique_ptr<LLVMModule>> res = get_llvm2(code, lm, diagnostics);
     if (res.ok) {
         return e->get_asm(*res.result->m_m);

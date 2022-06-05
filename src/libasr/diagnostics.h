@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_DIAGNOSTICS_H
-#define LFORTRAN_DIAGNOSTICS_H
+#ifndef LCOMPILERS_DIAGNOSTICS_H
+#define LCOMPILERS_DIAGNOSTICS_H
 
 #include <libasr/location.h>
 #include <libasr/stacktrace.h>
@@ -192,4 +192,4 @@ std::string render_diagnostic(Diagnostic &d, const std::string &input,
 } // namespace diag
 } // namespace LCompilers
 
-#endif // LFORTRAN_DIAGNOSTICS_H
+#endif // LCOMPILERS_DIAGNOSTICS_H

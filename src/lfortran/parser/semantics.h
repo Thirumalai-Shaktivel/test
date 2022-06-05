@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PARSER_SEM4b_H
-#define LFORTRAN_PARSER_SEM4b_H
+#ifndef LCOMPILERS_PARSER_SEM4b_H
+#define LCOMPILERS_PARSER_SEM4b_H
 
 /*
    This header file contains parser semantics: how the AST classes get

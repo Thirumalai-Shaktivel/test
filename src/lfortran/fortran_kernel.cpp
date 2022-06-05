@@ -402,7 +402,7 @@ namespace LCompilers {
     nl::json custom_interpreter::kernel_info_request_impl()
     {
         nl::json result;
-        std::string version = LFORTRAN_VERSION;
+        std::string version = LCOMPILERS_VERSION;
         std::string banner = ""
             "LFortran " + version + "\n"
             "Jupyter kernel for Fortran";

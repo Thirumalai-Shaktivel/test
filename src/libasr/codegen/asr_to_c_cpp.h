@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_ASR_TO_C_CPP_H
-#define LFORTRAN_ASR_TO_C_CPP_H
+#ifndef LCOMPILERS_ASR_TO_C_CPP_H
+#define LCOMPILERS_ASR_TO_C_CPP_H
 
 /*
  * Common code to be used in both of:
@@ -1057,4 +1057,4 @@ R"(#include <stdio.h>
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_ASR_TO_C_CPP_H
+#endif // LCOMPILERS_ASR_TO_C_CPP_H

@@ -1,8 +1,8 @@
 #ifdef __unix__
-#define LFORTRAN_LINUX
+#define LCOMPILERS_LINUX
 #endif
 
-#ifdef LFORTRAN_LINUX
+#ifdef LCOMPILERS_LINUX
 #include <sys/stat.h>
 #endif
 
@@ -16,7 +16,7 @@ void X86Assembler::save_binary(const std::string &filename) {
         out.open(filename);
         out.write((const char*) m_code.p, m_code.size());
     }
-#ifdef LFORTRAN_LINUX
+#ifdef LCOMPILERS_LINUX
     std::string mode = "0755";
     int mod = strtol(mode.c_str(), 0, 8);
     if (chmod(filename.c_str(),mod) < 0) {

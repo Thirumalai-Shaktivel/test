@@ -7,8 +7,8 @@ if (NOT CMAKE_CXX_STANDARD)
         CACHE STRING "C++ standard" FORCE)
 endif ()
 
-if (NOT LFORTRAN_VERSION)
-    set(LFORTRAN_VERSION "0.1-git"
+if (NOT LCOMPILERS_VERSION)
+    set(LCOMPILERS_VERSION "0.1-git"
         CACHE STRING "LFortran version" FORCE)
 endif ()
 
@@ -23,7 +23,7 @@ set(SRC
     codegen/asr_to_wasm.cpp
     codegen/wasm_to_wat.cpp
     codegen/wasm_utils.cpp
-    
+
     pass/param_to_const.cpp
     pass/do_loops.cpp
     pass/for_all.cpp

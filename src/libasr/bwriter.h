@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_BWRITER_H
-#define LFORTRAN_BWRITER_H
+#ifndef LCOMPILERS_BWRITER_H
+#define LCOMPILERS_BWRITER_H
 
 #include <sstream>
 #include <iomanip>
@@ -254,4 +254,4 @@ public:
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_BWRITER_H
+#endif // LCOMPILERS_BWRITER_H

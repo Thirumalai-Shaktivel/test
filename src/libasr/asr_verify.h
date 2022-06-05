@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_ASR_VERIFY_H
-#define LFORTRAN_ASR_VERIFY_H
+#ifndef LCOMPILERS_ASR_VERIFY_H
+#define LCOMPILERS_ASR_VERIFY_H
 
 #include <libasr/asr.h>
 
@@ -40,4 +40,4 @@ namespace LCompilers {
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_ASR_VERIFY_H
+#endif // LCOMPILERS_ASR_VERIFY_H

@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_AST_TO_OPENMP_H
-#define LFORTRAN_AST_TO_OPENMP_H
+#ifndef LCOMPILERS_AST_TO_OPENMP_H
+#define LCOMPILERS_AST_TO_OPENMP_H
 
 #include <lfortran/ast.h>
 
@@ -10,4 +10,4 @@ namespace LCompilers {
 
 }
 
-#endif // LFORTRAN_AST_TO_OPENMP_H
+#endif // LCOMPILERS_AST_TO_OPENMP_H

@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_FORTRAN_EVALUATOR_H
-#define LFORTRAN_FORTRAN_EVALUATOR_H
+#ifndef LCOMPILERS_FORTRAN_EVALUATOR_H
+#define LCOMPILERS_FORTRAN_EVALUATOR_H
 
 #include <iostream>
 #include <memory>
@@ -89,7 +89,7 @@ public:
 
 private:
     Allocator al;
-#ifdef HAVE_LFORTRAN_LLVM
+#ifdef HAVE_LCOMPILERS_LLVM
     std::unique_ptr<LLVMEvaluator> e;
     int eval_count;
 #endif
@@ -100,4 +100,4 @@ private:
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_FORTRAN_EVALUATOR_H
+#endif // LCOMPILERS_FORTRAN_EVALUATOR_H

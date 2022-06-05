@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_LLVM_ARR_UTILS_H
-#define LFORTRAN_LLVM_ARR_UTILS_H
+#ifndef LCOMPILERS_LLVM_ARR_UTILS_H
+#define LCOMPILERS_LLVM_ARR_UTILS_H
 
 #include <map>
 #include <memory>
@@ -364,4 +364,4 @@ namespace LCompilers {
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_LLVM_ARR_UTILS_H
+#endif // LCOMPILERS_LLVM_ARR_UTILS_H

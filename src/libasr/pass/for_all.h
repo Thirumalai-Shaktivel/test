@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PASS_FOR_ALL
-#define LFORTRAN_PASS_FOR_ALL
+#ifndef LCOMPILERS_PASS_FOR_ALL
+#define LCOMPILERS_PASS_FOR_ALL
 
 #include <libasr/asr.h>
 
@@ -9,4 +9,4 @@ namespace LCompilers {
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_PASS_FOR_ALL
+#endif // LCOMPILERS_PASS_FOR_ALL

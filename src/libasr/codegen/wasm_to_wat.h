@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_WASM_TO_WAT_H
-#define LFORTRAN_WASM_TO_WAT_H
+#ifndef LCOMPILERS_WASM_TO_WAT_H
+#define LCOMPILERS_WASM_TO_WAT_H
 
 #include <libasr/wasm_visitor.h>
 
@@ -77,4 +77,4 @@ class WASMDecoder {
 
 }  // namespace LCompilers
 
-#endif  // LFORTRAN_WASM_TO_WAT_H
+#endif  // LCOMPILERS_WASM_TO_WAT_H

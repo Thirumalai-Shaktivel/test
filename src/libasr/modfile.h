@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_MODFILE_H
-#define LFORTRAN_MODFILE_H
+#ifndef LCOMPILERS_MODFILE_H
+#define LCOMPILERS_MODFILE_H
 
 #include <libasr/asr.h>
 
@@ -14,4 +14,4 @@ namespace LCompilers {
 
 }
 
-#endif // LFORTRAN_MODFILE_H
+#endif // LCOMPILERS_MODFILE_H

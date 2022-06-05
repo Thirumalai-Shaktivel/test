@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PASS_GLOBAL_STMTS_H
-#define LFORTRAN_PASS_GLOBAL_STMTS_H
+#ifndef LCOMPILERS_PASS_GLOBAL_STMTS_H
+#define LCOMPILERS_PASS_GLOBAL_STMTS_H
 
 #include <libasr/asr.h>
 
@@ -10,4 +10,4 @@ namespace LCompilers {
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_PASS_GLOBAL_STMTS_H
+#endif // LCOMPILERS_PASS_GLOBAL_STMTS_H

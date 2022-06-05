@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PARSER_PARSER_H
-#define LFORTRAN_PARSER_PARSER_H
+#ifndef LCOMPILERS_PARSER_PARSER_H
+#define LCOMPILERS_PARSER_PARSER_H
 
 #include <fstream>
 #include <algorithm>

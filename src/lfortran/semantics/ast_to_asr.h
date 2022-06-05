@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_AST_TO_ASR_H
-#define LFORTRAN_AST_TO_ASR_H
+#ifndef LCOMPILERS_AST_TO_ASR_H
+#define LCOMPILERS_AST_TO_ASR_H
 
 #include <lfortran/ast.h>
 #include <libasr/asr.h>
@@ -13,4 +13,4 @@ namespace LCompilers {
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_AST_TO_ASR_H
+#endif // LCOMPILERS_AST_TO_ASR_H

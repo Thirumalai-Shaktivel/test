@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_WASM_UTILS_H
-#define LFORTRAN_WASM_UTILS_H
+#ifndef LCOMPILERS_WASM_UTILS_H
+#define LCOMPILERS_WASM_UTILS_H
 
 #include <iostream>
 #include <unordered_map>
@@ -53,4 +53,4 @@ void hexdump(void *ptr, int buflen);
 
 }  // namespace LCompilers
 
-#endif  // LFORTRAN_WASM_UTILS_H
+#endif  // LCOMPILERS_WASM_UTILS_H

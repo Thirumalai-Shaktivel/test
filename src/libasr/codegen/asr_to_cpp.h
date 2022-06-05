@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_ASR_TO_CPP_H
-#define LFORTRAN_ASR_TO_CPP_H
+#ifndef LCOMPILERS_ASR_TO_CPP_H
+#define LCOMPILERS_ASR_TO_CPP_H
 
 #include <libasr/asr.h>
 
@@ -10,4 +10,4 @@ namespace LCompilers {
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_ASR_TO_CPP_H
+#endif // LCOMPILERS_ASR_TO_CPP_H

@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_SERIALIZATION_H
-#define LFORTRAN_SERIALIZATION_H
+#ifndef LCOMPILERS_SERIALIZATION_H
+#define LCOMPILERS_SERIALIZATION_H
 
 #include <lfortran/ast.h>
 #include <libasr/asr.h>
@@ -12,4 +12,4 @@ namespace LCompilers {
 
 }
 
-#endif // LFORTRAN_SERIALIZATION_H
+#endif // LCOMPILERS_SERIALIZATION_H

@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_ASR_TO_X86_H
-#define LFORTRAN_ASR_TO_X86_H
+#ifndef LCOMPILERS_ASR_TO_X86_H
+#define LCOMPILERS_ASR_TO_X86_H
 
 #include <libasr/asr.h>
 
@@ -11,4 +11,4 @@ namespace LCompilers {
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_ASR_TO_X86_H
+#endif // LCOMPILERS_ASR_TO_X86_H

@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PASS_NESTED_VARS_H
-#define LFORTRAN_PASS_NESTED_VARS_H
+#ifndef LCOMPILERS_PASS_NESTED_VARS_H
+#define LCOMPILERS_PASS_NESTED_VARS_H
 
 #include <libasr/asr.h>
 #include <llvm/IR/Type.h>
@@ -14,4 +14,4 @@ namespace LCompilers {
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_PASS_NESTED_VARS_H
+#endif // LCOMPILERS_PASS_NESTED_VARS_H

@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PASS_PRINT_ARR_H
-#define LFORTRAN_PASS_PRINT_ARR_H
+#ifndef LCOMPILERS_PASS_PRINT_ARR_H
+#define LCOMPILERS_PASS_PRINT_ARR_H
 
 #include <libasr/asr.h>
 
@@ -10,4 +10,4 @@ namespace LCompilers {
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_PASS_PRINT_ARR_H
+#endif // LCOMPILERS_PASS_PRINT_ARR_H

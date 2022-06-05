@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PICKLE_H
-#define LFORTRAN_PICKLE_H
+#ifndef LCOMPILERS_PICKLE_H
+#define LCOMPILERS_PICKLE_H
 
 #include <lfortran/parser/parser_stype.h>
 #include <lfortran/ast.h>
@@ -22,4 +22,4 @@ namespace LCompilers {
 
 }
 
-#endif // LFORTRAN_PICKLE_H
+#endif // LCOMPILERS_PICKLE_H

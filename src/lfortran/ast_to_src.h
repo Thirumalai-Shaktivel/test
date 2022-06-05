@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_AST_TO_SRC_H
-#define LFORTRAN_AST_TO_SRC_H
+#ifndef LCOMPILERS_AST_TO_SRC_H
+#define LCOMPILERS_AST_TO_SRC_H
 
 #include <lfortran/ast.h>
 
@@ -11,4 +11,4 @@ namespace LCompilers {
 
 }
 
-#endif // LFORTRAN_AST_TO_SRC_H
+#endif // LCOMPILERS_AST_TO_SRC_H

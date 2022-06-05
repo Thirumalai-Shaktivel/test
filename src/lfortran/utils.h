@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_UTILS_H
-#define LFORTRAN_UTILS_H
+#ifndef LCOMPILERS_UTILS_H
+#define LCOMPILERS_UTILS_H
 
 #include <string>
 #include <libasr/utils.h>
@@ -12,4 +12,4 @@ std::string get_runtime_library_header_dir();
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_UTILS_H
+#endif // LCOMPILERS_UTILS_H

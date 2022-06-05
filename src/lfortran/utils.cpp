@@ -34,7 +34,7 @@ void get_executable_path(std::string &executable_path, int &dirname_length)
 
 std::string get_runtime_library_dir()
 {
-    char *env_p = std::getenv("LFORTRAN_RUNTIME_LIBRARY_DIR");
+    char *env_p = std::getenv("LCOMPILERS_RUNTIME_LIBRARY_DIR");
     if (env_p) return env_p;
 
     std::string path;
@@ -58,7 +58,7 @@ std::string get_runtime_library_dir()
 
 std::string get_runtime_library_header_dir()
 {
-    char *env_p = std::getenv("LFORTRAN_RUNTIME_LIBRARY_HEADER_DIR");
+    char *env_p = std::getenv("LCOMPILERS_RUNTIME_LIBRARY_HEADER_DIR");
     if (env_p) return env_p;
 
     return get_runtime_library_dir() + "/impure";

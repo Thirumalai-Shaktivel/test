@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_STACKTRACE_H
-#define LFORTRAN_STACKTRACE_H
+#ifndef LCOMPILERS_STACKTRACE_H
+#define LCOMPILERS_STACKTRACE_H
 
 #include <string>
 #include <vector>
@@ -65,4 +65,4 @@ std::string error_stacktrace(const std::vector<StacktraceItem> &stacktrace);
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_STACKTRACE_H
+#endif // LCOMPILERS_STACKTRACE_H

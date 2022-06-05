@@ -13,7 +13,7 @@ extern "C" {
 #define CWRAPPER_BEGIN try {
 
 #define CWRAPPER_END                                                           \
-    return LFORTRAN_NO_EXCEPTION;                                              \
+    return LCOMPILERS_NO_EXCEPTION;                                              \
     }                                                                          \
     catch (LCompilers::LCompilersException & e)                                    \
     {                                                                          \
@@ -21,7 +21,7 @@ extern "C" {
     }                                                                          \
     catch (...)                                                                \
     {                                                                          \
-        return LFORTRAN_RUNTIME_ERROR;                                         \
+        return LCOMPILERS_RUNTIME_ERROR;                                         \
     }
 
 
@@ -58,7 +58,7 @@ lfortran_exceptions_t lfortran_parser_parse(LFortranCParser *self,
     if (res.ok) {
         result = res.result->m_items[0];
     } else {
-        return LFORTRAN_PARSER_ERROR;
+        return LCOMPILERS_PARSER_ERROR;
     }
     lfortran_ast_t* result2 = (lfortran_ast_t*)result;
     *ast = result2;

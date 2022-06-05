@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PARSER_LOCATION_H
-#define LFORTRAN_PARSER_LOCATION_H
+#ifndef LCOMPILERS_PARSER_LOCATION_H
+#define LCOMPILERS_PARSER_LOCATION_H
 
 #include <cstdint>
 #include <vector>

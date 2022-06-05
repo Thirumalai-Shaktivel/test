@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_SRC_PARSER_TOKENIZER_H
-#define LFORTRAN_SRC_PARSER_TOKENIZER_H
+#ifndef LCOMPILERS_SRC_PARSER_TOKENIZER_H
+#define LCOMPILERS_SRC_PARSER_TOKENIZER_H
 
 #include <libasr/exception.h>
 #include <lfortran/parser/parser_stype.h>

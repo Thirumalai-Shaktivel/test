@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_SRC_PARSER_PREPROCESSOR_H
-#define LFORTRAN_SRC_PARSER_PREPROCESSOR_H
+#ifndef LCOMPILERS_SRC_PARSER_PREPROCESSOR_H
+#define LCOMPILERS_SRC_PARSER_PREPROCESSOR_H
 
 #include <libasr/exception.h>
 #include <lfortran/utils.h>
@@ -46,4 +46,4 @@ public:
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_SRC_PARSER_PREPROCESSOR_H
+#endif // LCOMPILERS_SRC_PARSER_PREPROCESSOR_H

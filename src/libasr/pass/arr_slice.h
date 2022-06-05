@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PASS_ARR_SLICE_H
-#define LFORTRAN_PASS_ARR_SLICE_H
+#ifndef LCOMPILERS_PASS_ARR_SLICE_H
+#define LCOMPILERS_PASS_ARR_SLICE_H
 
 #include <libasr/asr.h>
 
@@ -10,4 +10,4 @@ namespace LCompilers {
 
 } // namespace LCompilers
 
-#endif // LFORTRAN_PASS_ARR_SLICE_H
+#endif // LCOMPILERS_PASS_ARR_SLICE_H

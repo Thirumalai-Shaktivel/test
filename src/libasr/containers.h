@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_CONTAINERS_H
-#define LFORTRAN_CONTAINERS_H
+#ifndef LCOMPILERS_CONTAINERS_H
+#define LCOMPILERS_CONTAINERS_H
 
 #include <cstring>
 #include <libasr/alloc.h>
