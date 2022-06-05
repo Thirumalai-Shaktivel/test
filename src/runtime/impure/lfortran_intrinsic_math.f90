@@ -198,7 +198,7 @@ end function
 elemental real(sp) function caimag(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_caimag(x) bind(c, name="_lfortran_caimag")
+    pure real(c_float) function c_caimag(x) bind(c, name="_lcompilers_caimag")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -209,7 +209,7 @@ end function
 elemental real(dp) function zaimag(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_zaimag(x) bind(c, name="_lfortran_zaimag")
+    pure real(c_double) function c_zaimag(x) bind(c, name="_lcompilers_zaimag")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -240,7 +240,7 @@ end function
 elemental complex(sp) function csqrt(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_csqrt(x) bind(c, name="_lfortran_csqrt")
+    pure complex(c_float) function c_csqrt(x) bind(c, name="_lcompilers_csqrt")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -251,7 +251,7 @@ end function
 elemental complex(dp) function zsqrt(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zsqrt(x) bind(c, name="_lfortran_zsqrt")
+    pure complex(c_double) function c_zsqrt(x) bind(c, name="_lcompilers_zsqrt")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -264,7 +264,7 @@ end function
 elemental real(sp) function sexp(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_sexp(x) bind(c, name="_lfortran_sexp")
+    pure real(c_float) function c_sexp(x) bind(c, name="_lcompilers_sexp")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -275,7 +275,7 @@ end function
 elemental real(dp) function dexp(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dexp(x) bind(c, name="_lfortran_dexp")
+    pure real(c_double) function c_dexp(x) bind(c, name="_lcompilers_dexp")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -286,7 +286,7 @@ end function
 elemental complex(sp) function cexp(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_cexp(x) bind(c, name="_lfortran_cexp")
+    pure complex(c_float) function c_cexp(x) bind(c, name="_lcompilers_cexp")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -297,7 +297,7 @@ end function
 elemental complex(dp) function zexp(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zexp(x) bind(c, name="_lfortran_zexp")
+    pure complex(c_double) function c_zexp(x) bind(c, name="_lcompilers_zexp")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -310,7 +310,7 @@ end function
 elemental real(sp) function slog(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_slog(x) bind(c, name="_lfortran_slog")
+    pure real(c_float) function c_slog(x) bind(c, name="_lcompilers_slog")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -321,7 +321,7 @@ end function
 elemental real(dp) function dlog(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dlog(x) bind(c, name="_lfortran_dlog")
+    pure real(c_double) function c_dlog(x) bind(c, name="_lcompilers_dlog")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -332,7 +332,7 @@ end function
 elemental complex(sp) function clog(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_clog(x) bind(c, name="_lfortran_clog")
+    pure complex(c_float) function c_clog(x) bind(c, name="_lcompilers_clog")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -343,7 +343,7 @@ end function
 elemental complex(dp) function zlog(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zlog(x) bind(c, name="_lfortran_zlog")
+    pure complex(c_double) function c_zlog(x) bind(c, name="_lcompilers_zlog")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -356,7 +356,7 @@ end function
 elemental real(sp) function serf(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_serf(x) bind(c, name="_lfortran_serf")
+    pure real(c_float) function c_serf(x) bind(c, name="_lcompilers_serf")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -367,7 +367,7 @@ end function
 elemental real(dp) function derf(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_derf(x) bind(c, name="_lfortran_derf")
+    pure real(c_double) function c_derf(x) bind(c, name="_lcompilers_derf")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -380,7 +380,7 @@ end function
 elemental real(sp) function serfc(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_serfc(x) bind(c, name="_lfortran_serfc")
+    pure real(c_float) function c_serfc(x) bind(c, name="_lcompilers_serfc")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -391,7 +391,7 @@ end function
 elemental real(dp) function derfc(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_derfc(x) bind(c, name="_lfortran_derfc")
+    pure real(c_double) function c_derfc(x) bind(c, name="_lcompilers_derfc")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -404,7 +404,7 @@ end function
 elemental real(sp) function sgamma(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_sgamma(x) bind(c, name="_lfortran_sgamma")
+    pure real(c_float) function c_sgamma(x) bind(c, name="_lcompilers_sgamma")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -415,7 +415,7 @@ end function
 elemental real(dp) function dgamma(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dgamma(x) bind(c, name="_lfortran_dgamma")
+    pure real(c_double) function c_dgamma(x) bind(c, name="_lcompilers_dgamma")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -428,7 +428,7 @@ end function
 elemental real(sp) function slog_gamma(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_slog_gamma(x) bind(c, name="_lfortran_slog_gamma")
+    pure real(c_float) function c_slog_gamma(x) bind(c, name="_lcompilers_slog_gamma")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -439,7 +439,7 @@ end function
 elemental real(dp) function dlog_gamma(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dlog_gamma(x) bind(c, name="_lfortran_dlog_gamma")
+    pure real(c_double) function c_dlog_gamma(x) bind(c, name="_lcompilers_dlog_gamma")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -452,7 +452,7 @@ end function
 elemental real(sp) function slog10(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_slog10(x) bind(c, name="_lfortran_slog10")
+    pure real(c_float) function c_slog10(x) bind(c, name="_lcompilers_slog10")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -463,7 +463,7 @@ end function
 elemental real(dp) function dlog10(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dlog10(x) bind(c, name="_lfortran_dlog10")
+    pure real(c_double) function c_dlog10(x) bind(c, name="_lcompilers_dlog10")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -476,7 +476,7 @@ end function
 elemental real(sp) function ssin(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_ssin(x) bind(c, name="_lfortran_ssin")
+    pure real(c_float) function c_ssin(x) bind(c, name="_lcompilers_ssin")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -487,7 +487,7 @@ end function
 elemental real(dp) function dsin(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dsin(x) bind(c, name="_lfortran_dsin")
+    pure real(c_double) function c_dsin(x) bind(c, name="_lcompilers_dsin")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -498,7 +498,7 @@ end function
 elemental complex(sp) function csin(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_csin(x) bind(c, name="_lfortran_csin")
+    pure complex(c_float) function c_csin(x) bind(c, name="_lcompilers_csin")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -509,7 +509,7 @@ end function
 elemental complex(dp) function zsin(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zsin(x) bind(c, name="_lfortran_zsin")
+    pure complex(c_double) function c_zsin(x) bind(c, name="_lcompilers_zsin")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -522,7 +522,7 @@ end function
 elemental real(sp) function scos(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_scos(x) bind(c, name="_lfortran_scos")
+    pure real(c_float) function c_scos(x) bind(c, name="_lcompilers_scos")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -533,7 +533,7 @@ end function
 elemental real(dp) function dcos(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dcos(x) bind(c, name="_lfortran_dcos")
+    pure real(c_double) function c_dcos(x) bind(c, name="_lcompilers_dcos")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -544,7 +544,7 @@ end function
 elemental complex(sp) function ccos(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_ccos(x) bind(c, name="_lfortran_ccos")
+    pure complex(c_float) function c_ccos(x) bind(c, name="_lcompilers_ccos")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -555,7 +555,7 @@ end function
 elemental complex(dp) function zcos(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zcos(x) bind(c, name="_lfortran_zcos")
+    pure complex(c_double) function c_zcos(x) bind(c, name="_lcompilers_zcos")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -568,7 +568,7 @@ end function
 elemental real(sp) function stan(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_stan(x) bind(c, name="_lfortran_stan")
+    pure real(c_float) function c_stan(x) bind(c, name="_lcompilers_stan")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -579,7 +579,7 @@ end function
 elemental real(dp) function dtan(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dtan(x) bind(c, name="_lfortran_dtan")
+    pure real(c_double) function c_dtan(x) bind(c, name="_lcompilers_dtan")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -590,7 +590,7 @@ end function
 elemental complex(sp) function ctan(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_ctan(x) bind(c, name="_lfortran_ctan")
+    pure complex(c_float) function c_ctan(x) bind(c, name="_lcompilers_ctan")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -601,7 +601,7 @@ end function
 elemental complex(dp) function ztan(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_ztan(x) bind(c, name="_lfortran_ztan")
+    pure complex(c_double) function c_ztan(x) bind(c, name="_lcompilers_ztan")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -614,7 +614,7 @@ end function
 elemental real(sp) function ssinh(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_ssinh(x) bind(c, name="_lfortran_ssinh")
+    pure real(c_float) function c_ssinh(x) bind(c, name="_lcompilers_ssinh")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -625,7 +625,7 @@ end function
 elemental real(dp) function dsinh(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dsinh(x) bind(c, name="_lfortran_dsinh")
+    pure real(c_double) function c_dsinh(x) bind(c, name="_lcompilers_dsinh")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -636,7 +636,7 @@ end function
 elemental complex(sp) function csinh(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_csinh(x) bind(c, name="_lfortran_csinh")
+    pure complex(c_float) function c_csinh(x) bind(c, name="_lcompilers_csinh")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -647,7 +647,7 @@ end function
 elemental complex(dp) function zsinh(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zsinh(x) bind(c, name="_lfortran_zsinh")
+    pure complex(c_double) function c_zsinh(x) bind(c, name="_lcompilers_zsinh")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -660,7 +660,7 @@ end function
 elemental real(sp) function scosh(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_scosh(x) bind(c, name="_lfortran_scosh")
+    pure real(c_float) function c_scosh(x) bind(c, name="_lcompilers_scosh")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -671,7 +671,7 @@ end function
 elemental real(dp) function dcosh(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dcosh(x) bind(c, name="_lfortran_dcosh")
+    pure real(c_double) function c_dcosh(x) bind(c, name="_lcompilers_dcosh")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -682,7 +682,7 @@ end function
 elemental complex(sp) function ccosh(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_ccosh(x) bind(c, name="_lfortran_ccosh")
+    pure complex(c_float) function c_ccosh(x) bind(c, name="_lcompilers_ccosh")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -693,7 +693,7 @@ end function
 elemental complex(dp) function zcosh(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zcosh(x) bind(c, name="_lfortran_zcosh")
+    pure complex(c_double) function c_zcosh(x) bind(c, name="_lcompilers_zcosh")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -706,7 +706,7 @@ end function
 elemental real(sp) function stanh(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_stanh(x) bind(c, name="_lfortran_stanh")
+    pure real(c_float) function c_stanh(x) bind(c, name="_lcompilers_stanh")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -717,7 +717,7 @@ end function
 elemental real(dp) function dtanh(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dtanh(x) bind(c, name="_lfortran_dtanh")
+    pure real(c_double) function c_dtanh(x) bind(c, name="_lcompilers_dtanh")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -728,7 +728,7 @@ end function
 elemental complex(sp) function ctanh(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_ctanh(x) bind(c, name="_lfortran_ctanh")
+    pure complex(c_float) function c_ctanh(x) bind(c, name="_lcompilers_ctanh")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -739,7 +739,7 @@ end function
 elemental complex(dp) function ztanh(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_ztanh(x) bind(c, name="_lfortran_ztanh")
+    pure complex(c_double) function c_ztanh(x) bind(c, name="_lcompilers_ztanh")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -752,7 +752,7 @@ end function
 elemental real(sp) function sasin(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_sasin(x) bind(c, name="_lfortran_sasin")
+    pure real(c_float) function c_sasin(x) bind(c, name="_lcompilers_sasin")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -763,7 +763,7 @@ end function
 elemental real(dp) function dasin(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dasin(x) bind(c, name="_lfortran_dasin")
+    pure real(c_double) function c_dasin(x) bind(c, name="_lcompilers_dasin")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -774,7 +774,7 @@ end function
 elemental complex(sp) function casin(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_casin(x) bind(c, name="_lfortran_casin")
+    pure complex(c_float) function c_casin(x) bind(c, name="_lcompilers_casin")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -785,7 +785,7 @@ end function
 elemental complex(dp) function zasin(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zasin(x) bind(c, name="_lfortran_zasin")
+    pure complex(c_double) function c_zasin(x) bind(c, name="_lcompilers_zasin")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -798,7 +798,7 @@ end function
 elemental real(sp) function sacos(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_sacos(x) bind(c, name="_lfortran_sacos")
+    pure real(c_float) function c_sacos(x) bind(c, name="_lcompilers_sacos")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -809,7 +809,7 @@ end function
 elemental real(dp) function dacos(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dacos(x) bind(c, name="_lfortran_dacos")
+    pure real(c_double) function c_dacos(x) bind(c, name="_lcompilers_dacos")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -820,7 +820,7 @@ end function
 elemental complex(sp) function cacos(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_cacos(x) bind(c, name="_lfortran_cacos")
+    pure complex(c_float) function c_cacos(x) bind(c, name="_lcompilers_cacos")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -831,7 +831,7 @@ end function
 elemental complex(dp) function zacos(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zacos(x) bind(c, name="_lfortran_zacos")
+    pure complex(c_double) function c_zacos(x) bind(c, name="_lcompilers_zacos")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -844,7 +844,7 @@ end function
 elemental real(sp) function satan(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_satan(x) bind(c, name="_lfortran_satan")
+    pure real(c_float) function c_satan(x) bind(c, name="_lcompilers_satan")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -855,7 +855,7 @@ end function
 elemental real(dp) function datan(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_datan(x) bind(c, name="_lfortran_datan")
+    pure real(c_double) function c_datan(x) bind(c, name="_lcompilers_datan")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -866,7 +866,7 @@ end function
 elemental complex(sp) function catan(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_catan(x) bind(c, name="_lfortran_catan")
+    pure complex(c_float) function c_catan(x) bind(c, name="_lcompilers_catan")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -877,7 +877,7 @@ end function
 elemental complex(dp) function zatan(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zatan(x) bind(c, name="_lfortran_zatan")
+    pure complex(c_double) function c_zatan(x) bind(c, name="_lcompilers_zatan")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -890,7 +890,7 @@ end function
 elemental real(sp) function satan2(y, x) result(r)
 real(sp), intent(in) :: y, x
 interface
-    pure real(c_float) function c_satan2(y, x) bind(c, name="_lfortran_satan2")
+    pure real(c_float) function c_satan2(y, x) bind(c, name="_lcompilers_satan2")
     import :: c_float
     real(c_float), intent(in), value :: y, x
     end function
@@ -901,7 +901,7 @@ end function
 elemental real(dp) function datan2(y, x) result(r)
 real(dp), intent(in) :: y, x
 interface
-    pure real(c_double) function c_datan2(y, x) bind(c, name="_lfortran_datan2")
+    pure real(c_double) function c_datan2(y, x) bind(c, name="_lcompilers_datan2")
     import :: c_double
     real(c_double), intent(in), value :: y, x
     end function
@@ -914,7 +914,7 @@ end function
 elemental real(sp) function sasinh(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_sasinh(x) bind(c, name="_lfortran_sasinh")
+    pure real(c_float) function c_sasinh(x) bind(c, name="_lcompilers_sasinh")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -925,7 +925,7 @@ end function
 elemental real(dp) function dasinh(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dasinh(x) bind(c, name="_lfortran_dasinh")
+    pure real(c_double) function c_dasinh(x) bind(c, name="_lcompilers_dasinh")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -936,7 +936,7 @@ end function
 elemental complex(sp) function casinh(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_casinh(x) bind(c, name="_lfortran_casinh")
+    pure complex(c_float) function c_casinh(x) bind(c, name="_lcompilers_casinh")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -947,7 +947,7 @@ end function
 elemental complex(dp) function zasinh(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zasinh(x) bind(c, name="_lfortran_zasinh")
+    pure complex(c_double) function c_zasinh(x) bind(c, name="_lcompilers_zasinh")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -960,7 +960,7 @@ end function
 elemental real(sp) function sacosh(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_sacosh(x) bind(c, name="_lfortran_sacosh")
+    pure real(c_float) function c_sacosh(x) bind(c, name="_lcompilers_sacosh")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -971,7 +971,7 @@ end function
 elemental real(dp) function dacosh(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_dacosh(x) bind(c, name="_lfortran_dacosh")
+    pure real(c_double) function c_dacosh(x) bind(c, name="_lcompilers_dacosh")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -982,7 +982,7 @@ end function
 elemental complex(sp) function cacosh(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_cacosh(x) bind(c, name="_lfortran_cacosh")
+    pure complex(c_float) function c_cacosh(x) bind(c, name="_lcompilers_cacosh")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -993,7 +993,7 @@ end function
 elemental complex(dp) function zacosh(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zacosh(x) bind(c, name="_lfortran_zacosh")
+    pure complex(c_double) function c_zacosh(x) bind(c, name="_lcompilers_zacosh")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -1006,7 +1006,7 @@ end function
 elemental real(sp) function satanh(x) result(r)
 real(sp), intent(in) :: x
 interface
-    pure real(c_float) function c_satanh(x) bind(c, name="_lfortran_satanh")
+    pure real(c_float) function c_satanh(x) bind(c, name="_lcompilers_satanh")
     import :: c_float
     real(c_float), intent(in), value :: x
     end function
@@ -1017,7 +1017,7 @@ end function
 elemental real(dp) function datanh(x) result(r)
 real(dp), intent(in) :: x
 interface
-    pure real(c_double) function c_datanh(x) bind(c, name="_lfortran_datanh")
+    pure real(c_double) function c_datanh(x) bind(c, name="_lcompilers_datanh")
     import :: c_double
     real(c_double), intent(in), value :: x
     end function
@@ -1028,7 +1028,7 @@ end function
 elemental complex(sp) function catanh(x) result(r)
 complex(sp), intent(in) :: x
 interface
-    pure complex(c_float) function c_catanh(x) bind(c, name="_lfortran_catanh")
+    pure complex(c_float) function c_catanh(x) bind(c, name="_lcompilers_catanh")
     import :: c_float
     complex(c_float), intent(in), value :: x
     end function
@@ -1039,7 +1039,7 @@ end function
 elemental complex(dp) function zatanh(x) result(r)
 complex(dp), intent(in) :: x
 interface
-    pure complex(c_double) function c_zatanh(x) bind(c, name="_lfortran_zatanh")
+    pure complex(c_double) function c_zatanh(x) bind(c, name="_lcompilers_zatanh")
     import :: c_double
     complex(c_double), intent(in), value :: x
     end function
@@ -1106,7 +1106,7 @@ end function
 pure subroutine cpu_time(t)
 real(dp), intent(out) :: t
 interface
-    pure subroutine c_cpu_time(t) bind(c, name="_lfortran_cpu_time")
+    pure subroutine c_cpu_time(t) bind(c, name="_lcompilers_cpu_time")
     import :: c_double
     real(c_double), intent(out) :: t
     end subroutine
@@ -1120,7 +1120,7 @@ pure subroutine i32sys_clock(count, count_rate, count_max)
 integer(4), intent(out) :: count, count_rate, count_max
 interface
     pure subroutine c_i32sys_clock(count, count_rate, count_max) &
-        bind(c, name="_lfortran_i32sys_clock")
+        bind(c, name="_lcompilers_i32sys_clock")
         integer(4), intent(out) :: count, count_rate, count_max
     end subroutine
 end interface
@@ -1131,7 +1131,7 @@ pure subroutine i64sys_clock(count, count_rate, count_max)
 integer(8), intent(out) :: count, count_rate, count_max
 interface
     pure subroutine c_i64sys_clock(count, count_rate, count_max) &
-        bind(c, name="_lfortran_i64sys_clock")
+        bind(c, name="_lcompilers_i64sys_clock")
         integer(8), intent(out) :: count, count_rate, count_max
     end subroutine
 end interface
@@ -1143,7 +1143,7 @@ pure subroutine sp_rand_num(harvest)
 real(sp), intent(out) :: harvest
 interface
     pure subroutine c_sp_rand_num(harvest) &
-        bind(c, name="_lfortran_sp_rand_num")
+        bind(c, name="_lcompilers_sp_rand_num")
         import :: c_float
         real(c_float), intent(out) :: harvest
     end subroutine
@@ -1155,7 +1155,7 @@ pure subroutine dp_rand_num(harvest)
 real(dp), intent(out) :: harvest
 interface
     pure subroutine c_dp_rand_num(harvest) &
-        bind(c, name="_lfortran_dp_rand_num")
+        bind(c, name="_lcompilers_dp_rand_num")
         import :: c_double
         real(c_double), intent(out) :: harvest
     end subroutine

@@ -74,7 +74,7 @@ elemental integer(int32) function iand32(x, y) result(r)
 integer(int32), intent(in) :: x
 integer(int32), intent(in) :: y
 interface
-    pure integer(int32) function c_iand32(x, y) bind(c, name="_lfortran_iand32")
+    pure integer(int32) function c_iand32(x, y) bind(c, name="_lcompilers_iand32")
     import :: int32
     integer(int32), intent(in), value :: x
     integer(int32), intent(in), value :: y
@@ -87,7 +87,7 @@ elemental integer(int64) function iand64(x, y) result(r)
 integer(int64), intent(in) :: x
 integer(int64), intent(in) :: y
 interface
-    pure integer(int64) function c_iand64(x, y) bind(c, name="_lfortran_iand64")
+    pure integer(int64) function c_iand64(x, y) bind(c, name="_lcompilers_iand64")
     import :: int64
     integer(int64), intent(in), value :: x
     integer(int64), intent(in), value :: y
@@ -101,7 +101,7 @@ end function
 elemental integer(int32) function not32(x) result(r)
 integer(int32), intent(in) :: x
 interface
-    pure integer(int32) function c_not32(x) bind(c, name="_lfortran_not32")
+    pure integer(int32) function c_not32(x) bind(c, name="_lcompilers_not32")
     import :: int32
     integer(int32), intent(in), value :: x
     end function
@@ -112,7 +112,7 @@ end function
 elemental integer(int64) function not64(x) result(r)
 integer(int64), intent(in) :: x
 interface
-    pure integer(int64) function c_not64(x) bind(c, name="_lfortran_not64")
+    pure integer(int64) function c_not64(x) bind(c, name="_lcompilers_not64")
     import :: int64
     integer(int64), intent(in), value :: x
     end function
@@ -126,7 +126,7 @@ elemental integer(int32) function ior32(x, y) result(r)
 integer(int32), intent(in) :: x
 integer(int32), intent(in) :: y
 interface
-    pure integer(int32) function c_ior32(x, y) bind(c, name="_lfortran_ior32")
+    pure integer(int32) function c_ior32(x, y) bind(c, name="_lcompilers_ior32")
     import :: int32
     integer(int32), intent(in), value :: x
     integer(int32), intent(in), value :: y
@@ -139,7 +139,7 @@ elemental integer(int64) function ior64(x, y) result(r)
 integer(int64), intent(in) :: x
 integer(int64), intent(in) :: y
 interface
-    pure integer(int64) function c_ior64(x, y) bind(c, name="_lfortran_ior64")
+    pure integer(int64) function c_ior64(x, y) bind(c, name="_lcompilers_ior64")
     import :: int64
     integer(int64), intent(in), value :: x
     integer(int64), intent(in), value :: y
@@ -154,7 +154,7 @@ elemental integer(int32) function ieor32(x, y) result(r)
 integer(int32), intent(in) :: x
 integer(int32), intent(in) :: y
 interface
-    pure integer(int32) function c_ieor32(x, y) bind(c, name="_lfortran_ieor32")
+    pure integer(int32) function c_ieor32(x, y) bind(c, name="_lcompilers_ieor32")
     import :: int32
     integer(int32), intent(in), value :: x
     integer(int32), intent(in), value :: y
@@ -167,7 +167,7 @@ elemental integer(int64) function ieor64(x, y) result(r)
 integer(int64), intent(in) :: x
 integer(int64), intent(in) :: y
 interface
-    pure integer(int64) function c_ieor64(x, y) bind(c, name="_lfortran_ieor64")
+    pure integer(int64) function c_ieor64(x, y) bind(c, name="_lcompilers_ieor64")
     import :: int64
     integer(int64), intent(in), value :: x
     integer(int64), intent(in), value :: y
@@ -182,7 +182,7 @@ elemental integer(int32) function ibclr32(i, pos) result(r)
 integer(int32), intent(in) :: i
 integer, intent(in) :: pos
 interface
-    pure integer(int32) function c_ibclr32(i, pos) bind(c, name="_lfortran_ibclr32")
+    pure integer(int32) function c_ibclr32(i, pos) bind(c, name="_lcompilers_ibclr32")
     import :: int32
     integer(int32), intent(in), value :: i
     integer, intent(in), value :: pos
@@ -200,7 +200,7 @@ elemental integer(int64) function ibclr64(i, pos) result(r)
 integer(int64), intent(in) :: i
 integer, intent(in) :: pos
 interface
-    pure integer(int64) function c_ibclr64(i, pos) bind(c, name="_lfortran_ibclr64")
+    pure integer(int64) function c_ibclr64(i, pos) bind(c, name="_lcompilers_ibclr64")
     import :: int64
     integer(int64), intent(in), value :: i
     integer, intent(in), value :: pos
@@ -220,7 +220,7 @@ elemental integer(int32) function ibset32(i, pos) result(r)
 integer(int32), intent(in) :: i
 integer, intent(in) :: pos
 interface
-    pure integer(int32) function c_ibset32(i, pos) bind(c, name="_lfortran_ibset32")
+    pure integer(int32) function c_ibset32(i, pos) bind(c, name="_lcompilers_ibset32")
     import :: int32
     integer(int32), intent(in), value :: i
     integer, intent(in), value :: pos
@@ -238,7 +238,7 @@ elemental integer(int64) function ibset64(i, pos) result(r)
 integer(int64), intent(in) :: i
 integer, intent(in) :: pos
 interface
-    pure integer(int64) function c_ibset64(i, pos) bind(c, name="_lfortran_ibset64")
+    pure integer(int64) function c_ibset64(i, pos) bind(c, name="_lcompilers_ibset64")
     import :: int64
     integer(int64), intent(in), value :: i
     integer, intent(in), value :: pos
@@ -258,7 +258,7 @@ elemental logical function btest32(i, pos) result(r)
 integer(int32), intent(in) :: i
 integer, intent(in) :: pos
 interface
-    pure integer(int32) function c_btest32(i, pos) bind(c, name="_lfortran_btest32")
+    pure integer(int32) function c_btest32(i, pos) bind(c, name="_lcompilers_btest32")
     import :: int32
     integer(int32), intent(in), value :: i
     integer, intent(in), value :: pos
@@ -276,7 +276,7 @@ elemental logical function btest64(i, pos) result(r)
 integer(int64), intent(in) :: i
 integer, intent(in) :: pos
 interface
-    pure integer(int64) function c_btest64(i, pos) bind(c, name="_lfortran_btest64")
+    pure integer(int64) function c_btest64(i, pos) bind(c, name="_lcompilers_btest64")
     import :: int64
     integer(int64), intent(in), value :: i
     integer, intent(in), value :: pos
@@ -295,7 +295,7 @@ end function
 elemental integer(int32) function ishft32(i, shift) result(r)
 integer(int32), intent(in) :: i, shift
 interface
-    pure integer(int32) function c_ishft32(i, shift) bind(c, name="_lfortran_ishft32")
+    pure integer(int32) function c_ishft32(i, shift) bind(c, name="_lcompilers_ishft32")
         import :: int32
         integer(int32), intent(in), value :: i, shift
     end function
@@ -311,7 +311,7 @@ end function
 elemental integer(int64) function ishft64(i, shift) result(r)
 integer(int64), intent(in) :: i, shift
 interface
-    pure integer(int64) function c_ishft64(i, shift) bind(c, name="_lfortran_ishft64")
+    pure integer(int64) function c_ishft64(i, shift) bind(c, name="_lcompilers_ishft64")
         import :: int64
         integer(int64), intent(in), value :: i, shift
     end function
@@ -360,7 +360,7 @@ elemental subroutine mvbits32(from, frompos, len, to, topos)
 integer(int32), intent(in) :: from, frompos, len, topos
 integer(int32), intent(out) :: to
 interface
-    pure integer(int32) function c_mvbits32(from, frompos, len, to, topos) bind(c, name="_lfortran_mvbits32")
+    pure integer(int32) function c_mvbits32(from, frompos, len, to, topos) bind(c, name="_lcompilers_mvbits32")
     import :: int32
     integer(int32), intent(in), value :: from, frompos, len, to, topos
     end function
@@ -373,7 +373,7 @@ integer(int64), intent(in) :: from
 integer(int32), intent(in) :: frompos, len, topos
 integer(int64), intent(out) :: to
 interface
-    pure integer(int64) function c_mvbits64(from, frompos, len, to, topos) bind(c, name="_lfortran_mvbits64")
+    pure integer(int64) function c_mvbits64(from, frompos, len, to, topos) bind(c, name="_lcompilers_mvbits64")
     import :: int64, int32
     integer(int64), intent(in), value :: from, to
     integer(int32), intent(in), value :: frompos, len, topos
@@ -387,7 +387,7 @@ end subroutine
 elemental logical function bge32(i, j) result(r)
 integer(int32), intent(in) :: i, j
 interface
-    pure logical function c_bge32(i, j) bind(c, name="_lfortran_bge32")
+    pure logical function c_bge32(i, j) bind(c, name="_lcompilers_bge32")
     import :: int32
     integer(int32), intent(in), value :: i, j
     end function
@@ -398,7 +398,7 @@ end function
 elemental logical function bge64(i, j) result(r)
 integer(int64), intent(in) :: i, j
 interface
-    pure logical function c_bge64(i, j) bind(c, name="_lfortran_bge64")
+    pure logical function c_bge64(i, j) bind(c, name="_lcompilers_bge64")
     import :: int64
     integer(int64), intent(in), value :: i, j
     end function
@@ -411,7 +411,7 @@ end function
 elemental logical function bgt32(i, j) result(r)
 integer(int32), intent(in) :: i, j
 interface
-    pure logical function c_bgt32(i, j) bind(c, name="_lfortran_bgt32")
+    pure logical function c_bgt32(i, j) bind(c, name="_lcompilers_bgt32")
     import :: int32
     integer(int32), intent(in), value :: i, j
     end function
@@ -422,7 +422,7 @@ end function
 elemental logical function bgt64(i, j) result(r)
 integer(int64), intent(in) :: i, j
 interface
-    pure logical function c_bgt64(i, j) bind(c, name="_lfortran_bgt64")
+    pure logical function c_bgt64(i, j) bind(c, name="_lcompilers_bgt64")
     import :: int64
     integer(int64), intent(in), value :: i, j
     end function
@@ -435,7 +435,7 @@ end function
 elemental logical function ble32(i, j) result(r)
 integer(int32), intent(in) :: i, j
 interface
-    pure logical function c_ble32(i, j) bind(c, name="_lfortran_ble32")
+    pure logical function c_ble32(i, j) bind(c, name="_lcompilers_ble32")
     import :: int32
     integer(int32), intent(in), value :: i, j
     end function
@@ -446,7 +446,7 @@ end function
 elemental logical function ble64(i, j) result(r)
 integer(int64), intent(in) :: i, j
 interface
-    pure logical function c_ble64(i, j) bind(c, name="_lfortran_ble64")
+    pure logical function c_ble64(i, j) bind(c, name="_lcompilers_ble64")
     import :: int64
     integer(int64), intent(in), value :: i, j
     end function
@@ -459,7 +459,7 @@ end function
 elemental logical function blt32(i, j) result(r)
 integer(int32), intent(in) :: i, j
 interface
-    pure logical function c_blt32(i, j) bind(c, name="_lfortran_blt32")
+    pure logical function c_blt32(i, j) bind(c, name="_lcompilers_blt32")
     import :: int32
     integer(int32), intent(in), value :: i, j
     end function
@@ -470,7 +470,7 @@ end function
 elemental logical function blt64(i, j) result(r)
 integer(int64), intent(in) :: i, j
 interface
-    pure logical function c_blt64(i, j) bind(c, name="_lfortran_blt64")
+    pure logical function c_blt64(i, j) bind(c, name="_lcompilers_blt64")
     import :: int64
     integer(int64), intent(in), value :: i, j
     end function
@@ -483,7 +483,7 @@ end function
 elemental integer(int32) function ibits32(i, pos, len) result(r)
 integer(int32), intent(in) :: i, pos, len
 interface
-    pure integer(int32) function c_ibits32(i, pos, len) bind(c, name="_lfortran_ibits32")
+    pure integer(int32) function c_ibits32(i, pos, len) bind(c, name="_lcompilers_ibits32")
     import :: int32
     integer(int32), intent(in), value :: i, pos, len
     end function
@@ -495,7 +495,7 @@ elemental integer(int64) function ibits64(i, pos, len) result(r)
 integer(int64), intent(in) :: i
 integer(int32), intent(in) :: pos, len
 interface
-    pure integer(int64) function c_ibits64(i, pos, len) bind(c, name="_lfortran_ibits64")
+    pure integer(int64) function c_ibits64(i, pos, len) bind(c, name="_lcompilers_ibits64")
     import :: int32, int64
     integer(int64), intent(in), value :: i
     integer(int32), intent(in), value :: pos, len

@@ -12,7 +12,7 @@ source_filename = "LFortran"
 define void @__module_nested_06_a_b(float* %x) {
 .entry:
   store float* %x, float** getelementptr inbounds (%b_nstd_types, %b_nstd_types* @b_nstd_strct, i32 0, i32 0), align 8
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @3, i32 0, i32 0), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @3, i32 0, i32 0), i8* getelementptr inbounds ([4 x i8], [4 x i8]* @2, i32 0, i32 0))
   call void @__module_nested_06_a_c()
   br label %return
 
@@ -22,18 +22,18 @@ return:                                           ; preds = %.entry
 
 define void @__module_nested_06_a_c() {
 .entry:
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 5)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i32 5)
   %0 = load float*, float** getelementptr inbounds (%b_nstd_types, %b_nstd_types* @b_nstd_strct, i32 0, i32 0), align 8
   %1 = load float, float* %0, align 4
   %2 = fpext float %1 to double
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), double %2)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0), double %2)
   br label %return
 
 return:                                           ; preds = %.entry
   ret void
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
 
 define i32 @main() {
 .entry:

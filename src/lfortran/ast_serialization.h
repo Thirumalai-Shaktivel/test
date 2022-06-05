@@ -1,10 +1,10 @@
-#ifndef LFORTRAN_SERIALIZATION_H
-#define LFORTRAN_SERIALIZATION_H
+#ifndef LCOMPILERS_SERIALIZATION_H
+#define LCOMPILERS_SERIALIZATION_H
 
 #include <lfortran/ast.h>
 #include <libasr/asr.h>
 
-namespace LFortran {
+namespace LCompilers {
 
     std::string serialize(const AST::ast_t &ast);
     std::string serialize(const AST::TranslationUnit_t &unit);
@@ -12,4 +12,4 @@ namespace LFortran {
 
 }
 
-#endif // LFORTRAN_SERIALIZATION_H
+#endif // LCOMPILERS_SERIALIZATION_H

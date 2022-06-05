@@ -46,7 +46,7 @@ define i32 @main() {
   %18 = or i1 %8, %17
   store i1 %18, i1* %is_alpha, align 1
   %19 = load i1, i1* %is_alpha, align 1
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @5, i32 0, i32 0), i1 %19)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @5, i32 0, i32 0), i1 %19)
   store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @6, i32 0, i32 0), i8** %c, align 8
   %20 = load i8*, i8** %c, align 8
   %21 = load i8, i8* %20, align 1
@@ -69,7 +69,7 @@ define i32 @main() {
   %38 = or i1 %28, %37
   store i1 %38, i1* %is_alpha, align 1
   %39 = load i1, i1* %is_alpha, align 1
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @11, i32 0, i32 0), i1 %39)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @11, i32 0, i32 0), i1 %39)
   store i8* getelementptr inbounds ([3 x i8], [3 x i8]* @12, i32 0, i32 0), i8** %c, align 8
   %40 = load i8*, i8** %c, align 8
   %41 = load i8, i8* %40, align 1
@@ -92,8 +92,8 @@ define i32 @main() {
   %58 = or i1 %48, %57
   store i1 %58, i1* %is_alpha, align 1
   %59 = load i1, i1* %is_alpha, align 1
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @17, i32 0, i32 0), i1 %59)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @17, i32 0, i32 0), i1 %59)
   ret i32 0
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)

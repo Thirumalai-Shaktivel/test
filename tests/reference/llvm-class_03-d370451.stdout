@@ -50,7 +50,7 @@ define i32 @main() {
   %19 = load i32, i32* %18, align 4
   %20 = getelementptr %person, %person* %jack, i32 0, i32 3
   %21 = load i8*, i8** %20, align 8
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @7, i32 0, i32 0), i8* %15, i8* %17, i32 %19, i8* %21)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @7, i32 0, i32 0), i8* %15, i8* %17, i32 %19, i8* %21)
   %22 = getelementptr %employee, %employee* %jill, i32 0, i32 2
   %23 = getelementptr %person, %person* %22, i32 0, i32 1
   %24 = load i8*, i8** %23, align 8
@@ -67,8 +67,8 @@ define i32 @main() {
   %35 = load i8*, i8** %34, align 8
   %36 = getelementptr %employee, %employee* %jill, i32 0, i32 1
   %37 = load i32, i32* %36, align 4
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([19 x i8], [19 x i8]* @8, i32 0, i32 0), i8* %24, i8* %27, i32 %30, i8* %33, i8* %35, i32 %37)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([19 x i8], [19 x i8]* @8, i32 0, i32 0), i8* %24, i8* %27, i32 %30, i8* %33, i8* %35, i32 %37)
   ret i32 0
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)

@@ -1,5 +1,5 @@
-#ifndef LFORTRAN_PARSER_STYPE_H
-#define LFORTRAN_PARSER_STYPE_H
+#ifndef LCOMPILERS_PARSER_STYPE_H
+#define LCOMPILERS_PARSER_STYPE_H
 
 #include <cstring>
 #include <lfortran/ast.h>
@@ -7,8 +7,7 @@
 #include <libasr/containers.h>
 #include <libasr/bigint.h>
 
-namespace LFortran
-{
+namespace LCompilers {
 
 struct VarType {
     Location loc;
@@ -96,12 +95,12 @@ static_assert(std::is_trivial<YYSTYPE>::value);
 // would reduce performance.
 static_assert(sizeof(YYSTYPE) == sizeof(Vec<AST::ast_t*>));
 
-} // namespace LFortran
+} // namespace LCompilers
 
 
-typedef struct LFortran::Location YYLTYPE;
+typedef struct LCompilers::Location YYLTYPE;
 #define YYLTYPE_IS_DECLARED 1
 #define YYLTYPE_IS_TRIVIAL 0
 
 
-#endif // LFORTRAN_PARSER_STYPE_H
+#endif // LCOMPILERS_PARSER_STYPE_H

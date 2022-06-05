@@ -80,8 +80,8 @@ define i32 @main() {
   store %complex_8 %41, %complex_8* %45, align 8
   %46 = getelementptr %complex_8, %complex_8* %45, i32 0, i32 1
   %47 = load double, double* %46, align 8
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @0, i32 0, i32 0), double %20, double %24, double %28, double %31, double %36, double %40, double %44, double %47)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @0, i32 0, i32 0), double %20, double %24, double %28, double %31, double %36, double %40, double %44, double %47)
   ret i32 0
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)

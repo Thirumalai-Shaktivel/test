@@ -1,7 +1,7 @@
 add_executable(lfortran lfortran.cpp)
 target_include_directories(lfortran PRIVATE "tpl")
 target_link_libraries(lfortran lfortran_lib)
-if (LFORTRAN_STATIC_BIN)
+if (LCOMPILERS_STATIC_BIN)
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         # Link statically on Linux with gcc or clang
         if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
@@ -40,7 +40,7 @@ endif()
 
 
 if (WITH_RUNTIME_LIBRARY)
-    macro(LFORTRAN_COMPILE_RUNTIME name dir)
+    macro(LCOMPILERS_COMPILE_RUNTIME name dir)
         add_custom_command(
             OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/../runtime/${name}.mod
             COMMAND ${CMAKE_CURRENT_BINARY_DIR}/lfortran
@@ -48,48 +48,48 @@ if (WITH_RUNTIME_LIBRARY)
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../runtime
             DEPENDS lfortran ${CMAKE_CURRENT_SOURCE_DIR}/../runtime/${dir}/${name}.f90 ${ARGN}
             COMMENT "LFortran Compiling ${dir}/${name}.f90")
-    endmacro(LFORTRAN_COMPILE_RUNTIME)
+    endmacro(LCOMPILERS_COMPILE_RUNTIME)
 
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_builtin builtin)
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_kind pure)
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_iso_fortran_env pure)
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_optimization builtin
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_builtin builtin)
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_kind pure)
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_iso_fortran_env pure)
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_optimization builtin
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
     )
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_math2 pure
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_math2 pure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_math3.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_builtin.mod
     )
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_math3 pure
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_math3 pure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_builtin.mod
     )
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_ieee_arithmetic pure
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_ieee_arithmetic pure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
     )
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_iso_c_binding pure
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_iso_c_binding pure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_builtin.mod
     )
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_string pure
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_string pure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_builtin.mod
     )
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_trig pure
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_trig pure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
     )
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_math impure
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_math impure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_c_binding.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_builtin.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_math2.mod
     )
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_sin impure
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_sin impure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_c_binding.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_builtin.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_math.mod
     )
-    LFORTRAN_COMPILE_RUNTIME(lfortran_intrinsic_bit impure
+    LCOMPILERS_COMPILE_RUNTIME(lfortran_intrinsic_bit impure
       ${CMAKE_CURRENT_BINARY_DIR}/../runtime/lfortran_intrinsic_iso_fortran_env.mod
     )
 

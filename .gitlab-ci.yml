@@ -104,7 +104,7 @@ cxx_binary:
          -DCMAKE_BUILD_TYPE=Release
          -DCMAKE_CXX_FLAGS_RELEASE="-Wall -Wextra -O3 -march=nehalem -funroll-loops -DNDEBUG"
          -DWITH_LLVM=yes
-         -DLFORTRAN_STATIC_BIN=yes
+         -DLCOMPILERS_STATIC_BIN=yes
          .
     - make
     - ctest --output-on-failure
@@ -135,7 +135,7 @@ cxx_binary_tests:
     - ctest --output-on-failure
     - cp src/bin/lfortran ../src/bin/
     - cp src/bin/cpptranslate ../src/bin/
-    - export LFORTRAN_RUNTIME_LIBRARY_DIR="`pwd`/src/runtime"
+    - export LCOMPILERS_RUNTIME_LIBRARY_DIR="`pwd`/src/runtime"
     - cd ..
     - ./run_tests.py
     - PATH="`pwd`/src/bin:$PATH" ./test_lfortran_cmdline lfortran
@@ -157,14 +157,14 @@ cxx_binary_tests:
 
     - mkdir build-lfortran-llvm
     - cd build-lfortran-llvm
-    - FC=../../src/bin/lfortran cmake -DLFORTRAN_BACKEND=llvm ..
+    - FC=../../src/bin/lfortran cmake -DLCOMPILERS_BACKEND=llvm ..
     - make
     - ctest -L llvm --output-on-failure
     - cd ..
 
     - mkdir build-lfortran-x86
     - cd build-lfortran-x86
-    - FC=../../src/bin/lfortran cmake -DLFORTRAN_BACKEND=x86 ..
+    - FC=../../src/bin/lfortran cmake -DLCOMPILERS_BACKEND=x86 ..
     - make
     - ctest -L x86 --output-on-failure
     - cd ..
@@ -176,13 +176,13 @@ cxx_binary_tests:
     - cd kokkos-3.1.01
     - mkdir build
     - cd build
-    - export LFORTRAN_KOKKOS_DIR=$HOME/ext/kokkos
-    - cmake -DCMAKE_INSTALL_PREFIX=$LFORTRAN_KOKKOS_DIR -DKokkos_ENABLE_OPENMP=On -DKokkos_ARCH_HSW=On ..
+    - export LCOMPILERS_KOKKOS_DIR=$HOME/ext/kokkos
+    - cmake -DCMAKE_INSTALL_PREFIX=$LCOMPILERS_KOKKOS_DIR -DKokkos_ENABLE_OPENMP=On -DKokkos_ARCH_HSW=On ..
     - make
     - make install
     - cd ..
     - cd ..
-    - FC=../../src/bin/lfortran FFLAGS="--openmp" cmake -DLFORTRAN_BACKEND=cpp ..
+    - FC=../../src/bin/lfortran FFLAGS="--openmp" cmake -DLCOMPILERS_BACKEND=cpp ..
     - make
     - ctest -L cpp --output-on-failure
     - cd ../..
@@ -283,7 +283,7 @@ build.xsh:
     - git config --global --add safe.directory /builds/certik/lfortran
     - git config --global --add safe.directory /builds/czgdp18071/lfortran
     - conda install -c conda-forge llvmdev=11.0.1 toml pytest jupyter xeus=1.0.1 xtl nlohmann_json cppzmq jupyter_kernel_test
-    - export LFORTRAN_CMAKE_GENERATOR="Unix Makefiles"
+    - export LCOMPILERS_CMAKE_GENERATOR="Unix Makefiles"
     - export WIN=0
     - export MACOS=0
     - rm -rf dist

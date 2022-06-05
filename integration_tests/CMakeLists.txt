@@ -12,7 +12,7 @@ if (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug" OR
     message(FATAL_ERROR "CMAKE_BUILD_TYPE must be one of: Debug, Release (current value: '${CMAKE_BUILD_TYPE}')")
 endif ()
 
-set(LFORTRAN_BACKEND no CACHE STRING "Only compile the LFortran subset for the given backend")
+set(LCOMPILERS_BACKEND no CACHE STRING "Only compile the LFortran subset for the given backend")
 
 enable_testing()
 
@@ -30,7 +30,7 @@ else ()
     message("C compiler flags      : ${CMAKE_C_FLAGS_RELEASE}")
 endif ()
 message("Installation prefix: ${CMAKE_INSTALL_PREFIX}")
-message("LFORTRAN_BACKEND: ${LFORTRAN_BACKEND}")
+message("LCOMPILERS_BACKEND: ${LCOMPILERS_BACKEND}")
 
 
 
@@ -44,8 +44,8 @@ macro(RUN)
     if (NOT name)
         message(FATAL_ERROR "Must specify the NAME argument")
     endif()
-    if (LFORTRAN_BACKEND)
-        if (${LFORTRAN_BACKEND} IN_LIST RUN_LABELS)
+    if (LCOMPILERS_BACKEND)
+        if (${LCOMPILERS_BACKEND} IN_LIST RUN_LABELS)
             # Test is supported by the given LFortran backend
             set(ADD_TEST ON)
         else()
@@ -63,9 +63,9 @@ macro(RUN)
 
     if (ADD_TEST)
         add_executable(${name} ${name}.f90 ${RUN_EXTRAFILES})
-        if ((LFORTRAN_BACKEND STREQUAL "cpp") OR (LFORTRAN_BACKEND STREQUAL "x86"))
-            target_compile_options(${name} PUBLIC --backend=${LFORTRAN_BACKEND})
-            target_link_options(${name} PUBLIC --backend=${LFORTRAN_BACKEND})
+        if ((LCOMPILERS_BACKEND STREQUAL "cpp") OR (LCOMPILERS_BACKEND STREQUAL "x86"))
+            target_compile_options(${name} PUBLIC --backend=${LCOMPILERS_BACKEND})
+            target_link_options(${name} PUBLIC --backend=${LCOMPILERS_BACKEND})
         endif()
         add_test(${name} ${CURRENT_BINARY_DIR}/${name})
 

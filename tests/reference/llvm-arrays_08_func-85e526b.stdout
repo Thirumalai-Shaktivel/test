@@ -325,13 +325,13 @@ loop.end3:                                        ; preds = %loop.end
   %82 = call i1 @verify(%array* %x, %array* %y)
   store i1 %82, i1* %r, align 1
   %83 = load i1, i1* %r, align 1
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i1 %83)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @0, i32 0, i32 0), i1 %83)
   %84 = load i1, i1* %r, align 1
   %85 = xor i1 %84, true
   br i1 %85, label %then, label %else
 
 then:                                             ; preds = %loop.end3
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont
 
@@ -342,6 +342,6 @@ ifcont:                                           ; preds = %else, %then
   ret i32 0
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
 
 declare void @exit(i32)

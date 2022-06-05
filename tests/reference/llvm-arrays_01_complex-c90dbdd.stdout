@@ -217,7 +217,7 @@ loop.end:                                         ; preds = %loop.head
   br i1 %129, label %then, label %else
 
 then:                                             ; preds = %loop.end
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont
 
@@ -268,7 +268,7 @@ ifcont:                                           ; preds = %else, %then
   br i1 %163, label %then1, label %else2
 
 then1:                                            ; preds = %ifcont
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont3
 
@@ -319,7 +319,7 @@ ifcont3:                                          ; preds = %else2, %then1
   br i1 %197, label %then4, label %else5
 
 then4:                                            ; preds = %ifcont3
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @2, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @2, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont6
 
@@ -411,7 +411,7 @@ loop.end9:                                        ; preds = %loop.head7
   br i1 %258, label %then10, label %else11
 
 then10:                                           ; preds = %loop.end9
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @3, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @3, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont12
 
@@ -462,7 +462,7 @@ ifcont12:                                         ; preds = %else11, %then10
   br i1 %292, label %then13, label %else14
 
 then13:                                           ; preds = %ifcont12
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @4, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @4, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont15
 
@@ -513,7 +513,7 @@ ifcont15:                                         ; preds = %else14, %then13
   br i1 %326, label %then16, label %else17
 
 then16:                                           ; preds = %ifcont15
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @5, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @5, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont18
 
@@ -564,7 +564,7 @@ ifcont18:                                         ; preds = %else17, %then16
   br i1 %360, label %then19, label %else20
 
 then19:                                           ; preds = %ifcont18
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @6, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @6, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont21
 
@@ -627,7 +627,7 @@ loop.body23:                                      ; preds = %loop.head22
   %402 = alloca %complex_4, align 8
   store %complex_4 %400, %complex_4* %402, align 4
   %403 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_sub_32(%complex_4* %401, %complex_4* %402, %complex_4* %403)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_sub_32(%complex_4* %401, %complex_4* %402, %complex_4* %403)
   %404 = load %complex_4, %complex_4* %403, align 4
   store %complex_4 %404, %complex_4* %380, align 4
   br label %loop.head22
@@ -676,7 +676,7 @@ loop.end24:                                       ; preds = %loop.head22
   br i1 %438, label %then25, label %else26
 
 then25:                                           ; preds = %loop.end24
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @7, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @7, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont27
 
@@ -727,7 +727,7 @@ ifcont27:                                         ; preds = %else26, %then25
   br i1 %472, label %then28, label %else29
 
 then28:                                           ; preds = %ifcont27
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @8, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @8, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont30
 
@@ -778,7 +778,7 @@ ifcont30:                                         ; preds = %else29, %then28
   br i1 %506, label %then31, label %else32
 
 then31:                                           ; preds = %ifcont30
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @9, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @9, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont33
 
@@ -835,7 +835,7 @@ ifcont33:                                         ; preds = %else32, %then31
   %552 = alloca %complex_4, align 8
   store %complex_4 %550, %complex_4* %552, align 4
   %553 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_add_32(%complex_4* %551, %complex_4* %552, %complex_4* %553)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_add_32(%complex_4* %551, %complex_4* %552, %complex_4* %553)
   %554 = load %complex_4, %complex_4* %553, align 4
   %555 = getelementptr %array, %array* %b, i32 0, i32 2
   %556 = load %dimension_descriptor*, %dimension_descriptor** %555, align 8
@@ -857,7 +857,7 @@ ifcont33:                                         ; preds = %else32, %then31
   %571 = alloca %complex_4, align 8
   store %complex_4 %569, %complex_4* %571, align 4
   %572 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_add_32(%complex_4* %570, %complex_4* %571, %complex_4* %572)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_add_32(%complex_4* %570, %complex_4* %571, %complex_4* %572)
   %573 = load %complex_4, %complex_4* %572, align 4
   %574 = getelementptr %array, %array* %a, i32 0, i32 2
   %575 = load %dimension_descriptor*, %dimension_descriptor** %574, align 8
@@ -879,7 +879,7 @@ ifcont33:                                         ; preds = %else32, %then31
   %590 = alloca %complex_4, align 8
   store %complex_4 %588, %complex_4* %590, align 4
   %591 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_add_32(%complex_4* %589, %complex_4* %590, %complex_4* %591)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_add_32(%complex_4* %589, %complex_4* %590, %complex_4* %591)
   %592 = load %complex_4, %complex_4* %591, align 4
   store %complex_4 %592, %complex_4* %520, align 4
   %593 = getelementptr %array, %array* %b, i32 0, i32 2
@@ -925,7 +925,7 @@ ifcont33:                                         ; preds = %else32, %then31
   br i1 %626, label %then34, label %else35
 
 then34:                                           ; preds = %ifcont33
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @10, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @10, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont36
 
@@ -1006,7 +1006,7 @@ ifcont36:                                         ; preds = %else35, %then34
   br i1 %689, label %then37, label %else38
 
 then37:                                           ; preds = %ifcont36
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @11, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @11, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont39
 
@@ -1135,7 +1135,7 @@ loop.end45:                                       ; preds = %loop.head40
   br i1 %776, label %then46, label %else47
 
 then46:                                           ; preds = %loop.end45
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @12, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @12, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont48
 
@@ -1195,7 +1195,7 @@ ifcont48:                                         ; preds = %else47, %then46
   br i1 %819, label %then49, label %else50
 
 then49:                                           ; preds = %ifcont48
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @13, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @13, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont51
 
@@ -1255,7 +1255,7 @@ ifcont51:                                         ; preds = %else50, %then49
   br i1 %862, label %then52, label %else53
 
 then52:                                           ; preds = %ifcont51
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @14, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @14, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont54
 
@@ -1315,7 +1315,7 @@ ifcont54:                                         ; preds = %else53, %then52
   br i1 %905, label %then55, label %else56
 
 then55:                                           ; preds = %ifcont54
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @15, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @15, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont57
 
@@ -1326,10 +1326,10 @@ ifcont57:                                         ; preds = %else56, %then55
   ret i32 0
 }
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
 
 declare void @exit(i32)
 
-declare void @_lfortran_complex_sub_32(%complex_4*, %complex_4*, %complex_4*, ...)
+declare void @_lcompilers_complex_sub_32(%complex_4*, %complex_4*, %complex_4*, ...)
 
-declare void @_lfortran_complex_add_32(%complex_4*, %complex_4*, %complex_4*, ...)
+declare void @_lcompilers_complex_add_32(%complex_4*, %complex_4*, %complex_4*, ...)

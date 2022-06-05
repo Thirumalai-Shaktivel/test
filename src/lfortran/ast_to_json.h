@@ -1,12 +1,12 @@
-#ifndef LFORTRAN_AST_TO_JSON_H
-#define LFORTRAN_AST_TO_JSON_H
+#ifndef LCOMPILERS_AST_TO_JSON_H
+#define LCOMPILERS_AST_TO_JSON_H
 
 #include <lfortran/ast.h>
 
-namespace LFortran {
+namespace LCompilers {
 
-    std::string ast_to_json(LFortran::AST::ast_t &ast);
+    std::string ast_to_json(LCompilers::AST::ast_t &ast);
 
 }
 
-#endif // LFORTRAN_AST_TO_JSON_H
+#endif // LCOMPILERS_AST_TO_JSON_H

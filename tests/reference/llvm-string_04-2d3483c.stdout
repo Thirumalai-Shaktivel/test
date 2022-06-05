@@ -67,7 +67,7 @@ define i32 @main() {
   %28 = mul i32 %25, 8
   store i32 %28, i32* %27, align 4
   %29 = load i32, i32* %27, align 4
-  %30 = call i8* (i32, ...) @_lfortran_malloc(i32 %29)
+  %30 = call i8* (i32, ...) @_lcompilers_malloc(i32 %29)
   %31 = bitcast i8* %30 to i8**
   store i8** %31, i8*** %26, align 8
   %32 = getelementptr %array, %array* %user_data, i32 0, i32 2
@@ -140,7 +140,7 @@ define i32 @main() {
   %90 = mul i32 %87, 8
   store i32 %90, i32* %89, align 4
   %91 = load i32, i32* %89, align 4
-  %92 = call i8* (i32, ...) @_lfortran_malloc(i32 %91)
+  %92 = call i8* (i32, ...) @_lcompilers_malloc(i32 %91)
   %93 = bitcast i8* %92 to i8**
   store i8** %93, i8*** %88, align 8
   %94 = getelementptr %array, %array* %greetings, i32 0, i32 2
@@ -263,7 +263,7 @@ define i32 @main() {
   %206 = load i8**, i8*** %205, align 8
   %207 = getelementptr inbounds i8*, i8** %206, i32 %201
   %208 = load i8*, i8** %207, align 8
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @9, i32 0, i32 0), i8* getelementptr inbounds ([9 x i8], [9 x i8]* @8, i32 0, i32 0), i8* %178, i8* %193, i8* %208)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @9, i32 0, i32 0), i8* getelementptr inbounds ([9 x i8], [9 x i8]* @8, i32 0, i32 0), i8* %178, i8* %193, i8* %208)
   %209 = load %array, %array* %greetings, align 8
   %210 = getelementptr %array, %array* %greetings, i32 0, i32 2
   %211 = load %dimension_descriptor*, %dimension_descriptor** %210, align 8
@@ -306,11 +306,11 @@ loop.body:                                        ; preds = %loop.head
   %240 = load i8**, i8*** %239, align 8
   %241 = getelementptr inbounds i8*, i8** %240, i32 %235
   %242 = load i8*, i8** %241, align 8
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @10, i32 0, i32 0), i8* %242)
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @10, i32 0, i32 0), i8* %242)
   br label %loop.head
 
 loop.end:                                         ; preds = %loop.head
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @11, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @11, i32 0, i32 0))
   %243 = load %array, %array* %greetings, align 8
   %244 = getelementptr %array, %array* %greetings, i32 0, i32 3
   %245 = load i1, i1* %244, align 1
@@ -323,7 +323,7 @@ then:                                             ; preds = %loop.end
   %249 = bitcast i8** %247 to i8*
   store i8* %249, i8** %248, align 8
   %250 = load i8*, i8** %248, align 8
-  call void (i8*, ...) @_lfortran_free(i8* %250)
+  call void (i8*, ...) @_lcompilers_free(i8* %250)
   %251 = getelementptr %array, %array* %greetings, i32 0, i32 3
   store i1 false, i1* %251, align 1
   br label %ifcont
@@ -344,7 +344,7 @@ then1:                                            ; preds = %ifcont
   %258 = bitcast i8** %256 to i8*
   store i8* %258, i8** %257, align 8
   %259 = load i8*, i8** %257, align 8
-  call void (i8*, ...) @_lfortran_free(i8* %259)
+  call void (i8*, ...) @_lcompilers_free(i8* %259)
   %260 = getelementptr %array, %array* %user_data, i32 0, i32 3
   store i1 false, i1* %260, align 1
   br label %ifcont3
@@ -356,8 +356,8 @@ ifcont3:                                          ; preds = %else2, %then1
   ret i32 0
 }
 
-declare i8* @_lfortran_malloc(i32, ...)
+declare i8* @_lcompilers_malloc(i32, ...)
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
 
-declare void @_lfortran_free(i8*, ...)
+declare void @_lcompilers_free(i8*, ...)

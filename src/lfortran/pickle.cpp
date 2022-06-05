@@ -7,38 +7,38 @@
 #include <libasr/asr_utils.h>
 #include <libasr/string_utils.h>
 
-using LFortran::AST::ast_t;
-using LFortran::AST::Declaration_t;
-using LFortran::AST::expr_t;
-using LFortran::AST::stmt_t;
-using LFortran::AST::Name_t;
-using LFortran::AST::Num_t;
-using LFortran::AST::BinOp_t;
-using LFortran::AST::UnaryOp_t;
-using LFortran::AST::Compare_t;
-using LFortran::AST::If_t;
-using LFortran::AST::Assignment_t;
-using LFortran::AST::WhileLoop_t;
-using LFortran::AST::Exit_t;
-using LFortran::AST::Return_t;
-using LFortran::AST::Cycle_t;
-using LFortran::AST::DoLoop_t;
-using LFortran::AST::Subroutine_t;
-using LFortran::AST::Function_t;
-using LFortran::AST::Program_t;
-using LFortran::AST::astType;
-using LFortran::AST::exprType;
-using LFortran::AST::stmtType;
-using LFortran::AST::operatorType;
-using LFortran::AST::unaryopType;
-using LFortran::AST::cmpopType;
-using LFortran::AST::TranslationUnit_t;
-using LFortran::AST::PickleBaseVisitor;
+using LCompilers::AST::ast_t;
+using LCompilers::AST::Declaration_t;
+using LCompilers::AST::expr_t;
+using LCompilers::AST::stmt_t;
+using LCompilers::AST::Name_t;
+using LCompilers::AST::Num_t;
+using LCompilers::AST::BinOp_t;
+using LCompilers::AST::UnaryOp_t;
+using LCompilers::AST::Compare_t;
+using LCompilers::AST::If_t;
+using LCompilers::AST::Assignment_t;
+using LCompilers::AST::WhileLoop_t;
+using LCompilers::AST::Exit_t;
+using LCompilers::AST::Return_t;
+using LCompilers::AST::Cycle_t;
+using LCompilers::AST::DoLoop_t;
+using LCompilers::AST::Subroutine_t;
+using LCompilers::AST::Function_t;
+using LCompilers::AST::Program_t;
+using LCompilers::AST::astType;
+using LCompilers::AST::exprType;
+using LCompilers::AST::stmtType;
+using LCompilers::AST::operatorType;
+using LCompilers::AST::unaryopType;
+using LCompilers::AST::cmpopType;
+using LCompilers::AST::TranslationUnit_t;
+using LCompilers::AST::PickleBaseVisitor;
 
 
-namespace LFortran {
+namespace LCompilers {
 
-std::string pickle(int token, const LFortran::YYSTYPE &yystype,
+std::string pickle(int token, const LCompilers::YYSTYPE &yystype,
         bool /* colors */)
 {
     std::string t;
@@ -172,7 +172,7 @@ public:
     }
 };
 
-std::string pickle(LFortran::AST::ast_t &ast, bool colors, bool indent) {
+std::string pickle(LCompilers::AST::ast_t &ast, bool colors, bool indent) {
     PickleVisitor v;
     v.use_colors = colors;
     v.indent = indent;
@@ -192,7 +192,7 @@ std::string pickle(AST::TranslationUnit_t &ast, bool colors,bool indent) {
 // ASR
 
 class ASRPickleVisitor :
-    public LFortran::ASR::PickleBaseVisitor<ASRPickleVisitor>
+    public LCompilers::ASR::PickleBaseVisitor<ASRPickleVisitor>
 {
 public:
     bool show_intrinsic_modules;
@@ -201,12 +201,12 @@ public:
         return s;
     }
     void visit_symbol(const ASR::symbol_t &x) {
-        s.append(LFortran::ASRUtils::symbol_parent_symtab(&x)->get_counter());
+        s.append(LCompilers::ASRUtils::symbol_parent_symtab(&x)->get_counter());
         s.append(" ");
         if (use_colors) {
             s.append(color(fg::yellow));
         }
-        s.append(LFortran::ASRUtils::symbol_name(&x));
+        s.append(LCompilers::ASRUtils::symbol_name(&x));
         if (use_colors) {
             s.append(color(fg::reset));
         }
@@ -251,12 +251,12 @@ public:
             s.append(x.m_name);
             s.append(")");
         } else {
-            LFortran::ASR::PickleBaseVisitor<ASRPickleVisitor>::visit_Module(x);
+            LCompilers::ASR::PickleBaseVisitor<ASRPickleVisitor>::visit_Module(x);
         };
     }
 };
 
-std::string pickle(LFortran::ASR::asr_t &asr, bool colors, bool indent,
+std::string pickle(LCompilers::ASR::asr_t &asr, bool colors, bool indent,
         bool show_intrinsic_modules) {
     ASRPickleVisitor v;
     v.use_colors = colors;
@@ -266,7 +266,7 @@ std::string pickle(LFortran::ASR::asr_t &asr, bool colors, bool indent,
     return v.get_str();
 }
 
-std::string pickle(LFortran::ASR::TranslationUnit_t &asr, bool colors, bool indent, bool show_intrinsic_modules) {
+std::string pickle(LCompilers::ASR::TranslationUnit_t &asr, bool colors, bool indent, bool show_intrinsic_modules) {
     return pickle((ASR::asr_t &)asr, colors, indent, show_intrinsic_modules);
 }
 

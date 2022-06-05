@@ -174,14 +174,14 @@ then:                                             ; preds = %loop.body4
   %119 = alloca %complex_4, align 8
   store %complex_4 %117, %complex_4* %119, align 4
   %120 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_mul_32(%complex_4* %118, %complex_4* %119, %complex_4* %120)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_mul_32(%complex_4* %118, %complex_4* %119, %complex_4* %120)
   %121 = load %complex_4, %complex_4* %120, align 4
   %122 = alloca %complex_4, align 8
   store %complex_4 %108, %complex_4* %122, align 4
   %123 = alloca %complex_4, align 8
   store %complex_4 %121, %complex_4* %123, align 4
   %124 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_add_32(%complex_4* %122, %complex_4* %123, %complex_4* %124)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_add_32(%complex_4* %122, %complex_4* %123, %complex_4* %124)
   %125 = load %complex_4, %complex_4* %124, align 4
   %126 = alloca %complex_4, align 8
   store %complex_4 %103, %complex_4* %126, align 4
@@ -205,7 +205,7 @@ then:                                             ; preds = %loop.body4
   br i1 %140, label %then5, label %else
 
 then5:                                            ; preds = %then
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @0, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont
 
@@ -297,14 +297,14 @@ then7:                                            ; preds = %else6
   %207 = alloca %complex_4, align 8
   store %complex_4 %205, %complex_4* %207, align 4
   %208 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_mul_32(%complex_4* %206, %complex_4* %207, %complex_4* %208)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_mul_32(%complex_4* %206, %complex_4* %207, %complex_4* %208)
   %209 = load %complex_4, %complex_4* %208, align 4
   %210 = alloca %complex_4, align 8
   store %complex_4 %196, %complex_4* %210, align 4
   %211 = alloca %complex_4, align 8
   store %complex_4 %209, %complex_4* %211, align 4
   %212 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_sub_32(%complex_4* %210, %complex_4* %211, %complex_4* %212)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_sub_32(%complex_4* %210, %complex_4* %211, %complex_4* %212)
   %213 = load %complex_4, %complex_4* %212, align 4
   %214 = alloca %complex_4, align 8
   store %complex_4 %190, %complex_4* %214, align 4
@@ -328,7 +328,7 @@ then7:                                            ; preds = %else6
   br i1 %228, label %then8, label %else9
 
 then8:                                            ; preds = %then7
-  call void (i8*, ...) @_lfortran_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0))
+  call void (i8*, ...) @_lcompilers_printf(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @1, i32 0, i32 0))
   call void @exit(i32 1)
   br label %ifcont10
 
@@ -360,15 +360,15 @@ return:                                           ; preds = %loop.end15
   ret void
 }
 
-declare void @_lfortran_complex_mul_32(%complex_4*, %complex_4*, %complex_4*, ...)
+declare void @_lcompilers_complex_mul_32(%complex_4*, %complex_4*, %complex_4*, ...)
 
-declare void @_lfortran_complex_add_32(%complex_4*, %complex_4*, %complex_4*, ...)
+declare void @_lcompilers_complex_add_32(%complex_4*, %complex_4*, %complex_4*, ...)
 
-declare void @_lfortran_printf(i8*, ...)
+declare void @_lcompilers_printf(i8*, ...)
 
 declare void @exit(i32)
 
-declare void @_lfortran_complex_sub_32(%complex_4*, %complex_4*, %complex_4*, ...)
+declare void @_lcompilers_complex_sub_32(%complex_4*, %complex_4*, %complex_4*, ...)
 
 define i32 @main() {
 .entry:
@@ -1638,7 +1638,7 @@ loop.body30:                                      ; preds = %loop.head29
   %903 = alloca %complex_4, align 8
   store %complex_4 %901, %complex_4* %903, align 4
   %904 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_mul_32(%complex_4* %902, %complex_4* %903, %complex_4* %904)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_mul_32(%complex_4* %902, %complex_4* %903, %complex_4* %904)
   %905 = load %complex_4, %complex_4* %904, align 4
   store %complex_4 %905, %complex_4* %861, align 4
   %906 = load i32, i32* %"3_v", align 4
@@ -1852,7 +1852,7 @@ loop.body39:                                      ; preds = %loop.head38
   %1074 = alloca %complex_4, align 8
   store %complex_4 %1072, %complex_4* %1074, align 4
   %1075 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_add_32(%complex_4* %1073, %complex_4* %1074, %complex_4* %1075)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_add_32(%complex_4* %1073, %complex_4* %1074, %complex_4* %1075)
   %1076 = load %complex_4, %complex_4* %1075, align 4
   store %complex_4 %1076, %complex_4* %1000, align 4
   %1077 = load i32, i32* %"3_v", align 4
@@ -2691,7 +2691,7 @@ loop.body84:                                      ; preds = %loop.head83
   %1726 = alloca %complex_4, align 8
   store %complex_4 %1724, %complex_4* %1726, align 4
   %1727 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_mul_32(%complex_4* %1725, %complex_4* %1726, %complex_4* %1727)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_mul_32(%complex_4* %1725, %complex_4* %1726, %complex_4* %1727)
   %1728 = load %complex_4, %complex_4* %1727, align 4
   store %complex_4 %1728, %complex_4* %1684, align 4
   %1729 = load i32, i32* %"3_v", align 4
@@ -2905,7 +2905,7 @@ loop.body93:                                      ; preds = %loop.head92
   %1897 = alloca %complex_4, align 8
   store %complex_4 %1895, %complex_4* %1897, align 4
   %1898 = alloca %complex_4, align 8
-  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lfortran_complex_add_32(%complex_4* %1896, %complex_4* %1897, %complex_4* %1898)
+  call void (%complex_4*, %complex_4*, %complex_4*, ...) @_lcompilers_complex_add_32(%complex_4* %1896, %complex_4* %1897, %complex_4* %1898)
   %1899 = load %complex_4, %complex_4* %1898, align 4
   store %complex_4 %1899, %complex_4* %1823, align 4
   %1900 = load i32, i32* %"3_v", align 4
