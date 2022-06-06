@@ -2124,6 +2124,11 @@ public:
     }
 
     void visit_Function(const ASR::Function_t &x) {
+        if (x.m_deftype == ASR::deftypeType::Interface) {
+            // Interface does not have an implementation and it is already
+            // declared, so there is nothing to do here
+            return;
+        }
         instantiate_function(x);
         visit_procedures(x);
         generate_function(x);
@@ -2131,10 +2136,10 @@ public:
     }
 
     void visit_Subroutine(const ASR::Subroutine_t &x) {
-        if (x.m_abi != ASR::abiType::Source &&
-            x.m_abi != ASR::abiType::Interactive &&
-            x.m_abi != ASR::abiType::Intrinsic) {
-                return;
+        if (x.m_deftype == ASR::deftypeType::Interface) {
+            // Interface does not have an implementation and it is already
+            // declared, so there is nothing to do here
+            return;
         }
         instantiate_subroutine(x);
         visit_procedures(x);
@@ -4264,8 +4269,10 @@ public:
                                                         tmp = CreateLoad(tmp);
                                                     }
                                                 }
+                                            } else if (is_a<ASR::CPtr_t>(*arg_type)) {
+                                                // pass
                                             } else {
-                                                // Dereference the pointer argument
+                                                // Dereference the pointer argument (unless it is a CPtr)
                                                 // to pass by value
                                                 // E.g.:
                                                 // i32* -> i32
