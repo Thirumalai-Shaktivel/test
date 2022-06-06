@@ -2541,9 +2541,16 @@ public:
 
     void visit_CLoc(const ASR::CLoc_t& x) {
         uint64_t ptr_loads_copy = ptr_loads;
-        ptr_loads = 1;
+        ptr_loads = 0;
         this->visit_expr(*x.m_arg);
         ptr_loads = ptr_loads_copy;
+        ASR::ttype_t* arg_type = ASRUtils::expr_type(x.m_arg);
+        if( ASRUtils::is_array(arg_type) ) {
+            if( ASR::is_a<ASR::Pointer_t>(*arg_type) ) {
+                tmp = builder->CreateLoad(tmp);
+            }
+            tmp = builder->CreateLoad(arr_descr->get_pointer_to_data(tmp));
+        }
         tmp = builder->CreateBitCast(tmp,
                     llvm::Type::getVoidTy(context)->getPointerTo());
     }
