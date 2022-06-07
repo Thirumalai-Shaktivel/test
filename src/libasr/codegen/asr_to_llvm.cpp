@@ -2544,7 +2544,6 @@ public:
         ptr_loads = 0;
         this->visit_expr(*x.m_arg);
         ptr_loads = ptr_loads_copy;
-        ASR::ttype_t* arg_type = ASRUtils::expr_type(x.m_arg);
         if( tmp->getType()->isPointerTy() &&
             tmp->getType()->getContainedType(0)->isPointerTy() ) {
             tmp = builder->CreateLoad(tmp);
