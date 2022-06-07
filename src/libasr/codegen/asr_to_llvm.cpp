@@ -2550,7 +2550,7 @@ public:
                 tmp = builder->CreateLoad(tmp);
             }
             tmp = builder->CreateLoad(arr_descr->get_pointer_to_data(tmp));
-        } else {
+        } else if( ASR::is_a<ASR::Pointer_t>(*arg_type) ) {
             tmp = builder->CreateLoad(tmp);
         }
         tmp = builder->CreateBitCast(tmp,
