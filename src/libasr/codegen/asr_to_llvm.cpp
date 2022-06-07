@@ -2550,6 +2550,8 @@ public:
                 tmp = builder->CreateLoad(tmp);
             }
             tmp = builder->CreateLoad(arr_descr->get_pointer_to_data(tmp));
+        } else {
+            tmp = builder->CreateLoad(tmp);
         }
         tmp = builder->CreateBitCast(tmp,
                     llvm::Type::getVoidTy(context)->getPointerTo());
