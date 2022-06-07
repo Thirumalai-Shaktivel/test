@@ -1,0 +1,29 @@
+<html>
+
+<head></head>
+
+<body>
+
+    <div id="lfortran">hi</div>
+
+    <script type="module">
+        // This is from https://aransentin.github.io/cwasm/
+        let imports = {};
+        let memory = null;
+        let exports = null;
+
+        let request = await fetch('wasm.wasm');
+        let binary = await request.arrayBuffer();
+
+        imports['memory'] = new WebAssembly['Memory']({ 'initial': 32 });
+        memory = new Uint8Array(imports['memory']['buffer']);
+        let program = await WebAssembly['instantiate'](binary, { "env": imports });
+
+        // BUG: Should print "2030" = (2 + 7 + 2021). It currently prints "2021".
+        document.getElementById("lfortran").innerHTML = program.instance.exports.add(2, 7);
+    </script>
+
+
+</body>
+
+</html>
