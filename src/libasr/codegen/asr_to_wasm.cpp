@@ -196,7 +196,7 @@ class ASRToWASMVisitor : public ASR::BaseVisitor<ASRToWASMVisitor> {
                         break;
                     };
                     case ASR::binopType::Div: {
-                        wasm::emit_i32_div(m_code_section, m_al);
+                        wasm::emit_i32_div_s(m_code_section, m_al);
                         break;
                     };
                     default:
@@ -217,7 +217,7 @@ class ASRToWASMVisitor : public ASR::BaseVisitor<ASRToWASMVisitor> {
                         break;
                     };
                     case ASR::binopType::Div: {
-                        wasm::emit_i64_div(m_code_section, m_al);
+                        wasm::emit_i64_div_s(m_code_section, m_al);
                         break;
                     };
                     default:
