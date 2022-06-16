@@ -177,6 +177,10 @@ class ASRToWASMVisitor : public ASR::BaseVisitor<ASRToWASMVisitor> {
     }
 
     void visit_BinOp(const ASR::BinOp_t &x) {
+        if (x.m_value) { 
+            visit_expr(*x.m_value); 
+            return; 
+        }
         this->visit_expr(*x.m_left);
 
         this->visit_expr(*x.m_right);
@@ -234,6 +238,10 @@ class ASRToWASMVisitor : public ASR::BaseVisitor<ASRToWASMVisitor> {
     }
 
     void visit_IntegerUnaryMinus(const ASR::IntegerUnaryMinus_t &x) {
+         if (x.m_value) { 
+            visit_expr(*x.m_value); 
+            return; 
+        }
         ASR::Integer_t *i = ASR::down_cast<ASR::Integer_t>(x.m_type);
         // there seems no direct unary-minus inst in wasm, so subtracting from 0
         if(i->m_kind == 4){
