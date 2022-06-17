@@ -41,8 +41,8 @@ First we have to install dependencies, for example using Conda:
 conda create -n lf python cmake llvmdev
 conda activate lf
 ```
-Then download a tarball from 
-[https://lfortran.org/download/](https://lfortran.org/download/), 
+Then download a tarball from
+[https://lfortran.org/download/](https://lfortran.org/download/),
 e.g.:
 ```bash
 wget https://lfortran.github.io/tarballs/dev/lfortran-0.9.0.tar.gz
@@ -87,6 +87,21 @@ Now the process is the same as installing from the source tarball. For example t
 ```
 cmake -DCMAKE_BUILD_TYPE=Debug -DWITH_LLVM=yes -DCMAKE_INSTALL_PREFIX=`pwd`/inst .
 make -j8
+make install
+```
+
+Now to use the installed `lfortran`, you will need to change the `PATH`
+environment variable using following:
+```bash
+export PATH=$PWD/inst/bin:$PATH
+```
+
+In order to test the installation use:
+```console
+$ lfortran --version
+LFortran version: 0.14.0-1153-gd58864d1d
+Platform: Linux
+Default target: x86_64-unknown-linux-gnu
 ```
 
 Run tests:
