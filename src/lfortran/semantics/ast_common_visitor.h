@@ -2210,11 +2210,10 @@ public:
             if (x.n_keywords > 0) {
                 if (ASR::is_a<ASR::Function_t>(*f2)) {
                     ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(f2);
-                    diag::Diagnostics diags;
                     visit_kwargs(args, x.m_keywords, x.n_keywords,
                         f->m_args, f->n_args, x.base.base.loc, f,
-                        diags, x.n_member);
-                    if( diags.has_error() ) {
+                        diag, x.n_member);
+                    if( diag.has_error() ) {
                         throw SemanticAbort();
                     }
                 } else {
@@ -2234,11 +2233,10 @@ public:
                                                 x.base.base.loc);
                         }
                         ASR::Function_t *f = ASR::down_cast<ASR::Function_t>(f4);
-                        diag::Diagnostics diags;
                         visit_kwargs(args_copy, x.m_keywords, x.n_keywords,
                             f->m_args, f->n_args, x.base.base.loc, f,
-                            diags, x.n_member);
-                        if( diags.has_error() ) {
+                            diag, x.n_member);
+                        if( diag.has_error() ) {
                             continue ;
                         }
                         int idx = ASRUtils::select_generic_procedure(args_copy, *gp, x.base.base.loc,
@@ -2865,23 +2863,23 @@ public:
                         diag.semantic_error_label(
                             "Keyword argument is already specified as a non-keyword argument",
                             {loc},
-                            name + "keyword argument is already specified.");
+                            "Keyword argument '"  + name + "' is already specified.");
                         return ;
                     }
                     if (args[idx].m_value != nullptr) {
                         diag.semantic_error_label(
                             "Keyword argument is already specified as another keyword argument",
                             {loc},
-                            name + "keyword argument is already specified.");
+                            "Keyword argument '"  + name + "' is already specified.");
                         return ;
                     }
                     args.p[idx].loc = expr->base.loc;
                     args.p[idx].m_value = expr;
                 } else {
                     diag.semantic_error_label(
-                        "Keyword argument not found " + name,
+                        "Keyword argument '"  + name + "' not found " ,
                         {loc},
-                        name + " keyword argument not found.");
+                         "Keyword argument '"  + name + "' not found.");
                     return ;
                 }
             }
