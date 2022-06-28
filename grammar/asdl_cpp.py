@@ -1195,6 +1195,266 @@ class PickleVisitorVisitor(ASDLVisitor):
                 self.emit('s.append("Unimplemented' + field.type + '");', 2)
 
 
+class HaskellVisitorVisitor(ASDLVisitor):
+
+    def visitModule(self, mod):
+        self.emit("/" + "*"*78 + "/")
+        self.emit("// Haskell Visitor base class")
+        self.emit("")
+        self.emit("template <class Derived>")
+        self.emit("class HaskellBaseVisitor : public BaseVisitor<Derived>")
+        self.emit("{")
+        self.emit("private:")
+        self.emit(  "Derived& self() { return static_cast<Derived&>(*this); }", 1)
+        self.emit("public:")
+        self.emit(  "std::string s, indtd;", 1)
+        self.emit(  "bool indent, start_line = true;", 1)
+        self.emit(  "int indent_level = 0, indent_spaces = 3, lvl = 0;", 1)
+        self.emit(  "int tmp = 0, tmp1 = 0, tmp2 = 2;", 1)
+        self.emit(  "int curly[2000], round[2000];", 1)
+        self.emit("public:")
+        self.emit(  "HaskellBaseVisitor() : indent(false) { s.reserve(100000); }", 1)
+        self.emit(  "void inc_indent() {", 1)
+        self.emit(      "indent_level++;", 2)
+        self.emit(      "indtd = std::string(indent_level*indent_spaces, ' ');",2)
+        self.emit(  "}",1)
+        self.emit(  "void dec_indent() {", 1)
+        self.emit(      "indent_level--;", 2)
+        self.emit(      "LFORTRAN_ASSERT(indent_level >= 0);", 2)
+        self.emit(      "indtd = std::string(indent_level*indent_spaces, ' ');",2)
+        self.emit(  "}",1)
+        self.mod = mod
+        super(HaskellVisitorVisitor, self).visitModule(mod)
+        self.emit("};")
+
+    def visitType(self, tp):
+        super(HaskellVisitorVisitor, self).visitType(tp, tp.name)
+
+    def visitSum(self, sum, *args):
+        assert isinstance(sum, asdl.Sum)
+        if is_simple_sum(sum):
+            name = args[0] + "Type"
+            self.make_simple_sum_visitor(name, sum.types)
+        else:
+            for tp in sum.types:
+                self.visit(tp, *args)
+
+    def visitProduct(self, prod, name):
+        self.make_visitor(name, prod.fields, False)
+
+    def visitConstructor(self, cons, _):
+        self.make_visitor(cons.name, cons.fields, True)
+
+    def make_visitor(self, name, fields, cons):
+        self.emit("void visit_%s(const %s_t &x) {" % (name, name), 1)
+        self.emit(      'if(indent) {',2)
+        self.emit(          'tmp1++;',3)
+        self.emit(          'round[tmp1] = indent_level;',3)
+        self.emit(          'if(start_line) {',3)
+        self.emit(              'start_line = false;', 4)
+        self.emit(              's.append(indtd);', 4)
+        self.emit(              'inc_indent();',4)
+        self.emit(          '} else {', 3)
+        self.emit(              's.append("\\n"+indtd);', 4)
+        self.emit(              'inc_indent();',4)
+        self.emit(          '}', 3)
+        self.emit(      '}', 2)
+        self.emit(      's.append("(");', 2)
+        if cons:
+            self.emit(    's.append("%s");' % name, 2)
+            if len(fields) > 0:
+                self.emit(    's.append(" ");', 2)
+        self.used = False
+        #if (len(fields) == 0): self.emit(    's.append("Nothing");', 2)
+        for n, field in enumerate(fields):
+            self.visitField(field, cons)
+            if n < len(fields) - 1:
+                self.emit(    's.append(" ");', 2)
+        self.emit(    'if(indent) {', 2)
+        self.emit(          'lvl = indent_level;', 3)
+        self.emit(          'for(int times = 0; times < (lvl - round[tmp1] ); times++)', 3)
+        self.emit(              'dec_indent();', 4)
+        self.emit(          'round[tmp1] = 0; if(tmp1 > 1) tmp1--;}', 3)
+        self.emit(    's.append(")");', 2)
+        if not self.used:
+            # Note: a better solution would be to change `&x` to `& /* x */`
+            # above, but we would need to change emit to return a string.
+            self.emit("if ((bool&)x) { } // Suppress unused warning", 2)
+        self.emit("}", 1)
+
+    def make_simple_sum_visitor(self, name, types):
+        self.emit("void visit_%s(const %s &x) {" % (name, name), 1)
+        self.emit(    'switch (x) {', 2)
+        for tp in types:
+            self.emit(    'case (%s::%s) : {' % (name, tp.name), 3)
+            self.emit(      'if(indent) s.append("\\n"+indtd);',4)
+            self.emit(      's.append("%s");' % (tp.name), 4)
+            self.emit(     ' break; }',3)
+        self.emit(    '}', 2)
+        self.emit("}", 1)
+
+    def visitField(self, field, cons):
+        if (field.type not in asdl.builtin_types and
+            field.type not in self.data.simple_types):
+            self.used = True
+            level = 2
+            if field.type in products:
+                if field.opt:
+                    template = "self().visit_%s(*x.m_%s);" % (field.type, field.name)
+                else:
+                    template = "self().visit_%s(x.m_%s);" % (field.type, field.name)
+            else:
+                template = "self().visit_%s(*x.m_%s);" % (field.type, field.name)
+            if field.seq:
+                self.emit('s.append("[");', level)
+                self.emit("for (size_t i=0; i<x.n_%s; i++) {" % field.name, level)
+                if field.type in sums:
+                    self.emit("self().visit_%s(*x.m_%s[i]);" % (field.type, field.name), level+1)
+                else:
+                    self.emit("self().visit_%s(x.m_%s[i]);" % (field.type, field.name), level+1)
+                self.emit(    'if (i < x.n_%s-1) s.append(" ");' % (field.name), level+1)
+                self.emit("}", level)
+                self.emit('s.append("]");', level)
+            elif field.opt:
+                self.emit("if (x.m_%s) {" % field.name, 2)
+                self.emit(template, 3)
+                self.emit("} else {", 2)
+                self.emit(    's.append("(Nothing)");', 3)
+                self.emit("}", 2)
+            else:
+                self.emit(template, level)
+        else:
+            if field.type == "identifier":
+                if field.seq:
+                    assert not field.opt
+                    level = 2
+                    self.emit('s.append("[");', level)
+                    self.emit("for (size_t i=0; i<x.n_%s; i++) {" % field.name, level)
+                    self.emit("s.append(x.m_%s[i]);" % (field.name), level+1)
+                    self.emit(    'if (i < x.n_%s-1) s.append(" ");' % (field.name), level+1)
+                    self.emit("}", level)
+                    self.emit('s.append("]");', level)
+                else:
+                    if field.opt:
+                        self.emit("if (x.m_%s) {" % field.name, 2)
+                        self.emit(    's.append(x.m_%s);' % field.name, 3)
+                        self.emit("} else {", 2)
+                        self.emit(    's.append("(Nothing)");', 3)
+                        self.emit("}", 2)
+                    else:
+                        self.emit('if(indent) s.append("\\n"+indtd);', 2)
+                        self.emit('s.append(x.m_%s);' % field.name, 2)
+            elif field.type == "node":
+                assert not field.opt
+                assert field.seq
+                level = 2
+                self.emit('if(indent) s.append("\\n"+indtd);', level)
+                self.emit('s.append("[");', level)
+                self.emit("for (size_t i=0; i<x.n_%s; i++) {" % field.name, level)
+                mod_name = self.mod.name.lower()
+                self.emit("self().visit_%s(*x.m_%s[i]);" % (mod_name, field.name), level+1)
+                self.emit(    'if (i < x.n_%s-1) s.append(" ");' % (field.name), level+1)
+                self.emit("}", level)
+                self.emit('s.append("]");', level)
+            elif field.type == "symbol_table":
+                assert not field.opt
+                assert not field.seq
+                if field.name == "parent_symtab":
+                    level = 2
+                    self.emit('if(indent) s.append("\\n"+indtd);', level)
+                    self.emit('s.append(x.m_%s->get_counter());' % field.name, level)
+                else:
+                    level = 2
+                    self.emit(      'if(indent) {',level)
+                    self.emit(          's.append("\\n"+indtd);', level+1)
+                    self.emit(          'round[++tmp1] = indent_level;',level+1)
+                    self.emit(          'inc_indent();',level+1)
+                    self.emit(      '}', level)
+                    self.emit(      's.append("(");', level)
+                    self.emit('s.append("SymbolTable");', level)
+                    self.emit('s.append(" ");', level)
+                    self.emit(      'if(indent) s.append("\\n"+indtd);', level)
+                    self.emit(      'if (x.m_%s->parent) {' % field.name, level)
+                    self.emit(          's.append("(Just " + x.m_%s->parent->get_counter() + ")");'
+                            % field.name, level+1)
+                    self.emit(      '} else {', level)
+                    self.emit(          's.append("(Nothing)");', level+1)
+                    self.emit(      '}', level)
+                    self.emit(      's.append(" ");', level)
+                    self.emit(      's.append(x.m_%s->get_counter());' % field.name, level)
+                    self.emit(      's.append(" ");', level)
+                    self.emit(      'if(indent) {',level)
+                    self.emit(          's.append("\\n"+indtd);', level+1)
+                    self.emit(          'curly[++tmp] = indent_level;',level+1)
+                    self.emit(          'tmp2 = 1;',level+1)
+                    self.emit(          'inc_indent();',level+1)
+                    self.emit(      '}', level)
+                    self.emit(      's.append("[");', level)
+                    self.emit('{', level)
+                    self.emit('    size_t i = 0;', level)
+                    self.emit('    for (auto &a : x.m_%s->scope) {' % field.name, level)
+                    self.emit(      'if(indent) {',level)
+                    self.emit(          's.append("\\n"+indtd);', level+1)
+                    self.emit(          'inc_indent();',level+1)
+                    self.emit(      '}', level)
+                    self.emit('      s.append("(\\\"" + a.first + "\\\", ");', level)
+                    self.emit('        this->visit_symbol(*a.second);', level)
+                    self.emit('        s.append(")");', level)
+                    self.emit('        if (i < x.m_%s->scope.size()-1) { ' % field.name, level)
+                    self.emit('            s.append(", ");', level)
+                    self.emit('            if(indent) {', level)
+                    self.emit('                for(int times = 0; times < tmp2; times++)', level+1)
+                    self.emit('                     dec_indent();', level)
+                    self.emit('             }', level)
+                    self.emit('        }', level)
+                    self.emit('        i++;', level)
+                    self.emit('    }', level)
+                    self.emit('}', level)
+                    self.emit(      'if(indent) {',level)
+                    self.emit(          'lvl = indent_level;', level+1)
+                    self.emit(          'for(int times = 0; times < (lvl - curly[tmp] ); times++)', level+1)
+                    self.emit(              'dec_indent();', level+2)
+                    self.emit(          'curly[tmp] = 0; if(tmp > 1) tmp--;', level+1)
+                    self.emit(          'tmp2++;', level+1)
+                    self.emit(          's.append("\\n"+indtd);', level+1)
+                    self.emit(      '}', level)
+                    self.emit(      's.append("])");', level)
+                    self.emit(      'if(indent) dec_indent();', level)
+            elif field.type == "string" and not field.seq:
+                if field.opt:
+                    self.emit("if (x.m_%s) {" % field.name, 2)
+                    self.emit(    's.append("\\"" + std::string(x.m_%s) + "\\"");' % field.name, 3)
+                    self.emit("} else {", 2)
+                    self.emit(    's.append("(Nothing)");', 3)
+                    self.emit("}", 2)
+                else:
+                    self.emit('s.append("\\"" + std::string(x.m_%s) + "\\"");' % field.name, 2)
+            elif field.type == "int" and not field.seq:
+                if field.opt:
+                    self.emit("if (x.m_%s) {" % field.name, 2)
+                    self.emit(    's.append(std::to_string(x.m_%s));' % field.name, 3)
+                    self.emit("} else {", 2)
+                    self.emit(    's.append("(Nothing)");', 3)
+                    self.emit("}", 2)
+                else:
+                    self.emit('s.append(std::to_string(x.m_%s));' % field.name, 2)
+            elif field.type == "float" and not field.seq and not field.opt:
+                self.emit('s.append(std::to_string(x.m_%s));' % field.name, 2)
+            elif field.type == "bool" and not field.seq and not field.opt:
+                self.emit("if (x.m_%s) {" % field.name, 2)
+                self.emit(    's.append("True");', 3)
+                self.emit("} else {", 2)
+                self.emit(    's.append("False");', 3)
+                self.emit("}", 2)
+            elif field.type in self.data.simple_types:
+                if field.opt:
+                    self.emit('s.append("Unimplementedopt");', 2)
+                else:
+                    self.emit('visit_%sType(x.m_%s);' \
+                            % (field.type, field.name), 2)
+            else:
+                self.emit('s.append("Unimplemented' + field.type + '");', 2)
+
 
 class SerializationVisitorVisitor(ASDLVisitor):
 
@@ -1917,6 +2177,7 @@ FOOT = r"""} // namespace LFortran::%(MOD)s
 visitors = [ASTNodeVisitor0, ASTNodeVisitor1, ASTNodeVisitor,
         ASTVisitorVisitor1, ASTVisitorVisitor1b, ASTVisitorVisitor2,
         ASTWalkVisitorVisitor, PickleVisitorVisitor,
+        HaskellVisitorVisitor,
         SerializationVisitorVisitor, DeserializationVisitorVisitor]
 
 

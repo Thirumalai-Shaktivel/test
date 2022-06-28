@@ -270,4 +270,52 @@ std::string pickle(LFortran::ASR::TranslationUnit_t &asr, bool colors, bool inde
     return pickle((ASR::asr_t &)asr, colors, indent, show_intrinsic_modules);
 }
 
+// Haskell
+
+class ASRHaskellVisitor :
+    public LFortran::ASR::HaskellBaseVisitor<ASRHaskellVisitor>
+{
+public:
+    bool show_intrinsic_modules;
+
+    std::string get_str() {
+        return s;
+    }
+
+    void visit_symbol(const ASR::symbol_t &x) {
+        s.append(LFortran::ASRUtils::symbol_parent_symtab(&x)->get_counter());
+        s.append(" ");
+        s.append(LFortran::ASRUtils::symbol_name(&x));
+    }
+    void visit_ConstantInteger(const ASR::ConstantInteger_t &x) {
+        s.append("(");
+        s.append("ConstantInteger");
+        s.append(" ");
+        s.append(std::to_string(x.m_n));
+        s.append(" ");
+        this->visit_ttype(*x.m_type);
+        s.append(")");
+    }
+    void visit_Module(const ASR::Module_t &x) {
+        if (!show_intrinsic_modules &&
+                    startswith(x.m_name, "lfortran_intrinsic_")) {
+            s.append("(");
+            s.append("IntrinsicModule");
+            s.append(" ");
+            s.append(x.m_name);
+            s.append(")");
+        } else {
+            LFortran::ASR::HaskellBaseVisitor<ASRHaskellVisitor>::visit_Module(x);
+        };
+    }
+};
+
+std::string asr_to_haskell(LFortran::ASR::TranslationUnit_t &asr, bool indent, bool show_intrinsic_modules) {
+    ASRHaskellVisitor v;
+    v.indent = indent;
+    v.show_intrinsic_modules = show_intrinsic_modules;
+    v.visit_asr((ASR::asr_t &)asr);
+    return v.get_str();
+}
+
 }
