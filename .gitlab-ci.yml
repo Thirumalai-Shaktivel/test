@@ -169,6 +169,13 @@ cxx_binary_tests:
     - ctest -L x86 --output-on-failure
     - cd ..
 
+    - mkdir build-lfortran-wasm
+    - cd build-lfortran-wasm
+    - FC=../../src/bin/lfortran cmake -DLFORTRAN_BACKEND=wasm -DCURRENT_BINARY_DIR=. ..
+    - make
+    - ctest -L wasm --output-on-failure
+    - cd ..
+
     - mkdir build-lfortran-cpp
     - cd build-lfortran-cpp
     - wget https://github.com/kokkos/kokkos/archive/3.1.01.tar.gz
