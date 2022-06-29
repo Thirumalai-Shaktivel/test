@@ -58,7 +58,7 @@ public:
     ASRToCVisitor(diag::Diagnostics &diag) : BaseCCPPVisitor(diag,
         false, false, true) {}
 
-    std::string convert_variable_decl(const ASR::Variable_t &v)
+    std::string convert_variable_decl(const ASR::Variable_t &v, bool use_static=true)
     {
         std::string sub;
         bool use_ref = (v.m_intent == LFortran::ASRUtils::intent_out || v.m_intent == LFortran::ASRUtils::intent_inout);
@@ -114,17 +114,20 @@ public:
                 ASR::Derived_t *t = ASR::down_cast<ASR::Derived_t>(v.m_type);
                 std::string dims = convert_dims_c(t->n_dims, t->m_dims);
                 sub = format_type_c(dims, "struct", v.m_name, use_ref, dummy);
-                if (v.m_symbolic_value) {
-                    this->visit_expr(*v.m_symbolic_value);
-                    std::string init = src;
-                    sub += "=" + init;
-                }
             } else {
                 diag.codegen_error_label("Type number '"
                     + std::to_string(v.m_type->type)
                     + "' not supported", {v.base.base.loc}, "");
                 throw Abort();
             }
+        }
+        if (v.m_storage == ASR::storage_typeType::Save && use_static) {
+            sub = "static " + sub;
+        }
+        if (v.m_symbolic_value) {
+            this->visit_expr(*v.m_symbolic_value);
+            std::string init = src;
+            sub += "=" + init;
         }
         return sub;
     }
