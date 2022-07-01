@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import pathlib
+import pprint
 import shutil
 import subprocess
 import sys
@@ -74,7 +75,7 @@ def bname(base, cmd, filename):
 def _compare_eq_dict(
     left: Mapping[Any, Any], right: Mapping[Any, Any], verbose: int = 0
 ) -> List[str]:
-    explanation = []  # type: List[str]
+    explanation: List[str] = []
     set_left = set(left)
     set_right = set(right)
     common = set_left.intersection(set_right)
@@ -112,7 +113,7 @@ def _compare_eq_dict(
     return explanation
 
 
-def fixdir(s: str) -> str:
+def fixdir(s: bytes) -> bytes:
     local_dir = os.getcwd()
     return s.replace(local_dir.encode(), "$DIR".encode())
 
@@ -232,7 +233,7 @@ def do_update_reference(jo, jr, do):
             shutil.copyfile(f_o, f_r)
 
 
-def run_test(testname, basename, cmd, infile=None, update_reference=False,
+def run_test(testname, basename, cmd, infile, update_reference=False,
              extra_args=None):
     """
     Runs the test `cmd` and compare against reference results.
@@ -261,8 +262,7 @@ def run_test(testname, basename, cmd, infile=None, update_reference=False,
     """
     s = f"{testname} * {basename}"
     basename = bname(basename, cmd, infile)
-    if infile:
-        infile = os.path.join("tests", infile)
+    infile = os.path.join("tests", infile)
     jo = run(basename, cmd, os.path.join("tests", "output"), infile=infile,
              extra_args=extra_args)
     jr = os.path.join("tests", "reference", os.path.basename(jo))

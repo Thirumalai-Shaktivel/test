@@ -1,32 +1,20 @@
 #!/usr/bin/env python
 
 import argparse
-import hashlib
-import logging
 import os
-import subprocess
-import sys
 import toml
 
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
-from compiler_tester.tester import (RunException, run, run_test, color,
-                                    style, check, fg)
-
-level = logging.DEBUG
-log = logging.getLogger(__name__)
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(logging.Formatter('%(message)s'))
-handler.setLevel(level)
-log.addHandler(handler)
-log.setLevel(level)
+from compiler_tester.tester import color, fg, log, run_test, style
 
 
 def single_test(test, specific_test, verbose, no_llvm, update_reference):
     filename = test["filename"]
     if specific_test and specific_test not in filename:
         return
+    show_verbose = "" if not verbose else "-v"
     tokens = test.get("tokens", False)
     ast = test.get("ast", False)
     ast_indent = test.get("ast_indent", False)
@@ -54,7 +42,7 @@ def single_test(test, specific_test, verbose, no_llvm, update_reference):
         raise Exception(f"Unknown pass: {pass_}")
     log.debug(f"{color(style.bold)} START TEST: {color(style.reset)} {filename}")
 
-    extra_args = "--no-error-banner"
+    extra_args = f"--no-error-banner {show_verbose}"
 
     if tokens:
         run_test(
@@ -164,7 +152,6 @@ def single_test(test, specific_test, verbose, no_llvm, update_reference):
         if no_llvm:
             log.info(f"{filename} * llvm   SKIPPED as requested")
         else:
-            #log.info(f"{filename=} 'llvm' lfortran --no-color --show-llvm infile -o outfile {update_reference=} {extra_args=}")
             run_test(
                 filename,
                 "llvm",
@@ -254,6 +241,7 @@ def main():
                         specific_test=specific_test,
                         verbose=verbose,
                         no_llvm=no_llvm)
+    # run in parallel
     else:
         single_tester_partial_args = partial(
             single_test,
