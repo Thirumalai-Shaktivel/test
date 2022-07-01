@@ -177,10 +177,6 @@ def single_test(test, specific_test, verbose, no_llvm, update_reference):
         run_test(filename, "cpp", "lfortran --no-color --show-cpp {infile}",
                  filename, update_reference, extra_args)
 
-    if c:
-        run_test(filename, "c", "lfortran --no-color --show-c {infile}",
-                 filename, update_reference, extra_args)
-
     if obj:
         if no_llvm:
             log.info(f"{filename} * obj    SKIPPED as requested")
@@ -192,6 +188,14 @@ def single_test(test, specific_test, verbose, no_llvm, update_reference):
                 filename,
                 update_reference,
                 extra_args)
+
+    if c:
+        run_test(filename, "c", "lfortran --no-color --show-c {infile}",
+                 filename, update_reference, extra_args)
+
+    if wat:
+        run_test(filename, "wat", "lfortran --no-color --show-wat {infile}",
+                 filename, update_reference, extra_args)
 
     if x86:
         run_test(
