@@ -966,6 +966,7 @@ public:
         ASR::ttype_t *target_type = LFortran::ASRUtils::expr_type(target);
         if( target->type != ASR::exprType::Var &&
             target->type != ASR::exprType::ArrayRef &&
+            target->type != ASR::exprType::StringItem &&
             target->type != ASR::exprType::DerivedRef )
         {
             throw SemanticError(
