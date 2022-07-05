@@ -29,6 +29,7 @@ def single_test(test, specific_test, verbose, no_llvm, update_reference):
     llvm = test.get("llvm", False)
     cpp = test.get("cpp", False)
     c = test.get("c", False)
+    wat = test.get("wat", False)
     obj = test.get("obj", False)
     x86 = test.get("x86", False)
     bin_ = test.get("bin", False)
