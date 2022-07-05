@@ -10,6 +10,7 @@ namespace LFortran
 
 void lex_format(unsigned char *&cur, Location &loc,
         unsigned char *&start);
+void parse_name(unsigned char *&cur);
 
 void Tokenizer::set_string(const std::string &str)
 {
@@ -238,7 +239,16 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc, diag::Diagnost
             comment = "!" [^\n\x00]*;
             ws_comment = whitespace? comment? newline;
 
-            * { token_loc(loc);
+            * {
+                unsigned char *cur2 = cur-1;
+                if (('a' <= *cur2 && *cur2 <= 'z') || ('A' <= *cur2 && *cur2 <= 'Z')) {
+                    // It must be a TK_NAME, so we parse it like that:
+                    parse_name(cur2);
+                    cur = cur2;
+                    token(yylval.string);
+                    RET(TK_NAME)
+                }
+                token_loc(loc);
                 std::string t = token();
                 throw parser_local::TokenizerError(diag::Diagnostic(
                     "Token '" + t + "' is not recognized",
@@ -661,7 +671,7 @@ int Tokenizer::lex(Allocator &al, YYSTYPE &yylval, Location &loc, diag::Diagnost
             string2 { token_str(yylval.string); RET(TK_STRING) }
 
             defop { token(yylval.string); RET(TK_DEF_OP) }
-            name { token(yylval.string); RET(TK_NAME) }
+            //name { token(yylval.string); RET(TK_NAME) }
         */
     }
 }
@@ -768,6 +778,26 @@ void lex_format(unsigned char *&cur, Location &loc,
             "'" ("''"|[^'\x00])* "'" { continue; }
             (int)? data_edit_desc { continue; }
             control_edit_desc { continue; }
+        */
+    }
+}
+
+void parse_name(unsigned char *&cur) {
+    for (;;) {
+        unsigned char *tok = cur;
+        /*!re2c
+            re2c:define:YYCURSOR = cur;
+            re2c:yyfill:enable = 0;
+            re2c:define:YYCTYPE = "unsigned char";
+
+            * {
+                Location loc;
+                token_loc(loc);
+                std::string t = token(tok, cur);
+                throw LFortran::parser_local::TokenizerError("ICE: Token '" + t
+                    + "' is not recognized in `format` statement", loc);
+            }
+            name { return; }
         */
     }
 }
