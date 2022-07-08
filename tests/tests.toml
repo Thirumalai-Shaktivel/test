@@ -1319,7 +1319,7 @@ wat = true
 filename = "../integration_tests/logical4.f90"
 asr = true
 llvm = true
-wat = true
+# wat = true
 
 [[test]]
 filename = "../integration_tests/real_dp.f90"
