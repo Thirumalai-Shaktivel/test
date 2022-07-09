@@ -1,6 +1,7 @@
 program line_continuation_03
 ! The same as line_continuation_02, but we do use & to split a token
-implicit none
+implicit&
+none
 
 ! Here are the rules for & based on the § 6.3.2.4 ("Free form statement
 ! continuation") in Fortran 2018 standard.

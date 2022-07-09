@@ -1,5 +1,6 @@
 program line_continuation_02
-implicit none
+implicit&
+    none
 
 ! Here are the rules for & based on the § 6.3.2.4 ("Free form statement
 ! continuation") in Fortran 2018 standard.
