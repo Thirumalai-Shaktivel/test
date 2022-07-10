@@ -34,13 +34,11 @@ def single_test(test, specific_test, verbose, no_llvm, update_reference):
     x86 = test.get("x86", False)
     bin_ = test.get("bin", False)
     pass_ = test.get("pass", None)
+    pass_with_llvm = test.get("pass_with_llvm", None)
     optimization_passes = ["flip_sign", "div_to_mul", "fma", "sign_from_value",
                            "inline_function_calls", "loop_unroll",
                            "dead_code_removal"]
 
-    if pass_ and (pass_ not in ["do_loops", "global_stmts"] and
-                  pass_ not in optimization_passes):
-        raise Exception(f"Unknown pass: {pass_}")
     log.debug(f"{color(style.bold)} START TEST: {color(style.reset)} {filename}")
 
     extra_args = f"--no-error-banner {show_verbose}"
@@ -149,6 +147,11 @@ def single_test(test, specific_test, verbose, no_llvm, update_reference):
             " --show-asr --no-color {infile} -o {outfile}"
         run_test(filename, "pass_{}".format(pass_), cmd,
                  filename, update_reference, extra_args)
+        if pass_with_llvm:
+                cmd = "lfortran --pass=" + pass_ + \
+                    " --show-llvm --no-color {infile} -o {outfile}"
+                run_test(filename, "pass_llvm_{}".format(pass_), cmd,
+                        filename, update_reference, extra_args)
     if llvm:
         if no_llvm:
             log.info(f"{filename} * llvm   SKIPPED as requested")

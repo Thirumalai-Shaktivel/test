@@ -1,0 +1,13 @@
+{
+    "basename": "pass_llvm_dead_code_removal-cond_02-8b07b41",
+    "cmd": "lfortran --pass=dead_code_removal --show-llvm --no-color {infile} -o {outfile}",
+    "infile": "tests/../integration_tests/cond_02.f90",
+    "infile_hash": "fc70f7e7943dfe505736cca5b8ff39a034a4a1a7f441d9bdf0a82662",
+    "outfile": null,
+    "outfile_hash": null,
+    "stdout": "pass_llvm_dead_code_removal-cond_02-8b07b41.stdout",
+    "stdout_hash": "ec9d7c1a873f171de359a272a681b471fce05262d50683e27421f9a6",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}
