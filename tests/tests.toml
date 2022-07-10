@@ -264,6 +264,7 @@ filename = "expr1.f90"
 ast = true
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
@@ -272,12 +273,14 @@ ast = true
 asr = true
 llvm = true
 obj = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
 filename = "expr3.f90"
 ast = true
 asr = true
+pass_with_llvm = true
 pass = "global_stmts"
 llvm = true
 
@@ -285,6 +288,7 @@ llvm = true
 filename = "expr4.f90"
 ast = true
 asr = true
+pass_with_llvm = true
 pass = "global_stmts"
 llvm = true
 
@@ -298,6 +302,7 @@ obj = true
 [[test]]
 filename = "expr6.f90"
 asr = true
+pass_with_llvm = true
 pass = "global_stmts"
 llvm = true
 
@@ -428,12 +433,14 @@ ast_f90 = true
 [[test]]
 filename = "../integration_tests/cond_02.f90"
 asr = true
+pass_with_llvm = true
 pass = "dead_code_removal"
 
 [[test]]
 filename = "../integration_tests/doloop_01.f90"
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "do_loops"
 
 [[test]]
@@ -497,6 +504,7 @@ filename = "global_scope1.f90"
 ast = true
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
@@ -504,6 +512,7 @@ filename = "global_scope2.f90"
 ast = true
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
@@ -511,36 +520,42 @@ filename = "global_scope3.f90"
 ast = true
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
 filename = "global_scope4.f90"
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
 filename = "global_scope5.f90"
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
 filename = "global_scope6.f90"
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
 filename = "global_scope8.f90"
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
 filename = "global_scope9.f90"
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
@@ -1627,6 +1642,7 @@ asr = true
 filename = "global_scope7.f90"
 asr = true
 llvm = true
+pass_with_llvm = true
 pass = "global_stmts"
 
 [[test]]
@@ -2023,31 +2039,37 @@ asr = true
 [[test]]
 filename = "../integration_tests/flip_sign.f90"
 asr = true
-pass = "flip_sign"
+pass_with_llvm = true
+pass = "flip_sign,do_loops"
 
 [[test]]
 filename = "../integration_tests/fma.f90"
 asr = true
+pass_with_llvm = true
 pass = "fma"
 
 [[test]]
 filename = "../integration_tests/loop_unroll_small.f90"
 asr = true
-pass = "loop_unroll"
+pass_with_llvm = true
+pass = "loop_unroll,do_loops"
 
 [[test]]
 filename = "../integration_tests/loop_unroll_large.f90"
 asr = true
+pass_with_llvm = true
 pass = "loop_unroll"
 
 [[test]]
 filename = "../integration_tests/div_to_mul.f90"
 asr = true
+pass_with_llvm = true
 pass = "div_to_mul"
 
 [[test]]
 filename = "../integration_tests/sign_from_value.f90"
 asr = true
+pass_with_llvm = true
 pass = "sign_from_value"
 
 [[test]]
