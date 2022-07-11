@@ -512,7 +512,7 @@ R"(#include <stdio.h>
             }
             args += std::to_string(ASRUtils::extract_kind_from_ttype_t(x.m_type)) + "-1";
         }
-        src = var_name + ".extent(" + args + ")";
+        src = var_name + "->data.extent(" + args + ")";
     }
 
     void visit_Assignment(const ASR::Assignment_t &x) {
@@ -588,10 +588,11 @@ R"(#include <stdio.h>
 
     void visit_ArrayItem(const ASR::ArrayItem_t &x) {
         this->visit_expr(*x.m_v);
-        std::string out = src;
+        std::string array = src;
+        std::string out = array;
         ASR::dimension_t* m_dims;
         ASRUtils::extract_dimensions_from_ttype(ASRUtils::expr_type(x.m_v), m_dims);
-        out += "[";
+        out += "->data[";
         for (size_t i=0; i<x.n_args; i++) {
             if (x.m_args[i].m_right) {
                 self().visit_expr(*x.m_args[i].m_right);
@@ -599,7 +600,7 @@ R"(#include <stdio.h>
                 src = "/* FIXME right index */";
             }
             out += src;
-            out += " - " + std::to_string(lower_bound);
+            // out += " - " + array + "->dims[" + std::to_string(i) + "].lower_bound";
             if (i < x.n_args-1) out += "][";
         }
         out += "]";
@@ -807,6 +808,9 @@ R"(#include <stdio.h>
     void visit_PointerToCPtr(const ASR::PointerToCPtr_t& x) {
         self().visit_expr(*x.m_arg);
         std::string arg_src = std::move(src);
+        if( ASRUtils::is_array(ASRUtils::expr_type(x.m_arg)) ) {
+            arg_src += "->data";
+        }
         std::string type_src = get_c_type_from_ttype_t(x.m_type);
         src = "(" + type_src + ") " + arg_src;
     }
@@ -816,6 +820,9 @@ R"(#include <stdio.h>
         std::string source_src = std::move(src);
         self().visit_expr(*x.m_ptr);
         std::string dest_src = std::move(src);
+        if( ASRUtils::is_array(ASRUtils::expr_type(x.m_ptr)) ) {
+            dest_src += "->data";
+        }
         std::string type_src = get_c_type_from_ttype_t(ASRUtils::expr_type(x.m_ptr));
         std::string indent(indentation_level*indentation_spaces, ' ');
         src = indent + dest_src + " = (" + type_src + ") " + source_src + ";\n";
