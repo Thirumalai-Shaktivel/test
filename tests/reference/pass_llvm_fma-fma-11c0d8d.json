@@ -1,0 +1,13 @@
+{
+    "basename": "pass_llvm_fma-fma-11c0d8d",
+    "cmd": "lfortran --pass=fma --show-llvm --no-color {infile} -o {outfile}",
+    "infile": "tests/../integration_tests/fma.f90",
+    "infile_hash": "59fa49468c6dcd7b7bfbb4bfab840e6ec357824e0618eed22308d5f1",
+    "outfile": null,
+    "outfile_hash": null,
+    "stdout": "pass_llvm_fma-fma-11c0d8d.stdout",
+    "stdout_hash": "2dc7c30b83640d7955e951f637748260cf2a125532279552f7c223de",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}
