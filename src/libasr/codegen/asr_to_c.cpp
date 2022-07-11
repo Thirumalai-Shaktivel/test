@@ -140,7 +140,8 @@ public:
     }
 
     std::string convert_variable_decl(const ASR::Variable_t &v,
-                                      bool pre_initialise_derived_type=true, bool use_static=true)
+                                      bool pre_initialise_derived_type=true,
+                                      bool use_static=true)
     {
         std::string sub;
         bool use_ref = (v.m_intent == LFortran::ASRUtils::intent_out ||
