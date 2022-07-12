@@ -549,7 +549,7 @@ R"(#include <stdio.h>
         std::string target;
         if (ASR::is_a<ASR::Var_t>(*x.m_target)) {
             target = LFortran::ASRUtils::EXPR2VAR(x.m_target)->m_name;
-            if( ASRUtils::is_array(ASRUtils::expr_type(x.m_target)) ) {
+            if( ASRUtils::is_array(ASRUtils::expr_type(x.m_target)) && !is_c ) {
                 target += "->data";
             }
         } else if (ASR::is_a<ASR::ArrayItem_t>(*x.m_target)) {
