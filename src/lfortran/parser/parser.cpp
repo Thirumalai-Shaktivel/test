@@ -6,6 +6,7 @@
 #include <lfortran/parser/parser.tab.hh>
 #include <libasr/diagnostics.h>
 #include <lfortran/parser/parser_exception.h>
+#include <lfortran/parser/fixedform_tokenizer.h>
 
 namespace LFortran
 {
@@ -55,26 +56,49 @@ void Parser::parse(const std::string &input)
 Result<std::vector<int>> tokens(Allocator &al, const std::string &input,
         diag::Diagnostics &diagnostics,
         std::vector<YYSTYPE> *stypes,
-        std::vector<Location> *locations)
+        std::vector<Location> *locations,
+        bool fixed_form)
 {
-    Tokenizer t;
-    t.set_string(input);
-    std::vector<int> tst;
-    int token = yytokentype::END_OF_FILE + 1; // Something different from EOF
-    while (token != yytokentype::END_OF_FILE) {
-        YYSTYPE y;
-        Location l;
-        try {
-            token = t.lex(al, y, l, diagnostics);
-        } catch (const parser_local::TokenizerError &e) {
-            diagnostics.diagnostics.push_back(e.d);
-            return Error();
+    if (fixed_form) {
+        FixedFormTokenizer t;
+        t.set_string(input);
+        t.tokenize_input();
+        std::vector<int> tst;
+        int token = yytokentype::END_OF_FILE + 1; // Something different from EOF
+        while (token != yytokentype::END_OF_FILE) {
+            YYSTYPE y;
+            Location l;
+            try {
+                token = t.lex(al, y, l, diagnostics);
+            } catch (const parser_local::TokenizerError &e) {
+                diagnostics.diagnostics.push_back(e.d);
+                return Error();
+            }
+            tst.push_back(token);
+            if (stypes) stypes->push_back(y);
+            if (locations) locations->push_back(l);
         }
-        tst.push_back(token);
-        if (stypes) stypes->push_back(y);
-        if (locations) locations->push_back(l);
+        return tst;
+    } else {
+        Tokenizer t;
+        t.set_string(input);
+        std::vector<int> tst;
+        int token = yytokentype::END_OF_FILE + 1; // Something different from EOF
+        while (token != yytokentype::END_OF_FILE) {
+            YYSTYPE y;
+            Location l;
+            try {
+                token = t.lex(al, y, l, diagnostics);
+            } catch (const parser_local::TokenizerError &e) {
+                diagnostics.diagnostics.push_back(e.d);
+                return Error();
+            }
+            tst.push_back(token);
+            if (stypes) stypes->push_back(y);
+            if (locations) locations->push_back(l);
+        }
+        return tst;
     }
-    return tst;
 }
 
 void cont1(const std::string &s, size_t &pos, bool &ws_or_comment)
@@ -190,6 +214,9 @@ void copy_rest_of_line(std::string &out, const std::string &s, size_t &pos)
             skip_rest_of_line(s, pos);
             out += '\n';
             return;
+        } else if (s[pos] == ' ') {
+            // Skip white space in a fixed-form parser
+            pos++;
         } else {
             out += s[pos];
             pos++;
