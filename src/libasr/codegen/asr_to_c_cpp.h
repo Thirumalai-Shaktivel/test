@@ -251,7 +251,11 @@ R"(#include <stdio.h>
         for (size_t i=0; i<x.n_args; i++) {
             ASR::Variable_t *arg = LFortran::ASRUtils::EXPR2VAR(x.m_args[i]);
             LFORTRAN_ASSERT(ASRUtils::is_arg_dummy(arg->m_intent));
-            func += self().convert_variable_decl(*arg, false, true);
+            if( is_c ) {
+                func += self().convert_variable_decl(*arg, false);
+            } else {
+                func += self().convert_variable_decl(*arg, false, true);
+            }
             if (i < x.n_args-1) func += ", ";
         }
         func += ")";
@@ -324,7 +328,11 @@ R"(#include <stdio.h>
         for (size_t i=0; i<x.n_args; i++) {
             ASR::Variable_t *arg = LFortran::ASRUtils::EXPR2VAR(x.m_args[i]);
             LFORTRAN_ASSERT(LFortran::ASRUtils::is_arg_dummy(arg->m_intent));
-            func += self().convert_variable_decl(*arg, false, true);
+            if( is_c ) {
+                func += self().convert_variable_decl(*arg, false);
+            } else {
+                func += self().convert_variable_decl(*arg, false, true);
+            }
             if (i < x.n_args-1) func += ", ";
         }
         func += ")";
