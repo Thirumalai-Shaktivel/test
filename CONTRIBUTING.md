@@ -1,4 +1,5 @@
-## Contributing
+Contributing
+===========
 
 We welcome contributions from anyone, even if you are new to open source. It
 might sound daunting to contribute to a compiler at first, but please do, it is

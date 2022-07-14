@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# lfortran build script for windows
+#
+# Example:
+# xonsh ./build1_win.sh
 
 bash ci/version.sh
 python grammar/asdl_cpp.py

@@ -1,4 +1,5 @@
-# LFortran Governance
+LFortran Governance
+===================
 
 ## Technical Decisions
 

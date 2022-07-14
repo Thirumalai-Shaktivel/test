@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#
+# Build lfortran using cmake
+#
+# Example:
+#
+# ./build1.sh
 
 set -e
 set -x

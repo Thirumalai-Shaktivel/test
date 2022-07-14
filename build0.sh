@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#
+# Generate files required for the build.
+#
+# Example:
+#
+# ./build0.sh
 
 set -e
 set -x
